@@ -1,6 +1,0 @@
-source;share/navx_package/hook/pythonpath.ps1
-source;share/navx_package/hook/pythonpath.dsv
-source;share/navx_package/hook/pythonpath.sh
-source;share/navx_package/hook/ament_prefix_path.ps1
-source;share/navx_package/hook/ament_prefix_path.dsv
-source;share/navx_package/hook/ament_prefix_path.sh
