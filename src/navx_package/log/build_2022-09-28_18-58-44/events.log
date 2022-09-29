@@ -1,0 +1,48 @@
+[0.000000] (-) TimerEvent: {}
+[0.000375] (navx_package) JobQueued: {'identifier': 'navx_package', 'dependencies': OrderedDict()}
+[0.000417] (navx_package) JobStarted: {'identifier': 'navx_package'}
+[0.091555] (-) TimerEvent: {}
+[0.191988] (-) TimerEvent: {}
+[0.292368] (-) TimerEvent: {}
+[0.392686] (-) TimerEvent: {}
+[0.398191] (navx_package) Command: {'cmd': ['/usr/bin/python3', 'setup.py', 'egg_info', '--egg-base', 'build/navx_package', 'build', '--build-base', '/home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build', 'install', '--prefix', '/home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package', '--record', '/home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/install.log', '--single-version-externally-managed'], 'cwd': '/home/ubuntu/LUNABOTICS-2023/src/navx_package', 'env': {'LESSOPEN': '| /usr/bin/lesspipe %s', 'USER': 'ubuntu', 'SSH_CLIENT': '192.168.64.1 52242 22', 'XDG_SESSION_TYPE': 'tty', 'SHLVL': '1', 'LD_LIBRARY_PATH': '/opt/ros/galactic/opt/yaml_cpp_vendor/lib:/opt/ros/galactic/opt/rviz_ogre_vendor/lib:/opt/ros/galactic/lib/aarch64-linux-gnu:/opt/ros/galactic/lib', 'MOTD_SHOWN': 'pam', 'HOME': '/home/ubuntu', 'OLDPWD': '/home/ubuntu/LUNABOTICS-2023/src/navx_package/navx_package', 'SSH_TTY': '/dev/pts/0', 'ROS_PYTHON_VERSION': '3', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLCON_PREFIX_PATH': '/home/ubuntu/LUNABOTICS-2023/src/navx/install:/home/ubuntu/LUNABOTICS-2023/install', 'ROS_DISTRO': 'galactic', 'LOGNAME': 'ubuntu', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'XDG_SESSION_CLASS': 'user', 'TERM': 'xterm-256color', 'XDG_SESSION_ID': '73', 'ROS_LOCALHOST_ONLY': '0', 'PATH': '/opt/ros/galactic/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin', 'XDG_RUNTIME_DIR': '/run/user/1000', 'LANG': 'en_US.UTF-8', 'LS_COLORS': 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:', 'AMENT_PREFIX_PATH': '/opt/ros/galactic', 'SHELL': '/bin/bash', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'PWD': '/home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package', 'LC_ALL': 'en_US.UTF-8', 'SSH_CONNECTION': '192.168.64.1 52242 192.168.64.5 22', 'XDG_DATA_DIRS': '/usr/local/share:/usr/share:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages:/opt/ros/galactic/lib/python3.8/site-packages', 'COLCON': '1'}, 'shell': False}
+[0.492790] (-) TimerEvent: {}
+[0.538320] (navx_package) StdoutLine: {'line': b'running egg_info\n'}
+[0.538927] (navx_package) StdoutLine: {'line': b'creating build/navx_package/navx_package.egg-info\n'}
+[0.539347] (navx_package) StdoutLine: {'line': b'writing build/navx_package/navx_package.egg-info/PKG-INFO\n'}
+[0.539734] (navx_package) StdoutLine: {'line': b'writing dependency_links to build/navx_package/navx_package.egg-info/dependency_links.txt\n'}
+[0.539881] (navx_package) StdoutLine: {'line': b'writing entry points to build/navx_package/navx_package.egg-info/entry_points.txt\n'}
+[0.540005] (navx_package) StdoutLine: {'line': b'writing requirements to build/navx_package/navx_package.egg-info/requires.txt\n'}
+[0.540205] (navx_package) StdoutLine: {'line': b'writing top-level names to build/navx_package/navx_package.egg-info/top_level.txt\n'}
+[0.541137] (navx_package) StdoutLine: {'line': b"writing manifest file 'build/navx_package/navx_package.egg-info/SOURCES.txt'\n"}
+[0.563949] (navx_package) StdoutLine: {'line': b"reading manifest file 'build/navx_package/navx_package.egg-info/SOURCES.txt'\n"}
+[0.564650] (navx_package) StdoutLine: {'line': b"writing manifest file 'build/navx_package/navx_package.egg-info/SOURCES.txt'\n"}
+[0.564833] (navx_package) StdoutLine: {'line': b'running build\n'}
+[0.564915] (navx_package) StdoutLine: {'line': b'running build_py\n'}
+[0.565128] (navx_package) StdoutLine: {'line': b'creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build\n'}
+[0.565235] (navx_package) StdoutLine: {'line': b'creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib\n'}
+[0.565319] (navx_package) StdoutLine: {'line': b'creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package\n'}
+[0.565427] (navx_package) StdoutLine: {'line': b'copying navx_package/__init__.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package\n'}
+[0.565569] (navx_package) StdoutLine: {'line': b'copying navx_package/navx_node.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package\n'}
+[0.565735] (navx_package) StdoutLine: {'line': b'running install\n'}
+[0.566339] (navx_package) StdoutLine: {'line': b'running install_lib\n'}
+[0.567046] (navx_package) StdoutLine: {'line': b'creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package\n'}
+[0.567203] (navx_package) StdoutLine: {'line': b'copying /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package/__init__.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package\n'}
+[0.567355] (navx_package) StdoutLine: {'line': b'copying /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package/navx_node.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package\n'}
+[0.567728] (navx_package) StdoutLine: {'line': b'byte-compiling /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package/__init__.py to __init__.cpython-38.pyc\n'}
+[0.568581] (navx_package) StdoutLine: {'line': b'byte-compiling /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package/navx_node.py to navx_node.cpython-38.pyc\n'}
+[0.568798] (navx_package) StdoutLine: {'line': b'running install_data\n'}
+[0.569134] (navx_package) StdoutLine: {'line': b'creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index\n'}
+[0.569230] (navx_package) StdoutLine: {'line': b'creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index/resource_index\n'}
+[0.569317] (navx_package) StdoutLine: {'line': b'creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index/resource_index/packages\n'}
+[0.569418] (navx_package) StdoutLine: {'line': b'copying resource/navx_package -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index/resource_index/packages\n'}
+[0.569557] (navx_package) StdoutLine: {'line': b'copying package.xml -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/navx_package\n'}
+[0.569667] (navx_package) StdoutLine: {'line': b'running install_egg_info\n'}
+[0.570849] (navx_package) StdoutLine: {'line': b'Copying build/navx_package/navx_package.egg-info to /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package-0.0.0-py3.8.egg-info\n'}
+[0.571559] (navx_package) StdoutLine: {'line': b'running install_scripts\n'}
+[0.583051] (navx_package) StdoutLine: {'line': b'Installing navx_node script to /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/navx_package\n'}
+[0.583554] (navx_package) StdoutLine: {'line': b"writing list of installed files to '/home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/install.log'\n"}
+[0.592898] (-) TimerEvent: {}
+[0.603150] (navx_package) CommandEnded: {'returncode': 0}
+[0.610921] (navx_package) JobEnded: {'identifier': 'navx_package', 'rc': 0}
+[0.611823] (-) EventReactorShutdown: {}

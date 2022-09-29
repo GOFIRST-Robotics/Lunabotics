@@ -1,0 +1,35 @@
+running egg_info
+creating build/navx_package/navx_package.egg-info
+writing build/navx_package/navx_package.egg-info/PKG-INFO
+writing dependency_links to build/navx_package/navx_package.egg-info/dependency_links.txt
+writing entry points to build/navx_package/navx_package.egg-info/entry_points.txt
+writing requirements to build/navx_package/navx_package.egg-info/requires.txt
+writing top-level names to build/navx_package/navx_package.egg-info/top_level.txt
+writing manifest file 'build/navx_package/navx_package.egg-info/SOURCES.txt'
+reading manifest file 'build/navx_package/navx_package.egg-info/SOURCES.txt'
+writing manifest file 'build/navx_package/navx_package.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build
+creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib
+creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package
+copying navx_package/__init__.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package
+copying navx_package/navx_node.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package
+running install
+running install_lib
+creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package
+copying /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package/__init__.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package
+copying /home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/build/lib/navx_package/navx_node.py -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package
+byte-compiling /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package/__init__.py to __init__.cpython-38.pyc
+byte-compiling /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package/navx_node.py to navx_node.cpython-38.pyc
+running install_data
+creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index
+creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index/resource_index
+creating /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index/resource_index/packages
+copying resource/navx_package -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/ament_index/resource_index/packages
+copying package.xml -> /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/share/navx_package
+running install_egg_info
+Copying build/navx_package/navx_package.egg-info to /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/python3.8/site-packages/navx_package-0.0.0-py3.8.egg-info
+running install_scripts
+Installing navx_node script to /home/ubuntu/LUNABOTICS-2023/src/navx_package/install/navx_package/lib/navx_package
+writing list of installed files to '/home/ubuntu/LUNABOTICS-2023/src/navx_package/build/navx_package/install.log'
