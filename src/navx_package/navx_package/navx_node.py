@@ -1,5 +1,7 @@
+import math
+
 def main():
-    print('Hi from navx_package.')
+    print('Hi from the navx_package! :)')
 
 
 if __name__ == '__main__':
