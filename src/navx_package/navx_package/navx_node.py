@@ -1,9 +1,11 @@
+# Import necessary modules
 import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import String
 
 
+# Create a basic publisher class
 class DataPublisher(Node):
 
     def __init__(self):
@@ -16,12 +18,13 @@ class DataPublisher(Node):
 
     def timer_callback(self):
         msg = String()
-        msg.data = f'Hello World: {self.counter}'
+        msg.data = f'NavX Data: {self.counter}'
         self.publisher_.publish(msg)
         self.get_logger().info(f'Publishing: {msg.data}')
         self.counter += 1
 
 
+# Print a 'Hello World' message and initialize the publisher
 def main(args=None):
     print('Hi from the navx_package! :)')
     rclpy.init(args=args)
@@ -34,5 +37,6 @@ def main(args=None):
     rclpy.shutdown()
 
 
+# Prevents unwanted side effects from occuring if this is imported as a module
 if __name__ == '__main__':
     main()
