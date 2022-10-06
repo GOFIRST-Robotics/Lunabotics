@@ -4,7 +4,7 @@ package_name = 'navx_package'
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='0.0.2',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -15,7 +15,7 @@ setup(
     zip_safe=True,
     maintainer='ubuntu',
     maintainer_email='anthonybrog@gmail.com',
-    description='TODO: Package description',
+    description='Package for the navx gyroscope',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
