@@ -9,16 +9,18 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "boost/array.hpp"
+#include "sensor_msgs/msg/imu.hpp"
+#include "geometry_msgs/msg/point.hpp"
 
 // Custom Libraries
 #include "ahrs/AHRS.h"
 
 // ROS Parameters
-double frequency;
-bool euler_enable;
-std::string device_path;
-std::string frame_id;
-int covar_samples;
+double frequency = 50.0;
+bool euler_enable = false;
+std::string device_path = "/dev/ttyACM0";
+std::string frame_id = "imu_link";
+int covar_samples = 100;
 
 // Custom Data Structure
 typedef struct {
@@ -28,7 +30,7 @@ typedef struct {
 } OrientationEntry;
 
 // Global Variables
-AHRS* com;
+AHRS* imu;
 int seq = 0;
 std::vector<OrientationEntry> orientationHistory;
 static const float DEG_TO_RAD = M_PI / 180.0F;
@@ -65,8 +67,17 @@ private:
 
 int main(int argc, char * argv[])
 {
+  // Initialize ROS
   rclcpp::init(argc, argv);
+
+  // Initialize the NavX IMU
+  //imu = new AHRS(device_path); // TODO make this work
+  orientationHistory.resize(covar_samples);
+
+  // Spin the node
   rclcpp::spin(std::make_shared<MinimalPublisher>());
+
+  // Free up any resources being used by the node
   rclcpp::shutdown();
   return 0;
 }
