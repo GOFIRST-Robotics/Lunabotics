@@ -48,7 +48,7 @@ public:
   MinimalPublisher()
   : Node("minimal_publisher")
   {
-    publisher_ = this->create_publisher<std_msgs::msg::String>("NavX", 10);
+    publisher_ = this->create_publisher<geometry_msgs::msg::Point>("imu/euler", 10);
     timer_ = this->create_wall_timer(
       500ms, std::bind(&MinimalPublisher::timer_callback, this));
   }
@@ -70,13 +70,42 @@ private:
 
     orientationHistory[seq % covar_samples] = curOrientation;
 
-    auto message = std_msgs::msg::String();
-    message.data = "NavX Data: " + std::to_string(curOrientation.ypr[0]);
-    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
-    publisher_->publish(message);
+    auto imu_msg = sensor_msgs::msg::Imu();
+    //imu_msg.header.stamp = ros::Time::now(); // TODO: Fix this?
+    //imu_msg.header.seq = seq++; // TODO: Fix this?
+    imu_msg.header.frame_id = frame_id;
+    
+    imu_msg.orientation.x = imu->GetQuaternionX();
+    imu_msg.orientation.y = imu->GetQuaternionY();
+    imu_msg.orientation.z = imu->GetQuaternionZ();
+    imu_msg.orientation.w = imu->GetQuaternionW();
+    
+    imu_msg.angular_velocity.x = curOrientation.ang_vel[0];
+    imu_msg.angular_velocity.y = curOrientation.ang_vel[1];
+    imu_msg.angular_velocity.z = curOrientation.ang_vel[2];
+    
+    imu_msg.linear_acceleration.x = curOrientation.accel[0];
+    imu_msg.linear_acceleration.y = curOrientation.accel[1];
+    imu_msg.linear_acceleration.z = curOrientation.accel[2];
+
+    /* if (calculate_covariance(imu_msg.orientation_covariance, 
+                           imu_msg.angular_velocity_covariance, 
+                           imu_msg.linear_acceleration_covariance)) {
+      // Only publish a message if we have a valid covariance
+      imu_pub.publish(imu_msg);
+    } */
+
+    if (euler_enable) {
+      // Publish Euler message
+      auto euler_msg = geometry_msgs::msg::Point();
+      euler_msg.x = imu->GetRoll();
+      euler_msg.y = imu->GetPitch();
+      euler_msg.z = imu->GetYaw();
+      publisher_->publish(euler_msg);
+    } 
   }
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+  rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
 };
 
 int main(int argc, char * argv[])
@@ -85,7 +114,7 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
 
   // Initialize the NavX IMU
-  imu = new AHRS(device_path); // TODO make this work
+  imu = new AHRS(device_path);
   orientationHistory.resize(covar_samples);
 
   // Spin the node
