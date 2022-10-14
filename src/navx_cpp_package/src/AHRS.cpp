@@ -16,9 +16,13 @@
 #include "ahrs/IIOCompleteNotification.h"
 #include "ahrs/IBoardCapabilities.h"
 #include "ahrs/InertialDataIntegrator.h"
+#include "InertialDataIntegrator.cpp"
 #include "ahrs/OffsetTracker.h"
+#include "OffsetTracker.cpp"
 #include "ahrs/ContinuousAngleTracker.h"
+#include "ContinuousAngleTracker.cpp"
 #include "ahrs/SerialIO.h"
+#include "SerialIO.cpp"
 
 static const uint8_t    NAVX_DEFAULT_UPDATE_RATE_HZ         = 60;
 static const int        YAW_HISTORY_LENGTH                  = 10;

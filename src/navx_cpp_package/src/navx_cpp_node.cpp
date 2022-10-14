@@ -14,6 +14,7 @@
 
 // Custom Libraries
 #include "ahrs/AHRS.h"
+#include "AHRS.cpp"
 
 // ROS Parameters
 double frequency = 50.0;
@@ -45,9 +46,9 @@ class MinimalPublisher : public rclcpp::Node
 {
 public:
   MinimalPublisher()
-  : Node("minimal_publisher"), count_(0)
+  : Node("minimal_publisher")
   {
-    publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
+    publisher_ = this->create_publisher<std_msgs::msg::String>("NavX", 10);
     timer_ = this->create_wall_timer(
       500ms, std::bind(&MinimalPublisher::timer_callback, this));
   }
@@ -55,14 +56,27 @@ public:
 private:
   void timer_callback()
   {
+    // Calculate orientation
+    OrientationEntry curOrientation;
+    curOrientation.ypr[0] = imu->GetRoll() * DEG_TO_RAD;
+    curOrientation.ypr[1] = imu->GetPitch() * DEG_TO_RAD;
+    curOrientation.ypr[2] = imu->GetYaw() * DEG_TO_RAD;
+    curOrientation.ang_vel[0] = imu->GetRollRate() * DEG_TO_RAD;
+    curOrientation.ang_vel[1] = imu->GetPitchRate() * DEG_TO_RAD;
+    curOrientation.ang_vel[2] = imu->GetYawRate() * DEG_TO_RAD;
+    curOrientation.accel[0] = imu->GetWorldLinearAccelX() * GRAVITY;
+    curOrientation.accel[1] = imu->GetWorldLinearAccelY() * GRAVITY;
+    curOrientation.accel[2] = imu->GetWorldLinearAccelZ() * GRAVITY;
+
+    orientationHistory[seq % covar_samples] = curOrientation;
+
     auto message = std_msgs::msg::String();
-    message.data = "NavX Data: " + std::to_string(count_++);
+    message.data = "NavX Data: " + std::to_string(curOrientation.ypr[0]);
     RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
     publisher_->publish(message);
   }
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-  size_t count_;
 };
 
 int main(int argc, char * argv[])
@@ -71,7 +85,7 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
 
   // Initialize the NavX IMU
-  //imu = new AHRS(device_path); // TODO make this work
+  imu = new AHRS(device_path); // TODO make this work
   orientationHistory.resize(covar_samples);
 
   // Spin the node

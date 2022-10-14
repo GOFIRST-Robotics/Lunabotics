@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <string>
 #include <ahrs/SerialIO.h>
+#include <ahrs/SerialPort.h>
+#include "SerialPort.cpp"
 
 static const double IO_TIMEOUT_SECONDS = 1.0;
 
