@@ -13,6 +13,30 @@
 // Custom Libraries
 #include "ahrs/AHRS.h"
 
+// ROS Parameters
+double frequency;
+bool euler_enable;
+std::string device_path;
+std::string frame_id;
+int covar_samples;
+
+// Custom Data Structure
+typedef struct {
+  float ypr[3];
+  float ang_vel[3];
+  float accel[3];
+} OrientationEntry;
+
+// Global Variables
+AHRS* com;
+int seq = 0;
+std::vector<OrientationEntry> orientationHistory;
+static const float DEG_TO_RAD = M_PI / 180.0F;
+static const float GRAVITY = 9.81F; // m/s^2, if we actually go to the moon remember to change this
+bool calculate_covariance(boost::array<double, 9> &orientation_mat, 
+                          boost::array<double, 9> &ang_vel_mat, 
+                          boost::array<double, 9> &accel_mat);
+
 using namespace std::chrono_literals;
 
 class MinimalPublisher : public rclcpp::Node
@@ -45,4 +69,52 @@ int main(int argc, char * argv[])
   rclcpp::spin(std::make_shared<MinimalPublisher>());
   rclcpp::shutdown();
   return 0;
+}
+
+/**
+ * Calculates the covariance matrices based on the orientation history and stores the results in the provided arrays
+ * Returns true if the returned covariance is valid, otherwise false
+ */
+bool calculate_covariance(boost::array<double, 9> &orientation_mat, 
+                          boost::array<double, 9> &ang_vel_mat, 
+                          boost::array<double, 9> &accel_mat) {
+  int count = std::min(seq-1, covar_samples);
+  if (count < 2) {
+    return false; // Did not calculate covariance
+  }
+  OrientationEntry avg = {};
+  // Calculate averages
+  for (int i = 0; i < count; i++) {
+    for (int j = 0; j < 3; j++) {
+      avg.ypr[j] += orientationHistory[i].ypr[j];
+      avg.ang_vel[j] += orientationHistory[i].ang_vel[j];
+      avg.accel[j] += orientationHistory[i].accel[j];
+    }
+  }
+  for (int j = 0; j < 3; j++) {
+    avg.ypr[j] /= count;
+    avg.ang_vel[j] /= count;
+    avg.accel[j] /= count;
+  }
+  // Calculate covariance
+  // See https://en.wikipedia.org/wiki/Covariance#Calculating_the_sample_covariance
+  for (int x = 0; x < 3; x++) {
+    for (int y = 0; y < 3; y++) {
+      int idx = 3*x + y;
+      orientation_mat[idx] = 0;
+      ang_vel_mat[idx] = 0;
+      accel_mat[idx] = 0;
+      // Average mean error difference
+      for (int i = 0; i < count; i++) {
+        orientation_mat[idx] += (orientationHistory[i].ypr[x] - avg.ypr[x]) * (orientationHistory[i].ypr[y] - avg.ypr[y]);
+        ang_vel_mat[idx] += (orientationHistory[i].ang_vel[x] - avg.ang_vel[x]) * (orientationHistory[i].ang_vel[y] - avg.ang_vel[y]);
+        accel_mat[idx] += (orientationHistory[i].accel[x] - avg.accel[x]) * (orientationHistory[i].accel[y] - avg.accel[y]);
+      }
+      // Normalize
+      orientation_mat[idx] /= count - 1;
+      ang_vel_mat[idx] /= count - 1;
+      accel_mat[idx] /= count - 1;
+    }
+  }
+  return true;
 }
