@@ -1,9 +1,31 @@
+/*
+ * navx_cpp_node.cpp
+ * Runs the Kauai Labs NavX IMU, using a modified NavX library
+ * VERSION: 1.1.2
+ * Last changed: 10/15/2022
+ * Author: Jude Sauve <sauve031@umn.edu>
+ * Maintainer: Anthony Brogni <brogn002@umn.edu>
+ * MIT License
+ * Copyright (c) 2019 UMN Robotics
+ */
+
+/* 
+ * Interface: 
+ *  Publishers: 
+ *   imu_pub (sensor_msgs/msg/Imu): "imu/data"
+ *   euler_pub (geometry_msgs/msg/Point): "imu/euler"
+ * Parameters: 
+ *   frequency (double) 50.0; The frequency of the read loop
+ *   euler_pub (bool) false; Whether to publish euler orientation
+ *   device_path (string) /dev/ttyACM0; The device serial port path
+ *   frame_id (string) imu_link; The Imu message header frame ID
+ *   covar_samples (int) 100; The number of samples to store to calculate covariance
+ */
+
 // Native Libraries
 #include <string>
 #include <cmath>
 #include <chrono>
-#include <functional>
-#include <memory>
 
 // ROS Libraries
 #include "rclcpp/rclcpp.hpp"
