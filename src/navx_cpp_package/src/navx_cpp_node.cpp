@@ -1,7 +1,7 @@
 /*
  * navx_cpp_node.cpp
  * Runs the Kauai Labs NavX IMU, using a modified NavX library
- * VERSION: 1.1.2
+ * VERSION: 1.1.3
  * Last changed: 10/15/2022
  * Author: Jude Sauve <sauve031@umn.edu>
  * Maintainer: Anthony Brogni <brogn002@umn.edu>
@@ -30,7 +30,6 @@
 // ROS Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
-#include "boost/array.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "geometry_msgs/msg/point.hpp"
 
@@ -58,9 +57,54 @@ int seq = 0;
 std::vector<OrientationEntry> orientationHistory;
 static const float DEG_TO_RAD = M_PI / 180.0F; // Conversion Constant
 static const float GRAVITY = 9.81F; // measured in m/s^2. If we actually go to the moon, remember to change this :)
-bool calculate_covariance(boost::array<double, 9> &orientation_mat, 
-                          boost::array<double, 9> &ang_vel_mat, 
-                          boost::array<double, 9> &accel_mat);
+
+/**
+ * Calculates the covariance matrices based on the orientation history and stores the results in the provided arrays
+ * Returns true if the returned covariance is valid, otherwise false
+ */
+bool calculate_covariance(std::array<double, 9> &orientation_mat, 
+                          std::array<double, 9> &ang_vel_mat, 
+                          std::array<double, 9> &accel_mat) {
+  int count = std::min(seq-1, covar_samples);
+  if (count < 2) {
+    return false; // Did not calculate covariance
+  }
+  OrientationEntry avg = {};
+  // Calculate averages
+  for (int i = 0; i < count; i++) {
+    for (int j = 0; j < 3; j++) {
+      avg.ypr[j] += orientationHistory[i].ypr[j];
+      avg.ang_vel[j] += orientationHistory[i].ang_vel[j];
+      avg.accel[j] += orientationHistory[i].accel[j];
+    }
+  }
+  for (int j = 0; j < 3; j++) {
+    avg.ypr[j] /= count;
+    avg.ang_vel[j] /= count;
+    avg.accel[j] /= count;
+  }
+  // Calculate covariance
+  // See https://en.wikipedia.org/wiki/Covariance#Calculating_the_sample_covariance
+  for (int x = 0; x < 3; x++) {
+    for (int y = 0; y < 3; y++) {
+      int idx = 3*x + y;
+      orientation_mat[idx] = 0;
+      ang_vel_mat[idx] = 0;
+      accel_mat[idx] = 0;
+      // Average mean error difference
+      for (int i = 0; i < count; i++) {
+        orientation_mat[idx] += (orientationHistory[i].ypr[x] - avg.ypr[x]) * (orientationHistory[i].ypr[y] - avg.ypr[y]);
+        ang_vel_mat[idx] += (orientationHistory[i].ang_vel[x] - avg.ang_vel[x]) * (orientationHistory[i].ang_vel[y] - avg.ang_vel[y]);
+        accel_mat[idx] += (orientationHistory[i].accel[x] - avg.accel[x]) * (orientationHistory[i].accel[y] - avg.accel[y]);
+      }
+      // Normalize
+      orientation_mat[idx] /= count - 1;
+      ang_vel_mat[idx] /= count - 1;
+      accel_mat[idx] /= count - 1;
+    }
+  }
+  return true;
+}
 
 using namespace std::chrono_literals;
 
@@ -110,15 +154,13 @@ private:
     imu_msg.linear_acceleration.y = curOrientation.accel[1];
     imu_msg.linear_acceleration.z = curOrientation.accel[2];
 
-    /* if (calculate_covariance(imu_msg.orientation_covariance, 
-                           imu_msg.angular_velocity_covariance, 
-                           imu_msg.linear_acceleration_covariance)) {
+    if (calculate_covariance(imu_msg.orientation_covariance, 
+                            imu_msg.angular_velocity_covariance, 
+                            imu_msg.linear_acceleration_covariance)) {
       // Only publish a message if we have a valid covariance
-      imu_pub.publish(imu_msg);
-    } */
-
-    imu_pub->publish(imu_msg); // Publish the message
-    RCLCPP_INFO(this->get_logger(), "Publishing an imu_message"); // Print to the terminal
+      imu_pub->publish(imu_msg);
+      RCLCPP_INFO(this->get_logger(), "Publishing an imu_message"); // Print to the terminal
+    }
 
     if (euler_enable) {
       auto euler_msg = geometry_msgs::msg::Point();
@@ -151,52 +193,4 @@ int main(int argc, char * argv[])
   // Free up any resources being used by the node
   rclcpp::shutdown();
   return 0;
-}
-
-/**
- * Calculates the covariance matrices based on the orientation history and stores the results in the provided arrays
- * Returns true if the returned covariance is valid, otherwise false
- */
-bool calculate_covariance(boost::array<double, 9> &orientation_mat, 
-                          boost::array<double, 9> &ang_vel_mat, 
-                          boost::array<double, 9> &accel_mat) {
-  int count = std::min(seq-1, covar_samples);
-  if (count < 2) {
-    return false; // Did not calculate covariance
-  }
-  OrientationEntry avg = {};
-  // Calculate averages
-  for (int i = 0; i < count; i++) {
-    for (int j = 0; j < 3; j++) {
-      avg.ypr[j] += orientationHistory[i].ypr[j];
-      avg.ang_vel[j] += orientationHistory[i].ang_vel[j];
-      avg.accel[j] += orientationHistory[i].accel[j];
-    }
-  }
-  for (int j = 0; j < 3; j++) {
-    avg.ypr[j] /= count;
-    avg.ang_vel[j] /= count;
-    avg.accel[j] /= count;
-  }
-  // Calculate covariance
-  // See https://en.wikipedia.org/wiki/Covariance#Calculating_the_sample_covariance
-  for (int x = 0; x < 3; x++) {
-    for (int y = 0; y < 3; y++) {
-      int idx = 3*x + y;
-      orientation_mat[idx] = 0;
-      ang_vel_mat[idx] = 0;
-      accel_mat[idx] = 0;
-      // Average mean error difference
-      for (int i = 0; i < count; i++) {
-        orientation_mat[idx] += (orientationHistory[i].ypr[x] - avg.ypr[x]) * (orientationHistory[i].ypr[y] - avg.ypr[y]);
-        ang_vel_mat[idx] += (orientationHistory[i].ang_vel[x] - avg.ang_vel[x]) * (orientationHistory[i].ang_vel[y] - avg.ang_vel[y]);
-        accel_mat[idx] += (orientationHistory[i].accel[x] - avg.accel[x]) * (orientationHistory[i].accel[y] - avg.accel[y]);
-      }
-      // Normalize
-      orientation_mat[idx] /= count - 1;
-      ang_vel_mat[idx] /= count - 1;
-      accel_mat[idx] /= count - 1;
-    }
-  }
-  return true;
 }
