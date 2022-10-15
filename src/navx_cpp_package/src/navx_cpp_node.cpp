@@ -16,7 +16,7 @@
  *   euler_pub (geometry_msgs/msg/Point): "imu/euler"
  * Parameters: 
  *   frequency (double) 50.0; The frequency of the read loop
- *   euler_pub (bool) false; Whether to publish euler orientation
+ *   euler_enable (bool) false; Whether to publish euler orientation
  *   device_path (string) /dev/ttyACM0; The device serial port path
  *   frame_id (string) imu_link; The Imu message header frame ID
  *   covar_samples (int) 100; The number of samples to store to calculate covariance
@@ -53,26 +53,26 @@ typedef struct {
 } OrientationEntry;
 
 // Global Variables
-AHRS* imu;
+AHRS* imu; // Instantiate an AHRS object
 int seq = 0;
 std::vector<OrientationEntry> orientationHistory;
-static const float DEG_TO_RAD = M_PI / 180.0F;
-static const float GRAVITY = 9.81F; // m/s^2, if we actually go to the moon remember to change this
+static const float DEG_TO_RAD = M_PI / 180.0F; // Conversion Constant
+static const float GRAVITY = 9.81F; // measured in m/s^2. If we actually go to the moon, remember to change this :)
 bool calculate_covariance(boost::array<double, 9> &orientation_mat, 
                           boost::array<double, 9> &ang_vel_mat, 
                           boost::array<double, 9> &accel_mat);
 
 using namespace std::chrono_literals;
 
-class MinimalPublisher : public rclcpp::Node
+class DataPublisher : public rclcpp::Node
 {
 public:
-  MinimalPublisher()
-  : Node("minimal_publisher")
+  DataPublisher()
+  : Node("data_publisher")
   {
-    publisher_ = this->create_publisher<geometry_msgs::msg::Point>("imu/euler", 10);
-    timer_ = this->create_wall_timer(
-      500ms, std::bind(&MinimalPublisher::timer_callback, this));
+    euler_pub = this->create_publisher<geometry_msgs::msg::Point>("imu/euler", 10);
+    imu_pub = this->create_publisher<sensor_msgs::msg::Imu>("imu/data", 10);
+    timer = this->create_wall_timer(500ms, std::bind(&DataPublisher::timer_callback, this));
   }
 
 private:
@@ -93,9 +93,9 @@ private:
     orientationHistory[seq % covar_samples] = curOrientation;
 
     auto imu_msg = sensor_msgs::msg::Imu();
-    //imu_msg.header.stamp = ros::Time::now(); // TODO: Fix this?
-    //imu_msg.header.seq = seq++; // TODO: Fix this?
+    imu_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
     imu_msg.header.frame_id = frame_id;
+    seq++;
     
     imu_msg.orientation.x = imu->GetQuaternionX();
     imu_msg.orientation.y = imu->GetQuaternionY();
@@ -117,17 +117,23 @@ private:
       imu_pub.publish(imu_msg);
     } */
 
+    imu_pub->publish(imu_msg); // Publish the message
+    RCLCPP_INFO(this->get_logger(), "Publishing an imu_message"); // Print to the terminal
+
     if (euler_enable) {
-      // Publish Euler message
       auto euler_msg = geometry_msgs::msg::Point();
+
       euler_msg.x = imu->GetRoll();
       euler_msg.y = imu->GetPitch();
       euler_msg.z = imu->GetYaw();
-      publisher_->publish(euler_msg);
+
+      euler_pub->publish(euler_msg); // Publish the message
+      RCLCPP_INFO(this->get_logger(), "Publishing an euler_message"); // Print to the terminal
     } 
   }
-  rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr publisher_;
+  rclcpp::TimerBase::SharedPtr timer;
+  rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr euler_pub;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub;
 };
 
 int main(int argc, char * argv[])
@@ -140,7 +146,7 @@ int main(int argc, char * argv[])
   orientationHistory.resize(covar_samples);
 
   // Spin the node
-  rclcpp::spin(std::make_shared<MinimalPublisher>());
+  rclcpp::spin(std::make_shared<DataPublisher>());
 
   // Free up any resources being used by the node
   rclcpp::shutdown();
