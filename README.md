@@ -1,2 +1,2 @@
 # LUNABOTICS-2023
-The NASA RMC 20203 repository for LUNABOTCIS team. a segment of University of Minnesota Robotics 
+The NASA RMC 2023 repository for LUNABOTICS team, a segment of University of Minnesota Robotics.
