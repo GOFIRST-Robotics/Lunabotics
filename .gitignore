@@ -30,6 +30,7 @@ install/
 # eclipse stuff
 .project
 .cproject
+.vscode
 
 # qcreator stuff
 CMakeLists.txt.user
