@@ -16,7 +16,7 @@ add_executable(navx_cpp_node src/navx_cpp_node.cpp)
 ament_target_dependencies(navx_cpp_node rclcpp std_msgs sensor_msgs geometry_msgs)
 
 add_executable(navx_subscriber src/navx_subscriber.cpp)
-ament_target_dependencies(navx_subscriber rclcpp std_msgs sensor_msgs)
+ament_target_dependencies(navx_subscriber rclcpp std_msgs sensor_msgs geometry_msgs)
 
 target_include_directories(navx_cpp_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

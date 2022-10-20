@@ -8,29 +8,29 @@
 
 using std::placeholders::_1;
 
-class MinimalSubscriber : public rclcpp::Node
+class Subscriber : public rclcpp::Node
 {
   public:
-    MinimalSubscriber()
-    : Node("minimal_subscriber")
+    Subscriber()
+    : Node("subscriber")
     {
-      subscription_ = this->create_subscription<std_msgs::msg::String>(
-      "topic", 10, std::bind(&MinimalSubscriber::topic_callback, this, _1));
+      subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
+      "imu/data", 10, std::bind(&Subscriber::topic_callback, this, _1));
     }
 
   private:
-    void topic_callback(const std_msgs::msg::String & msg) const
+    void topic_callback(const sensor_msgs::msg::Imu & msg) const
     {
-      RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
+      RCLCPP_INFO(this->get_logger(), "Recieving NavX Orientation: (%f, %f, %f)", msg.orientation.x, msg.orientation.y, msg.orientation.z);
     }
-    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subscription_;
 };
 
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  rclcpp::spin(std::make_shared<MinimalSubscriber>());
+  rclcpp::spin(std::make_shared<Subscriber>());
   rclcpp::shutdown();
 
   return 0;
