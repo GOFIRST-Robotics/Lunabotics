@@ -7,7 +7,6 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
-
 from geometry_msgs.msg import Vector3
 
 # Define our robot's initial state
@@ -16,31 +15,7 @@ current_state = 'Emergency Stop'
 # Define how fast we should drive forward while auto digging
 dig_speed = 1.0
 
-class DS_Subscriber(Node):
-
-    def __init__(self):
-        super().__init__('ds_subscriber')
-        self.subscription = self.create_subscription(String, 'robot_command', self.listener_callback, 10)
-        self.subscription  # prevent unused variable warning
-
-    def listener_callback(self, msg):
-        self.get_logger().info('I heard: "%s"' % msg.data)
-        
-        # Switch our current state if a new state has been requested
-        if msg.data == 'Teleop Drive':
-            current_state = 'Teleop Drive'
-        elif msg.data == 'Auto Drive':
-            current_state = 'Auto Drive'
-        elif msg.data == 'Auto Dig':
-            current_state = 'Auto Dig'
-        elif msg.data == 'Emergency Stop':
-            current_state = 'Emergency Stop'
-
-        # Log the robot's current state
-        self.get_logger().info('Current State: "%s"' % current_state)
-
-
-class Publishers(Node):
+class PublishersAndSubscribers(Node):
 
     def __init__(self):
         super().__init__('publisher')
@@ -54,6 +29,9 @@ class Publishers(Node):
         self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         velocity_timer_period = 0.5  # how often to publish measured in seconds
         self.velocity_timer = self.create_timer(velocity_timer_period, self.velocity_timer_callback)
+
+        # Robot Command Subscriber
+        self.command_subscription = self.create_subscription(String, 'robot_command', self.command_callback, 10)
 
     def actuators_timer_callback(self):
         msg = String()
@@ -88,17 +66,34 @@ class Publishers(Node):
         self.get_logger().info(f'Publishing Angular Speed: {msg.angular.x}, Linear Speed: {msg.linear.x}')
 
 
+    def command_callback(self, msg):
+        self.get_logger().info('I heard: "%s"' % msg.data)
+        
+        # Switch our current state if a new state has been requested
+        if msg.data == 'Teleop Drive':
+            current_state = 'Teleop Drive'
+        elif msg.data == 'Auto Drive':
+            current_state = 'Auto Drive'
+        elif msg.data == 'Auto Dig':
+            current_state = 'Auto Dig'
+        elif msg.data == 'Emergency Stop':
+            current_state = 'Emergency Stop'
+
+        # Log the robot's current state
+        self.get_logger().info('Current State: "%s"' % current_state)
+
+
 def main(args=None):
     rclpy.init(args=args)
 
     print('Hello from the rovr_control package!')
     print('Initial State:', current_state)
 
-    publishers = Publishers()
+    node = PublishersAndSubscribers()
 
-    rclpy.spin(publishers)
+    rclpy.spin(node)
 
-    publishers.destroy_node()
+    node.destroy_node()
     rclpy.shutdown()
 
 
