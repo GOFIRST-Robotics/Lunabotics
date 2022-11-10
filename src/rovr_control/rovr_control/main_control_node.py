@@ -16,6 +16,15 @@ current_state = states['Teleop Drive']
 # Define how fast we should drive forward while auto digging
 dig_speed = 1.0
 
+# Define our autonomous goal position
+goal_x_absolute = 2 # Meters
+goal_y_absolute = 2 # Meters
+goal_orientation = 90 # Degrees
+
+# Initialize variables to keep track of joystick input
+joystick_input_linear = 0.0
+joystick_input_angular = 0.0
+
 class PublishersAndSubscribers(Node):
 
     def __init__(self):
@@ -52,25 +61,33 @@ class PublishersAndSubscribers(Node):
             msg.data = 'STOP_ALL_ACTUATORS'
             self.actuators_publisher.publish(msg)
             self.get_logger().info('Publishing: "%s"' % msg.data)
+        elif current_state == states['Auto Drive']:
+            msg.data = 'DIGGER_OFF'
+            self.actuators_publisher.publish(msg)
+            self.get_logger().info('Publishing: "%s"' % msg.data)
+        elif current_state == states['Teleop Drive']:
+            msg.data = 'DIGGER_OFF'
+            self.actuators_publisher.publish(msg)
+            self.get_logger().info('Publishing: "%s"' % msg.data)
 
     def velocity_timer_callback(self):
         msg = Twist()
 
+        global joystick_input_linear
+        global joystick_input_angular
+
         # Default to 0 speed for everything
-        msg.angular.x = 0.0
+        msg.angular.x = 0.0 # I've defined this to be the axis we use
         msg.angular.y = 0.0
         msg.angular.z = 0.0
         # Default to 0 speed for everything
-        msg.linear.x = 0.0
+        msg.linear.x = 0.0 # I've defined this to be forward/backward
         msg.linear.y = 0.0
         msg.linear.z = 0.0
 
         if current_state == states['Teleop Drive']:
-            pass
-            # TODO: Read desired speeds from joystick input
-        elif current_state == states['Auto Drive']:
-            pass
-            # TODO: Calculate driving speeds... somehow... lol
+            msg.linear.x = joystick_input_linear  # I've defined this to be the axis we use
+            msg.angular.x = joystick_input_angular # I've defined this to be forward
         elif current_state == states['Auto Dig']:
             msg.linear.x = dig_speed 
         self.velocity_publisher.publish(msg)
@@ -83,27 +100,37 @@ class PublishersAndSubscribers(Node):
         if current_state == states['Auto Drive']:
             msg = PoseStamped()
 
-            msg.pose.position.x = 0.0 # TODO: How do we calculate this???
-            msg.pose.position.y = 0.0 # TODO: How do we calculate this???
-            msg.pose.position.z = 0.0 # TODO: How do we calculate this???
+            msg.pose.position.x = goal_x_absolute # Meters
+            msg.pose.position.y = goal_y_absolute # Meters
+            msg.pose.position.z = 0.0 # We can't move in this axis lol, the robot can't fly
 
-            msg.pose.orientation.x = 0.0 # TODO: How do we calculate this???
-            msg.pose.orientation.y = 0.0 # TODO: How do we calculate this???
-            msg.pose.orientation.z = 0.0 # TODO: How do we calculate this???
+            msg.pose.orientation.x = goal_orientation # Degrees
+            msg.pose.orientation.y = 0.0 # We can't move in this axis
+            msg.pose.orientation.z = 0.0 # We can't move in this axis
         
             self.goal_publisher.publish(msg)
             self.get_logger().info(f'Publishing Position: {msg.pose.position}, Orientation: {msg.pose.orientation}')
 
 
+    # NOTE: The command message should be a String formatted like "<(int)state>, <(double)jopystick_input_linear>, <(double)joystick_input_angular>"
     def command_callback(self, msg):
-        self.get_logger().info('I heard: "%s"' % msg.data)
+        self.get_logger().info('I received this message: "%i"' % msg.data)
+
+        global joystick_input_linear
+        global joystick_input_angular
+
+        # Split the message into the useful parts
+        message_parts = msg.data.split(", ")
+        requested_state = message_parts[0]
+        joystick_input_linear = message_parts[1]
+        joystick_input_angular = message_parts[2]
         
         # Switch our current state if a new (valid) state has been requested
-        if 0 <= msg.data <= len(states) - 1:
-            current_state = msg.data
+        if 0 <= requested_state <= len(states) - 1:
+            current_state = requested_state
 
         # Log the robot's current state
-        self.get_logger().info('Current State: "%s"' % current_state)
+        self.get_logger().info('Current State is set to: "%i"' % current_state)
 
     
     def ekf_callback(self, msg):
