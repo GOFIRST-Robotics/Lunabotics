@@ -8,8 +8,10 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
+# Define the possible states that our robot can be in
+states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3}
 # Define our robot's initial state
-current_state = 'Auto Drive'
+current_state = states['Teleop Drive']
 
 # Define how fast we should drive forward while auto digging
 dig_speed = 1.0
@@ -42,11 +44,11 @@ class PublishersAndSubscribers(Node):
     def actuators_timer_callback(self):
         msg = String()
 
-        if current_state == 'Auto Dig':
+        if current_state == states['Auto Dig']:
             msg.data = 'DIGGER_ON'
             self.actuators_publisher.publish(msg)
             self.get_logger().info('Publishing: "%s"' % msg.data)
-        elif current_state == 'Emergency Stop':
+        elif current_state == states['Emergency Stop']:
             msg.data = 'STOP_ALL_ACTUATORS'
             self.actuators_publisher.publish(msg)
             self.get_logger().info('Publishing: "%s"' % msg.data)
@@ -63,13 +65,13 @@ class PublishersAndSubscribers(Node):
         msg.linear.y = 0.0
         msg.linear.z = 0.0
 
-        if current_state == 'Teleop Drive':
+        if current_state == states['Teleop Drive']:
             pass
             # TODO: Read desired speeds from joystick input
-        elif current_state == 'Auto Drive':
+        elif current_state == states['Auto Drive']:
             pass
             # TODO: Calculate driving speeds... somehow... lol
-        elif current_state == 'Auto Dig':
+        elif current_state == states['Auto Dig']:
             msg.linear.x = dig_speed 
         self.velocity_publisher.publish(msg)
         self.get_logger().info(f'Publishing Angular Speed: {msg.angular.x}, Linear Speed: {msg.linear.x}')
@@ -78,7 +80,7 @@ class PublishersAndSubscribers(Node):
     def goal_timer_callback(self):
 
         # We only need to publish a goal if we are currently autonomous
-        if current_state == 'Auto Drive':
+        if current_state == states['Auto Drive']:
             msg = PoseStamped()
 
             msg.pose.position.x = 0.0 # TODO: How do we calculate this???
@@ -96,15 +98,9 @@ class PublishersAndSubscribers(Node):
     def command_callback(self, msg):
         self.get_logger().info('I heard: "%s"' % msg.data)
         
-        # Switch our current state if a new state has been requested
-        if msg.data == 'Teleop Drive':
-            current_state = 'Teleop Drive'
-        elif msg.data == 'Auto Drive':
-            current_state = 'Auto Drive'
-        elif msg.data == 'Auto Dig':
-            current_state = 'Auto Dig'
-        elif msg.data == 'Emergency Stop':
-            current_state = 'Emergency Stop'
+        # Switch our current state if a new (valid) state has been requested
+        if 0 <= msg.data <= len(states) - 1:
+            current_state = msg.data
 
         # Log the robot's current state
         self.get_logger().info('Current State: "%s"' % current_state)
