@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 states = {'Teleop Drive': 0, 'Auto Drive': 1,
           'Auto Dig': 2, 'Emergency Stop': 3}
 # Define our robot's initial state
-current_state = states['Teleop Drive']
+current_state = states['Auto Dig']
 
 # Define the maximum driving speeds of the robot
 dig_driving_speed = 0.5
