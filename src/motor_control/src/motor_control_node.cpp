@@ -32,7 +32,7 @@ bool digger = false;
 // Global Variables
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
-double motors[1] = {0.0};
+double motors[5] = {0.0};
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
