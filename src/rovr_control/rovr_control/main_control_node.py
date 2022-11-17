@@ -14,8 +14,10 @@ states = {'Teleop Drive': 0, 'Auto Drive': 1,
 # Define our robot's initial state
 current_state = states['Teleop Drive']
 
-# Define how fast we should drive forward while auto digging
-dig_speed = 1.0
+# Define the maximum driving speeds of the robot
+dig_driving_speed = 0.5
+robot_drive_speed = 0.5
+robot_turn_speed = 0.5
 
 # Define our autonomous goal position
 goal_x_absolute = 2  # Meters
@@ -93,10 +95,10 @@ class PublishersAndSubscribers(Node):
         msg.linear.z = 0.0
 
         if current_state == states['Teleop Drive']:
-            msg.linear.x = joystick_input_linear  # I've defined this to be the axis we use
-            msg.angular.x = joystick_input_angular  # I've defined this to be forward
+            msg.linear.x = joystick_input_linear * robot_drive_speed # I've defined this to be the axis we use
+            msg.angular.x = joystick_input_angular * robot_turn_speed # I've defined this to be forward
         elif current_state == states['Auto Dig']:
-            msg.linear.x = dig_speed
+            msg.linear.x = dig_driving_speed
         self.velocity_publisher.publish(msg)
         self.get_logger().info(
             f'Publishing Angular Speed: {msg.angular.x}, Linear Speed: {msg.linear.x}')
