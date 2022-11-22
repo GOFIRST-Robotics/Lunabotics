@@ -1,0 +1,3 @@
+[submodule "src/ros2can_bridge"]
+	path = src/ros2can_bridge
+	url = git@github.com:GOFIRST-Robotics/LUNABOTICS-2023.git
