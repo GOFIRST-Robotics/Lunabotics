@@ -1,3 +1,0 @@
-[submodule "src/rovr_control/rovr_control/ros2can_bridge"]
-	path = src/rovr_control/rovr_control/ros2can_bridge
-	url = https://github.com/endland/ros2can_bridge
