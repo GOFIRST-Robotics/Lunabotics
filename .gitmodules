@@ -1,0 +1,3 @@
+[submodule "src/ros2can_bridge"]
+	path = src/ros2can_bridge
+	url = https://github.com/GOFIRST-Robotics/ros2can_bridge.git
