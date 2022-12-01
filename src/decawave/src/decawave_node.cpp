@@ -91,7 +91,7 @@ int main(int argc, char** argv){
   for(int i = 0; i < 10; ++i){
     // ROS_INFO("Updating Samples");
     piTag->updateSamples();
-    // ROS_INFO("Updated Sample");
+    // ROS_INFO("Updated Sample");//make an edit
   }
 
   // Subscribers
