@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="navx_cpp_package" exec="navx_cpp_node" name="navx_cpp_node"/>
+</launch>
