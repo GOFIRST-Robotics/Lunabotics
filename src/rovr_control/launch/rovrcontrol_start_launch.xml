@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="rovr_control" exec="main_control_node" name="main_control_node"/>
+</launch>
