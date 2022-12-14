@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="decawave" exec="decawave_node" name="decawave_node"/>
+</launch>
