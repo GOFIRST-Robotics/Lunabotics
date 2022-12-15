@@ -2,7 +2,7 @@
 #define DECAWAVE_H
 // VERSION 1.0.0
 
-#include <serial/serial.h>
+//#include "serial/serial.h"
 #include <memory>
 
 struct decawave_coordinate{
@@ -20,7 +20,7 @@ public:
   double anchor2[8];
 private:
   int index;
-  std::shared_ptr<serial::Serial> my_serial;
+  //std::shared_ptr<serial::Serial> my_serial;
   //
   decawave_coordinate anchor1Pos;
   decawave_coordinate anchor2Pos;

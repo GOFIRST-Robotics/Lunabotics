@@ -7,9 +7,27 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(decawave REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+
+add_executable(decawave_node src/decawave_node.cpp)
+add_executable(decawave_subscriber src/decawave_subscriber.cpp)
+ament_target_dependencies(decawave_node rclcpp nav_msgs decawave)
+ament_target_dependencies(decawave_subscriber rclcpp nav_msgs decawave)
+
+target_include_directories(decawave_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(decawave_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17a
+
+install(TARGETS
+  decawave_node
+  decawave_subscriber
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
