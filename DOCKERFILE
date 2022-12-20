@@ -36,6 +36,12 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     --from-path src --rosdistro humble -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Install pip dependencies
+RUN apt-get update && apt-get install -y \
+    python3-pip
+# This is the latest version of the setuptools library that ROS2 currently supports
+RUN pip install setuptools==58.2.0
+
 # build overlay source
 COPY --from=cacher $OVERLAY_WS/src ./src
 ARG OVERLAY_MIXINS="release"
@@ -43,6 +49,8 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     colcon build \
       --packages-select \
         navx_cpp_package \
+        motor_control \
+        rovr_control \
       --mixin $OVERLAY_MIXINS
 
 # source entrypoint setup
