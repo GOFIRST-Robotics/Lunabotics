@@ -61,6 +61,7 @@ RUN sed --in-place --expression \
 
 # initialize our CAN bridge submodule
 RUN cd src/GOFIRST-Robotics/LUNABOTICS-2023 && git submodule init && git submodule update
+RUN apt-get install libboost-all-dev -y
 
 # install overlay dependencies again
 ARG OVERLAY_WS
