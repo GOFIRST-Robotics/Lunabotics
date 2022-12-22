@@ -58,3 +58,15 @@ ENV OVERLAY_WS $OVERLAY_WS
 RUN sed --in-place --expression \
       '$isource "$OVERLAY_WS/install/setup.bash"' \
       /ros_entrypoint.sh
+
+# initialize our CAN bridge submodule
+RUN cd src/GOFIRST-Robotics/LUNABOTICS-2023 && git submodule init && git submodule update
+
+# build overlay source again (to build the CAN bridge submodule)
+COPY --from=cacher $OVERLAY_WS/src ./src
+ARG OVERLAY_MIXINS="release"
+RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
+    colcon build \
+      --packages-select \
+        ros2socketcan_bridge \
+      --mixin $OVERLAY_MIXINS
