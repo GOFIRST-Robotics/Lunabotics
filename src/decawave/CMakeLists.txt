@@ -11,8 +11,9 @@ find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 
 add_executable(decawave_node src/decawave_node.cpp)
-add_executable(decawave_subscriber src/decawave_subscriber.cpp)
 ament_target_dependencies(decawave_node rclcpp nav_msgs)
+
+add_executable(decawave_subscriber src/decawave_subscriber.cpp)
 ament_target_dependencies(decawave_subscriber rclcpp nav_msgs)
 
 target_include_directories(decawave_node PUBLIC
