@@ -5,7 +5,7 @@ ARG OVERLAY_WS=/opt/ros/overlay_ws
 # This line enables caching so that the image doesn't have to be fully built from scratch each time
 FROM $FROM_IMAGE AS cacher
 
-# Clone the overlay source (aka our GitHub repository, specify which branch to clone in the 'version' paramter)
+# Clone the overlay source (aka our GitHub repository, specify which branch to clone in the 'version' parameter)
 ARG OVERLAY_WS
 WORKDIR $OVERLAY_WS/src
 RUN echo "\
@@ -61,7 +61,7 @@ RUN sed --in-place --expression \
 
 # Initialize & update our CAN_bridge submodule
 RUN cd src/GOFIRST-Robotics/LUNABOTICS-2023 && git submodule init && git submodule update
-# Install this required dependency for the CAN_bridge submodule (TODO: Is this the right way to solve the problem?)
+# Install this required dependency for the CAN_bridge submodule (TODO: Is this the right way to solve the problem? It seems like the can_bridge node is still giving us issues when we try running it)
 RUN apt-get install libboost-all-dev -y
 
 # Install overlay dependencies again (for the CAN_bridge submodule)

@@ -9,28 +9,28 @@
  * Copyright (c) 2022 GOFIRST-Robotics
  */
 
-// ROS Libs
+// Import ROS Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 
-// Native_Libs
+// Import Native Libraries
 #include <string>
 
-// Custom_Libs
+// Import Custom Libraries
 #include "decawave/decawave.h"
 #include "decawave/Range.h"
 
-// ROS cTopic
+// ROS Publisher Topic
 std::string deca_topic = "decawave/Range";
 
-// ROS Parameters
+// Settings
 double frequency = 50.0;
 int port_num = 0;
 // for(int i = 0; i < argc; ++i){
 // int port_num = atoi(argv[1]);
 // }
 
-// Global_Vars
+// Global Variables
 Decawave *decawave_sensor;
 decawave_coordinate decaPos;
 // Decawave piTag(1);
@@ -58,22 +58,22 @@ class Decawave_Publisher : public rclcpp::Node{
       decaPos = decawave_sensor->getPos();
       deca_msg.distance = decaPos.x;
       deca_msg.estimated_variance = 0.1;
-      //
+
       deca_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
       deca_msg.header.frame_id = "decawave" + frame_id;
       deca_msg.child_frame_id = "decawave2_link";
-      //
+      
       decawave_pub->publish(deca_msg);
       deca_msg.distance = decaPos.y;
       deca_msg.estimated_variance = 0.1;
-      //
+      
       deca_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
       deca_msg.header.frame_id = "decawave" + frame_id;
       deca_msg.child_frame_id = "decawave3_link";
       decawave_pub->publish(deca_msg);
-      //
+      
       deca_msg.pose.pose.position.x;//y, z, maybe not the second .pose
-      //
+      
       /*
       msg.distance = tagPos.x;
       msg.estimated_variance = 0.10;
@@ -97,7 +97,7 @@ class Decawave_Publisher : public rclcpp::Node{
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr decawave_pub;
 };
 
-// main method (start things up)
+// Main method for the node
 int main(int argc, char** argv){
   // Init ROS
   //ros::init(argc, argv);
@@ -140,13 +140,17 @@ int main(int argc, char** argv){
   //gps_pub = nh->advertise<decawave::Range>(deca_topic, 10);
   // Spin
   //ros::spin();
-  //
+
+  // Initialize ROS
   rclcpp::init(argc, argv);
-  //
+
+  // Initialize the Decawave sensor
   decawave_sensor = new Decawave(port_num);
-  //
+
+  // Spin the node
   rclcpp::spin(std::make_shared<Decawave_Publisher>());
-  //
+
+  // Free up any resources being used by the node
   rclcpp::shutdown();
   return 0;
 }

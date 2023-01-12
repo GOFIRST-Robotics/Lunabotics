@@ -21,7 +21,7 @@
  *   covar_samples (int) 100; The number of samples to store to calculate covariance
  */
 
-// Import Native c++ Libraries
+// Import Native C++ Libraries
 #include <string>
 #include <cmath>
 #include <chrono>
@@ -36,7 +36,7 @@
 #include "ahrs/AHRS.h"
 #include "AHRS.cpp"
 
-// ROS Parameters
+// Settings
 double frequency = 50.0;
 bool euler_enable = false;
 std::string device_path = "/dev/ttyACM0";

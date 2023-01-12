@@ -1,4 +1,4 @@
-# Import the standard ROS modules
+# Import standard ROS modules
 import rclpy
 from rclpy.node import Node
 
@@ -13,7 +13,7 @@ states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3
 # Define our robot's initial state
 current_state = states['Auto Dig']
 
-# Define the maximum driving speeds of the robot (in meters/second)
+# Define the maximum driving speeds of the robot (in meters/second?)
 dig_driving_speed = 0.5
 robot_drive_speed = 0.5
 robot_turn_speed = 0.5
@@ -57,6 +57,7 @@ class PublishersAndSubscribers(Node):
         # Velocity Subscriber
         self.velocity_subscription = self.create_subscription(Twist, 'cmd_vel', self.velocity_callback, 10)
 
+
     def actuators_timer_callback(self):
         msg = String()
 
@@ -70,6 +71,7 @@ class PublishersAndSubscribers(Node):
             msg.data = 'DIGGER_OFF'
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data)
+
 
     def velocity_timer_callback(self):
         msg = Twist()
@@ -91,9 +93,10 @@ class PublishersAndSubscribers(Node):
             msg.angular.x = joystick_input_angular * robot_turn_speed # I've defined this to be forward
         elif current_state == states['Auto Dig']:
             msg.linear.x = dig_driving_speed
+
         self.velocity_publisher.publish(msg)
-        self.get_logger().info(
-            f'Publishing Angular Speed: {msg.angular.x}, Linear Speed: {msg.linear.x}')
+        self.get_logger().info(f'Publishing Angular Speed: {msg.angular.x}, Linear Speed: {msg.linear.x}')
+
 
     def goal_timer_callback(self):
 
@@ -110,8 +113,7 @@ class PublishersAndSubscribers(Node):
             msg.pose.orientation.z = 0.0  # We can't move in this axis
 
             self.goal_publisher.publish(msg)
-            self.get_logger().info(
-                f'Publishing Position: {msg.pose.position}, Orientation: {msg.pose.orientation}')
+            self.get_logger().info(f'Publishing Position: {msg.pose.position}, Orientation: {msg.pose.orientation}')
 
     # NOTE: The command message should be a String formatted like "<(int)state>, <(double)jopystick_input_linear>, <(double)joystick_input_angular>"
 
@@ -134,6 +136,7 @@ class PublishersAndSubscribers(Node):
         # Log the robot's current state
         self.get_logger().info('Current State is set to: "%i"' % current_state)
 
+
     def ekf_callback(self, msg):
         pos_x = msg.pose.pose.position.x
         pos_y = msg.pose.pose.position.y
@@ -147,6 +150,7 @@ class PublishersAndSubscribers(Node):
 
         self.get_logger().info(
             f'Received a message with covariance of: {covariance}')
+
 
     def velocity_callback(self, msg):
         angular_velocity = msg.angular
@@ -170,5 +174,6 @@ def main(args=None):
     rclpy.shutdown()
 
 
+# This code does NOT run if this file is imported as a module
 if __name__ == '__main__':
     main()

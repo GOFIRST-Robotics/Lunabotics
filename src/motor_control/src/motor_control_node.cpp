@@ -15,13 +15,13 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/string.hpp"
 
-// Import Native c++ Libraries
+// Import Native C++ Libraries
 #include <string>
 #include <stdint.h>
 typedef int32_t S32;
 typedef uint32_t U32;
 
-// ROS Parameters
+// Settings
 double linear_scale = 1.0;
 double angular_scale = 1.0;
 double digger_scale = 1.0;
@@ -32,7 +32,7 @@ bool digger = false;
 // Global Variables
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
-double motors[5] = {0.0};
+double motors[5] = {0.0}; // Instantiate how many motors we have
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
