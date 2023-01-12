@@ -1,4 +1,4 @@
-# base image that our docker container will be built from
+# base image (ROS2 Humble) that our docker container will be built from
 ARG FROM_IMAGE=ros:humble
 ARG OVERLAY_WS=/opt/ros/overlay_ws
 
