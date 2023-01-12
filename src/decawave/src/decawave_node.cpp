@@ -3,7 +3,7 @@
  * ROS interface to Decawave class
  * VERSION: 2.0
  * Last changed: 2022-12-14
- * Authors: Eric Patton <patto164@umn.edu>, Amalia Schwartzwald <schw1818@umn.edu>
+ * Authors: Eric Patton <patto164@umn.edu>, Amalia Schwartzwald <schw1818@umn.edu>, Anthony Brogni <brogn002@umn.edu>
  * Maintainers: Eric Patton <patto164@umn.edu>
  * MIT License
  * Copyright (c) 2022 GOFIRST-Robotics
@@ -20,35 +20,10 @@
 #include "decawave/decawave.h"
 #include "decawave/Range.h"
 
-// Subscribers (inputs)
-//    update_timer (Timer)
-//      Update loop for reading / querying Decawave
-//    sub_name1 (sub_name1_type): sub_name1_TOPIC_VALUE
-//      sub_name1_desc
-
-// Publishers (outputs)
-//    gps_pub (nav_msgs/Odometry): "odometry/gps"
-//      A simulated local position as if GPS UTM
-
-// Parameters (settings)
-//    frequency (double): default=50.0
-//      The update frequency of the update loop
-//    param_name2 (param_name2_type): default=param_name2_default(,param_name1_path)
-//    param_name3 (param_name3_type): default=param_name3_default(,param_name1_path)
-
-
-// ROS Node and Publishers
-//ros::NodeHandle * nh;
-//ros::NodeHandle * pnh;
-ros::Publisher decawave_pub;
-
-// ROS Topics
+// ROS cTopic
 std::string deca_topic = "decawave/Range";
 
-// ROS Callbacks
-void update_callback(const ros::TimerEvent&);
-
-// ROS Params
+// ROS Parameters
 double frequency = 50.0;
 int port_num = 0;
 // for(int i = 0; i < argc; ++i){
@@ -61,7 +36,68 @@ decawave_coordinate decaPos;
 // Decawave piTag(1);
 // decawave_coordinate tagPos;
 
-//start things
+using namespace std::chrono_literals;
+
+class Decawave_Publisher : public rclcpp::Node{
+  public: Decawave_Publisher() : Node("decawave_node"){
+    deca_topic = deca_topic + std::to_string(port_num);
+    decawave_pub = this->create_publisher<nav_msgs::msg::Odometry>(deca_topic, 10);
+    timer = this->create_wall_timer(500ms, std::bind(&Decawave_Publisher::timer_callback, this));
+  }
+  private:
+    //publish info from sensor
+    void timer_callback(/*const ros::TimerEvent&*/){
+      // ROS_INFO("Publishing...");
+      RCLCPP_INFO(this->get_logger(), "Publishing...");
+      decawave::Range msg;
+      auto deca_msg = nav_msgs::Odometry();
+      std::string frame_id = std::to_string(port_num);
+      // update decawave data
+      decawave_sensor->updateSamples();
+      // get tag position from the decawave
+      decaPos = decawave_sensor->getPos();
+      deca_msg.distance = decaPos.x;
+      deca_msg.estimated_variance = 0.1;
+      //
+      deca_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+      deca_msg.header.frame_id = "decawave" + frame_id;
+      deca_msg.child_frame_id = "decawave2_link";
+      //
+      decawave_pub->publish(deca_msg);
+      deca_msg.distance = decaPos.y;
+      deca_msg.estimated_variance = 0.1;
+      //
+      deca_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+      deca_msg.header.frame_id = "decawave" + frame_id;
+      deca_msg.child_frame_id = "decawave3_link";
+      decawave_pub->publish(deca_msg);
+      //
+      deca_msg.pose.pose.position.x;//y, z, maybe not the second .pose
+      //
+      /*
+      msg.distance = tagPos.x;
+      msg.estimated_variance = 0.10;
+      // fill out message header
+      msg.header.stamp = ros::Time::now();
+      msg.header.frame_id = "decawave" + frame_id;//"decawave_" + port_num;
+      msg.child_frame_id = "decawave2_link"; //change to correct part
+      //
+      gps_pub->publish(msg);
+      //
+      msg.distance = tagPos.y;
+      msg.estimated_variance = 0.10;
+      // fill out message header
+      msg.header.stamp = ros::Time::now();
+      msg.header.frame_id = "decawave" + frame_id;//"decawave_" + port_num;
+      msg.child_frame_id = "decawave3_link"; //change to correct part
+      //
+      gps_pub->publish(msg);*/
+    }
+    rclcpp::TimerBase::SharedPtr timer;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr decawave_pub;
+};
+
+// main method (start things up)
 int main(int argc, char** argv){
   // Init ROS
   //ros::init(argc, argv);
@@ -113,70 +149,4 @@ int main(int argc, char** argv){
   //
   rclcpp::shutdown();
   return 0;
-}
-
-class Decawave_Publisher : public rclcpp::Node{
-  public: DataPublisher() : Node("decawave_node"){
-    deca_topic = deca_topic + std::to_string(port_num);
-    decawave_pub = node->create_publisher<nav_msgs::msg::Odometry>(deca_topic, 10);
-    //
-    timer = this->create_wall_timer(500ms, std::bind(&DataPublisher::timer_callback, this));
-  }
-  //
-  private:
-    //publish info from sensor
-    void timer_callback(/*const ros::TimerEvent&*/){
-      // ROS_INFO("Publishing...");
-      RCLCPP_INFO(node->get_logger(), "Publishing...");
-      decawave::Range msg;
-      auto deca_msg = nav_msgs::Odometry();
-      //
-      // update decawave data
-      decawave_sensor->updateSamples();
-      //
-      // get tag position from the decawave
-      decaPos = decawave_sensor->getPos();
-      deca_msg.distance = decaPos.x;
-      deca_msg.estimated_variance = 0.1;
-      //
-      deca_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-      deca_msg.header.frame_id = "decawave" + frame_id;
-      deca_msg.child_frame_id = "decawave2_link";
-      //
-      decawave_pub.publish(deca_msg);
-      deca_msg.distance = decaPos.y;
-      deca_msg.estimated_variance = 0.1;
-      //
-      deca_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
-      deca_msg.header.frame_id = "decawave" + frame_id;
-      deca_msg.child_frame_id = "decawave3_link";
-      decawave_pub.publish(deca_msg);
-      //
-      deca_msg.pose.pose.position.x;//y, z, maybe not the second .pose
-      //
-      /*
-      ros::param::get("~port_num",port_num);
-      std::string frame_id = std::to_string(port_num);
-      //
-      msg.distance = tagPos.x;
-      msg.estimated_variance = 0.10;
-      // fill out message header
-      msg.header.stamp = ros::Time::now();
-      msg.header.frame_id = "decawave" + frame_id;//"decawave_" + port_num;
-      msg.child_frame_id = "decawave2_link"; //change to correct part
-      //
-      gps_pub.publish(msg);
-      //
-      msg.distance = tagPos.y;
-      msg.estimated_variance = 0.10;
-      // fill out message header
-      msg.header.stamp = ros::Time::now();
-      msg.header.frame_id = "decawave" + frame_id;//"decawave_" + port_num;
-      msg.child_frame_id = "decawave3_link"; //change to correct part
-      //
-      gps_pub.publish(msg);*/
-    }
-    //
-    rclcpp::TimerBase::SharedPtr timer;
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr decawave_pub;
 }
