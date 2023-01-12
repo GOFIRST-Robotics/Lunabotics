@@ -1,20 +1,19 @@
-# Basic ROS Modules
+# Import the standard ROS modules
 import rclpy
 from rclpy.node import Node
 
-# ROS Formatted Message Types
+# Import ROS formatted message types
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
-# Define the possible states that our robot can be in
-states = {'Teleop Drive': 0, 'Auto Drive': 1,
-          'Auto Dig': 2, 'Emergency Stop': 3}
+# Define the possible states of our robot
+states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3}
 # Define our robot's initial state
 current_state = states['Auto Dig']
 
-# Define the maximum driving speeds of the robot
+# Define the maximum driving speeds of the robot (in meters/second)
 dig_driving_speed = 0.5
 robot_drive_speed = 0.5
 robot_turn_speed = 0.5
@@ -35,35 +34,28 @@ class PublishersAndSubscribers(Node):
         super().__init__('publisher')
 
         # Actuators Publisher
-        self.actuators_publisher = self.create_publisher(
-            String, 'cmd_actuators', 10)
+        self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
         actuators_timer_period = 0.5  # how often to publish measured in seconds
-        self.actuators_timer = self.create_timer(
-            actuators_timer_period, self.actuators_timer_callback)
+        self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
         
         # Velocity Publisher
         self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel', 10)
         velocity_timer_period = 0.5  # how often to publish measured in seconds
-        self.velocity_timer = self.create_timer(
-            velocity_timer_period, self.velocity_timer_callback)
+        self.velocity_timer = self.create_timer(velocity_timer_period, self.velocity_timer_callback)
         
         # Goal Publisher
         self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 10)
         goal_timer_period = 0.5  # how often to publish measured in seconds
-        self.goal_timer = self.create_timer(
-            goal_timer_period, self.goal_timer_callback)
+        self.goal_timer = self.create_timer(goal_timer_period, self.goal_timer_callback)
 
         # Robot Command Subscriber
-        self.command_subscription = self.create_subscription(
-            String, 'robot_command', self.command_callback, 10)
+        self.command_subscription = self.create_subscription(String, 'robot_command', self.command_callback, 10)
         
         # EKF Subscriber
-        self.ekf_subscription = self.create_subscription(
-            PoseWithCovarianceStamped, 'robot_pos_ekf/odom_combined', self.ekf_callback, 10)
+        self.ekf_subscription = self.create_subscription(PoseWithCovarianceStamped, 'robot_pos_ekf/odom_combined', self.ekf_callback, 10)
         
         # Velocity Subscriber
-        self.velocity_subscription = self.create_subscription(
-            Twist, 'cmd_vel', self.velocity_callback, 10)
+        self.velocity_subscription = self.create_subscription(Twist, 'cmd_vel', self.velocity_callback, 10)
 
     def actuators_timer_callback(self):
         msg = String()

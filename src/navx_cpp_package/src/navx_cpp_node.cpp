@@ -10,8 +10,7 @@
  */
 
 /* 
- * Interface: 
- *  Publishers: 
+ * Publishers: 
  *   imu_pub (sensor_msgs/msg/Imu): "imu/data"
  *   euler_pub (geometry_msgs/msg/Point): "imu/euler"
  * Parameters: 
@@ -22,18 +21,18 @@
  *   covar_samples (int) 100; The number of samples to store to calculate covariance
  */
 
-// Native Libraries
+// Import Native c++ Libraries
 #include <string>
 #include <cmath>
 #include <chrono>
 
-// ROS Libraries
+// Import Standard ROS Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "geometry_msgs/msg/point.hpp"
 
-// Custom Libraries
+// Import Custom Libraries
 #include "ahrs/AHRS.h"
 #include "AHRS.cpp"
 

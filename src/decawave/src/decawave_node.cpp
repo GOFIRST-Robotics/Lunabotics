@@ -10,8 +10,6 @@
  */
 
 // ROS Libs
-//#include <ros/ros.h>
-//#include <nav_msgs/Odometry.h>
 #include "rclcpp/rclcpp.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 

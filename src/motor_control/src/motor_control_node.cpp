@@ -9,13 +9,13 @@
  * Copyright (c) 2018 GOFIRST-Robotics
  */
 
-// ROS Libraries
+// Import ROS Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/string.hpp"
 
-// Native Libraries
+// Import Native c++ Libraries
 #include <string>
 #include <stdint.h>
 typedef int32_t S32;
