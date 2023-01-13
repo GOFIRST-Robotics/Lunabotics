@@ -48,7 +48,7 @@ ARG OVERLAY_MIXINS="release"
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     colcon build \
       --packages-select \
-        navx_cpp_package \
+        navx \
         motor_control \
         rovr_control \
         telecom \
