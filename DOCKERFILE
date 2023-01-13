@@ -42,6 +42,9 @@ RUN apt-get update && apt-get install -y python3-pip
 # Downgrade the 'setuptools' library because this is the latest version that ROS2 Humble currently supports
 RUN pip install setuptools==58.2.0
 
+# Install this required dependency for the CAN_bridge submodule (TODO: Is this the right way to solve the problem? It seems like the can_bridge node is still giving us issues when we try running it)
+####RUN apt-get install libboost-all-dev -y
+
 # Build overlay source (this runs colcon build to build our ROS workspace, specify packages in --packages-select)
 COPY --from=cacher $OVERLAY_WS/src ./src
 ARG OVERLAY_MIXINS="release"
@@ -59,26 +62,3 @@ ENV OVERLAY_WS $OVERLAY_WS
 RUN sed --in-place --expression \
       '$isource "$OVERLAY_WS/install/setup.bash"' \
       /ros_entrypoint.sh
-
-# Initialize & update our CAN_bridge submodule
-RUN cd src/GOFIRST-Robotics/LUNABOTICS-2023 && git submodule init && git submodule update
-# Install this required dependency for the CAN_bridge submodule (TODO: Is this the right way to solve the problem? It seems like the can_bridge node is still giving us issues when we try running it)
-RUN apt-get install libboost-all-dev -y
-
-# Install overlay dependencies again (for the CAN_bridge submodule)
-ARG OVERLAY_WS
-WORKDIR $OVERLAY_WS
-COPY --from=cacher /tmp/$OVERLAY_WS/src ./src
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
-    apt-get update && rosdep install -i \
-    --from-path src --rosdistro humble -y \
-    && rm -rf /var/lib/apt/lists/*
-
-# Build overlay source again (to build the CAN bridge submodule)
-COPY --from=cacher $OVERLAY_WS/src ./src
-ARG OVERLAY_MIXINS="release"
-RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
-    colcon build \
-      --packages-select \
-        ros2socketcan_bridge \
-      --mixin $OVERLAY_MIXINS
