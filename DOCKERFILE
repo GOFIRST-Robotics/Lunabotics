@@ -51,6 +51,7 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
         navx_cpp_package \
         motor_control \
         rovr_control \
+        telecom \
       --mixin $OVERLAY_MIXINS
 
 # Source entrypoint setup (source the ROS environment)
