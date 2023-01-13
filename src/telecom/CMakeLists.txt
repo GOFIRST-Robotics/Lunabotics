@@ -9,7 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 
 add_executable(telecomTest src/telecomTest.cpp)
-add_executable(TestBufferInMain src/telecomTestBufferInMain.cpp)
+add_executable(TestBufferInMain src/telecommTestBufferInMain.cpp)
 
 install(TARGETS telecomTest TestBufferInMain
   DESTINATION lib/${PROJECT_NAME})
