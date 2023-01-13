@@ -2,7 +2,7 @@
  * robot_to_mc_node.cpp
  * Uses telecom to TX/RX ROS data from robot to the Mission Control (MC)
  * Does not transmit video
- * VERSION: 0.0.0
+ * VERSION: 0.0.2
  * Last changed: 2019-04-28
  * Authors: Michael Lucke <lucke096@umn.edu>
  * Maintainers: Michael Lucke <lucke096@umn.edu>
@@ -11,18 +11,18 @@
  */
 
 /* Wifi Transmissions
- * Robot Sends Joystick input
+ * Robot Confirms Recieved Joystick input
  */
 
-// ROS Libs
+// ROS Libraries
 #include "rclcpp/rclcpp.hpp"
-#include <sensor_msgs/Joy.h>
+#include "sensor_msgs/msg/joy.hpp"
 
-// Native_Libs
+// Native Libraries
 #include <string>
 #include <vector>
 
-// Custom Library
+// Custom Libraries
 #include "telecom/telecom.h"
 #include "formatter_string/formatter.hpp"
 
@@ -43,29 +43,15 @@
 //      The port on target device to target
 //    src_port (int): default = 5554
 //      The port on host device to use
-//    isTeleopCtrl (bool): default = true
-//      Whether teleop control is enabled by default, initially
-
-
-// ROS Node and Publishers
-ros::NodeHandle * nh;
-ros::NodeHandle * pnh;
-ros::Publisher joy_pub;
 
 // ROS Topics
 std::string joy_topic = "joy";
 
-// ROS Callbacks
-void update_callback(const ros::TimerEvent&);
-//void sub_name1_callback(const sub_name1_typeLHS::sub_name1_typeRHS::ConstPtr& msg);
-//void sub_name2_callback(const sub_name2_typeLHS::sub_name2_typeRHS::ConstPtr& msg);
-
-// ROS Params
+// Settings
 double frequency = 100.0;
 std::string dst_addr = "192.168.1.10";
 int dst_port = 5556;
 int src_port = 5554;
-bool isTeleopCtrl = true; 
 
 // Global_Vars
 Telecom *com;
@@ -112,58 +98,6 @@ val_fmt pad_msg_fmt = {
   1
 };
 
-int main(int argc, char** argv){
-  // Init ROS
-  ros::init(argc, argv, "robot_to_mc_node");
-  nh = new ros::NodeHandle();
-  pnh = new ros::NodeHandle("~");
-
-  // Params
-  pnh->getParam("frequency", frequency);
-  pnh->getParam("dst_addr", dst_addr);
-  pnh->getParam("dst_port", dst_port);
-  pnh->getParam("src_port", src_port);
-  pnh->getParam("isTeleopCtrl", isTeleopCtrl);
-  
-  // Init variables
-  fmt = new Formatter({js_axes_msg_fmt, button_msg_fmt, pad_msg_fmt});
-  com = new Telecom(dst_addr, dst_port, src_port);
-  
-  // Subscribers
-  ros::Timer update_timer = nh->createTimer(ros::Duration(1.0/frequency), update_callback);
-  //ros::Subscriber sub_name2_sub = nh->subscribe(sub_name2_topic, sub_name2_BUFLEN, sub_name2_callback);
-
-  // Publishers
-  joy_pub = nh->advertise<sensor_msgs::Joy>(joy_topic, 1);
-
-  // Spin
-  ros::spin();
-}
-
-void update_callback(const ros::TimerEvent&){
-  com->update();
-  ERR_CHECK();
-
-  // Read from com for msg
-  if(com->recvAvail()){
-    recv_msg = com->recv();
-
-    // Safety/bug?
-    while(com->isComClosed()){
-      printf("Rebooting connection\n");
-      com->reboot();
-    }
-
-    // For testing
-    //if(!recv_msg.empty()) printf("Received message: %s\n", recv_msg.c_str());
-
-    // Process recv_msg
-    joy_pub_fn();
-
-    // other pub
-  }
-}
-
 void joy_pub_fn(){
   sensor_msgs::Joy joy_msg;
   joy_msg.axes.resize(6, 0.0);
@@ -189,9 +123,53 @@ void joy_pub_fn(){
   joy_pub.publish(joy_msg);
 }
 
-/*
-void sub_name1_callback(const sub_name1_typeLHS::sub_name1_typeRHS::ConstPtr& msg){
-//:BEGIN sub_name1_callback
+using namespace std::chrono_literals;
 
-//:END
-}*/
+class PublishersAndSubscribers : public rclcpp::Node
+{
+  public:
+  PublishersAndSubscribers()
+  : Node("publishers_and_subscribers")
+  {
+    timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::update_callback, this));
+  }
+
+private:
+  void update_callback(const ros::TimerEvent&) {
+    com->update();
+    ERR_CHECK();
+
+    // Read from com for msg
+    if(com->recvAvail()) {
+      recv_msg = com->recv();
+
+      // Safety/bug?
+      while(com->isComClosed()) {
+        printf("Rebooting connection\n");
+        com->reboot();
+      }
+
+      // For testing
+      if(!recv_msg.empty()) printf("Received message: %s\n", recv_msg.c_str());
+
+      // Process recv_msg
+      joy_pub_fn();
+    }
+  }
+};
+
+int main(int argc, char** argv){
+  // Initialize ROS
+  rclcpp::init(argc, argv);
+  
+  // Initialize variables
+  fmt = new Formatter({js_axes_msg_fmt, button_msg_fmt, pad_msg_fmt});
+  com = new Telecom(dst_addr, dst_port, src_port);
+  
+  // Spin the node
+  rclcpp::spin(std::make_shared<PublishersAndSubscribers>());
+
+  // Free up any resources being used by the node
+  rclcpp::shutdown();
+  return 0;
+}

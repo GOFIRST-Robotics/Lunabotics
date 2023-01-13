@@ -11,24 +11,24 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
-#add_executable(mc_to_robot_node src/telecom_nodes/mc_to_robot_node.cpp)
-#ament_target_dependencies(mc_to_robot_node rclcpp std_msgs sensor_msgs)
+add_executable(mc_to_robot_node src/telecom_nodes/mc_to_robot_node.cpp)
+ament_target_dependencies(mc_to_robot_node rclcpp std_msgs sensor_msgs)
 
-#add_executable(robot_to_mc_node src/telecom_nodes/robot_to_mc_node.cpp)
-#ament_target_dependencies(robot_to_mc_node rclcpp sensor_msgs)
+add_executable(robot_to_mc_node src/telecom_nodes/robot_to_mc_node.cpp)
+ament_target_dependencies(robot_to_mc_node rclcpp sensor_msgs)
 
-#target_include_directories(mc_to_robot_node PUBLIC
-#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#  $<INSTALL_INTERFACE:include>)
-#target_compile_features(mc_to_robot_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17a
+target_include_directories(mc_to_robot_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(mc_to_robot_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17a
 
-#target_include_directories(robot_to_mc_node PUBLIC
-#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#  $<INSTALL_INTERFACE:include>)
-#target_compile_features(robot_to_mc_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17a
+target_include_directories(robot_to_mc_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(robot_to_mc_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17a
 
-#install(TARGETS mc_to_robot_node robot_to_mc_node teleop_twist_node
-#  DESTINATION lib/${PROJECT_NAME})
+install(TARGETS mc_to_robot_node #robot_to_mc_node
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
