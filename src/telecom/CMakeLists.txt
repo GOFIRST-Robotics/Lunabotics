@@ -11,11 +11,6 @@ find_package(ament_cmake REQUIRED)
 add_executable(telecomTest src/telecomTest.cpp)
 add_executable(TestBufferInMain src/telecomTestBufferInMain.cpp)
 
-target_include_directories(telecom PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_compile_features(telecom PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17a
-
 install(TARGETS telecomTest TestBufferInMain
   DESTINATION lib/${PROJECT_NAME})
 
