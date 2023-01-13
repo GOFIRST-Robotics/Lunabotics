@@ -39,13 +39,11 @@ class PublishersAndSubscribers(Node):
         
         # Velocity Publisher
         self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel', 1)
-        velocity_timer_period = 0.5  # how often to publish measured in seconds
-        self.velocity_timer = self.create_timer(velocity_timer_period, self.velocity_timer_callback)
         
         # Goal Publisher
         self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 1)
         goal_timer_period = 0.5  # how often to publish measured in seconds
-        self.goal_timer = self.create_timer(goal_timer_period, self.goal_timer_callback) # TODO: We don't use this callback, so can we just remove it?
+        self.goal_timer = self.create_timer(goal_timer_period, self.goal_timer_callback)
 
         # Robot Command Subscriber
         self.command_subscription = self.create_subscription(String, 'robot_command', self.command_callback, 1)
