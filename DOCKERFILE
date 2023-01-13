@@ -1,5 +1,5 @@
 # This is the base image (ROS2 Humble) that our docker container will be built from
-ARG FROM_IMAGE=ros:humble
+ARG FROM_IMAGE=osrf/ros:humble-desktop
 ARG OVERLAY_WS=/opt/ros/overlay_ws
 
 # This line enables caching so that the image doesn't have to be fully built from scratch each time
@@ -13,7 +13,7 @@ repositories: \n\
   GOFIRST-Robotics/LUNABOTICS-2023: \n\
     type: git \n\
     url: https://github.com/GOFIRST-Robotics/LUNABOTICS-2023.git \n\
-    version: main \n\
+    version: test \n\
 " > ../overlay.repos
 RUN vcs import ./ < ../overlay.repos
 
