@@ -16,7 +16,6 @@
   <build_depend>can_msgs</build_depend>
   <build_depend>rclc</build_depend>
   <build_depend>rmw_implementation</build_depend>
-  <build_depend>Boost</build_depend>
   
   <exec_depend>builtin_interfaces</exec_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
@@ -25,7 +24,6 @@
   <exec_depend>can_msgs</exec_depend>
   <exec_depend>rclc</exec_depend>
   <exec_depend>rmw_implementation</exec_depend>
-  <exec_depend>Boost</exec_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
 
   <export>
