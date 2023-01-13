@@ -27,7 +27,7 @@ target_include_directories(robot_to_mc_node PUBLIC
   $<INSTALL_INTERFACE:include>)
 target_compile_features(robot_to_mc_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17a
 
-install(TARGETS mc_to_robot_node #robot_to_mc_node
+install(TARGETS mc_to_robot_node robot_to_mc_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
