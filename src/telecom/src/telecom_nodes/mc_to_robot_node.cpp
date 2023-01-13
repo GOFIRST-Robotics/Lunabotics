@@ -15,8 +15,8 @@
 
 // ROS Libs
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/joy.hpp"
-#include "std_msgs/bool.hpp"
+#include "sensor_msgs/msg/joy.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 // Native_Libs
 #include <string>
