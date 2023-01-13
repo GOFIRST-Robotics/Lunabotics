@@ -26,6 +26,7 @@
 #include "telecom/telecom.h"
 #include "telecom/telecom.cpp"
 #include "formatter_string/formatter.hpp"
+#include "formatter_string/formatter.cpp"
 
 // Subscribers (inputs)
 //    joy_sub (sensor_msgs/Joy): joy

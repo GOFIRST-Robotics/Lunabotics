@@ -26,6 +26,7 @@
 #include "telecom/telecom.h"
 #include "telecom/telecom.cpp"
 #include "formatter_string/formatter.hpp"
+#include "formatter_string/formatter.cpp"
 
 // Publishers (outputs)
 //    joy_pub (sensor_msgs/Joy): joy
