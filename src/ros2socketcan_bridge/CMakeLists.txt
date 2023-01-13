@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(rmw REQUIRED)
 find_package(rmw_implementation_cmake REQUIRED)
 find_package(can_msgs REQUIRED)
+find_package(Boost REQUIRED)
 
 include_directories(include)
 
@@ -20,7 +21,7 @@ set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
 
 add_executable(ros2can_bridge src/ros2socketcan.cpp)
 
-TARGET_LINK_LIBRARIES(ros2can_bridge dl -lboost_system -pthread  -lcrypt -lm -lpthread)
+TARGET_LINK_LIBRARIES(ros2can_bridge dl -lboost_system) # -pthread  -lcrypt -lm -lpthread)
 
 ament_target_dependencies(ros2can_bridge rclcpp std_msgs can_msgs)
 install(TARGETS 

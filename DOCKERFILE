@@ -13,7 +13,7 @@ repositories: \n\
   GOFIRST-Robotics/LUNABOTICS-2023: \n\
     type: git \n\
     url: https://github.com/GOFIRST-Robotics/LUNABOTICS-2023.git \n\
-    version: main \n\
+    version: test \n\
 " > ../overlay.repos
 RUN vcs import ./ < ../overlay.repos
 
