@@ -37,14 +37,6 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     --from-path src --rosdistro humble -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pip dependencies (this line is only needed for running the next line)
-RUN apt-get update && apt-get install -y python3-pip
-# Downgrade the 'setuptools' library because this is the latest version that ROS2 Humble currently supports
-RUN pip install setuptools==58.2.0
-
-# Install this required dependency for the CAN_bridge submodule (TODO: Is this the right way to solve the problem? It seems like the can_bridge node is still giving us issues when we try running it)
-####RUN apt-get install libboost-all-dev -y
-
 # Build overlay source (this runs colcon build to build our ROS workspace, specify packages in --packages-select)
 COPY --from=cacher $OVERLAY_WS/src ./src
 ARG OVERLAY_MIXINS="release"
