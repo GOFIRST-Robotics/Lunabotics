@@ -360,4 +360,3 @@ std::string Telecom::verboseStatus(int i){
 std::string Telecom::verboseStatus(){
   return verboseStatus(ret);
 }
-// END
