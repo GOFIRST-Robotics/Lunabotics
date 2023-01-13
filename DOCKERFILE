@@ -55,6 +55,7 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
         motor_control \
         rovr_control \
         telecom \
+        ros2socketcan_bridge \
       --mixin $OVERLAY_MIXINS
 
 # Source entrypoint setup (source the ROS environment)
