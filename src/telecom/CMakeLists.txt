@@ -11,10 +11,10 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
-add_executable(mc_to_robot_node src/telecom_nodes/mc_to_robot_node.cpp)
+add_executable(mc_to_robot_node src/mc_to_robot_node.cpp)
 ament_target_dependencies(mc_to_robot_node rclcpp std_msgs sensor_msgs)
 
-add_executable(robot_to_mc_node src/telecom_nodes/robot_to_mc_node.cpp)
+add_executable(robot_to_mc_node src/robot_to_mc_node.cpp)
 ament_target_dependencies(robot_to_mc_node rclcpp sensor_msgs)
 
 target_include_directories(mc_to_robot_node PUBLIC

@@ -24,11 +24,8 @@
 
 // Custom Libraries
 #include "telecom/telecom.h"
+#include "telecom/telecom.cpp"
 #include "formatter_string/formatter.hpp"
-
-// Subscribers (inputs)
-//    some_sensor_sub (sub_name2_type): sub_name2_TOPIC_VALUE
-//      subscribes to some sensor topics with data we want to transmit if we find one
 
 // Publishers (outputs)
 //    joy_pub (sensor_msgs/Joy): joy
@@ -49,9 +46,9 @@ std::string joy_topic = "joy";
 
 // Settings
 double frequency = 100.0;
-std::string dst_addr = "192.168.1.10";
-int dst_port = 5556;
-int src_port = 5554;
+std::string dst_address = "192.168.1.10";
+int dst_port_num = 5556;
+int src_port_num = 5554;
 
 // Global_Vars
 Telecom *com;
@@ -98,32 +95,8 @@ val_fmt pad_msg_fmt = {
   1
 };
 
-void joy_pub_fn(){
-  sensor_msgs::Joy joy_msg;
-  joy_msg.axes.resize(6, 0.0);
-  joy_msg.buttons.resize(12, 0.0);
-  for(auto iv : fmt->parseFloat(recv_msg, "js_axes_msg_fmt")){
-    joy_msg.axes[iv.i] = iv.v;
-  }
-  for(auto iv : fmt->parse(recv_msg, "button_msg_fmt")){
-    joy_msg.buttons[iv.i] = iv.v;
-  }
-  for(auto iv : fmt->parse(recv_msg, "pad_msg_fmt")){
-    if(iv.v == 1){
-      joy_msg.axes[4] = 1.0;
-    }else if(iv.v == 2){
-      joy_msg.axes[4] = -1.0;
-    }else if(iv.v == 3){
-      joy_msg.axes[5] = 1.0;
-    }else if(iv.v == 4){
-      joy_msg.axes[5] = -1.0;
-    }
-  }
-  joy_msg.header.stamp = ros::Time::now();
-  joy_pub.publish(joy_msg);
-}
-
 using namespace std::chrono_literals;
+using std::placeholders::_1;
 
 class PublishersAndSubscribers : public rclcpp::Node
 {
@@ -131,11 +104,36 @@ class PublishersAndSubscribers : public rclcpp::Node
   PublishersAndSubscribers()
   : Node("publishers_and_subscribers")
   {
+    joy_pub = this->create_publisher<sensor_msgs::msg::Joy>(joy_topic, 1);
     timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::update_callback, this));
   }
 
 private:
-  void update_callback(const ros::TimerEvent&) {
+  void joy_pub_fn(){
+    sensor_msgs::msg::Joy joy_msg;
+    joy_msg.axes.resize(6, 0.0);
+    joy_msg.buttons.resize(12, 0.0);
+    for(auto iv : fmt->parseFloat(recv_msg, "js_axes_msg_fmt")){
+      joy_msg.axes[iv.i] = iv.v;
+    }
+    for(auto iv : fmt->parse(recv_msg, "button_msg_fmt")){
+      joy_msg.buttons[iv.i] = iv.v;
+    }
+    for(auto iv : fmt->parse(recv_msg, "pad_msg_fmt")){
+      if(iv.v == 1){
+        joy_msg.axes[4] = 1.0;
+      }else if(iv.v == 2){
+        joy_msg.axes[4] = -1.0;
+      }else if(iv.v == 3){
+        joy_msg.axes[5] = 1.0;
+      }else if(iv.v == 4){
+        joy_msg.axes[5] = -1.0;
+      }
+    }
+    joy_msg.header.stamp = rclcpp::Clock(RCL_ROS_TIME).now();
+    joy_pub->publish(joy_msg);
+  }
+  void update_callback() {
     com->update();
     ERR_CHECK();
 
@@ -156,6 +154,8 @@ private:
       joy_pub_fn();
     }
   }
+  rclcpp::TimerBase::SharedPtr timer;
+  rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr joy_pub;
 };
 
 int main(int argc, char** argv){
@@ -164,7 +164,7 @@ int main(int argc, char** argv){
   
   // Initialize variables
   fmt = new Formatter({js_axes_msg_fmt, button_msg_fmt, pad_msg_fmt});
-  com = new Telecom(dst_addr, dst_port, src_port);
+  com = new Telecom(dst_address, dst_port_num, src_port_num);
   
   // Spin the node
   rclcpp::spin(std::make_shared<PublishersAndSubscribers>());

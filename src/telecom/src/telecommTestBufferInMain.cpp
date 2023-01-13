@@ -4,7 +4,7 @@
 #include <queue>
 //http://wjwwood.io/serial/doc/1.1.0/classserial_1_1_serial.html
 #include "telecom/telecom.h"
-#include "telecom.cpp"
+#include "telecom/telecom.cpp"
 
 #define ERR_CHECK \
   do { if (comm.status() != 0){ \

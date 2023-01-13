@@ -24,6 +24,7 @@
 
 // Custom Library
 #include "telecom/telecom.h"
+#include "telecom/telecom.cpp"
 #include "formatter_string/formatter.hpp"
 
 // Subscribers (inputs)
@@ -49,9 +50,9 @@ std::string joy_topic = "joy";
 
 // Settings
 double frequency = 20.0;
-std::string dst_addr = "192.168.1.19";
-int dst_port = 5554;
-int src_port = 5556;
+std::string dst_address = "192.168.1.19";
+int dst_port_num = 5554;
+int src_port_num = 5556;
 
 // Global_Vars
 Telecom *com;
@@ -119,7 +120,7 @@ void update_fn(){
     printf("Rebooting connection\n");
     com->reboot();
     if(!com->isComClosed()){
-      printf("Reconnected to %s:%i\n", dst_addr.c_str(), dst_port);
+      printf("Reconnected to %s:%i\n", dst_address.c_str(), dst_port_num);    
     }
   }
 
@@ -133,6 +134,7 @@ void update_fn(){
 }
 
 using namespace std::chrono_literals;
+using std::placeholders::_1;
 
 class PublishersAndSubscribers : public rclcpp::Node
 {
@@ -140,12 +142,12 @@ class PublishersAndSubscribers : public rclcpp::Node
   PublishersAndSubscribers()
   : Node("publishers_and_subscribers")
   {
-    joy_sub = this->create_subscription<sensor_msg::msg::Joy>(joy_topic, 1, std::bind(&PublishersAndSubscribers::joy_callback, this, _1));
+    joy_sub = this->create_subscription<sensor_msgs::msg::Joy>(joy_topic, 1, std::bind(&PublishersAndSubscribers::joy_callback, this, _1));
     timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::update_callback, this));
   }
 
 private:
-  void update_callback(const ros::TimerEvent&){
+  void update_callback(){
     update_fn();
   }
 
@@ -156,15 +158,15 @@ private:
   * A value of pad states: 0-4 are
   * 0 (NONE), LF (LF UP), RT (RT UP), UP (BOTH UP), DN (BOTH DN)
   */
-  void joy_callback(const sensor_msgs::Joy::ConstPtr& msg){
+  void joy_callback(const sensor_msgs::msg::Joy & msg){
     // Process buttons
     buttons_iv[0].v = 0;
     for(int i = 0; i < 12; ++i){
-      buttons_iv[i].v = msg->buttons[i];
+      buttons_iv[i].v = msg.buttons[i];
     }
     // Process axes
     for(int i = 0; i < 6; ++i){
-      axes[i] = msg->axes[i];
+      axes[i] = msg.axes[i];
       if(i < 4){
         axes_iv[i].v = axes[i];
       }
@@ -183,6 +185,8 @@ private:
     }
     update_fn();
   }
+  rclcpp::TimerBase::SharedPtr timer;
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub;
 };
 
 int main(int argc, char** argv){
@@ -191,7 +195,7 @@ int main(int argc, char** argv){
 
   // Initialize variables
   fmt = new Formatter({js_axes_msg_fmt, button_msg_fmt, pad_msg_fmt});
-  com = new Telecom(dst_addr, dst_port, src_port);
+  com = new Telecom(dst_address, dst_port_num, src_port_num);
   com->setFailureAction(false);
   com->setBlockingTime(0,0);
   ERR_CHECK();
