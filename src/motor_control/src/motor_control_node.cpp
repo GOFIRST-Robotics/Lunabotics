@@ -72,9 +72,9 @@ public:
   PublishersAndSubscribers()
   : Node("publishers_and_subscribers")
   {
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 10);
-    cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 10, std::bind(&PublishersAndSubscribers::velocity_callback, this, _1));
-    actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 1);
+    cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 1, std::bind(&PublishersAndSubscribers::velocity_callback, this, _1));
+    actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 1, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
     timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::timer_callback, this));
   }
 

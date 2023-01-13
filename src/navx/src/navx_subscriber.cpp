@@ -14,7 +14,7 @@ class Subscriber : public rclcpp::Node
     : Node("subscriber")
     {
       subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
-      "imu/data", 10, std::bind(&Subscriber::topic_callback, this, _1));
+      "imu/data", 1, std::bind(&Subscriber::topic_callback, this, _1));
     }
 
   private:

@@ -26,7 +26,7 @@ class MinimalSubscriber : public rclcpp::Node{
     public:
     MinimalSubscriber() : Node("minimal_listener"), counter(0){
         subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        deca_topic, 10, std::bind(&MinimalSubscriber::topic_callback, this, _1));//create subscriptions to topic and call topic_callback
+        deca_topic, 1, std::bind(&MinimalSubscriber::topic_callback, this, _1));//create subscriptions to topic and call topic_callback
     }
     //
     private:

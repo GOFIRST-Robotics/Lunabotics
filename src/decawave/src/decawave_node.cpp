@@ -41,7 +41,7 @@ using namespace std::chrono_literals;
 class Decawave_Publisher : public rclcpp::Node{
   public: Decawave_Publisher() : Node("decawave_node"){
     deca_topic = deca_topic + std::to_string(port_num);
-    decawave_pub = this->create_publisher<nav_msgs::msg::Odometry>(deca_topic, 10);
+    decawave_pub = this->create_publisher<nav_msgs::msg::Odometry>(deca_topic, 1);
     timer = this->create_wall_timer(500ms, std::bind(&Decawave_Publisher::timer_callback, this));
   }
   private:
