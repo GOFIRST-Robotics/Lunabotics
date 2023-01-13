@@ -3,7 +3,9 @@
 #include <string>
 #include <queue>
 //http://wjwwood.io/serial/doc/1.1.0/classserial_1_1_serial.html
-#include "Telecomm.h"
+#include "telecom/telecom.h"
+#include "telecom.cpp"
+
 #define ERR_CHECK \
   do { if (comm.status() != 0){ \
     fprintf(stdout, "Error: %s\n", comm.verboseStatus().c_str()); \
@@ -17,7 +19,7 @@ int main(int argc, char *argv[]){
     exit(1);
   }
 
-  Telecomm comm(argv[1], atoi(argv[2]), atoi(argv[3]));
+  Telecom comm(argv[1], atoi(argv[2]), atoi(argv[3]));
   comm.setFailureAction(false);
   comm.setBlockingTime(0,0);
   ERR_CHECK;
@@ -44,13 +46,13 @@ int main(int argc, char *argv[]){
       if(!msg.compare("EOM\n")){ break; } // delete if not want remote close
 
       // if connection good, then no dropped messages, empty
-      while(!comm.isCommClosed() && !dropBuffer.empty())
+      while(!comm.isComClosed() && !dropBuffer.empty())
         dropBuffer.pop();
     }
 
     // Reboot if communication channel closed
     LBL_REBOOT:
-    while(comm.isCommClosed()){
+    while(comm.isComClosed()){
       printf("Rebooting connection\n");
       comm.reboot();
       rebooting = true;
