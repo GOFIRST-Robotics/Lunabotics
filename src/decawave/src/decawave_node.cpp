@@ -49,8 +49,8 @@ class Decawave_Publisher : public rclcpp::Node{
     void timer_callback(/*const ros::TimerEvent&*/){
       // ROS_INFO("Publishing...");
       RCLCPP_INFO(this->get_logger(), "Publishing...");
-      decawave::Range msg;
-      auto deca_msg = nav_msgs::Odometry();
+      
+      auto deca_msg = nav_msgs::msg::Odometry();
       std::string frame_id = std::to_string(port_num);
       // update decawave data
       decawave_sensor->updateSamples();
@@ -75,6 +75,7 @@ class Decawave_Publisher : public rclcpp::Node{
       deca_msg.pose.pose.position.x;//y, z, maybe not the second .pose
       
       /*
+      decawave::Range msg;
       msg.distance = tagPos.x;
       msg.estimated_variance = 0.10;
       // fill out message header
