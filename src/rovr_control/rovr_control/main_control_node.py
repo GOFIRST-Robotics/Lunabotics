@@ -107,7 +107,7 @@ class PublishersAndSubscribers(Node):
             vel_msg.linear.x = dig_driving_speed
 
         self.velocity_publisher.publish(vel_msg)
-        self.get_logger().info(f'Publishing Angular Speed: {vel_msg.angular.x}, Linear Speed: {vel_msg.linear.z}')
+        self.get_logger().info(f'Publishing Angular Speed: {vel_msg.angular.z}, Linear Speed: {vel_msg.linear.x}')
 
 
     # Publish our currently goal to autonomously drive to
