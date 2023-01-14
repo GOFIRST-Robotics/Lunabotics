@@ -1,10 +1,10 @@
 /*
  * decawave_node.cpp
- * ROS interface to Decawave class
- * VERSION: 2.0
+ * ROS2 interface to Decawave class
+ * VERSION: 1.0.1
  * Last changed: 2022-12-14
- * Authors: Eric Patton <patto164@umn.edu>, Amalia Schwartzwald <schw1818@umn.edu>, Anthony Brogni <brogn002@umn.edu>
- * Maintainers: Eric Patton <patto164@umn.edu>
+ * Authors: Eric Patton <patto164@umn.edu>, Amalia Schwartzwald <schw1818@umn.edu>
+ * Maintainer: Eric Patton <patto164@umn.edu>
  * MIT License
  * Copyright (c) 2022 GOFIRST-Robotics
  */
@@ -23,7 +23,7 @@
 // ROS Publisher Topic
 std::string deca_topic = "decawave/Range";
 
-// Settings
+// ROS@ Parameters // TODO: Not setup as parameters yet
 double frequency = 50.0;
 int port_num = 0;
 // for(int i = 0; i < argc; ++i){

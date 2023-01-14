@@ -1,28 +1,27 @@
 /*
  * mc_to_robot_node.cpp
  * Uses telecom to TX/RX ROS data from the Mission Control (MC) to the robot
- * VERSION: 0.0.2
- * Last changed: 2019-04-28
- * Authors: Michael Lucke <lucke096@umn.edu>
- * Maintainers: Michael Lucke <lucke096@umn.edu>
+ * VERSION: 0.0.5
+ * Last changed: January 2023
+ * Author: Michael Lucke <lucke096@umn.edu>
+ * Maintainer: Anthony Brogni <brogn002@umn.edu>
  * MIT License
  * Copyright (c) 2018 GOFIRST-Robotics
  */
 
-/* Wifi Transmissions
- * Mission Control Sends Joystick input
- */
+/* Wifi Transmission
+ * Mission Control Sends Joystick input */
 
-// ROS Libs
+// Import ROS Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"
 
-// Native_Libs
+// Import Native C++ Libraries
 #include <string>
 #include <vector>
 
-// Custom Library
+// Import Custom Libraries
 #include "telecom/telecom.h"
 #include "telecom/telecom.cpp"
 #include "formatter_string/formatter.hpp"
@@ -31,10 +30,6 @@
 // Subscribers (inputs)
 //    joy_sub (sensor_msgs/Joy): joy
 //      Subscribes to joystick data
-
-// Publishers (outputs)
-//    pub_name1 (pub_name1_type): pub_name1_TOPIC_VALUE
-//      pub_name1_desc
 
 // Parameters (settings)
 //    frequency (double): default = 50.0
@@ -46,23 +41,22 @@
 //    src_port (int): default = 5556
 //      The port on host device to use
 
-// ROS Topics
+// ROS Topic
 std::string joy_topic = "joy";
 
-// Settings
+// ROS@ Parameters // TODO: Not setup as parameters yet
 double frequency = 20.0;
 std::string dst_address = "192.168.1.19";
 int dst_port_num = 5554;
 int src_port_num = 5556;
 
-// Global_Vars
+// Global Variables
 Telecom *com;
 Formatter *fmt;
 void update_fn();
 std::string recv_msg;
 double axes[6] = {0.0};
-std::vector<IV> buttons_iv = {{0,0}, {1,0}, {2,0}, {3,0}, {4,0}, {5,0}, {6,0},
-  {7,0}, {8,0}, {9,0}, {10,0}, {11,0}};
+std::vector<IV> buttons_iv = {{0,0}, {1,0}, {2,0}, {3,0}, {4,0}, {5,0}, {6,0}, {7,0}, {8,0}, {9,0}, {10,0}, {11,0}};
 std::vector<IV> pad_iv = {{0,0}};
 std::vector<IV_float> axes_iv = {{0,0.0}, {1,0.0}, {2,0.0}, {3,0.0}};
 
@@ -152,7 +146,7 @@ private:
     update_fn();
   }
 
-    /* Transmition format
+  /* Transmission format
   * A bit field byte of button states: 0-7 are
   * X (TRNS CONV), A (DIGR), B (), Y ()
   * LB (DOOR UP), RB (DOOR DN), LT (HOLD CONV OUT), RT (HOLD CONV IN)
@@ -173,7 +167,7 @@ private:
       }
     }
     // Process pad
-          if(axes[5] >  0.1){
+    if(axes[5] >  0.1){
       pad_iv[0].v = 3;
     }else if(axes[5] < -0.1){
       pad_iv[0].v = 4;

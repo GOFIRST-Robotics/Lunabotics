@@ -1,3 +1,7 @@
+# Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2022
+# Maintainer: Anthony Brogni <brogn002@umn.edu>
+# Last Updated: January 2023
+
 # Import standard ROS modules
 import rclpy
 from rclpy.node import Node
@@ -144,7 +148,7 @@ class PublishersAndSubscribers(Node):
         self.get_logger().info('Current State is set to: "%i"' % current_state)
 
 
-    # EKF stuff
+    # EKF stuff # TODO: Finish this callback
     def ekf_callback(self, msg):
         pos_x = msg.pose.pose.position.x
         pos_y = msg.pose.pose.position.y
@@ -164,7 +168,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     print('Hello from the rovr_control package!')
-    print('Initial State:', current_state)
+    print('Initial Robot State:', current_state)
 
     node = PublishersAndSubscribers()
 

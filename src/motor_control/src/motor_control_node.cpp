@@ -1,10 +1,10 @@
 /*
  * motor_control_node.cpp
  * Sends raw canbus msgs according to motor config.
- * VERSION: 0.0.1
- * Last changed: 11/17/2022
- * Authors: Jude Sauve <sauve031@umn.edu>, Anthony Brogni <brogn002@umn.edu>
- * Maintainers: Anthony Brogni <brogn002@umn.edu>
+ * VERSION: 0.0.3
+ * Last changed: January 2023
+ * Original Author: Jude Sauve <sauve031@umn.edu>
+ * Maintainer: Anthony Brogni <brogn002@umn.edu>
  * MIT License
  * Copyright (c) 2018 GOFIRST-Robotics
  */
@@ -21,7 +21,7 @@
 typedef int32_t S32;
 typedef uint32_t U32;
 
-// Settings
+// ROS2 Parameters // TODO: Not setup as parameters yet
 double linear_scale = 1.0;
 double angular_scale = 1.0;
 double digger_scale = 1.0;
@@ -32,7 +32,6 @@ bool digger = false;
 // Global Variables
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
-double motors[5] = {0.0}; // Instantiate how many motors we have
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -51,7 +50,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     can_msg.data[2] = (data >> 8) & 0xFF;
     can_msg.data[1] = (data >> 16) & 0xFF;
     can_msg.data[0] = (data >> 24) & 0xFF;
-    can_pub->publish(can_msg);
+    can_pub->publish(can_msg); // Publish the message
     RCLCPP_INFO(this->get_logger(), "Publishing a CAN message to CAN ID: %i", can_msg.id); // Print to the terminal
   }
 
@@ -64,15 +63,15 @@ class PublishersAndSubscribers : public rclcpp::Node
     can_msg.dlc = 1U;
     can_msg.id = id;
     can_msg.data[0] = data;
-    can_pub->publish(can_msg);
-    RCLCPP_INFO(this->get_logger(), "Publishing a CAN message"); // Print to the terminal
+    can_pub->publish(can_msg); // Publish the message
+    RCLCPP_INFO(this->get_logger(), "Publishing a boolean CAN message to CAN ID: %i", can_msg.id); // Print to the terminal
   }
 
 public:
   PublishersAndSubscribers()
   : Node("publishers_and_subscribers")
   {
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 1);
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 1); // The name of this topic is determined by our CAN_bridge node
     cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 1, std::bind(&PublishersAndSubscribers::velocity_callback, this, _1));
     actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 1, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
     timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::timer_callback, this));
@@ -97,11 +96,11 @@ private:
   }
   void timer_callback()
   {
-    // TODO: Send drive train CAN messages
+    // Send drivetrain CAN messages
     send_can(0x001, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
     send_can(0x002, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
-    send_can(0x003, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000);
-    send_can(0x004, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000);
+    send_can(0x003, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
+    send_can(0x004, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
 
     // Send digger CAN messages
     send_can(0x005, digger ? digger_scale * 100000.0 : 0.0);

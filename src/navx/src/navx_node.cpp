@@ -1,9 +1,9 @@
 /*
- * navx_cpp_node.cpp
+ * navx_node.cpp
  * Runs the Kauai Labs NavX IMU, using a modified NavX library
- * VERSION: 1.1.3
- * Last changed: 10/15/2022
- * Author: Jude Sauve <sauve031@umn.edu>
+ * VERSION: 1.1.6
+ * Last changed: January 2023
+ * Original Author: Jude Sauve <sauve031@umn.edu>
  * Maintainer: Anthony Brogni <brogn002@umn.edu>
  * MIT License
  * Copyright (c) 2019 UMN Robotics
@@ -36,14 +36,14 @@
 #include "ahrs/AHRS.h"
 #include "AHRS.cpp"
 
-// Settings
+// ROS2 Parameters // TODO: Not set up as parameters yet
 double frequency = 50.0;
 bool euler_enable = false;
 std::string device_path = "/dev/ttyACM0";
 std::string frame_id = "imu_link";
 int covar_samples = 100;
 
-// Custom Data Structure
+// Custom Data Structure for storing IMU data
 typedef struct {
   float ypr[3];
   float ang_vel[3];
@@ -51,11 +51,11 @@ typedef struct {
 } OrientationEntry;
 
 // Global Variables
-AHRS* imu; // Instantiate an AHRS object
-int seq = 0;
+AHRS* imu; // Instantiate an AHRS (gyroscope) object
+int seq = 0; // Initialize a counter variable
 std::vector<OrientationEntry> orientationHistory;
 static const float DEG_TO_RAD = M_PI / 180.0F; // Conversion Constant
-static const float GRAVITY = 9.81F; // measured in m/s^2. If we actually go to the moon, remember to change this :)
+static const float GRAVITY = 9.81F; // measured in m/s^2. If we actually go to the moon, remember to change this ;)
 
 /**
  * Calculates the covariance matrices based on the orientation history and stores the results in the provided arrays
@@ -157,7 +157,7 @@ private:
                             imu_msg.angular_velocity_covariance, 
                             imu_msg.linear_acceleration_covariance)) {
       // Only publish a message if we have a valid covariance
-      imu_pub->publish(imu_msg);
+      imu_pub->publish(imu_msg); // Publish the message
       RCLCPP_INFO(this->get_logger(), "Publishing an imu_message"); // Print to the terminal
     }
 

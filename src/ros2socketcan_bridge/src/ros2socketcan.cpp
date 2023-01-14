@@ -1,3 +1,8 @@
+// Original Author: Philipp Wuestenberg <philipp.wuestenberg@tu-berlin.de>
+// Maintainer: Anthony Brogni <brogn002@umn.edu>
+// Last Updated: January 2023
+
+// Import header file
 # include "ros2socketcan.h"
 
 using std::placeholders::_1;
@@ -32,7 +37,7 @@ void ros2socketcan::Init(const char* can_socket)
     
     if(bind(natsock,(struct sockaddr *)&addr,sizeof(addr))<0)
     {
-        perror("Error in socket bind");
+        perror("Error in socket bind"); // FIXME: I think this is the error we've been hitting when trying to run this node within Docker
     }
 
     stream.assign(natsock);
@@ -103,7 +108,7 @@ void ros2socketcan::CanSend(const can_msgs::msg::Frame msg)
     stream.async_write_some(boost::asio::buffer(&frame1, sizeof(frame1)),std::bind(&ros2socketcan::CanSendConfirm, this));
 }
 
-
+// Publish messages to the CAN bus
 void ros2socketcan::CanPublisher(const can_msgs::msg::Frame::SharedPtr msg)
 {
     can_msgs::msg::Frame msg1;
@@ -122,6 +127,7 @@ void ros2socketcan::CanSendConfirm(void)
     std::cout << "Message sent" << std::endl;
 }
 
+// Listen for CAN messages
 void ros2socketcan::CanListener(struct can_frame& rec_frame, boost::asio::posix::basic_stream_descriptor<>& stream)
 {
     can_msgs::msg::Frame frame;
@@ -151,6 +157,7 @@ void ros2socketcan::CanListener(struct can_frame& rec_frame, boost::asio::posix:
     stream.async_read_some(boost::asio::buffer(&rec_frame, sizeof(rec_frame)),std::bind(&ros2socketcan::CanListener,this, std::ref(rec_frame),std::ref(stream)));
 }
 
+// Main method of the node
 int main(int argc, char *argv[])
 {
     std::cout << programdescr << std::endl;

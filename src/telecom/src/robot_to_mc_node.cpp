@@ -1,28 +1,27 @@
 /*
  * robot_to_mc_node.cpp
  * Uses telecom to TX/RX ROS data from robot to the Mission Control (MC)
- * Does not transmit video
- * VERSION: 0.0.2
- * Last changed: 2019-04-28
- * Authors: Michael Lucke <lucke096@umn.edu>
- * Maintainers: Michael Lucke <lucke096@umn.edu>
+ * NOTE: Does not transmit video
+ * VERSION: 0.0.5
+ * Last changed: January 2023
+ * Author: Michael Lucke <lucke096@umn.edu>
+ * Maintainer: Anthony Brogni <brogn002@umn.edu>
  * MIT License
  * Copyright (c) 2018 GOFIRST-Robotics
  */
 
 /* Wifi Transmissions
- * Robot Confirms Recieved Joystick input
- */
+ * Robot Confirms it recieved Joystick input */
 
-// ROS Libraries
+// Import ROS Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 
-// Native Libraries
+// Import Native Libraries
 #include <string>
 #include <vector>
 
-// Custom Libraries
+// Import Custom Libraries
 #include "telecom/telecom.h"
 #include "telecom/telecom.cpp"
 #include "formatter_string/formatter.hpp"
@@ -42,21 +41,22 @@
 //    src_port (int): default = 5554
 //      The port on host device to use
 
-// ROS Topics
+// ROS Topic
 std::string joy_topic = "joy";
 
-// Settings
+// ROS@ Parameters // TODO: Not setup as parameters yet
 double frequency = 100.0;
 std::string dst_address = "192.168.1.10";
 int dst_port_num = 5556;
 int src_port_num = 5554;
 
-// Global_Vars
+// Global Variables
 Telecom *com;
 Formatter *fmt;
 std::string recv_msg;
 void joy_pub_fn();
 
+// Error check method
 #define ERR_CHECK() \
   do { if (com->status() != 0){ \
     fprintf(stdout, "Error: %s\n", com->verboseStatus().c_str()); \
@@ -148,7 +148,7 @@ private:
         com->reboot();
       }
 
-      // For testing
+      // Uncomment for testing
       if(!recv_msg.empty()) printf("Received message: %s\n", recv_msg.c_str());
 
       // Process recv_msg
