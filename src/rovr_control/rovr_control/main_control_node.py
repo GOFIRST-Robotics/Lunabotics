@@ -19,8 +19,12 @@ current_state = states['Auto Dig']
 
 # Define the maximum driving speeds of the robot (in meters/second?)
 dig_driving_speed = 0.5 # The speed to drive at when autonomously digging
-robot_drive_speed = 0.75
-robot_turn_speed = 0.75
+max_drive_speed = 0.75
+max_turn_speed = 0.75
+
+# These values are updated by joystick input
+current_drive_speed = 0.0
+current_turn_speed = 0.0
 
 # Define our autonomous goal position
 goal_x_absolute = 2  # Meters
@@ -39,6 +43,8 @@ class PublishersAndSubscribers(Node):
         
         # Velocity Publisher
         self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel', 1)
+        velocity_timer_period = 0.5  # how often to publish measured in seconds
+        self.velocity_timer = self.create_timer(velocity_timer_period, self.velocity_timer_callback)
         
         # Goal Publisher
         self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 1)
@@ -71,8 +77,19 @@ class PublishersAndSubscribers(Node):
         self.get_logger().info('Publishing: "%s"' % msg.data)
 
 
-    # Recieves a joystick message and publishes a corresponding velocity message
+    # When a joystick input is recieved, this callback updates the global speed variables accordingly
     def joystick_callback(self, msg):
+        global current_drive_speed
+        global current_turn_speed
+
+        current_drive_speed = (msg.axes[linear_axis]) * max_drive_speed # Forward speed
+        current_turn_speed = (msg.axes[angular_axis]) * max_turn_speed # Turning speed
+        
+
+    # Decides what velocities should be sent to the motors
+    def velocity_timer_callback(self):
+        global current_drive_speed
+        global current_turn_speed
         vel_msg = Twist()
 
         # Default to 0 speed for everything
@@ -84,8 +101,8 @@ class PublishersAndSubscribers(Node):
         vel_msg.linear.z = 0.0
 
         if current_state == states['Teleop Drive']:
-            vel_msg.linear.x = (msg.axes[linear_axis]) * robot_drive_speed; # Forward speed
-            vel_msg.angular.z = (msg.axes[angular_axis]) * robot_turn_speed; # Turning speed
+            vel_msg.linear.x = current_drive_speed # Forward speed
+            vel_msg.angular.z = current_turn_speed # Turning speed
         elif current_state == states['Auto Dig']:
             vel_msg.linear.x = dig_driving_speed
 
