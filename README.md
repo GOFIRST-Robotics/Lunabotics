@@ -12,3 +12,9 @@ You DO need to install VS Code, even if you have it already, since we need to ad
 Even if you already have a newer version of python, you do need to install python 3.8 or whatever version is listed in the first line of C:\dev\ros2-windows\Scripts\ros2-script.py. Any other version will result in ros2 failing to launch.
 
 You need to run C:\dev\ros2-windows\local_setup.bat every time you start a new command prompt. Make a batch script for it.
+
+## ROS2 General Workspace Tips
+
+Make sure to source install/setup.bash
+
+Clean workspace is rm -r build install log
