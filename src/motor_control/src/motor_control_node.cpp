@@ -78,12 +78,12 @@ public:
   }
 
 private:
-  void velocity_callback(const geometry_msgs::msg::Twist & msg) const
+  void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
   {
     linear_vel_cmd = msg.linear.x;
     angular_vel_cmd = msg.angular.x;
   }
-  void actuators_callback(const std_msgs::msg::String & msg) const
+  void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
     RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg.data.c_str());
     
