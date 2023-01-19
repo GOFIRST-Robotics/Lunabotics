@@ -1,5 +1,5 @@
 # This is the base image (ROS2 Humble) that our docker container will be built from
-ARG FROM_IMAGE=osrf/ros:humble-desktop
+ARG FROM_IMAGE=ros:humble
 ARG OVERLAY_WS=/opt/ros/overlay_ws
 
 # This line enables caching so that the image doesn't have to be fully built from scratch each time
@@ -37,17 +37,19 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     --from-path src --rosdistro humble -y \
     && rm -rf /var/lib/apt/lists/*
 
+# Install pip dependencies (this line is only needed for running the next line)
+RUN apt-get update && apt-get install -y python3-pip
+# Downgrade the 'setuptools' library because this is the latest version that ROS2 Humble currently supports
+RUN pip install setuptools==58.2.0
+
+# Install this required dependency for the CAN_bridge package
+RUN apt-get install libboost-all-dev -y
+
 # Build overlay source (this runs colcon build to build our ROS workspace, specify packages in --packages-select)
 COPY --from=cacher $OVERLAY_WS/src ./src
 ARG OVERLAY_MIXINS="release"
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     colcon build \
-      --packages-select \
-        navx \
-        motor_control \
-        rovr_control \
-        telecom \
-        ros2socketcan_bridge \
       --mixin $OVERLAY_MIXINS
 
 # Source entrypoint setup (source the ROS environment)
