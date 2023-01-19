@@ -1,5 +1,5 @@
 # This is the base image (ROS2 Humble) that our docker container will be built from
-ARG FROM_IMAGE=ros:humble
+ARG FROM_IMAGE=osrf/ros:eloquent-desktop
 ARG OVERLAY_WS=/opt/ros/overlay_ws
 
 # This line enables caching so that the image doesn't have to be fully built from scratch each time
@@ -13,7 +13,7 @@ repositories: \n\
   GOFIRST-Robotics/LUNABOTICS-2023: \n\
     type: git \n\
     url: https://github.com/GOFIRST-Robotics/LUNABOTICS-2023.git \n\
-    version: main \n\
+    version: Eloquent \n\
 " > ../overlay.repos
 RUN vcs import ./ < ../overlay.repos
 
@@ -34,16 +34,8 @@ WORKDIR $OVERLAY_WS
 COPY --from=cacher /tmp/$OVERLAY_WS/src ./src
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     apt-get update && rosdep install -i \
-    --from-path src --rosdistro humble -y \
+    --from-path src --rosdistro eloquent -y \
     && rm -rf /var/lib/apt/lists/*
-
-# Install pip dependencies (this line is only needed for running the next line)
-RUN apt-get update && apt-get install -y python3-pip
-# Downgrade the 'setuptools' library because this is the latest version that ROS2 Humble currently supports
-RUN pip install setuptools==58.2.0
-
-# Install this required dependency for the CAN_bridge package
-RUN apt-get install libboost-all-dev -y
 
 # Build overlay source (this runs colcon build to build our ROS workspace, specify packages in --packages-select)
 COPY --from=cacher $OVERLAY_WS/src ./src
