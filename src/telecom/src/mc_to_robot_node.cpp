@@ -153,15 +153,15 @@ private:
   * A value of pad states: 0-4 are
   * 0 (NONE), LF (LF UP), RT (RT UP), UP (BOTH UP), DN (BOTH DN)
   */
-  void joy_callback(const sensor_msgs::msg::Joy & msg){
+  void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg){
     // Process buttons
     buttons_iv[0].v = 0;
     for(int i = 0; i < 12; ++i){
-      buttons_iv[i].v = msg.buttons[i];
+      buttons_iv[i].v = msg->buttons[i];
     }
     // Process axes
     for(int i = 0; i < 6; ++i){
-      axes[i] = msg.axes[i];
+      axes[i] = msg->axes[i];
       if(i < 4){
         axes_iv[i].v = axes[i];
       }
