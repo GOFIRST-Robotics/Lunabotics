@@ -80,17 +80,17 @@ public:
 private:
   void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
   {
-    linear_vel_cmd = msg.linear.x;
-    angular_vel_cmd = msg.angular.x;
+    linear_vel_cmd = msg->linear.x;
+    angular_vel_cmd = msg->angular.x;
   }
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
-    RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg.data.c_str());
+    RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
     // Determine whether the digger should be on or off right now
-    if(msg.data == "DIGGER_ON") {
+    if(msg->data == "DIGGER_ON") {
         digger = true;
-    } else if(msg.data == "DiGGER_OFF") {
+    } else if(msg->data == "DiGGER_OFF") {
         digger = false;
     }
   }
