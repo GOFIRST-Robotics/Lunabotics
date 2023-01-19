@@ -42,6 +42,11 @@ COPY --from=cacher $OVERLAY_WS/src ./src
 ARG OVERLAY_MIXINS="release"
 RUN . /opt/ros/$ROS_DISTRO/setup.sh && \
     colcon build \
+      --packages-select \
+      navx \
+      rovr_control \
+      motor_control \
+      ros2socketcan_bridge \
       --mixin $OVERLAY_MIXINS
 
 # Source entrypoint setup (source the ROS environment)
