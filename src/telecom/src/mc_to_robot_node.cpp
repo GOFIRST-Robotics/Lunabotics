@@ -70,9 +70,9 @@ std::vector<IV_float> axes_iv = {{0,0.0}, {1,0.0}, {2,0.0}, {3,0.0}};
 val_fmt js_axes_msg_fmt = {
   "js_axes_msg_fmt",
   '!',
-  6, // # bytes
-  0, // Min val
-  200000, // Max val
+  6, // # of bytes
+  0, // Min value
+  200000, // Max value
   100000, // Offset
   100000  // Scale
 };
@@ -81,22 +81,22 @@ val_fmt js_axes_msg_fmt = {
 val_fmt button_msg_fmt = {
   "button_msg_fmt",
   '@',
-  1,
-  0,
-  255,
-  0,
-  1
+  1, // # of bytes
+  0, // Min value
+  255, // Max value
+  0, // Offset
+  1 // Scale
 };
 
 // pad_msg_fmt
 val_fmt pad_msg_fmt = {
   "pad_msg_fmt",
   '#',
-  1,
-  0,
-  255,
-  0,
-  1
+  1, // # of bytes
+  0, // Min value
+  255, // Max value
+  0, // Offset
+  1 // Scale
 };
 
 void update_fn(){
