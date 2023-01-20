@@ -16,7 +16,6 @@
 // under the License.
 
 /** @file ros2socketcan.h
- *
  *  @ingroup ROS2CAN_bridge
  *  @author Philipp Wuestenberg
  *  @brief  bidirectional ROS2 to CAN interface with topics and service
@@ -34,13 +33,12 @@
 
 #include "log.h"
 
-const std::string version = "1.00 from: " + std::string(__DATE__) + " " + std::string(__TIME__);
+const std::string version = "1.01 from: " + std::string(__DATE__) + " " + std::string(__TIME__);
 const std::string programdescr = "ROS 2 to CAN-Bus Bridge\nVersion: " + version;
 
 /**
  * @brief The ros2socketcan bridge connects a canbus with the ROS2 topic system. 
  * @details A nodes is provided, which provides the bridge from a ROS topic to the CAN bus and from the CAN bus to a ROS topic. The node functions as a bidirectional bridge and provides a service to publish a message and receive the answer with the fitting message id. 
- * 
  */
 class ros2socketcan : public rclcpp::Node
 {
@@ -90,7 +88,6 @@ class ros2socketcan : public rclcpp::Node
          * @details The CanListener function is Called by the .async_read_some when a Message is received on the Can Socket. It converts the message to a ROS Message and publishes it to a ROS2 Topic. Afterwards .async_read_some must be called again to wait for further CAN Messages.
          */
         void CanListener(struct can_frame& rec_frame, boost::asio::posix::basic_stream_descriptor<>& stream);
-        
        
         /**
          * @biref The Stop method is needed as the interuped handler must be configered to the asio libary.
