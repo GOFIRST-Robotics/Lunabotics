@@ -1,7 +1,7 @@
 /*
  * motor_control_node.cpp
- * Sends raw canbus msgs according to motor config.
- * VERSION: 0.0.3
+ * Publishes raw CAN messages to the "CAN/can0/transmit" ROS2 topic.
+ * VERSION: 0.0.4
  * Last changed: January 2023
  * Original Author: Jude Sauve <sauve031@umn.edu>
  * Maintainer: Anthony Brogni <brogn002@umn.edu>
@@ -9,7 +9,7 @@
  * Copyright (c) 2018 GOFIRST-Robotics
  */
 
-// Import ROS Libraries
+// Import ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -25,13 +25,18 @@ typedef uint32_t U32;
 double linear_scale = 1.0;
 double angular_scale = 1.0;
 double digger_scale = 1.0;
-double linear_vel_cmd = 0.0;
-double angular_vel_cmd = 0.0;
-bool digger = false;
+bool digging = false;
 
 // Global Variables
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
+
+// Declare CAN IDs Here //
+int front_left_drive = (U32) 1;
+int front_right_drive = (U32) 2;
+int back_left_drive = (U32) 3;
+int back_right_drive = (U32) 4;
+int digger_motor = (U32) 5;
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -74,38 +79,33 @@ public:
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 1); // The name of this topic is determined by our CAN_bridge node
     cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 1, std::bind(&PublishersAndSubscribers::velocity_callback, this, _1));
     actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 1, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
-    timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::timer_callback, this));
   }
 
 private:
-  void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
-  {
-    linear_vel_cmd = msg->linear.x;
-    angular_vel_cmd = msg->angular.x;
-  }
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
     RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
-    // Determine whether the digger should be on or off right now
+    // Determine whether the digging should be on or off right now
     if(msg->data == "DIGGER_ON") {
-        digger = true;
+        digging = true;
     } else if(msg->data == "DiGGER_OFF") {
-        digger = false;
+        digging = false;
     }
   }
-  void timer_callback()
+
+  void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
   {
     // Send drivetrain CAN messages
-    send_can(0x001, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
-    send_can(0x002, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
-    send_can(0x003, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
-    send_can(0x004, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
+    send_can(front_left_drive, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
+    send_can(back_left_drive, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
+    send_can(front_right_drive, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
+    send_can(back_right_drive, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
 
-    // Send digger CAN messages
-    send_can(0x005, digger ? digger_scale * 100000.0 : 0.0);
+    // Send digger CAN message
+    send_can(digger_motor, digging ? digger_scale * 100000.0 : 0.0);
   }
-  rclcpp::TimerBase::SharedPtr timer;
+
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr actuators_sub;
