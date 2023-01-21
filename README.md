@@ -18,3 +18,9 @@ You need to run C:\dev\ros2-windows\local_setup.bat every time you start a new c
 Make sure to source install/setup.bash
 
 Clean workspace is rm -r build install log
+
+## Useful ROS2 Commands for Testing
+
+Install Dependencies: rosdep install -i --from-path src --rosdistro eloquent -y
+
+Source the setup files: . install/setup.bash
