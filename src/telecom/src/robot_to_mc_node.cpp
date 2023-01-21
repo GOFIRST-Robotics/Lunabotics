@@ -13,11 +13,11 @@
 /* Wifi Transmissions
  * Robot Confirms it recieved Joystick input */
 
-// Import ROS Libraries
+// Import ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 
-// Import Native Libraries
+// Import Native C++ Libraries
 #include <string>
 #include <vector>
 

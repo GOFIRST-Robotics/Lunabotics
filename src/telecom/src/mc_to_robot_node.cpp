@@ -12,7 +12,7 @@
 /* Wifi Transmission
  * Mission Control Sends Joystick input */
 
-// Import ROS Libraries
+// Import ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"

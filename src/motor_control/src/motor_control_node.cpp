@@ -9,7 +9,7 @@
  * Copyright (c) 2018 GOFIRST-Robotics
  */
 
-// Import ROS Libraries
+// Import ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -27,7 +27,7 @@ double angular_scale = 1.0;
 double digger_scale = 1.0;
 double linear_vel_cmd = 0.0;
 double angular_vel_cmd = 0.0;
-bool digger = false;
+bool digging = false;
 
 // Global Variables
 void send_can(U32 id, S32 data);
@@ -87,11 +87,11 @@ private:
   {
     RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
-    // Determine whether the digger should be on or off right now
+    // Determine whether the digging should be on or off right now
     if(msg->data == "DIGGER_ON") {
-        digger = true;
+        digging = true;
     } else if(msg->data == "DiGGER_OFF") {
-        digger = false;
+        digging = false;
     }
   }
   void timer_callback()
@@ -102,8 +102,8 @@ private:
     send_can(0x003, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
     send_can(0x004, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
 
-    // Send digger CAN messages
-    send_can(0x005, digger ? digger_scale * 100000.0 : 0.0);
+    // Send digging CAN messages
+    send_can(0x005, digging ? digger_scale * 100000.0 : 0.0);
   }
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
