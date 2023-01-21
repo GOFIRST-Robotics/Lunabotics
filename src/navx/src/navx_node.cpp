@@ -26,7 +26,7 @@
 #include <cmath>
 #include <chrono>
 
-// Import Standard ROS Libraries
+// Import ROS2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "sensor_msgs/msg/imu.hpp"
