@@ -44,7 +44,7 @@ float convert(const val_fmt& from, const val_fmt& to, float f){
   return f;
 }
 
-const val_fmt* const Formatter::getFormat(char symbol){
+const val_fmt* Formatter::getFormat(char symbol){
   if(isValidSymbol(symbol))
     for(int i = 0; i < numFormats; ++i){
       if(formats[i].symbol == symbol)
@@ -53,7 +53,7 @@ const val_fmt* const Formatter::getFormat(char symbol){
   return NULL;
 }
 
-const val_fmt* const Formatter::getFormat(const char data_t[]){
+const val_fmt* Formatter::getFormat(const char data_t[]){
   for(int i = 0; i < numFormats; ++i){
     if(strcmp(formats[i].data_t, data_t) == 0)
       return &formats[i];

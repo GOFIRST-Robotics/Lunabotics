@@ -58,7 +58,7 @@ float convert(const val_fmt& from, const val_fmt& to, float f){
   return f;
 }
 
-const val_fmt* const Formatter::getFormat(char symbol){
+const val_fmt* Formatter::getFormat(char symbol){
   if(isValidSymbol(symbol))
     for(std::vector<val_fmt>::const_iterator it = formats.begin(); it != formats.end(); ++it){
       if(it->symbol == symbol)
@@ -67,7 +67,7 @@ const val_fmt* const Formatter::getFormat(char symbol){
   return NULL;
 }
 
-const val_fmt* const Formatter::getFormat(std::string data_t){
+const val_fmt* Formatter::getFormat(std::string data_t){
     for(std::vector<val_fmt>::const_iterator it = formats.begin(); it != formats.end(); ++it){
     if(it->data_t == data_t)
       return &(*it);

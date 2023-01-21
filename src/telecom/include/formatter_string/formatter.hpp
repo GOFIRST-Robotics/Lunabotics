@@ -93,8 +93,8 @@ class Formatter {
     float getValueFloat(int val, const val_fmt* fmt);
     int getVal(int value, const val_fmt*);
     int getVal(float value, const val_fmt*);
-    const val_fmt* const getFormat(char symbol);
-    const val_fmt* const getFormat(std::string data_t);
+    const val_fmt* getFormat(char symbol);
+    const val_fmt* getFormat(std::string data_t);
 
   private:
     const std::vector<val_fmt> formats;
