@@ -32,11 +32,11 @@ void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
 
 // Declare CAN IDs Here //
-U32 front_left_drive = (U32) 1;
-U32 front_right_drive = (U32) 2;
-U32 back_left_drive = (U32) 3;
-U32 back_right_drive = (U32) 4;
-U32 digger_motor = (U32) 5;
+static const int front_left_drive = (U32) 1;
+static const int front_right_drive = (U32) 2;
+static const int back_left_drive = (U32) 3;
+static const int back_right_drive = (U32) 4;
+static const int digger_motor = (U32) 5;
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
