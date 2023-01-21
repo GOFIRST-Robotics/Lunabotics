@@ -21,6 +21,6 @@ Clean workspace is rm -r build install log
 
 ## Useful ROS2 Commands for Testing
 
-Install Dependencies: rosdep install -i --from-path src --rosdistro eloquent -y
+Install Dependencies: rosdep install -i --from-path src --rosdistro humble -y
 
 Source the setup files: . install/setup.bash
