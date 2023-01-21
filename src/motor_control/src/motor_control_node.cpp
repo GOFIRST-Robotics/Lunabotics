@@ -33,6 +33,13 @@ bool digging = false;
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
 
+// Define CAN IDs Here //
+U32 front_left_drive = 0x001;
+U32 back_left_drive = 0x002;
+U32 front_right_drive = 0x003;
+U32 back_right_drive = 0x004;
+U32 digger_motor = 0x005;
+
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
@@ -97,13 +104,13 @@ private:
   void timer_callback()
   {
     // Send drivetrain CAN messages
-    send_can(0x001, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
-    send_can(0x002, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
-    send_can(0x003, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
-    send_can(0x004, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
+    send_can(front_left_drive, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
+    send_can(back_left_drive, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
+    send_can(front_right_drive, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
+    send_can(back_right_drive, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
 
     // Send digging CAN messages
-    send_can(0x005, digging ? digger_scale * 100000.0 : 0.0);
+    send_can(digger_motor, digging ? digger_scale * 100000.0 : 0.0);
   }
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
