@@ -72,7 +72,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     S32 data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %i to %f", can_msg.id, percentPower); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %i to %f", id, percentPower); // Print to the terminal
   }
 
   // Set the current draw of the motor in amps
@@ -80,7 +80,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     S32 data = current * 1000; // Convert from current in amps to a signed 32-bit integer
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %i to %f amps", can_msg.id, current); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %i to %f amps", id, current); // Print to the terminal
   }
 
   // eRPM = "electrical RPM" = RPM * (number of poles the motor has / 2)
@@ -88,7 +88,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     S32 data = erpm;
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %i to %f", can_msg.id, erpm); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %i to %f", id, erpm); // Print to the terminal
   }
 
 public:
