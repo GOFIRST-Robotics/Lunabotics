@@ -113,7 +113,7 @@ private:
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
     U32 id = can_msg->id;
-    U8[8] data = can_msg->data; // bytes 0-3 = eRPM, bytes 4-5 = average current, bytes 6-7 = latest duty cycle
+    U8[] data = can_msg->data; // bytes 0-3 = eRPM, bytes 4-5 = average current, bytes 6-7 = latest duty cycle
 
     double eRPM = (double)(data[0]<<24 + data[1]<<16 + data[2]<<8 + data[3]);
     double avgMotorCurrent = (double)((data[4]<<8 + data[5]) / 10);
