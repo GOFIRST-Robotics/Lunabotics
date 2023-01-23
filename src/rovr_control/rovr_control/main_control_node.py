@@ -22,13 +22,13 @@ states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3
 current_state = states['Auto Dig']
 
 # Define the maximum driving power of the robot (duty cycle)
-dig_driving_speed = 0.5 # The speed to drive at when autonomously digging
-max_drive_speed = 0.75
-max_turn_speed = 0.75
+dig_driving_power = 0.5 # The power to drive at when autonomously digging
+max_drive_power = 0.75
+max_turn_power = 0.75
 
 # These values are updated by joystick input
-current_drive_speed = 0.0
-current_turn_speed = 0.0
+current_drive_power = 0.0
+current_turn_power = 0.0
 
 # Define our autonomous goal position
 goal_x_absolute = 2  # Meters
@@ -81,22 +81,22 @@ class PublishersAndSubscribers(Node):
         self.get_logger().info('Publishing: "%s"' % msg.data)
 
 
-    # When a joystick input is recieved, this callback updates the global speed variables accordingly
+    # When a joystick input is recieved, this callback updates the global power variables accordingly
     def joystick_callback(self, msg):
-        global current_drive_speed
-        global current_turn_speed
+        global current_drive_power
+        global current_turn_power
 
-        current_drive_speed = (msg.axes[linear_axis]) * max_drive_speed # Forward speed
-        current_turn_speed = (msg.axes[angular_axis]) * max_turn_speed # Turning speed
+        current_drive_power = (msg.axes[linear_axis]) * max_drive_power # Forward power
+        current_turn_power = (msg.axes[angular_axis]) * max_turn_power # Turning power
         
 
     # Decides what velocities should be sent to the motors
     def velocity_timer_callback(self):
-        global current_drive_speed
-        global current_turn_speed
+        global current_drive_power
+        global current_turn_power
         vel_msg = Twist()
 
-        # Default to 0 speed for everything
+        # Default to 0 power for everything
         vel_msg.angular.x = 0.0  
         vel_msg.angular.y = 0.0
         vel_msg.angular.z = 0.0
@@ -105,13 +105,13 @@ class PublishersAndSubscribers(Node):
         vel_msg.linear.z = 0.0
 
         if current_state == states['Teleop Drive']:
-            vel_msg.linear.x = current_drive_speed # Forward speed
-            vel_msg.angular.z = current_turn_speed # Turning speed
+            vel_msg.linear.x = current_drive_power # Forward power
+            vel_msg.angular.z = current_turn_power # Turning power
         elif current_state == states['Auto Dig']:
-            vel_msg.linear.x = dig_driving_speed
+            vel_msg.linear.x = dig_driving_power # Driving power while digging
 
         self.velocity_publisher.publish(vel_msg)
-        self.get_logger().info(f'Publishing Angular Speed: {vel_msg.angular.z}, Linear Speed: {vel_msg.linear.x}')
+        self.get_logger().info(f'Publishing Angular Power: {vel_msg.angular.z}, Linear Power: {vel_msg.linear.x}')
 
 
     # Publish our currently goal to autonomously drive to
