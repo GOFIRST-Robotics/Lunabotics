@@ -3,7 +3,7 @@
 <package format="3">
   <name>motor_control</name>
   <version>0.0.3</version>
-  <description>ROS2 node for sending CAN messages to our motor controllers</description>
+  <description>ROS 2 node for sending CAN messages to our motor controllers</description>
   <maintainer email="brogn002@umn.edu">Anthony Brogni</maintainer>
   <license>MIT License</license>
 

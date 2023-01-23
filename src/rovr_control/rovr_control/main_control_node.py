@@ -2,11 +2,11 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: January 2023
 
-# Import standard ROS modules
+# Import ROS 2 modules
 import rclpy
 from rclpy.node import Node
 
-# Import ROS formatted message types
+# Import ROS 2 formatted message types
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped

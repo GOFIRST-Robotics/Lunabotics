@@ -42,8 +42,8 @@ void ros2socketcan::Init(const char* can_socket)
 
     stream.assign(natsock);
     
-    std::cout << "ROS2 to CAN-Bus topic:" << subscription_->get_topic_name() 	<< std::endl;
-    std::cout << "CAN-Bus to ROS2 topic:" << publisher_->get_topic_name() 	<< std::endl;
+    std::cout << "ROS 2 to CAN-Bus topic:" << subscription_->get_topic_name() 	<< std::endl;
+    std::cout << "CAN-Bus to ROS 2 topic:" << publisher_->get_topic_name() 	<< std::endl;
     
     stream.async_read_some(boost::asio::buffer(&rec_frame, sizeof(rec_frame)),std::bind(&ros2socketcan::CanListener, this,std::ref(rec_frame),std::ref(stream)));
     

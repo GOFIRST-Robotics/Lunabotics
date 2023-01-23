@@ -1,7 +1,7 @@
 // Import Native C++ Libraries
 #include <memory>
 
-// Import ROS2 Libraries
+// Import ROS 2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 

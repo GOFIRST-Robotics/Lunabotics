@@ -1,6 +1,6 @@
 /*
  * robot_to_mc_node.cpp
- * Uses telecom to TX/RX ROS data from robot to the Mission Control (MC)
+ * Uses telecom to TX/RX ROS 2 data from robot to the Mission Control (MC)
  * NOTE: Does not transmit video
  * VERSION: 0.0.5
  * Last changed: January 2023
@@ -13,7 +13,7 @@
 /* Wifi Transmissions
  * Robot Confirms it recieved Joystick input */
 
-// Import ROS2 Libraries
+// Import ROS 2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 
@@ -41,10 +41,10 @@
 //    src_port (int): default = 5554
 //      The port on host device to use
 
-// ROS Topic
+// ROS 2 Topic
 std::string joy_topic = "joy";
 
-// ROS@ Parameters // TODO: Not setup as parameters yet
+// ROS 2 Parameters // TODO: Not setup as parameters yet
 double frequency = 100.0;
 std::string dst_address = "192.168.1.10";
 int dst_port_num = 5556;
@@ -160,7 +160,7 @@ private:
 };
 
 int main(int argc, char** argv){
-  // Initialize ROS
+  // Initialize ROS 2
   rclcpp::init(argc, argv);
   
   // Initialize variables

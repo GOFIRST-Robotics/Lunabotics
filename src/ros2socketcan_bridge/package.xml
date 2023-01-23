@@ -3,7 +3,7 @@
 <package format="3">
   <name>ros2socketcan_bridge</name>
   <version>1.0.1</version>
-  <description>Provides a node to convert messages from SocketCAN to a ROS Topic and vice versa.</description>
+  <description>Provides a node to convert messages from SocketCAN to a ROS 2 Topic and vice versa.</description>
   <author email="philipp.wuestenberg@tu-berlin.de">Philipp Wuestenberg</author>
   <maintainer email="brogn002@umn.edu">Anthony Brogni</maintainer>
   <license>Apache License 2.0</license>
