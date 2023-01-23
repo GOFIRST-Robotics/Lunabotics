@@ -44,18 +44,13 @@ using std::placeholders::_1;
 
 class PublishersAndSubscribers : public rclcpp::Node
 {
-  // Method for sending data over the CAN bus
-  void vesc_set_duty_cycle(U32 id, double percentPower) { // Set percent power between -1.0 and 1.0
-    // Safety check on power
-    percentPower = std::min(percentPower, 1.0);
-    percentPower = std::max(percentPower, -1.0);
-
+  // Generic method for sending data over the CAN bus
+  void send_can(U32 id, S32 data) {
     can_msgs::msg::Frame can_msg; // Construct a new CAN message
-    S32 data = percentPower * 100000; // Convert to a signed 32-bit integer
 
     can_msg.is_rtr = false;
-    can_msg.is_extended = true;
     can_msg.is_error = false;
+    can_msg.is_extended = true;
 
     can_msg.id = id; // Set the CAN ID for this message
 
@@ -66,7 +61,34 @@ class PublishersAndSubscribers : public rclcpp::Node
     can_msg.data[3] = data & 0xFF;
     
     can_pub->publish(can_msg); // Publish our new CAN message to the ROS 2 topic
+  }
+
+  // Set the percent power of the motor between -1.0 and 1.0
+  void vesc_set_duty_cycle(U32 id, double percentPower) { 
+    // Safety check on power
+    percentPower = std::min(percentPower, 1.0);
+    percentPower = std::max(percentPower, -1.0);
+
+    S32 data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
+
+    send_can(id, data);
     RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %i to %f", can_msg.id, percentPower); // Print to the terminal
+  }
+
+  // Set the current draw of the motor in amps
+  void vesc_set_current(U32 id, double current) { 
+    S32 data = current * 1000; // Convert from current in amps to a signed 32-bit integer
+
+    send_can(id, data);
+    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %i to %f amps", can_msg.id, current); // Print to the terminal
+  }
+
+  // eRPM = "electrical RPM" = RPM * (number of poles the motor has / 2)
+  void vesc_set_eRPM(U32 id, double erpm) {
+    S32 data = erpm;
+
+    send_can(id, data);
+    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %i to %f", can_msg.id, erpm); // Print to the terminal
   }
 
 public:
