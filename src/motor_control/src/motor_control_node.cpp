@@ -36,6 +36,9 @@ U32 front_right_drive = 0x003;
 U32 back_right_drive = 0x004;
 U32 digger_motor = 0x005;
 
+// Define Motor Power/Speeds Here //
+double digger_power = 0.5;
+
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
@@ -102,7 +105,7 @@ private:
     vesc_set_duty_cycle(back_right_drive, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
 
     // Send digging CAN messages
-    send_can(digger_motor, digging ? digger_scale * 100000.0 : 0.0);
+    vesc_set_duty_cycle(digger_motor, digging ? digger_power : 0.0);
   }
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;

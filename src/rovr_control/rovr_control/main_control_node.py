@@ -21,7 +21,7 @@ states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3
 # Define our robot's initial state
 current_state = states['Auto Dig']
 
-# Define the maximum driving speeds of the robot (in meters/second?)
+# Define the maximum driving power of the robot (duty cycle)
 dig_driving_speed = 0.5 # The speed to drive at when autonomously digging
 max_drive_speed = 0.75
 max_turn_speed = 0.75
