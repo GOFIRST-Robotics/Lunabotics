@@ -28,4 +28,5 @@ Source the setup files: . install/setup.bash
 ## Useful Resources/References
 
 Configuring the Nvidia Jetson TX2 for CAN Communication: https://www.mathworks.com/help/supportpkg/nvidia/ug/jetson-can-bus-traffic-sign-detection.html
+
 VESC CAN Status Frames Spreadsheet: https://github.com/codermonkey42/VESC_CAN
