@@ -21,7 +21,6 @@
 
 typedef int32_t S32; // Signed 32-bit integer
 typedef uint32_t U32; // Unsigned 32-bit integer
-typedef uint8_t U8; // Unsigned 8-bit integer
 
 // Global Variables
 void send_can(U32 id, S32 data);
@@ -113,13 +112,14 @@ private:
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
     U32 id = can_msg->id;
-    U8 *data = can_msg->data; // bytes 0-3 = eRPM, bytes 4-5 = average current, bytes 6-7 = latest duty cycle
+    std::array<unsigned char, 8> data = can_msg->data; // bytes 0-3 = eRPM, bytes 4-5 = average current, bytes 6-7 = latest duty cycle
 
-    double eRPM = (double)(data[0]<<24 + data[1]<<16 + data[2]<<8 + data[3]);
-    double avgMotorCurrent = (double)((data[4]<<8 + data[5]) / 10);
-    double dutyCycleNow = (double)((data[6]<<8 + data[7]) / 1000);
+    double eRPM = (double)((data[0]<<24) + (data[1]<<16) + (data[2]<<8) + data[3]);
+    double avgMotorCurrent = (double)(((data[4]<<8) + data[5]) / 10);
+    double dutyCycleNow = (double)(((data[6]<<8) + data[7]) / 1000);
 
-    RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID: %i with an eRPM of: %f", id, eRPM);
+    RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %i with the following data:", id);
+    RCLCPP_INFO(this->get_logger(), "eRPM: %f average motor current: %f latest duty cycle: %f", eRPM, avgMotorCurrent, dutyCycleNow);
   }
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
