@@ -9,7 +9,7 @@
  * Copyright (c) 2018 GOFIRST-Robotics
  */
 
-// Import ROS2 Libraries
+// Import ROS 2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -18,20 +18,16 @@
 // Import Native C++ Libraries
 #include <string>
 #include <stdint.h>
-typedef int32_t S32;
-typedef uint32_t U32;
 
-// ROS2 Parameters // TODO: Not setup as parameters yet
-double linear_scale = 1.0;
-double angular_scale = 1.0;
-double digger_scale = 1.0;
-double linear_vel_cmd = 0.0;
-double angular_vel_cmd = 0.0;
-bool digging = false;
+typedef int32_t S32; // Unsigned 32-bit integer
+typedef uint32_t U32; // Signed 32-bit integer
 
 // Global Variables
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
+double linear_vel_cmd = 0.0;
+double angular_vel_cmd = 0.0;
+bool digging = false;
 
 // Define CAN IDs Here //
 U32 front_left_drive = 0x001;
@@ -46,32 +42,28 @@ using std::placeholders::_1;
 class PublishersAndSubscribers : public rclcpp::Node
 {
   // Method for sending data over the CAN bus
-  void send_can(U32 id, S32 data){
-    can_msgs::msg::Frame can_msg;
-    can_msg.is_rtr = false;
-    can_msg.is_extended = true;
-    can_msg.is_error = false;
-    can_msg.dlc = 4U;
-    can_msg.id = id;
-    can_msg.data[3] = data & 0xFF;
-    can_msg.data[2] = (data >> 8) & 0xFF;
-    can_msg.data[1] = (data >> 16) & 0xFF;
-    can_msg.data[0] = (data >> 24) & 0xFF;
-    can_pub->publish(can_msg); // Publish the message
-    RCLCPP_INFO(this->get_logger(), "Publishing a CAN message to CAN ID: %i", can_msg.id); // Print to the terminal
-  }
+  void vesc_set_duty_cycle(U32 id, double percentPower) { // Set percent power between -1.0 and 1.0
+    // Safety check on power
+    percentPower = std::min(percentPower, 1.0);
+    percentPower = std::max(percentPower, -1.0);
 
-  // Method for sending a boolean value over the CAN bus
-  void send_can_bool(U32 id, bool data){
-    can_msgs::msg::Frame can_msg;
+    can_msgs::msg::Frame can_msg; // Construct a new CAN message
+    S32 data = percentPower * 100000; // Convert to a signed 32-bit integer
+
     can_msg.is_rtr = false;
     can_msg.is_extended = true;
     can_msg.is_error = false;
-    can_msg.dlc = 1U;
-    can_msg.id = id;
-    can_msg.data[0] = data;
-    can_pub->publish(can_msg); // Publish the message
-    RCLCPP_INFO(this->get_logger(), "Publishing a boolean CAN message to CAN ID: %i", can_msg.id); // Print to the terminal
+
+    can_msg.id = id; // Set the CAN ID for this message
+
+    can_msg.dlc = 4U; // Size of the data array
+    can_msg.data[0] = (data >> 24) & 0xFF;
+    can_msg.data[1] = (data >> 16) & 0xFF;
+    can_msg.data[2] = (data >> 8) & 0xFF;
+    can_msg.data[3] = data & 0xFF;
+    
+    can_pub->publish(can_msg); // Publish our new CAN message to the ROS 2 topic
+    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %i to %f", can_msg.id, percentPower); // Print to the terminal
   }
 
 public:
@@ -104,10 +96,10 @@ private:
   void timer_callback()
   {
     // Send drivetrain CAN messages
-    send_can(front_left_drive, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
-    send_can(back_left_drive, (linear_vel_cmd*linear_scale - angular_vel_cmd*angular_scale) * 100000);
-    send_can(front_right_drive, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
-    send_can(back_right_drive, (linear_vel_cmd*linear_scale + angular_vel_cmd*angular_scale) * -100000); // Add negative sign to invert the motor
+    vesc_set_duty_cycle(front_left_drive, linear_vel_cmd - angular_vel_cmd);
+    vesc_set_duty_cycle(back_left_drive, linear_vel_cmd - angular_vel_cmd);
+    vesc_set_duty_cycle(front_right_drive, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
+    vesc_set_duty_cycle(back_right_drive, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
 
     // Send digging CAN messages
     send_can(digger_motor, digging ? digger_scale * 100000.0 : 0.0);
@@ -120,7 +112,7 @@ private:
 
 // Main method for the node
 int main(int argc, char** argv){
-  // Initialize ROS
+  // Initialize ROS 2
   rclcpp::init(argc, argv);
 
   // Spin the node
