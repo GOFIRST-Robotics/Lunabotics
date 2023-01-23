@@ -111,8 +111,8 @@ private:
   // Listen for status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
-    U32 id = can_msg.id;
-    S32[] data = can_msg.data; // TODO: Figure out how to decode this data into something useful
+    U32 id = can_msg->id;
+    S32[] data = can_msg->data; // TODO: Figure out how to decode this data into something useful
   }
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
