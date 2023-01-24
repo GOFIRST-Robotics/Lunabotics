@@ -25,7 +25,7 @@ inline int number(char c){
 }
 
 std::vector<IV> convert(const val_fmt& from, const val_fmt& to, std::vector<IV> values){
-  for(int i = 0; i < values.size(); ++i){
+  for(std::string::size_type i = 0; i < values.size(); ++i){
     int f = values[i].v;
     f = f < from.min_val ? from.min_val : (f > from.max_val ? from.max_val : f);
     int t = (f - from.off) * to.scale / from.scale + to.off;
@@ -42,7 +42,7 @@ int convert(const val_fmt& from, const val_fmt& to, int f){
 }
 
 std::vector<IV_float> convert(const val_fmt& from, const val_fmt& to, std::vector<IV_float> values){
-  for(int i = 0; i < values.size(); ++i){
+  for(std::string::size_type i = 0; i < values.size(); ++i){
     float f = values[i].v;
     f = f < from.min_val ? from.min_val : (f > from.max_val ? from.max_val : f);
     float t = (f - from.off) * to.scale / from.scale + to.off;
@@ -180,7 +180,6 @@ void Formatter::addFloat(std::string data_t, const std::vector<IV_float>& ids_va
   }
   const val_fmt* fmt = getFormat(data_t);
   assert(fmt); // Check that code runs; this should 
-  const val_fmt* preApp;
   for(IV_float idv : ids_values){
     msg += fmt->symbol;
     msg += letter(idv.i);
