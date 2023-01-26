@@ -187,9 +187,7 @@ int Telecom::update(){
   if(sec < 0 || usec < 0){
     tv_ptr = NULL;
   }else{
-    timeval tv = {0};
-    tv.tv_sec = sec;
-    tv.tv_usec = usec;
+    timeval tv = { sec, usec };
     tv_ptr = &tv;
   }
 

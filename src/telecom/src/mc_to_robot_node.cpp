@@ -1,6 +1,6 @@
 /*
  * mc_to_robot_node.cpp
- * Uses telecom to TX/RX ROS data from the Mission Control (MC) to the robot
+ * Uses telecom to TX/RX ROS 2 data from the Mission Control (MC) to the robot
  * VERSION: 0.0.5
  * Last changed: January 2023
  * Author: Michael Lucke <lucke096@umn.edu>
@@ -12,7 +12,7 @@
 /* Wifi Transmission
  * Mission Control Sends Joystick input */
 
-// Import ROS Libraries
+// Import ROS 2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -41,10 +41,10 @@
 //    src_port (int): default = 5556
 //      The port on host device to use
 
-// ROS Topic
+// ROS 2 Topic
 std::string joy_topic = "joy";
 
-// ROS@ Parameters // TODO: Not setup as parameters yet
+// ROS 2 Parameters // TODO: Not setup as parameters yet
 double frequency = 20.0;
 std::string dst_address = "192.168.1.19";
 int dst_port_num = 5554;
@@ -70,9 +70,9 @@ std::vector<IV_float> axes_iv = {{0,0.0}, {1,0.0}, {2,0.0}, {3,0.0}};
 val_fmt js_axes_msg_fmt = {
   "js_axes_msg_fmt",
   '!',
-  6, // # bytes
-  0, // Min val
-  200000, // Max val
+  6, // # of bytes
+  0, // Min value
+  200000, // Max value
   100000, // Offset
   100000  // Scale
 };
@@ -81,22 +81,22 @@ val_fmt js_axes_msg_fmt = {
 val_fmt button_msg_fmt = {
   "button_msg_fmt",
   '@',
-  1,
-  0,
-  255,
-  0,
-  1
+  1, // # of bytes
+  0, // Min value
+  255, // Max value
+  0, // Offset
+  1 // Scale
 };
 
 // pad_msg_fmt
 val_fmt pad_msg_fmt = {
   "pad_msg_fmt",
   '#',
-  1,
-  0,
-  255,
-  0,
-  1
+  1, // # of bytes
+  0, // Min value
+  255, // Max value
+  0, // Offset
+  1 // Scale
 };
 
 void update_fn(){
@@ -153,15 +153,15 @@ private:
   * A value of pad states: 0-4 are
   * 0 (NONE), LF (LF UP), RT (RT UP), UP (BOTH UP), DN (BOTH DN)
   */
-  void joy_callback(const sensor_msgs::msg::Joy & msg){
+  void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg){
     // Process buttons
     buttons_iv[0].v = 0;
     for(int i = 0; i < 12; ++i){
-      buttons_iv[i].v = msg.buttons[i];
+      buttons_iv[i].v = msg->buttons[i];
     }
     // Process axes
     for(int i = 0; i < 6; ++i){
-      axes[i] = msg.axes[i];
+      axes[i] = msg->axes[i];
       if(i < 4){
         axes_iv[i].v = axes[i];
       }
@@ -185,7 +185,7 @@ private:
 };
 
 int main(int argc, char** argv){
-  // Initialize ROS
+  // Initialize ROS 2
   rclcpp::init(argc, argv);
 
   // Initialize variables

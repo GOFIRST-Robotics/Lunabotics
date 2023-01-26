@@ -26,7 +26,7 @@
 #include <cmath>
 #include <chrono>
 
-// Import Standard ROS Libraries
+// Import ROS 2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "sensor_msgs/msg/imu.hpp"
@@ -36,7 +36,7 @@
 #include "ahrs/AHRS.h"
 #include "AHRS.cpp"
 
-// ROS2 Parameters // TODO: Not set up as parameters yet
+// ROS 2 Parameters // TODO: Not set up as parameters yet
 double frequency = 50.0;
 bool euler_enable = false;
 std::string device_path = "/dev/ttyACM0";
@@ -179,7 +179,7 @@ private:
 
 int main(int argc, char * argv[])
 {
-  // Initialize ROS
+  // Initialize ROS 2
   rclcpp::init(argc, argv);
 
   // Initialize the NavX IMU

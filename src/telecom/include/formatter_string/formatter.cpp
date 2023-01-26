@@ -25,7 +25,7 @@ inline int number(char c){
 }
 
 std::vector<IV> convert(const val_fmt& from, const val_fmt& to, std::vector<IV> values){
-  for(int i = 0; i < values.size(); ++i){
+  for(std::string::size_type i = 0; i < values.size(); ++i){
     int f = values[i].v;
     f = f < from.min_val ? from.min_val : (f > from.max_val ? from.max_val : f);
     int t = (f - from.off) * to.scale / from.scale + to.off;
@@ -42,7 +42,7 @@ int convert(const val_fmt& from, const val_fmt& to, int f){
 }
 
 std::vector<IV_float> convert(const val_fmt& from, const val_fmt& to, std::vector<IV_float> values){
-  for(int i = 0; i < values.size(); ++i){
+  for(std::string::size_type i = 0; i < values.size(); ++i){
     float f = values[i].v;
     f = f < from.min_val ? from.min_val : (f > from.max_val ? from.max_val : f);
     float t = (f - from.off) * to.scale / from.scale + to.off;
@@ -58,7 +58,7 @@ float convert(const val_fmt& from, const val_fmt& to, float f){
   return f;
 }
 
-const val_fmt* const Formatter::getFormat(char symbol){
+const val_fmt* Formatter::getFormat(char symbol){
   if(isValidSymbol(symbol))
     for(std::vector<val_fmt>::const_iterator it = formats.begin(); it != formats.end(); ++it){
       if(it->symbol == symbol)
@@ -67,7 +67,7 @@ const val_fmt* const Formatter::getFormat(char symbol){
   return NULL;
 }
 
-const val_fmt* const Formatter::getFormat(std::string data_t){
+const val_fmt* Formatter::getFormat(std::string data_t){
     for(std::vector<val_fmt>::const_iterator it = formats.begin(); it != formats.end(); ++it){
     if(it->data_t == data_t)
       return &(*it);
@@ -180,7 +180,6 @@ void Formatter::addFloat(std::string data_t, const std::vector<IV_float>& ids_va
   }
   const val_fmt* fmt = getFormat(data_t);
   assert(fmt); // Check that code runs; this should 
-  const val_fmt* preApp;
   for(IV_float idv : ids_values){
     msg += fmt->symbol;
     msg += letter(idv.i);

@@ -1,7 +1,7 @@
-// Native Libraries
+// Import Native C++ Libraries
 #include <memory>
 
-// ROS Libraries
+// Import ROS 2 Libraries
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 
@@ -18,11 +18,11 @@ class Subscriber : public rclcpp::Node
     }
 
   private:
-    void topic_callback(const sensor_msgs::msg::Imu & msg) const
+    void topic_callback(const sensor_msgs::msg::Imu::SharedPtr msg) const
     {
-      RCLCPP_INFO(this->get_logger(), "Orientation: (%f, %f, %f)", msg.orientation.x, msg.orientation.y, msg.orientation.z);
-      RCLCPP_INFO(this->get_logger(), "Velocity: (%f, %f, %f)", msg.angular_velocity.x, msg.angular_velocity.y, msg.angular_velocity.z);
-      RCLCPP_INFO(this->get_logger(), "Acceleration: (%f, %f, %f)", msg.linear_acceleration.x, msg.linear_acceleration.y, msg.linear_acceleration.z);
+      RCLCPP_INFO(this->get_logger(), "Orientation: (%f, %f, %f)", msg->orientation.x, msg->orientation.y, msg->orientation.z);
+      RCLCPP_INFO(this->get_logger(), "Velocity: (%f, %f, %f)", msg->angular_velocity.x, msg->angular_velocity.y, msg->angular_velocity.z);
+      RCLCPP_INFO(this->get_logger(), "Acceleration: (%f, %f, %f)", msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z);
     }
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subscription_;
 };

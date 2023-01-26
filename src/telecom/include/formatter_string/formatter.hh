@@ -118,8 +118,8 @@ class Formatter {
     float getValueFloat(int val, const val_fmt* fmt);
     int getVal(int value, const val_fmt*);
     int getVal(float value, const val_fmt*);
-    const val_fmt* const getFormat(char symbol);
-    const val_fmt* const getFormat(const char data_t[]);
+    const val_fmt* getFormat(char symbol);
+    const val_fmt* getFormat(const char data_t[]);
 
   private:
     int numFormats;
