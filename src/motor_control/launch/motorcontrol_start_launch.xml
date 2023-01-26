@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="motor_control" exec="motor_control_node" name="motor_control_node"/>
-</launch>
