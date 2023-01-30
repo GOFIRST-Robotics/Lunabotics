@@ -19,11 +19,14 @@ Make sure to source install/setup.bash
 
 Clean workspace is rm -r build install log
 
-## Useful ROS 2 Commands for Testing
+## How to Run inside Docker Container
+Open in vscode then run ctrl-shift-p and type in "Remote-Containers: Reopen in Container"
+just press from dockerfile and it will build the container and run it
 
-Install Dependencies: rosdep install -i --from-path src --rosdistro eloquent -y
-
-Source the setup files: . install/setup.bash
+When open run the following commands in the terminal
+. /opt/ros/$ROS_DISTRO/setup.sh
+colcon build
+. install/setup.sh
 
 ## Useful Resources/References
 

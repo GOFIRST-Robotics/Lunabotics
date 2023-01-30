@@ -26,6 +26,7 @@
   <exec_depend>rclc</exec_depend>
   <exec_depend>rmw_implementation</exec_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
