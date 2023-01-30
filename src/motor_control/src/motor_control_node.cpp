@@ -30,11 +30,15 @@ double angular_vel_cmd = 0.0;
 bool digging = false;
 
 // Define CAN IDs Here //
-U32 front_left_drive = 0x001;
-U32 back_left_drive = 0x002;
-U32 front_right_drive = 0x003;
-U32 back_right_drive = 0x004;
-U32 digger_motor = 0x005;
+U32 FRONT_LEFT_DRIVE = 0x001;
+U32 BACK_LEFT_DRIVE = 0x002;
+U32 FRONT_RIGHT_DRIVE = 0x003;
+U32 BACK_RIGHT_DRIVE = 0x004;
+U32 DIGGER_DEPTH_MOTOR = 0x005;
+U32 DIGGER_ROTATION_MOTOR = 0x006;
+U32 DIGGER_DRUM_BELT_MOTOR = 0x007;
+U32 CONVEOYOR_BELT_MOTOR = 0x008;
+U32 OFFLOAD_BELT_MOTOR = 0x009;
 
 // Define Motor Power/Speeds Here //
 double digger_power = 0.5;
@@ -135,13 +139,13 @@ private:
   void timer_callback()
   {
     // Send drivetrain CAN messages
-    vesc_set_duty_cycle(front_left_drive, linear_vel_cmd - angular_vel_cmd);
-    vesc_set_duty_cycle(back_left_drive, linear_vel_cmd - angular_vel_cmd);
-    vesc_set_duty_cycle(front_right_drive, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
-    vesc_set_duty_cycle(back_right_drive, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
+    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, linear_vel_cmd - angular_vel_cmd);
+    vesc_set_duty_cycle(BACK_LEFT_DRIVE, linear_vel_cmd - angular_vel_cmd);
+    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
+    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
 
     // Send digging CAN messages
-    vesc_set_duty_cycle(digger_motor, digging ? digger_power : 0.0);
+    vesc_set_duty_cycle(DIGGER_DEPTH_MOTOR, digging ? digger_power : 0.0);
   }
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
