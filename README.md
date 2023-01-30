@@ -23,7 +23,9 @@ Clean workspace is rm -r build install log
 
 Install Dependencies: rosdep install -i --from-path src --rosdistro eloquent -y
 
-Source the setup files: . install/setup.bash
+. /opt/ros/$ROS_DISTRO/setup.sh
+
+Source the setup files: . install/setup.sh
 
 ## Useful Resources/References
 
