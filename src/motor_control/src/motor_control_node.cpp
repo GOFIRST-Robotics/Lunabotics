@@ -29,6 +29,8 @@ double linear_vel_cmd = 0.0;
 double angular_vel_cmd = 0.0;
 bool digging = false;
 
+int count = 0;
+
 // Define CAN IDs Here //
 U32 FRONT_LEFT_DRIVE = 0x001;
 U32 BACK_LEFT_DRIVE = 0x002;
@@ -70,21 +72,21 @@ class PublishersAndSubscribers : public rclcpp::Node
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(U32 id, double percentPower) { 
     // Safety check on power
-    percentPower = std::min(percentPower, 1.0);
-    percentPower = std::max(percentPower, -1.0);
+    //percentPower = std::min(percentPower, 1.0);
+    //percentPower = std::max(percentPower, -1.0);
 
-    S32 data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
+    S32 data = percentPower * 100000.0; // Convert from percent power to a signed 32-bit integer
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %i to %f", id, percentPower); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %lu to %f", id, percentPower); // Print to the terminal
   }
 
   // Set the current draw of the motor in amps
   void vesc_set_current(U32 id, double current) { 
-    S32 data = current * 1000; // Convert from current in amps to a signed 32-bit integer
+    S32 data = current * 1000.0; // Convert from current in amps to a signed 32-bit integer
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %i to %f amps", id, current); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %lu to %f amps", id, current); // Print to the terminal
   }
 
   // eRPM = "electrical RPM" = RPM * (number of poles the motor has / 2)
@@ -92,7 +94,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     S32 data = erpm;
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %i to %f", id, erpm); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %lu to %f", id, erpm); // Print to the terminal
   }
 
 public:
@@ -100,7 +102,7 @@ public:
   : Node("publishers_and_subscribers")
   {
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 1); // The name of this topic is determined by our CAN_bridge node
-    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/recieve", 1, std::bind(&PublishersAndSubscribers::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
+    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 1, std::bind(&PublishersAndSubscribers::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
     cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 1, std::bind(&PublishersAndSubscribers::velocity_callback, this, _1));
     actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 1, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
     timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::timer_callback, this));
@@ -115,19 +117,23 @@ private:
   // Listen for status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
-    U32 id = can_msg->id;
+    U32 id = can_msg->id & 0xFF;
     std::array<unsigned char, 8> data = can_msg->data; // bytes 0-3 = eRPM, bytes 4-5 = average current, bytes 6-7 = latest duty cycle
+    count++;
 
-    double eRPM = (double)((data[0]<<24) + (data[1]<<16) + (data[2]<<8) + data[3]);
-    double avgMotorCurrent = (double)(((data[4]<<8) + data[5]) / 10);
-    double dutyCycleNow = (double)(((data[6]<<8) + data[7]) / 1000);
+    U32 eRPM = (data[0]<<24) + (data[1]<<16) + (data[2]<<8) + data[3];
+    U32 avgMotorCurrent =((data[4]<<8) + data[5]) / 10;
+    U32 dutyCycleNow = ((data[6]<<8) + data[7]) / 1000;
 
-    RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %i with the following data:", id);
-    RCLCPP_INFO(this->get_logger(), "eRPM: %f average motor current: %f latest duty cycle: %f", eRPM, avgMotorCurrent, dutyCycleNow);
+    if(count >= 60) {
+      RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %lu with the following data:", id);
+      RCLCPP_INFO(this->get_logger(), "eRPM: %lu average motor current: %lu latest duty cycle: %lu", eRPM, avgMotorCurrent, dutyCycleNow);
+      count = 0;
+    }
   }
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
-    RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
+    //RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
     // Determine whether the digging should be on or off right now
     if(msg->data == "DIGGER_ON") {
