@@ -25,8 +25,8 @@ typedef uint32_t U32; // Unsigned 32-bit integer
 // Global Variables
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
-double linear_vel_cmd = 0.0;
-double angular_vel_cmd = 0.0;
+float linear_vel_cmd = 0.0;
+float angular_vel_cmd = 0.0;
 
 bool digging = false;
 bool offloading = false;
@@ -46,11 +46,11 @@ U32 CONVEYOR_BELT_MOTOR = 0x008;
 U32 OFFLOAD_BELT_MOTOR = 0x009;
 
 // Define Motor Power/Speeds Here //
-double DIGGER_ROTATION_POWER = 0.5;
-double DIGGER_DEPTH_POWER = 0.5;
-double DRUM_BELT_POWER = 0.5;
-double CONVEYOR_BELT_POWER = 0.5;
-double OFFLOAD_BELT_POWER = 0.5;
+float DIGGER_ROTATION_POWER = 0.5;
+float DIGGER_DEPTH_POWER = 0.5;
+float DRUM_BELT_POWER = 0.5;
+float CONVEYOR_BELT_POWER = 0.5;
+float OFFLOAD_BELT_POWER = 0.5;
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -70,14 +70,14 @@ class PublishersAndSubscribers : public rclcpp::Node
     can_msg.dlc = 4U; // Size of the data array
     can_msg.data[0] = (data >> 24) & 0xFF;
     can_msg.data[1] = (data >> 16) & 0xFF;
-    can_msg.data[2] = (data >> 8) & 0xFF;
+    can_msg.data[2] = (data  >> 8  )  & 0xFF;
     can_msg.data[3] = data & 0xFF;
     
     can_pub->publish(can_msg); // Publish our new CAN message to the ROS 2 topic
   }
 
   // Set the percent power of the motor between -1.0 and 1.0
-  void vesc_set_duty_cycle(U32 id, double percentPower) { 
+  void vesc_set_duty_cycle(U32 id, float percentPower) { 
     // Safety check on power
     percentPower = std::min(percentPower, 1.0);
     percentPower = std::max(percentPower, -1.0);
@@ -89,7 +89,7 @@ class PublishersAndSubscribers : public rclcpp::Node
   }
 
   // Set the current draw of the motor in amps
-  void vesc_set_current(U32 id, double current) { 
+  void vesc_set_current(U32 id, float current) { 
     S32 data = current * 1000.0; // Convert from current in amps to a signed 32-bit integer
 
     send_can(id, data);
@@ -97,7 +97,7 @@ class PublishersAndSubscribers : public rclcpp::Node
   }
 
   // eRPM = "electrical RPM" = RPM * (number of poles the motor has / 2)
-  void vesc_set_eRPM(U32 id, double erpm) {
+  void vesc_set_eRPM(U32 id, float erpm) {
     S32 data = erpm;
 
     send_can(id, data);
