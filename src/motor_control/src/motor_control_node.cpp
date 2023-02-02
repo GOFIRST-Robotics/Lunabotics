@@ -1,8 +1,8 @@
 /*
  * motor_control_node.cpp
  * Sends raw canbus msgs according to motor config.
- * VERSION: 0.0.3
- * Last changed: January 2023
+ * VERSION: 0.0.5
+ * Last changed: February 2023
  * Original Author: Jude Sauve <sauve031@umn.edu>
  * Maintainer: Anthony Brogni <brogn002@umn.edu>
  * MIT License
@@ -25,8 +25,8 @@ typedef uint32_t U32; // Unsigned 32-bit integer
 // Global Variables
 void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
-float linear_vel_cmd = 0.0;
-float angular_vel_cmd = 0.0;
+float linear_drive_power_cmd = 0.0;
+float angular_drive_power_cmd = 0.0;
 
 bool digging = false;
 bool offloading = false;
@@ -78,10 +78,6 @@ class PublishersAndSubscribers : public rclcpp::Node
 
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(U32 id, float percentPower) { 
-    // Safety check on power
-    percentPower = std::min(percentPower, 1.0);
-    percentPower = std::max(percentPower, -1.0);
-
     S32 data = percentPower * 100000.0; // Convert from percent power to a signed 32-bit integer
 
     send_can(id, data);
@@ -110,16 +106,16 @@ public:
   {
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 1); // The name of this topic is determined by our CAN_bridge node
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 1, std::bind(&PublishersAndSubscribers::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
-    cmd_vel_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 1, std::bind(&PublishersAndSubscribers::velocity_callback, this, _1));
+    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("drive_power", 1, std::bind(&PublishersAndSubscribers::drive_power_callback, this, _1));
     actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 1, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
     timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::timer_callback, this));
   }
 
 private:
-  void velocity_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
+  void drive_power_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
   {
-    linear_vel_cmd = msg->linear.x;
-    angular_vel_cmd = msg->angular.x;
+    linear_drive_power_cmd = msg->linear.x;
+    angular_drive_power_cmd = msg->angular.z;
   }
   // Listen for status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
@@ -149,19 +145,15 @@ private:
     }
     else if(msg->data == "DIGGER_ON") {
       digging = true;
-      offloading = false;
-    } else if(msg->data == "OFFLOADING_ON") {
-      offloading = true;
-      digging = false;
     }
   }
   void timer_callback()
   {
     // Send drivetrain CAN messages
-    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, linear_vel_cmd - angular_vel_cmd);
-    vesc_set_duty_cycle(BACK_LEFT_DRIVE, linear_vel_cmd - angular_vel_cmd);
-    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
-    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
+    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, linear_drive_power_cmd - angular_drive_power_cmd);
+    vesc_set_duty_cycle(BACK_LEFT_DRIVE, linear_drive_power_cmd - angular_drive_power_cmd);
+    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
+    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
 
     // Send digging CAN messages
     vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_POWER : 0.0);
@@ -177,7 +169,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr drive_power_sub;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr actuators_sub;
 };
 

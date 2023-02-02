@@ -1,6 +1,6 @@
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2022
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: January 2023
+# Last Updated: February 2023
 
 # Import ROS 2 modules
 import rclpy
@@ -17,20 +17,20 @@ linear_axis = 1
 angular_axis = 3
 
 # Define the possible states of our robot
-states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3, 'Offloading': 4}
+states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 # Define our robot's initial state
-current_state = states['Auto Dig']
+current_state = states['Auto_Dig']
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
-max_drive_power = 0.75
-max_turn_power = 0.75
+max_drive_power = 1.0
+max_turn_power = 1.0
 
-# These values are updated by joystick input
+# These global values are updated by joystick input
 current_drive_power = 0.0
 current_turn_power = 0.0
 
-# Define our autonomous goal position
+# Define our autonomous goal position # TODO: What are we even doing in terms of autonomous stuff lol
 goal_x_absolute = 2  # Meters
 goal_y_absolute = 2  # Meters
 goal_orientation = 90  # Degrees
@@ -45,10 +45,10 @@ class PublishersAndSubscribers(Node):
         actuators_timer_period = 0.5  # how often to publish measured in seconds
         self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
         
-        # Velocity Publisher
-        self.velocity_publisher = self.create_publisher(Twist, 'cmd_vel', 1)
-        velocity_timer_period = 0.5  # how often to publish measured in seconds
-        self.velocity_timer = self.create_timer(velocity_timer_period, self.velocity_timer_callback)
+        # Drive Power Publisher
+        self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 1)
+        drive_power_timer_period = 0.5  # how often to publish measured in seconds
+        self.drive_power_timer = self.create_timer(drive_power_timer_period, self.drive_power_timer_callback)
         
         # Goal Publisher
         self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 1)
@@ -69,16 +69,11 @@ class PublishersAndSubscribers(Node):
     def actuators_timer_callback(self):
         msg = String()
 
-        if current_state == states['Auto Dig']:
+        if current_state == states['Auto_Dig']:
             msg.data = 'DIGGER_ON'
         elif current_state == states['Emergency Stop']:
             msg.data = 'STOP_ALL_ACTUATORS'
-        elif current_state == states['Auto Drive']:
-            msg.data = 'STOP_ALL_ACTUATORS'
-        elif current_state == states['Teleop Drive']:
-            msg.data = 'STOP_ALL_ACTUATORS'
-        elif current_state == states['Offloading']:
-            msg.data = 'OFFLOADING_ON'
+
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data)
 
@@ -92,35 +87,35 @@ class PublishersAndSubscribers(Node):
         current_turn_power = (msg.axes[angular_axis]) * max_turn_power # Turning power
         
 
-    # Decides what velocities should be sent to the motors
-    def velocity_timer_callback(self):
+    # Decides what power (duty cycle) should be sent to the drive motors
+    def drive_power_timer_callback(self):
         global current_drive_power
         global current_turn_power
-        vel_msg = Twist()
+        drive_power_msg = Twist()
 
         # Default to 0 power for everything
-        vel_msg.angular.x = 0.0  
-        vel_msg.angular.y = 0.0
-        vel_msg.angular.z = 0.0
-        vel_msg.linear.x = 0.0
-        vel_msg.linear.y = 0.0
-        vel_msg.linear.z = 0.0
+        drive_power_msg.angular.x = 0.0  
+        drive_power_msg.angular.y = 0.0
+        drive_power_msg.angular.z = 0.0
+        drive_power_msg.linear.x = 0.0
+        drive_power_msg.linear.y = 0.0
+        drive_power_msg.linear.z = 0.0
 
-        if current_state == states['Teleop Drive']:
-            vel_msg.linear.x = current_drive_power # Forward power
-            vel_msg.angular.z = current_turn_power # Turning power
-        elif current_state == states['Auto Dig']:
-            vel_msg.linear.x = dig_driving_power # Driving power while digging
+        if current_state == states['Teleop']:
+            drive_power_msg.linear.x = current_drive_power # Forward power
+            drive_power_msg.angular.z = current_turn_power # Turning power
+        elif current_state == states['Auto_Dig']:
+            drive_power_msg.linear.x = dig_driving_power # Driving power while digging
 
-        self.velocity_publisher.publish(vel_msg)
-        self.get_logger().info(f'Publishing Angular Power: {vel_msg.angular.z}, Linear Power: {vel_msg.linear.x}')
+        self.drive_power_publisher.publish(drive_power_msg)
+        self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
 
 
     # Publish our currently goal to autonomously drive to
     def goal_timer_callback(self):
 
         # We only need to publish a goal if we are currently autonomous
-        if current_state == states['Auto Drive']:
+        if current_state == states['Autonomous']:
             msg = PoseStamped()
 
             msg.pose.position.x = goal_x_absolute  # Meters
