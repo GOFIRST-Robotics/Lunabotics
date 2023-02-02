@@ -69,10 +69,38 @@ class PublishersAndSubscribers(Node):
     def actuators_timer_callback(self):
         msg = String()
 
-        if current_state == states['Auto_Dig']:
-            msg.data = 'DIGGER_ON'
-        elif current_state == states['Emergency Stop']:
+        if current_state == states['Emergency_Stop']:
             msg.data = 'STOP_ALL_ACTUATORS'
+        elif current_state == states['Auto_Dig']:
+            msg.data = 'DIGGER_ON BEGIN_DIG_PROCEDURE' # TODO: Implement BEGIN_DIG_PROCEDURE in motor_control node
+        elif current_state == states['Teleop']:
+            pass # TODO: Finish these Teleop cases:
+            # if digging button toggled on
+                # msg.data += ' DIGGER_ON'
+            # if digging button toggled off
+                # msg.data += ' DIGGER_OFF'
+            # if offloading button toggled on
+                # msg.data += ' OFFLOADING_ON'
+            # if offloading button toggled off
+                # msg.data += ' OFFLOADING_OFF'
+            # if digger extend button toggled on
+                # msg.data += ' EXTEND_DIGGER'
+            # if digger extend button toggled off
+                # msg.data += ' RETRACT_DIGGER'
+        elif current_state == states['Autonomous']:
+            pass # TODO: Finish these Autonomous cases:
+            # if condition for digging
+                # msg.data += ' DIGGER_ON'
+            # if NOT condition for diggging
+                # msg.data += ' DIGGER_OFF'
+            # if condition for offloading
+                # msg.data += ' OFFLOADING_ON'
+            # if NOT condition for offloading
+                # msg.data += ' OFFLOADING_OFF'
+            # if condition for extending digger
+                # msg.data += ' EXTEND_DIGGER'
+            # if condition for retracting digger
+                # msg.data += ' RETRACT_DIGGER'
 
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data)
@@ -91,9 +119,10 @@ class PublishersAndSubscribers(Node):
     def drive_power_timer_callback(self):
         global current_drive_power
         global current_turn_power
-        drive_power_msg = Twist()
+        
+        drive_power_msg = Twist() # Create a new ROS2 msg
 
-        # Default to 0 power for everything
+        # Default to 0 power for everything at first
         drive_power_msg.angular.x = 0.0  
         drive_power_msg.angular.y = 0.0
         drive_power_msg.angular.z = 0.0
@@ -111,7 +140,7 @@ class PublishersAndSubscribers(Node):
         self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
 
 
-    # Publish our currently goal to autonomously drive to
+    # Publish our current goal to autonomously drive to # TODO: What are we even doing in terms of autonomous stuff lol
     def goal_timer_callback(self):
 
         # We only need to publish a goal if we are currently autonomous
@@ -145,7 +174,7 @@ class PublishersAndSubscribers(Node):
         self.get_logger().info('Current State is set to: "%i"' % current_state)
 
 
-    # EKF stuff # TODO: Finish this callback
+    # EKF stuff # TODO: Finish this callback. How do we implement EKF?
     def ekf_callback(self, msg):
         pos_x = msg.pose.pose.position.x
         pos_y = msg.pose.pose.position.y

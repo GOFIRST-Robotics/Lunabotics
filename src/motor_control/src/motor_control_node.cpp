@@ -23,11 +23,8 @@ typedef int32_t S32; // Signed 32-bit integer
 typedef uint32_t U32; // Unsigned 32-bit integer
 
 // Global Variables
-void send_can(U32 id, S32 data);
-void send_can_bool(U32 id, bool data);
 float linear_drive_power_cmd = 0.0;
 float angular_drive_power_cmd = 0.0;
-
 bool digging = false;
 bool offloading = false;
 
@@ -117,6 +114,7 @@ private:
     linear_drive_power_cmd = msg->linear.x;
     angular_drive_power_cmd = msg->angular.z;
   }
+
   // Listen for status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
@@ -134,19 +132,42 @@ private:
       count = 0;
     }
   }
+
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
-    //RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
+    RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
-    // Determine whether the digging should be on or off right now
-    if(msg->data == "STOP_ALL_ACTUATORS") {
+    // Parse the actuator_cmd command we received:
+    if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {
       digging = false;
       offloading = false;
     }
-    else if(msg->data == "DIGGER_ON") {
+    if(msg->data.find("DIGGER_ON") != std::string::npos) {
       digging = true;
     }
+    if(msg->data.find("OFFLOADER_ON") != std::string::npos) {
+      offloading = true;
+    }
+    if(msg->data.find("DIGGER_OFF") != std::string::npos) {
+      digging = false;
+    }
+    if(msg->data.find("OFFLOADER_OFF") != std::string::npos) {
+      offloading = false;
+    }
+    if(msg->data.find("EXTEND_DIGGER") != std::string::npos) {
+      // TODO: Set position of the linear actuator accordingly
+    }
+    if(msg->data.find("RETRACT_DIGGER") != std::string::npos) {
+      // TODO: Set position of the linear actuator accordingly
+    }
+    if(msg->data.find("BEGIN_DIG_PROCEDURE") != std::string::npos) {
+      // TODO: Wait until our digger is up to speed
+      // TODO: Set position of the linear actuator to lower the digger
+      // TODO: After the digger is fully lowered into the ground, begin slowly driving
+    }
   }
+
+  // This method loops repeatedly
   void timer_callback()
   {
     // Send drivetrain CAN messages
@@ -162,10 +183,8 @@ private:
 
     // Send offloader CAN messages
     vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? CONVEYOR_BELT_POWER : 0.0);
-
-    // Send digger depth messages
-    // TODO: We are gonna have to be careful about this; use the encoder to extend/retract to the right positions
   }
+
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
