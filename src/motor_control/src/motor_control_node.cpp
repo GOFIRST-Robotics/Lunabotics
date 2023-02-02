@@ -27,8 +27,11 @@ void send_can(U32 id, S32 data);
 void send_can_bool(U32 id, bool data);
 double linear_vel_cmd = 0.0;
 double angular_vel_cmd = 0.0;
-bool digging = false;
 
+bool digging = false;
+bool offloading = false;
+
+// counter for printing less CAN frames
 int count = 0;
 
 // Define CAN IDs Here //
@@ -39,11 +42,15 @@ U32 BACK_RIGHT_DRIVE = 0x004;
 U32 DIGGER_DEPTH_MOTOR = 0x005;
 U32 DIGGER_ROTATION_MOTOR = 0x006;
 U32 DIGGER_DRUM_BELT_MOTOR = 0x007;
-U32 CONVEOYOR_BELT_MOTOR = 0x008;
+U32 CONVEYOR_BELT_MOTOR = 0x008;
 U32 OFFLOAD_BELT_MOTOR = 0x009;
 
 // Define Motor Power/Speeds Here //
-double digger_power = 0.5;
+double DIGGER_ROTATION_POWER = 0.5;
+double DIGGER_DEPTH_POWER = 0.5;
+double DRUM_BELT_POWER = 0.5;
+double CONVEYOR_BELT_POWER = 0.5;
+double OFFLOAD_BELT_POWER = 0.5;
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -72,8 +79,8 @@ class PublishersAndSubscribers : public rclcpp::Node
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(U32 id, double percentPower) { 
     // Safety check on power
-    //percentPower = std::min(percentPower, 1.0);
-    //percentPower = std::max(percentPower, -1.0);
+    percentPower = std::min(percentPower, 1.0);
+    percentPower = std::max(percentPower, -1.0);
 
     S32 data = percentPower * 100000.0; // Convert from percent power to a signed 32-bit integer
 
@@ -136,10 +143,16 @@ private:
     //RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
     // Determine whether the digging should be on or off right now
-    if(msg->data == "DIGGER_ON") {
-        digging = true;
-    } else if(msg->data == "DiGGER_OFF") {
-        digging = false;
+    if(msg->data == "STOP_ALL_ACTUATORS") {
+      digging = false;
+      offloading = false;
+    }
+    else if(msg->data == "DIGGER_ON") {
+      digging = true;
+      offloading = false;
+    } else if(msg->data == "OFFLOADING_ON") {
+      offloading = true;
+      digging = false;
     }
   }
   void timer_callback()
@@ -147,11 +160,19 @@ private:
     // Send drivetrain CAN messages
     vesc_set_duty_cycle(FRONT_LEFT_DRIVE, linear_vel_cmd - angular_vel_cmd);
     vesc_set_duty_cycle(BACK_LEFT_DRIVE, linear_vel_cmd - angular_vel_cmd);
-    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
-    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1); // Multiply by -1 to invert motor
+    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
+    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_vel_cmd + angular_vel_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
 
     // Send digging CAN messages
-    vesc_set_duty_cycle(DIGGER_DEPTH_MOTOR, digging ? digger_power : 0.0);
+    vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_POWER : 0.0);
+    vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? DRUM_BELT_POWER : 0.0);
+    vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? CONVEYOR_BELT_POWER : 0.0);
+
+    // Send offloader CAN messages
+    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? CONVEYOR_BELT_POWER : 0.0);
+
+    // Send digger depth messages
+    // TODO: We are gonna have to be careful about this; use the encoder to extend/retract to the right positions
   }
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;

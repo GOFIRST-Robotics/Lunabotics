@@ -17,7 +17,7 @@ linear_axis = 1
 angular_axis = 3
 
 # Define the possible states of our robot
-states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3}
+states = {'Teleop Drive': 0, 'Auto Drive': 1, 'Auto Dig': 2, 'Emergency Stop': 3, 'Offloading': 4}
 # Define our robot's initial state
 current_state = states['Auto Dig']
 
@@ -74,9 +74,11 @@ class PublishersAndSubscribers(Node):
         elif current_state == states['Emergency Stop']:
             msg.data = 'STOP_ALL_ACTUATORS'
         elif current_state == states['Auto Drive']:
-            msg.data = 'DIGGER_OFF'
+            msg.data = 'STOP_ALL_ACTUATORS'
         elif current_state == states['Teleop Drive']:
-            msg.data = 'DIGGER_OFF'
+            msg.data = 'STOP_ALL_ACTUATORS'
+        elif current_state == states['Offloading']:
+            msg.data = 'OFFLOADING_ON'
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data)
 
