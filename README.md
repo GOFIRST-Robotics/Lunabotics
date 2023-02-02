@@ -20,16 +20,24 @@ Make sure to source install/setup.bash
 Clean workspace is rm -r build install log
 
 ## How to Run inside Docker Container
-Open in vscode then run ctrl-shift-p and type in "Remote-Containers: Reopen in Container"
-just press from dockerfile and it will build the container and run it
 
-When open run the following commands in the terminal
+Open this repository in vscode then run ctrl-shift-p and type in "Remote-Containers: Reopen in Container".
+Just press "from dockerfile" and it will build the container and run it.
+
+When open, run the following commands in the terminal:
+
 . /opt/ros/$ROS_DISTRO/setup.sh
+
 colcon build
+
 . install/setup.sh
 
 ## Useful Resources/References
 
-Configuring the Nvidia Jetson TX2 for CAN Communication: https://www.mathworks.com/help/supportpkg/nvidia/ug/jetson-can-bus-traffic-sign-detection.html
+Configuring the Nvidia Jetson TX2 for CAN Communication: 
+
+1) https://www.mathworks.com/help/supportpkg/nvidia/ug/jetson-can-bus-traffic-sign-detection.html
+
+2) https://forums.developer.nvidia.com/t/how-to-use-can-on-jetson-tx2/54125
 
 VESC CAN Status Frames Spreadsheet: https://github.com/codermonkey42/VESC_CAN
