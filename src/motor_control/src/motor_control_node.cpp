@@ -65,17 +65,17 @@ class PublishersAndSubscribers : public rclcpp::Node
     can_msg.id = id; // Set the CAN ID for this message
 
     can_msg.dlc = 4; // Size of the data array (how many bytes to use, maximum of 8)
-    can_msg.data[0] = (data >> 24) & 0xFF;
-    can_msg.data[1] = (data >> 16) & 0xFF;
-    can_msg.data[2] = (data >> 8) & 0xFF;
-    can_msg.data[3] = data & 0xFF;
+    can_msg.data[0] = (data >> 24) & 0xFF; // First byte of data
+    can_msg.data[1] = (data >> 16) & 0xFF; // Second byte of data
+    can_msg.data[2] = (data >> 8) & 0xFF; // Third byte of data
+    can_msg.data[3] = data & 0xFF; // Fourth byte of data
     
     can_pub->publish(can_msg); // Publish our new CAN message to the ROS 2 topic
   }
 
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(U32 id, float percentPower) { 
-    S32 data = percentPower * 100000.0; // Convert from percent power to a signed 32-bit integer
+    S32 data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id, data);
     RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
@@ -83,7 +83,7 @@ class PublishersAndSubscribers : public rclcpp::Node
 
   // Set the current draw of the motor in amps
   void vesc_set_current(U32 id, float current) { 
-    S32 data = current * 1000.0; // Convert from current in amps to a signed 32-bit integer
+    S32 data = current * 1000; // Convert from current in amps to a signed 32-bit integer
 
     send_can(id, data);
     RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %u to %f amps", id, current); // Print to the terminal
@@ -173,8 +173,8 @@ private:
     // Send drivetrain CAN messages
     vesc_set_duty_cycle(FRONT_LEFT_DRIVE, linear_drive_power_cmd - angular_drive_power_cmd);
     vesc_set_duty_cycle(BACK_LEFT_DRIVE, linear_drive_power_cmd - angular_drive_power_cmd);
-    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
-    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1.0); // Multiply by -1.0 to invert motor direction
+    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1); // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1); // Multiply by -1 to invert motor direction
 
     // Send digging CAN messages
     vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_POWER : 0.0);
