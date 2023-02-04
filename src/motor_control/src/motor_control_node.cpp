@@ -32,15 +32,15 @@ bool offloading = false;
 int count = 0;
 
 // Define CAN IDs Here //
-U32 FRONT_LEFT_DRIVE = 0x001;
-U32 BACK_LEFT_DRIVE = 0x002;
-U32 FRONT_RIGHT_DRIVE = 0x003;
-U32 BACK_RIGHT_DRIVE = 0x004;
-U32 DIGGER_DEPTH_MOTOR = 0x005;
-U32 DIGGER_ROTATION_MOTOR = 0x006;
-U32 DIGGER_DRUM_BELT_MOTOR = 0x007;
-U32 CONVEYOR_BELT_MOTOR = 0x008;
-U32 OFFLOAD_BELT_MOTOR = 0x009;
+U32 FRONT_LEFT_DRIVE = 1;
+U32 BACK_LEFT_DRIVE = 2;
+U32 FRONT_RIGHT_DRIVE = 3;
+U32 BACK_RIGHT_DRIVE = 4;
+U32 DIGGER_DEPTH_MOTOR = 5;
+U32 DIGGER_ROTATION_MOTOR = 6;
+U32 DIGGER_DRUM_BELT_MOTOR = 7;
+U32 CONVEYOR_BELT_MOTOR = 8;
+U32 OFFLOAD_BELT_MOTOR = 9;
 
 // Define Motor Power/Speeds Here //
 float DIGGER_ROTATION_POWER = 0.5;
@@ -64,10 +64,10 @@ class PublishersAndSubscribers : public rclcpp::Node
 
     can_msg.id = id; // Set the CAN ID for this message
 
-    can_msg.dlc = 4U; // Size of the data array
+    can_msg.dlc = 4; // Size of the data array (how many bytes to use, maximum of 8)
     can_msg.data[0] = (data >> 24) & 0xFF;
     can_msg.data[1] = (data >> 16) & 0xFF;
-    can_msg.data[2] = (data  >> 8  )  & 0xFF;
+    can_msg.data[2] = (data >> 8) & 0xFF;
     can_msg.data[3] = data & 0xFF;
     
     can_pub->publish(can_msg); // Publish our new CAN message to the ROS 2 topic
@@ -78,7 +78,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     S32 data = percentPower * 100000.0; // Convert from percent power to a signed 32-bit integer
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %lu to %f", id, percentPower); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
   // Set the current draw of the motor in amps
@@ -86,7 +86,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     S32 data = current * 1000.0; // Convert from current in amps to a signed 32-bit integer
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %lu to %f amps", id, current); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %u to %f amps", id, current); // Print to the terminal
   }
 
   // eRPM = "electrical RPM" = RPM * (number of poles the motor has / 2)
@@ -94,7 +94,7 @@ class PublishersAndSubscribers : public rclcpp::Node
     S32 data = erpm;
 
     send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %lu to %f", id, erpm); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %u to %f", id, erpm); // Print to the terminal
   }
 
 public:
@@ -126,9 +126,9 @@ private:
     U32 avgMotorCurrent =((data[4]<<8) + data[5]) / 10;
     U32 dutyCycleNow = ((data[6]<<8) + data[7]) / 1000;
 
-    if(count >= 60) {
-      RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %lu with the following data:", id);
-      RCLCPP_INFO(this->get_logger(), "eRPM: %lu average motor current: %lu latest duty cycle: %lu", eRPM, avgMotorCurrent, dutyCycleNow);
+    if(count >= 50) {
+      RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
+      RCLCPP_INFO(this->get_logger(), "eRPM: %u average motor current: %u latest duty cycle: %u", eRPM, avgMotorCurrent, dutyCycleNow);
       count = 0;
     }
   }
