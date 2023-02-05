@@ -95,7 +95,7 @@ void ros2socketcan::CanSend(const can_msgs::msg::Frame msg)
         frame1.data[i] = msg.data[i];
     }
      
-    printf("S | %x | %s | ", frame1.can_id, frame1.data);
+    printf("S | %x | ", frame1.can_id);
     for(int j=0;j<(int)frame1.can_dlc;j++)
     {
         printf("%i ", frame1.data[j]);
