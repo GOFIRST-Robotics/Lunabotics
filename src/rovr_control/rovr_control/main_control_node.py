@@ -41,28 +41,28 @@ class PublishersAndSubscribers(Node):
         super().__init__('publisher')
 
         # Actuators Publisher
-        self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 1)
+        self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
         actuators_timer_period = 0.5  # how often to publish measured in seconds
         self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
         
         # Drive Power Publisher
-        self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 1)
+        self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 10)
         drive_power_timer_period = 0.5  # how often to publish measured in seconds
         self.drive_power_timer = self.create_timer(drive_power_timer_period, self.drive_power_timer_callback)
         
         # Goal Publisher
-        self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 1)
+        self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 10)
         goal_timer_period = 0.5  # how often to publish measured in seconds
         self.goal_timer = self.create_timer(goal_timer_period, self.goal_timer_callback)
 
         # Robot Command Subscriber
-        self.command_subscription = self.create_subscription(String, 'robot_command', self.command_callback, 1)
+        self.command_subscription = self.create_subscription(String, 'robot_command', self.command_callback, 10)
         
         # EKF Subscriber
-        self.ekf_subscription = self.create_subscription(PoseWithCovarianceStamped, 'robot_pos_ekf/odom_combined', self.ekf_callback, 1)
+        self.ekf_subscription = self.create_subscription(PoseWithCovarianceStamped, 'robot_pos_ekf/odom_combined', self.ekf_callback, 10)
 
         # Joystick Subscriber
-        self.joy_subscription = self.create_subscription(String, 'joy', self.joystick_callback, 1)
+        self.joy_subscription = self.create_subscription(String, 'joy', self.joystick_callback, 10)
 
 
     # Publish the current robot state

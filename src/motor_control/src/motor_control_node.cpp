@@ -101,10 +101,10 @@ public:
   PublishersAndSubscribers()
   : Node("publishers_and_subscribers")
   {
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 1); // The name of this topic is determined by our CAN_bridge node
-    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 1, std::bind(&PublishersAndSubscribers::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
-    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("drive_power", 1, std::bind(&PublishersAndSubscribers::drive_power_callback, this, _1));
-    actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 1, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
+    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&PublishersAndSubscribers::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
+    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("drive_power", 10, std::bind(&PublishersAndSubscribers::drive_power_callback, this, _1));
+    actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
     timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::timer_callback, this));
   }
 

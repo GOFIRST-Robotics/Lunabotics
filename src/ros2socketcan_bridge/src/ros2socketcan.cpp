@@ -23,8 +23,7 @@ void ros2socketcan::Init(const char* can_socket)
     rclcpp::executors::MultiThreadedExecutor exec;
     
     publisher_ 		= this->create_publisher<can_msgs::msg::Frame>(topicname_receive.str(), 10);
-    test_pub_ 		= this->create_publisher<can_msgs::msg::Frame>(topicname_transmit.str(), 10);
-    subscription_ 	= this->create_subscription<can_msgs::msg::Frame>(topicname_transmit.str(), 10, std::bind(&ros2socketcan::CanPublisher, this, _1));
+    subscription_ 	= this->create_subscription<can_msgs::msg::Frame>(topicname_transmit.str(), 100, std::bind(&ros2socketcan::CanPublisher, this, _1));
     
     strcpy(ifr.ifr_name, can_socket);
     ioctl(natsock, SIOCGIFINDEX, &ifr);
