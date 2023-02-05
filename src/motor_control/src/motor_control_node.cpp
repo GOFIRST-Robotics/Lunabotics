@@ -119,18 +119,18 @@ private:
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
     U32 id = can_msg->id & 0xFF;
-    std::array<unsigned char, 8> data = can_msg->data; // bytes 0-3 = eRPM, bytes 4-5 = average current, bytes 6-7 = latest duty cycle
-    count++;
 
-    U32 eRPM = (data[0]<<24) + (data[1]<<16) + (data[2]<<8) + data[3];
-    U32 avgMotorCurrent =((data[4]<<8) + data[5]) / 10;
-    U32 dutyCycleNow = ((data[6]<<8) + data[7]) / 1000;
+    U32 eRPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
+    U32 avgMotorCurrent =((can_msg->data[4]<<8) + can_msg->data[5]) / 10;
+    U32 dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 1000;
 
     if(count >= 50) {
       RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
       RCLCPP_INFO(this->get_logger(), "eRPM: %u average motor current: %u latest duty cycle: %u", eRPM, avgMotorCurrent, dutyCycleNow);
       count = 0;
     }
+
+    count++;
   }
 
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
