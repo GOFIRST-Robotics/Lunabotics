@@ -9,10 +9,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
 
-ros2socketcan::ros2socketcan(std::string can_socket2): Node("ros2" + can_socket2), stream(ios), signals(ios, SIGINT, SIGTERM)
-{
-
-}
+ros2socketcan::ros2socketcan(std::string can_socket2): Node("ros2" + can_socket2), stream(ios), signals(ios, SIGINT, SIGTERM) {}
 
 void ros2socketcan::Init(const char* can_socket)
 {
@@ -37,7 +34,7 @@ void ros2socketcan::Init(const char* can_socket)
     
     if(bind(natsock,(struct sockaddr *)&addr,sizeof(addr))<0)
     {
-        perror("Error in socket bind"); // FIXME: I think this is the error we've been hitting when trying to run this node within Docker
+        perror("Error in socket bind");
     }
 
     stream.assign(natsock);
