@@ -1,6 +1,8 @@
 # This is the base image (ROS 2 Eloquent) that our docker container will be built from
 FROM osrf/ros:eloquent-desktop AS cacher
-
+RUN apt-get update && apt-get install -y \
+    git \
+    openssh-server 
 # # Clone the overlay source (aka our GitHub repository, specify which branch to clone in the 'version' parameter)
 # ARG OVERLAY_WS
 # WORKDIR $OVERLAY_WS/src
