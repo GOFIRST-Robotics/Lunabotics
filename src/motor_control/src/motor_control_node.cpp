@@ -77,24 +77,26 @@ class PublishersAndSubscribers : public rclcpp::Node
   void vesc_set_duty_cycle(U32 id, float percentPower) { 
     S32 data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
-    send_can(id, data);
+    send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
+  // TODO: This has not been tested yet
   // Set the current draw of the motor in amps
   void vesc_set_current(U32 id, float current) { 
     S32 data = current * 1000; // Convert from current in amps to a signed 32-bit integer
 
-    send_can(id, data);
+    send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
     RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %u to %f amps", id, current); // Print to the terminal
   }
 
-  // eRPM = "electrical RPM" = RPM * (number of poles the motor has / 2)
-  void vesc_set_eRPM(U32 id, float erpm) {
-    S32 data = erpm;
+  // TODO: This has not been tested yet
+  // Set the speed of the motor in RPM (Rotations Per Minute)
+  void vesc_set_RPM(U32 id, float rpm) {
+    S32 data = rpm;
 
-    send_can(id, data);
-    RCLCPP_INFO(this->get_logger(), "Setting the eRPM of CAN ID: %u to %f", id, erpm); // Print to the terminal
+    send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
+    RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %f", id, rpm); // Print to the terminal
   }
 
 public:
@@ -120,13 +122,13 @@ private:
   {
     U32 id = can_msg->id & 0xFF;
 
-    U32 eRPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
+    U32 RPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
     U32 avgMotorCurrent =((can_msg->data[4]<<8) + can_msg->data[5]) / 10;
     U32 dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 1000;
 
     if(count >= 50) {
       RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-      RCLCPP_INFO(this->get_logger(), "eRPM: %u average motor current: %u latest duty cycle: %u", eRPM, avgMotorCurrent, dutyCycleNow);
+      RCLCPP_INFO(this->get_logger(), "RPM: %u average motor current: %u latest duty cycle: %u", RPM, avgMotorCurrent, dutyCycleNow);
       count = 0;
     }
 
