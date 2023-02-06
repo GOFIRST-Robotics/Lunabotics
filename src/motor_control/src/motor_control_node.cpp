@@ -92,11 +92,20 @@ class PublishersAndSubscribers : public rclcpp::Node
 
   // TODO: This has not been tested yet
   // Set the speed of the motor in RPM (Rotations Per Minute)
-  void vesc_set_RPM(U32 id, float rpm) {
+  void vesc_set_RPM(U32 id, int rpm) {
     S32 data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
-    RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %f", id, rpm); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
+  }
+
+  // TODO: This has not been tested yet
+  // Set the position of the motor in encoder counts
+  void vesc_set_position(U32 id, int encoderCounts) {
+    S32 data = encoderCounts;
+
+    send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
+    RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, encoderCounts); // Print to the terminal
   }
 
 public:
