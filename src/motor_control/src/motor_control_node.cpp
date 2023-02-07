@@ -132,12 +132,12 @@ private:
     U32 id = can_msg->id & 0xFF;
 
     U32 RPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
-    U32 avgMotorCurrent =((can_msg->data[4]<<8) + can_msg->data[5]) / 10;
-    U32 dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 1000;
+    uint16_t avgMotorCurrent =((can_msg->data[4]<<8) + can_msg->data[5]) / 10;
+    uint16_t dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 1000;
 
     if(count >= 50) {
       RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-      RCLCPP_INFO(this->get_logger(), "RPM: %u average motor current: %u latest duty cycle: %u", RPM, avgMotorCurrent, dutyCycleNow);
+      RCLCPP_INFO(this->get_logger(), "RPM: %u average motor current: %hu latest duty cycle: %hu", RPM, avgMotorCurrent, dutyCycleNow);
       count = 0;
     }
 
