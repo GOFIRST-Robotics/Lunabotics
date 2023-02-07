@@ -14,10 +14,16 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 
 # Define the joystick axes we want to use
+buttons = [0] * 12
 linear_axis = 3
 angular_axis = 2
-digger_button = 0; # TODO: Choose the right button
-offloader_button = 1; # TODO: Choose the right button
+dig_button = 0; # TODO: Choose the right button
+offload_button = 1; # TODO: Choose the right button
+digger_extend_button = 2; # TODO: Choose the right button
+
+dig_button_toggled = False
+offload_button_toggled = False
+digger_extend_button_toggled = False
 
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
@@ -77,19 +83,18 @@ class PublishersAndSubscribers(Node):
         elif current_state == states['Auto_Dig']:
             msg.data = 'DIGGER_ON BEGIN_DIG_PROCEDURE' # TODO: Implement BEGIN_DIG_PROCEDURE in motor_control node
         elif current_state == states['Teleop']:
-            pass # TODO: Finish these Teleop cases:
-            # if digging button toggled on
-                # msg.data += ' DIGGER_ON'
-            # if digging button toggled off
-                # msg.data += ' DIGGER_OFF'
-            # if offloading button toggled on
-                # msg.data += ' OFFLOADING_ON'
-            # if offloading button toggled off
-                # msg.data += ' OFFLOADING_OFF'
-            # if digger extend button toggled on
-                # msg.data += ' EXTEND_DIGGER'
-            # if digger extend button toggled off
-                # msg.data += ' RETRACT_DIGGER'
+            if dig_button_toggled:
+                msg.data += ' DIGGER_ON'
+            elif not dig_button_toggled:
+                msg.data += ' DIGGER_OFF'
+            if offload_button_toggled:
+                msg.data += ' OFFLOADING_ON'
+            elif not offload_button_toggled:
+                msg.data += ' OFFLOADING_OFF'
+            if digger_extend_button_toggled:
+                msg.data += ' EXTEND_DIGGER'
+            elif not digger_extend_button_toggled:
+                msg.data += ' RETRACT_DIGGER'
         elif current_state == states['Autonomous']:
             pass # TODO: Finish these Autonomous cases:
             # if condition for digging
@@ -114,9 +119,25 @@ class PublishersAndSubscribers(Node):
         global current_drive_power
         global current_turn_power
 
+        # Update our current driving powers
         current_drive_power = (msg.axes[linear_axis]) * max_drive_power # Forward power
         current_turn_power = (msg.axes[angular_axis]) * max_turn_power # Turning power
         
+        # Check if the digger button is pressed
+        if msg.buttons[dig_button] == 1 and buttons[dig_button] == 0:
+            dig_button_toggled = not dig_button_toggled
+            
+        # Check if the offloader button is pressed
+        if msg.buttons[offload_button] == 1 and buttons[offload_button] == 0:
+            offload_button_toggled = not offload_button_toggled
+            
+        # Check if the digger_extend button is pressed
+        if msg.buttons[digger_extend_button] == 1 and buttons[digger_extend_button] == 0:
+            digger_extend_button_toggled = not digger_extend_button_toggled
+            
+        # Update new button states
+        for index in buttons:
+            buttons[index] = msg.buttons[index]
 
     # Decides what power (duty cycle) should be sent to the drive motors
     def drive_power_timer_callback(self):
