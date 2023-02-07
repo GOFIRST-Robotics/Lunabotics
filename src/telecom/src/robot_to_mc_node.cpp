@@ -106,7 +106,7 @@ class PublishersAndSubscribers : public rclcpp::Node
   : Node("publishers_and_subscribers")
   {
     joy_pub = this->create_publisher<sensor_msgs::msg::Joy>(joy_topic, 1);
-    timer = this->create_wall_timer(500ms, std::bind(&PublishersAndSubscribers::update_callback, this));
+    timer = this->create_wall_timer(50ms, std::bind(&PublishersAndSubscribers::update_callback, this));
   }
 
 private:

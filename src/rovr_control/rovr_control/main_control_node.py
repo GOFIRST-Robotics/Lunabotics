@@ -11,15 +11,18 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from sensor_msgs.msg import Joy
 
 # Define the joystick axes we want to use
-linear_axis = 1
-angular_axis = 3
+linear_axis = 3
+angular_axis = 2
+digger_button = 0; # TODO: Choose the right button
+offloader_button = 1; # TODO: Choose the right button
 
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 # Define our robot's initial state
-current_state = states['Auto_Dig']
+current_state = states['Teleop']
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -42,17 +45,17 @@ class PublishersAndSubscribers(Node):
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
-        actuators_timer_period = 0.5  # how often to publish measured in seconds
+        actuators_timer_period = 0.05  # how often to publish measured in seconds
         self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
         
         # Drive Power Publisher
         self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 10)
-        drive_power_timer_period = 0.5  # how often to publish measured in seconds
+        drive_power_timer_period = 0.05  # how often to publish measured in seconds
         self.drive_power_timer = self.create_timer(drive_power_timer_period, self.drive_power_timer_callback)
         
         # Goal Publisher
         self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 10)
-        goal_timer_period = 0.5  # how often to publish measured in seconds
+        goal_timer_period = 0.05  # how often to publish measured in seconds
         self.goal_timer = self.create_timer(goal_timer_period, self.goal_timer_callback)
 
         # Robot Command Subscriber
@@ -62,7 +65,7 @@ class PublishersAndSubscribers(Node):
         self.ekf_subscription = self.create_subscription(PoseWithCovarianceStamped, 'robot_pos_ekf/odom_combined', self.ekf_callback, 10)
 
         # Joystick Subscriber
-        self.joy_subscription = self.create_subscription(String, 'joy', self.joystick_callback, 10)
+        self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
 
 
     # Publish the current robot state
