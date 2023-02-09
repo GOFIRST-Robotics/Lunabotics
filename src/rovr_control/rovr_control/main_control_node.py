@@ -13,13 +13,10 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 
-# Define the joystick axes we want to use
+# Import our gamepad button mappings
+from .gamepad_constants import *
+# This is to help with button press detection
 buttons = [0] * 12
-linear_axis = 3
-angular_axis = 2
-dig_button = 0; # TODO: Choose the right button
-offload_button = 1; # TODO: Choose the right button
-digger_extend_button = 2; # TODO: Choose the right button
 
 dig_button_toggled = False
 offload_button_toggled = False
@@ -29,6 +26,9 @@ digger_extend_button_toggled = False
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 # Define our robot's initial state
 current_state = states['Teleop']
+
+# counter for not printing as fast
+counter = 0
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -78,6 +78,12 @@ class PublishersAndSubscribers(Node):
     def actuators_timer_callback(self):
         msg = String()
 
+        global counter
+
+        global dig_button_toggled
+        global digger_extend_button_toggled
+        global offload_button_toggled
+
         if current_state == states['Emergency_Stop']:
             msg.data = 'STOP_ALL_ACTUATORS'
         elif current_state == states['Auto_Dig']:
@@ -111,7 +117,11 @@ class PublishersAndSubscribers(Node):
                 # msg.data += ' RETRACT_DIGGER'
 
         self.actuators_publisher.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data)
+
+        if counter >= 5:
+            self.get_logger().info('Publishing: "%s"' % msg.data)
+            counter = 0
+        counter += 1
 
 
     # When a joystick input is recieved, this callback updates the global power variables accordingly
@@ -119,24 +129,38 @@ class PublishersAndSubscribers(Node):
         global current_drive_power
         global current_turn_power
 
+        global dig_button_toggled
+        global digger_extend_button_toggled
+        global offload_button_toggled
+
+        global current_state
+
         # Update our current driving powers
-        current_drive_power = (msg.axes[linear_axis]) * max_drive_power # Forward power
-        current_turn_power = (msg.axes[angular_axis]) * max_turn_power # Turning power
+        current_drive_power = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
+        current_turn_power = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]) * max_turn_power # Turning power
         
         # Check if the digger button is pressed
-        if msg.buttons[dig_button] == 1 and buttons[dig_button] == 0:
+        if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
             dig_button_toggled = not dig_button_toggled
             
         # Check if the offloader button is pressed
-        if msg.buttons[offload_button] == 1 and buttons[offload_button] == 0:
+        if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
             offload_button_toggled = not offload_button_toggled
             
         # Check if the digger_extend button is pressed
-        if msg.buttons[digger_extend_button] == 1 and buttons[digger_extend_button] == 0:
+        if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
             digger_extend_button_toggled = not digger_extend_button_toggled
+
+        # Check if the autonomous digging button is pressed
+        if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
+            if current_state == states["Teleop"]:
+                current_state = states["Auto_Dig"]
+            elif current_state == states["Auto_Dig"]:
+                current_state = states["Teleop"]
+
             
         # Update new button states
-        for index in buttons:
+        for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
 
     # Decides what power (duty cycle) should be sent to the drive motors
@@ -161,7 +185,7 @@ class PublishersAndSubscribers(Node):
             drive_power_msg.linear.x = dig_driving_power # Driving power while digging
 
         self.drive_power_publisher.publish(drive_power_msg)
-        self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+        #self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
 
 
     # Publish our current goal to autonomously drive to # TODO: What are we even doing in terms of autonomous stuff lol
