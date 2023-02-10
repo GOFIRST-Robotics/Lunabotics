@@ -113,8 +113,8 @@ public:
   DataPublisher()
   : Node("data_publisher")
   {
-    euler_pub = this->create_publisher<geometry_msgs::msg::Point>("imu/euler", 1);
-    imu_pub = this->create_publisher<sensor_msgs::msg::Imu>("imu/data", 1);
+    euler_pub = this->create_publisher<geometry_msgs::msg::Point>("imu/euler", 10);
+    imu_pub = this->create_publisher<sensor_msgs::msg::Imu>("imu/data", 10);
     timer = this->create_wall_timer(50ms, std::bind(&DataPublisher::timer_callback, this));
   }
 
