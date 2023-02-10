@@ -6,7 +6,7 @@ The official NASA RMC 2023 repository for LUNABOTICS team, a segment of Universi
 
 Read the notes below first, then follow this guide: <https://docs.ros.org/en/eloquent/Installation/Windows-Install-Binary.html>
 
-You DO need to install VS Code, even if you have it already, since you need to add specific build components that you probably didn’t opt-in to installing last time.
+You DO need to install Visual Studio, even if you have it already, since you need to add specific build components that you probably didn’t opt-in to installing last time.
 
 Even if you already have a newer version of python, you do need to install python 3.7.5 or whatever version is listed in the first line of C:\dev\ros2-windows\Scripts\ros2-script.py. Any other version will result in ros2 failing to launch.
 
