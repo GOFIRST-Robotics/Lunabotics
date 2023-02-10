@@ -2,6 +2,19 @@
 
 The official NASA RMC 2023 repository for LUNABOTICS team, a segment of University of Minnesota Robotics.
 
+## How to Run inside Docker Container
+
+Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers: Reopen in Container".
+Just press "from dockerfile" and then it will build the container and run it.
+
+When open, run the following commands in the terminal:
+
+```
+. /opt/ros/$ROS_DISTRO/setup.sh
+colcon build
+. install/setup.sh
+```
+
 ## ROS 2 Eloquent Windows 10 install tips
 
 Read the notes below first, then follow this guide: <https://docs.ros.org/en/eloquent/Installation/Windows-Install-Binary.html>
@@ -17,19 +30,6 @@ You need to run `C:\dev\ros2-windows\local_setup.bat` every time you start a new
 Make sure to `source install/setup.bash`
 
 Clean workspace is `rm -r build install log`
-
-## How to Run inside Docker Container
-
-Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers: Reopen in Container".
-Just press "from dockerfile" and then it will build the container and run it.
-
-When open, run the following commands in the terminal:
-
-```
-. /opt/ros/$ROS_DISTRO/setup.sh
-colcon build
-. install/setup.sh
-```
 
 ## Useful Resources/References
 
