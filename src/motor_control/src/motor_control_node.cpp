@@ -19,9 +19,6 @@
 #include <string>
 #include <stdint.h>
 
-typedef int32_t S32; // Signed 32-bit integer
-typedef uint32_t U32; // Unsigned 32-bit integer
-
 // Global Variables
 float linear_drive_power_cmd = 0.0;
 float angular_drive_power_cmd = 0.0;
@@ -32,15 +29,15 @@ bool offloading = false;
 int count = 0;
 
 // Define CAN IDs Here //
-U32 FRONT_LEFT_DRIVE = 1;
-U32 BACK_LEFT_DRIVE = 2;
-U32 FRONT_RIGHT_DRIVE = 3;
-U32 BACK_RIGHT_DRIVE = 4;
-U32 DIGGER_DEPTH_MOTOR = 5;
-U32 DIGGER_ROTATION_MOTOR = 6;
-U32 DIGGER_DRUM_BELT_MOTOR = 7;
-U32 CONVEYOR_BELT_MOTOR = 8;
-U32 OFFLOAD_BELT_MOTOR = 9;
+uint32_t FRONT_LEFT_DRIVE = 1;
+uint32_t BACK_LEFT_DRIVE = 2;
+uint32_t FRONT_RIGHT_DRIVE = 3;
+uint32_t BACK_RIGHT_DRIVE = 4;
+uint32_t DIGGER_DEPTH_MOTOR = 5;
+uint32_t DIGGER_ROTATION_MOTOR = 6;
+uint32_t DIGGER_DRUM_BELT_MOTOR = 7;
+uint32_t CONVEYOR_BELT_MOTOR = 8;
+uint32_t OFFLOAD_BELT_MOTOR = 9;
 
 // Define Motor Power/Speeds Here //
 float DIGGER_ROTATION_POWER = 0.5;
@@ -55,7 +52,7 @@ using std::placeholders::_1;
 class PublishersAndSubscribers : public rclcpp::Node
 {
   // Generic method for sending data over the CAN bus
-  void send_can(U32 id, S32 data) {
+  void send_can(uint32_t id, int32_t data) {
     can_msgs::msg::Frame can_msg; // Construct a new CAN message
 
     can_msg.is_rtr = false;
@@ -74,17 +71,16 @@ class PublishersAndSubscribers : public rclcpp::Node
   }
 
   // Set the percent power of the motor between -1.0 and 1.0
-  void vesc_set_duty_cycle(U32 id, float percentPower) { 
-    S32 data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
+  void vesc_set_duty_cycle(uint32_t id, float percentPower) { 
+    int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
-  // TODO: This has not been tested yet
   // Set the current draw of the motor in amps
-  void vesc_set_current(U32 id, float current) { 
-    S32 data = current * 1000; // Convert from current in amps to a signed 32-bit integer
+  void vesc_set_current(uint32_t id, float current) { 
+    int32_t data = current * 1000; // Convert from current in amps to a signed 32-bit integer
 
     send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
     RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %u to %f amps", id, current); // Print to the terminal
@@ -92,8 +88,8 @@ class PublishersAndSubscribers : public rclcpp::Node
 
   // TODO: This has not been tested yet
   // Set the speed of the motor in RPM (Rotations Per Minute)
-  void vesc_set_RPM(U32 id, int rpm) {
-    S32 data = rpm;
+  void vesc_set_RPM(uint32_t id, int rpm) {
+    int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
     RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
@@ -101,8 +97,8 @@ class PublishersAndSubscribers : public rclcpp::Node
 
   // TODO: This has not been tested yet
   // Set the position of the motor in encoder counts
-  void vesc_set_position(U32 id, int encoderCounts) {
-    S32 data = encoderCounts;
+  void vesc_set_position(uint32_t id, int encoderCounts) {
+    int32_t data = encoderCounts;
 
     send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
     RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, encoderCounts); // Print to the terminal
@@ -126,12 +122,13 @@ private:
     angular_drive_power_cmd = msg->angular.z;
   }
 
+  // TODO: The values we are receiving/print still seem to be wrong?? (Besides the CAN ID, that has been working)
   // Listen for status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
-    U32 id = can_msg->id & 0xFF;
+    uint32_t id = can_msg->id & 0xFF;
 
-    U32 RPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
+    uint32_t RPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
     uint16_t avgMotorCurrent =((can_msg->data[4]<<8) + can_msg->data[5]) / 10;
     uint16_t dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 1000;
 
