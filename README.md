@@ -4,8 +4,7 @@ The official NASA RMC 2023 repository for LUNABOTICS team, a segment of Universi
 
 ## ROS 2 Eloquent Windows 10 install tips
 
-Read the notes below first, and then follow this guide:
-<https://docs.ros.org/en/eloquent/Installation/Windows-Install-Binary.html>
+Read the notes below, then follow this guide: <https://docs.ros.org/en/eloquent/Installation/Windows-Install-Binary.html>
 
 You DO need to install VS Code, even if you have it already, since you need to add specific build components that you probably didn’t opt-in to installing last time.
 
