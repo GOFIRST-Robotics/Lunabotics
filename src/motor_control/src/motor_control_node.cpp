@@ -25,9 +25,6 @@ float angular_drive_power_cmd = 0.0;
 bool digging = false;
 bool offloading = false;
 
-// counter for printing less CAN frames
-int count = 0;
-
 // Define CAN IDs Here //
 uint32_t FRONT_LEFT_DRIVE = 1;
 uint32_t BACK_LEFT_DRIVE = 2;
@@ -132,20 +129,15 @@ private:
     uint16_t avgMotorCurrent =((can_msg->data[4]<<8) + can_msg->data[5]) / 10;
     uint16_t dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 1000;
 
-    if(count >= 50) {
-      RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-      RCLCPP_INFO(this->get_logger(), "RPM: %u average motor current: %hu latest duty cycle: %hu", RPM, avgMotorCurrent, dutyCycleNow);
-      count = 0;
-    }
-
-    count++;
+    RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
+    RCLCPP_INFO(this->get_logger(), "RPM: %u average motor current: %hu latest duty cycle: %hu", RPM, avgMotorCurrent, dutyCycleNow);
   }
 
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
     RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
-    // Parse the actuator_cmd command we received:
+    // Parse the msg for our toggleable motor actions
     if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {
       digging = false;
       offloading = false;
@@ -162,13 +154,16 @@ private:
     if(msg->data.find("OFFLOADER_OFF") != std::string::npos) {
       offloading = false;
     }
+
+    // Parse the msg for our linear actuator position commands
     if(msg->data.find("EXTEND_DIGGER") != std::string::npos) {
-      // TODO: Set position of the linear actuator accordingly
+      // TODO: Set position of the linear actuator by sending a 1 over UART to the Arduino
     }
     if(msg->data.find("RETRACT_DIGGER") != std::string::npos) {
-      // TODO: Set position of the linear actuator accordingly
+      // TODO: Set position of the linear actuator by sending a 0 over UART to the Arduino
     }
-    if(msg->data.find("BEGIN_DIG_PROCEDURE") != std::string::npos) {
+
+    if(msg->data.find("BEGIN_DIG_PROCEDURE") != std::string::npos) { //TODO: fix this
       // TODO: Wait until our digger is up to speed
       // TODO: Set position of the linear actuator to lower the digger
       // TODO: After the digger is fully lowered into the ground, begin slowly driving

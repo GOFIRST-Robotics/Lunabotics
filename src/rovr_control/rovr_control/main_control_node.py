@@ -17,6 +17,8 @@ from sensor_msgs.msg import Joy
 from .gamepad_constants import *
 # This is to help with button press detection
 buttons = [0] * 12
+# This is so that we only send a command to change position once
+digger_depth_sent = True
 
 dig_button_toggled = False
 offload_button_toggled = False
@@ -26,9 +28,6 @@ digger_extend_button_toggled = False
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 # Define our robot's initial state
 current_state = states['Teleop']
-
-# counter for not printing as fast
-counter = 0
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -65,8 +64,8 @@ class PublishersAndSubscribers(Node):
     def actuators_timer_callback(self):
         msg = String()
 
-        global counter
-
+        # Python is silly and you have to declare global variables like this before using them
+        global digger_depth_sent
         global dig_button_toggled
         global digger_extend_button_toggled
         global offload_button_toggled
@@ -78,48 +77,49 @@ class PublishersAndSubscribers(Node):
         elif current_state == states['Teleop']:
             if dig_button_toggled:
                 msg.data += ' DIGGER_ON'
+                digger_depth_sent = True # This is so we only send the message once
             elif not dig_button_toggled:
                 msg.data += ' DIGGER_OFF'
+                digger_depth_sent = True # This is so we only send the message once
             if offload_button_toggled:
                 msg.data += ' OFFLOADING_ON'
             elif not offload_button_toggled:
                 msg.data += ' OFFLOADING_OFF'
-            if digger_extend_button_toggled:
+            if digger_extend_button_toggled and not digger_depth_sent:
                 msg.data += ' EXTEND_DIGGER'
-            elif not digger_extend_button_toggled:
+            elif not digger_extend_button_toggled and not digger_depth_sent:
                 msg.data += ' RETRACT_DIGGER'
         elif current_state == states['Autonomous']:
             pass # TODO: Finish these Autonomous cases:
-            # if condition for digging
-                # msg.data += ' DIGGER_ON'
-            # if NOT condition for diggging
-                # msg.data += ' DIGGER_OFF'
-            # if condition for offloading
-                # msg.data += ' OFFLOADING_ON'
-            # if NOT condition for offloading
-                # msg.data += ' OFFLOADING_OFF'
-            # if condition for extending digger
-                # msg.data += ' EXTEND_DIGGER'
-            # if condition for retracting digger
-                # msg.data += ' RETRACT_DIGGER'
+            # if condition_for_digging:
+            #     msg.data += ' DIGGER_ON'
+            # if not condition_for_digging:
+            #     msg.data += ' DIGGER_OFF'
+            # if condition_for_offloading:
+            #     msg.data += ' OFFLOADING_ON'
+            # if not condition_for_offloading:
+            #     msg.data += ' OFFLOADING_OFF'
+            # if condition_for_extending_digger and not digger_depth_sent:
+            #     msg.data += ' EXTEND_DIGGER'
+            #     digger_depth_sent = True # This is so we only send the message once
+            # if condition_for_retracting_digger and not digger_depth_sent:
+            #     msg.data += ' RETRACT_DIGGER'
+            #     digger_depth_sent = True # This is so we only send the message once
 
         self.actuators_publisher.publish(msg)
-
-        if counter >= 5:
-            self.get_logger().info('Publishing: "%s"' % msg.data)
-            counter = 0
-        counter += 1
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
 
     # When a joystick input is recieved, this callback updates the global power variables accordingly
     def joystick_callback(self, msg):
+        
+        # Python is silly and you have to declare global variables like this before using them
         global current_drive_power
         global current_turn_power
-
         global dig_button_toggled
         global digger_extend_button_toggled
         global offload_button_toggled
-
+        global digger_depth_sent
         global current_state
 
         # Update our current driving powers
@@ -136,6 +136,7 @@ class PublishersAndSubscribers(Node):
             
         # Check if the digger_extend button is pressed
         if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+            digger_depth_sent = False
             digger_extend_button_toggled = not digger_extend_button_toggled
 
         # Check if the autonomous digging button is pressed
@@ -152,6 +153,8 @@ class PublishersAndSubscribers(Node):
 
     # Decides what power (duty cycle) should be sent to the drive motors
     def drive_power_timer_callback(self):
+        
+        # Python is silly and you have to declare global variables like this before using them
         global current_drive_power
         global current_turn_power
         
