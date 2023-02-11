@@ -39,11 +39,6 @@ max_turn_power = 1.0
 current_drive_power = 0.0
 current_turn_power = 0.0
 
-# Define our autonomous goal position # TODO: What are we even doing in terms of autonomous stuff lol
-goal_x_absolute = 2  # Meters
-goal_y_absolute = 2  # Meters
-goal_orientation = 90  # Degrees
-
 class PublishersAndSubscribers(Node):
 
     def __init__(self):
@@ -58,14 +53,6 @@ class PublishersAndSubscribers(Node):
         self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 10)
         drive_power_timer_period = 0.05  # how often to publish measured in seconds
         self.drive_power_timer = self.create_timer(drive_power_timer_period, self.drive_power_timer_callback)
-        
-        # Goal Publisher
-        self.goal_publisher = self.create_publisher(PoseStamped, 'Goal', 10)
-        goal_timer_period = 0.05  # how often to publish measured in seconds
-        self.goal_timer = self.create_timer(goal_timer_period, self.goal_timer_callback)
-
-        # Robot Command Subscriber
-        self.command_subscription = self.create_subscription(String, 'robot_command', self.command_callback, 10)
         
         # EKF Subscriber
         self.ekf_subscription = self.create_subscription(PoseWithCovarianceStamped, 'robot_pos_ekf/odom_combined', self.ekf_callback, 10)
@@ -186,40 +173,6 @@ class PublishersAndSubscribers(Node):
 
         self.drive_power_publisher.publish(drive_power_msg)
         #self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
-
-
-    # Publish our current goal to autonomously drive to # TODO: What are we even doing in terms of autonomous stuff lol
-    def goal_timer_callback(self):
-
-        # We only need to publish a goal if we are currently autonomous
-        if current_state == states['Autonomous']:
-            msg = PoseStamped()
-
-            msg.pose.position.x = goal_x_absolute  # Meters
-            msg.pose.position.y = goal_y_absolute  # Meters
-            msg.pose.position.z = 0.0  # We can't move in this axis lol, the robot can't fly
-
-            msg.pose.orientation.x = 0.0 # We can't move in this axis
-            msg.pose.orientation.y = 0.0  # We can't move in this axis
-            msg.pose.orientation.z = goal_orientation  # Degrees
-
-            self.goal_publisher.publish(msg)
-            self.get_logger().info(f'Publishing Position: {msg.pose.position}, Orientation: {msg.pose.orientation}')
-
-
-    # Updates our current state when a command to change has been recieved
-    # NOTE: The command message should be a String containing an integer (corresponding to the requested state)
-    def command_callback(self, msg):
-        self.get_logger().info('I received this message: "%i"' % msg.data)
-
-        requested_state = msg
-
-        # Switch our current state if a new (valid) state has been requested
-        if 0 <= requested_state <= len(states) - 1:
-            current_state = requested_state
-
-        # Log the robot's current state
-        self.get_logger().info('Current State is set to: "%i"' % current_state)
 
 
     # EKF stuff # TODO: Finish this callback. How do we implement EKF?
