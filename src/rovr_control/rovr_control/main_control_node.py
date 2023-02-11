@@ -13,6 +13,10 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 
+# Allows us to run tasks in parallel using multiple CPU cores
+import multiprocessing
+import time
+
 # Import our gamepad button mappings
 from .gamepad_constants import *
 # This is to help with button press detection
@@ -25,7 +29,7 @@ digger_extend_button_toggled = False
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 # Define our robot's initial state
-current_state = states['Teleop']
+current_state = states['Auto_Dig']
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -36,10 +40,15 @@ max_turn_power = 1.0
 current_drive_power = 0.0
 current_turn_power = 0.0
 
+# This method lays out the procedure for autonomously digging!
+def auto_dig_procedure():
+    print("AUTO DIG")
+
 class PublishersAndSubscribers(Node):
 
     def __init__(self):
         super().__init__('publisher')
+        self.autonomous_digging_process = multiprocessing.Process(target=auto_dig_procedure) # Create our autonomous digging thread
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
@@ -70,7 +79,7 @@ class PublishersAndSubscribers(Node):
         if current_state == states['Emergency_Stop']:
             msg.data = 'STOP_ALL_ACTUATORS'
         elif current_state == states['Auto_Dig']:
-            msg.data = 'DIGGER_ON BEGIN_DIG_PROCEDURE' # TODO: Implement BEGIN_DIG_PROCEDURE in motor_control node
+            msg.data = 'DIGGER_ON'
         elif current_state == states['Teleop']:
             if dig_button_toggled:
                 msg.data += ' DIGGER_ON'
@@ -134,8 +143,12 @@ class PublishersAndSubscribers(Node):
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
             if current_state == states["Teleop"]:
                 current_state = states["Auto_Dig"]
+                self.autonomous_digging_process.start() # Start the auto dig process
             elif current_state == states["Auto_Dig"]:
                 current_state = states["Teleop"]
+                dig_button_toggled = False # When we enter teleop mode, start with the digger off
+                offload_button_toggled = False # When we enter teleop mode, start with the offloader off
+                self.autonomous_digging_process.terminate() # Terminate the auto dig process
 
             
         # Update new button states
