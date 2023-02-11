@@ -25,11 +25,12 @@ buttons = [0] * 12
 dig_button_toggled = False
 offload_button_toggled = False
 digger_extend_button_toggled = False
+auto_dig_driving = False
 
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 # Define our robot's initial state
-current_state = states['Teleop']
+current_state = states['Auto_Dig']
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -40,22 +41,42 @@ max_turn_power = 1.0
 current_drive_power = 0.0
 current_turn_power = 0.0
     
-
+# Define a global counter for printing to the terminal less often
+counter = 0
+    
 class MainControlNode(Node):
     
     # This method lays out the procedure for autonomously digging!
     def auto_dig_procedure(self):
+        # Python is silly and you have to declare global variables like this before using them
+        global auto_dig_driving
+        global current_state
+        
         self.get_logger().info('Starting Autonomous Digging Procedure!') # Print to the terminal
-        # TODO: Slowly extend the digger to full depth
-        # TODO: Start driving forward slowly
-        time.sleep(10) # TODO: Tune this timing
-        # TODO: Stop the drivetrain
-        # TODO: Slowly retract the digger back to starting position
+        time.sleep(5) # TODO: Tune this timing (wait for the digger to get up to speed)
+        
+        msg = String()
+        msg.data = 'EXTEND_DIGGER'
+        self.actuators_publisher.publish(msg) # Extend the digger to full depth
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+        time.sleep(5); # TODO: Eventually we should replace this with reading a confirmation message from the Arduino!
+        
+        auto_dig_driving = True # Start driving forward slowly
+        time.sleep(15) # TODO: Tune this timing (how long do we want to drive for?)
+        auto_dig_driving = False # Stop the drivetrain
+        
+        msg = String()
+        msg.data = 'RETRACT_DIGGER'
+        self.actuators_publisher.publish(msg) # Retract the digger back to starting position
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+        time.sleep(5); # TODO: Eventually we should replace this with reading a confirmation message from the Arduino!
+        
         self.get_logger().info('Autonomous Digging Procedure Complete!') # Print to the terminal
+        current_state = states['Teleop'] # Enter teleop mode after this autonomous command is finished
+
 
     def __init__(self):
         super().__init__('publisher')
-        self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure) # Create our autonomous digging thread
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
@@ -72,6 +93,10 @@ class MainControlNode(Node):
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
+        
+        # Create our autonomous digging thread
+        self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure)
+        self.autonomous_digging_process.start()
 
 
     # Publish the current robot state
@@ -82,6 +107,7 @@ class MainControlNode(Node):
         global dig_button_toggled
         global digger_extend_button_toggled
         global offload_button_toggled
+        global counter
 
         if current_state == states['Emergency_Stop']:
             msg.data = 'STOP_ALL_ACTUATORS'
@@ -116,7 +142,11 @@ class MainControlNode(Node):
             #     msg.data += ' RETRACT_DIGGER'
 
         self.actuators_publisher.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+        
+        if counter >= 20:
+            self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+            counter = 0
+        counter += 1
 
 
     # When a joystick input is recieved, this callback updates the global power variables accordingly
@@ -157,10 +187,10 @@ class MainControlNode(Node):
                 offload_button_toggled = False # When we enter teleop mode, start with the offloader off
                 self.autonomous_digging_process.terminate() # Terminate the auto dig process
 
-            
         # Update new button states
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
+
 
     # Decides what power (duty cycle) should be sent to the drive motors
     def drive_power_timer_callback(self):
@@ -168,6 +198,8 @@ class MainControlNode(Node):
         # Python is silly and you have to declare global variables like this before using them
         global current_drive_power
         global current_turn_power
+        global auto_dig_driving
+        global counter
         
         drive_power_msg = Twist() # Create a new ROS2 msg
 
@@ -182,12 +214,14 @@ class MainControlNode(Node):
         if current_state == states['Teleop']:
             drive_power_msg.linear.x = current_drive_power # Forward power
             drive_power_msg.angular.z = current_turn_power # Turning power
-        elif current_state == states['Auto_Dig']:
+        elif auto_dig_driving:
             drive_power_msg.linear.x = dig_driving_power # Driving power while digging
 
         self.drive_power_publisher.publish(drive_power_msg)
-        #self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
-
+        
+        if counter >= 20:
+            self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+        
 
     # EKF stuff # TODO: Finish this callback. How do we implement EKF?
     def ekf_callback(self, msg):
@@ -201,8 +235,7 @@ class MainControlNode(Node):
 
         covariance = msg.pose.covariance
 
-        self.get_logger().info(
-            f'Received a message with covariance of: {covariance}')
+        self.get_logger().info(f'Received a message with covariance of: {covariance}')
 
 
 def main(args=None):
