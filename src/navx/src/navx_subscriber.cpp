@@ -10,7 +10,7 @@ using std::placeholders::_1;
 class NavxSubscriber : public rclcpp::Node
 {
   public:
-    NavxSubscriber() : Node("NavX Subscriber")
+    NavxSubscriber() : Node("NavXSubscriber")
     {
       subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
       "imu/data", 1, std::bind(&NavxSubscriber::topic_callback, this, _1));

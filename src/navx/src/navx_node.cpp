@@ -110,7 +110,7 @@ using namespace std::chrono_literals;
 class NavxNode : public rclcpp::Node
 {
 public:
-  NavxNode() : Node("Navx Node")
+  NavxNode() : Node("NavxNode")
   {
     euler_pub = this->create_publisher<geometry_msgs::msg::Point>("imu/euler", 10);
     imu_pub = this->create_publisher<sensor_msgs::msg::Imu>("imu/data", 10);

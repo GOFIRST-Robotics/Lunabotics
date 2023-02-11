@@ -102,7 +102,7 @@ class MotorControlNode : public rclcpp::Node
   }
 
 public:
-  MotorControlNode() : Node("Motor Control Node")
+  MotorControlNode() : Node("MotorControlNode")
   {
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
