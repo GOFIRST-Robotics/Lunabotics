@@ -107,15 +107,14 @@ bool calculate_covariance(std::array<double, 9> &orientation_mat,
 
 using namespace std::chrono_literals;
 
-class DataPublisher : public rclcpp::Node
+class NavxNode : public rclcpp::Node
 {
 public:
-  DataPublisher()
-  : Node("data_publisher")
+  NavxNode() : Node("Navx Node")
   {
     euler_pub = this->create_publisher<geometry_msgs::msg::Point>("imu/euler", 10);
     imu_pub = this->create_publisher<sensor_msgs::msg::Imu>("imu/data", 10);
-    timer = this->create_wall_timer(50ms, std::bind(&DataPublisher::timer_callback, this));
+    timer = this->create_wall_timer(50ms, std::bind(&NavxNode::timer_callback, this));
   }
 
 private:
@@ -187,7 +186,7 @@ int main(int argc, char * argv[])
   orientationHistory.resize(covar_samples);
 
   // Spin the node
-  rclcpp::spin(std::make_shared<DataPublisher>());
+  rclcpp::spin(std::make_shared<NavxNode>());
 
   // Free up any resources being used by the node
   rclcpp::shutdown();

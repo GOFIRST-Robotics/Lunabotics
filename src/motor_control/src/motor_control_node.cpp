@@ -46,7 +46,7 @@ float OFFLOAD_BELT_POWER = 0.5;
 using namespace std::chrono_literals;
 using std::placeholders::_1;
 
-class PublishersAndSubscribers : public rclcpp::Node
+class MotorControlNode : public rclcpp::Node
 {
   // Generic method for sending data over the CAN bus
   void send_can(uint32_t id, int32_t data) {
@@ -102,14 +102,13 @@ class PublishersAndSubscribers : public rclcpp::Node
   }
 
 public:
-  PublishersAndSubscribers()
-  : Node("publishers_and_subscribers")
+  MotorControlNode() : Node("Motor Control Node")
   {
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
-    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&PublishersAndSubscribers::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
-    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("drive_power", 10, std::bind(&PublishersAndSubscribers::drive_power_callback, this, _1));
-    actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&PublishersAndSubscribers::actuators_callback, this, _1));
-    timer = this->create_wall_timer(50ms, std::bind(&PublishersAndSubscribers::timer_callback, this));
+    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
+    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("drive_power", 10, std::bind(&MotorControlNode::drive_power_callback, this, _1));
+    actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&MotorControlNode::actuators_callback, this, _1));
+    timer = this->create_wall_timer(50ms, std::bind(&MotorControlNode::timer_callback, this));
   }
 
 private:
@@ -195,7 +194,7 @@ int main(int argc, char** argv){
   rclcpp::init(argc, argv);
 
   // Spin the node
-  rclcpp::spin(std::make_shared<PublishersAndSubscribers>());
+  rclcpp::spin(std::make_shared<MotorControlNode>());
 
   // Free up any resources being used by the node
   rclcpp::shutdown();

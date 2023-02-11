@@ -7,14 +7,13 @@
 
 using std::placeholders::_1;
 
-class Subscriber : public rclcpp::Node
+class NavxSubscriber : public rclcpp::Node
 {
   public:
-    Subscriber()
-    : Node("subscriber")
+    NavxSubscriber() : Node("NavX Subscriber")
     {
       subscription_ = this->create_subscription<sensor_msgs::msg::Imu>(
-      "imu/data", 1, std::bind(&Subscriber::topic_callback, this, _1));
+      "imu/data", 1, std::bind(&NavxSubscriber::topic_callback, this, _1));
     }
 
   private:
@@ -31,7 +30,7 @@ int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 
-  rclcpp::spin(std::make_shared<Subscriber>());
+  rclcpp::spin(std::make_shared<NavxSubscriber>());
   rclcpp::shutdown();
 
   return 0;
