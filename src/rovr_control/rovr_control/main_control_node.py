@@ -29,7 +29,7 @@ digger_extend_button_toggled = False
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 # Define our robot's initial state
-current_state = states['Auto_Dig']
+current_state = states['Teleop']
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -39,16 +39,23 @@ max_turn_power = 1.0
 # These global values are updated by joystick input
 current_drive_power = 0.0
 current_turn_power = 0.0
+    
 
-# This method lays out the procedure for autonomously digging!
-def auto_dig_procedure():
-    print("AUTO DIG")
-
-class PublishersAndSubscribers(Node):
+class MainControlNode(Node):
+    
+    # This method lays out the procedure for autonomously digging!
+    def auto_dig_procedure(self):
+        self.get_logger().info('Starting Autonomous Digging Procedure!') # Print to the terminal
+        # TODO: Slowly extend the digger to full depth
+        # TODO: Start driving forward slowly
+        time.sleep(10) # TODO: Tune this timing
+        # TODO: Stop the drivetrain
+        # TODO: Slowly retract the digger back to starting position
+        self.get_logger().info('Autonomous Digging Procedure Complete!') # Print to the terminal
 
     def __init__(self):
         super().__init__('publisher')
-        self.autonomous_digging_process = multiprocessing.Process(target=auto_dig_procedure) # Create our autonomous digging thread
+        self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure) # Create our autonomous digging thread
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
@@ -204,7 +211,7 @@ def main(args=None):
     print('Hello from the rovr_control package!')
     print('Initial Robot State:', current_state)
 
-    node = PublishersAndSubscribers()
+    node = MainControlNode()
 
     rclpy.spin(node)
 
