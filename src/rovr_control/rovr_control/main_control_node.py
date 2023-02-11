@@ -17,8 +17,6 @@ from sensor_msgs.msg import Joy
 from .gamepad_constants import *
 # This is to help with button press detection
 buttons = [0] * 12
-# This is so that we only send a command to change position once
-digger_depth_sent = True
 
 dig_button_toggled = False
 offload_button_toggled = False
@@ -65,7 +63,6 @@ class PublishersAndSubscribers(Node):
         msg = String()
 
         # Python is silly and you have to declare global variables like this before using them
-        global digger_depth_sent
         global dig_button_toggled
         global digger_extend_button_toggled
         global offload_button_toggled
@@ -77,17 +74,15 @@ class PublishersAndSubscribers(Node):
         elif current_state == states['Teleop']:
             if dig_button_toggled:
                 msg.data += ' DIGGER_ON'
-                digger_depth_sent = True # This is so we only send the message once
             elif not dig_button_toggled:
                 msg.data += ' DIGGER_OFF'
-                digger_depth_sent = True # This is so we only send the message once
             if offload_button_toggled:
                 msg.data += ' OFFLOADING_ON'
             elif not offload_button_toggled:
                 msg.data += ' OFFLOADING_OFF'
-            if digger_extend_button_toggled and not digger_depth_sent:
+            if digger_extend_button_toggled:
                 msg.data += ' EXTEND_DIGGER'
-            elif not digger_extend_button_toggled and not digger_depth_sent:
+            elif not digger_extend_button_toggled:
                 msg.data += ' RETRACT_DIGGER'
         elif current_state == states['Autonomous']:
             pass # TODO: Finish these Autonomous cases:
@@ -99,12 +94,10 @@ class PublishersAndSubscribers(Node):
             #     msg.data += ' OFFLOADING_ON'
             # if not condition_for_offloading:
             #     msg.data += ' OFFLOADING_OFF'
-            # if condition_for_extending_digger and not digger_depth_sent:
+            # if condition_for_extending_digger:
             #     msg.data += ' EXTEND_DIGGER'
-            #     digger_depth_sent = True # This is so we only send the message once
-            # if condition_for_retracting_digger and not digger_depth_sent:
+            # if condition_for_retracting_digger:
             #     msg.data += ' RETRACT_DIGGER'
-            #     digger_depth_sent = True # This is so we only send the message once
 
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
@@ -119,7 +112,6 @@ class PublishersAndSubscribers(Node):
         global dig_button_toggled
         global digger_extend_button_toggled
         global offload_button_toggled
-        global digger_depth_sent
         global current_state
 
         # Update our current driving powers
@@ -136,7 +128,6 @@ class PublishersAndSubscribers(Node):
             
         # Check if the digger_extend button is pressed
         if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
-            digger_depth_sent = False
             digger_extend_button_toggled = not digger_extend_button_toggled
 
         # Check if the autonomous digging button is pressed

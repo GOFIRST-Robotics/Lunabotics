@@ -163,7 +163,7 @@ private:
       // TODO: Set position of the linear actuator by sending a 0 over UART to the Arduino
     }
 
-    if(msg->data.find("BEGIN_DIG_PROCEDURE") != std::string::npos) { //TODO: fix this
+    if(msg->data.find("BEGIN_DIG_PROCEDURE") != std::string::npos) { //TODO: Write this (do we need to use multithreading?)
       // TODO: Wait until our digger is up to speed
       // TODO: Set position of the linear actuator to lower the digger
       // TODO: After the digger is fully lowered into the ground, begin slowly driving
