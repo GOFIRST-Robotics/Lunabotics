@@ -72,7 +72,7 @@ class MainControlNode(Node):
         super().__init__('publisher')
         
         self.manager = multiprocessing.Manager()
-        self.current_state = self.manager.Value("i", states['Auto_Dig']) # Define our robot's initial state
+        self.current_state = self.manager.Value("i", states['Teleop']) # Define our robot's initial state
         self.auto_driving = self.manager.Value("i", False)
 
         # Actuators Publisher
@@ -93,7 +93,6 @@ class MainControlNode(Node):
         
         # Create our autonomous digging thread
         self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state, self.auto_driving])
-        self.autonomous_digging_process.start()
 
 
     # Publish the current robot state
