@@ -19,7 +19,7 @@ colcon build
 
 Make sure to `source install/setup.bash`
 
-Install Dependencies is rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y
+Install Dependencies is `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y`
 
 Clean workspace is `rm -r build install log`
 
