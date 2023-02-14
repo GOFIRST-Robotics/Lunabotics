@@ -15,19 +15,11 @@ colcon build
 . install/setup.sh
 ```
 
-## ROS 2 Eloquent Windows 10 install tips
-
-Read the notes below first, then follow this guide: <https://docs.ros.org/en/eloquent/Installation/Windows-Install-Binary.html>
-
-You DO need to install Visual Studio, even if you have it already, since you need to add specific build components that you probably didn’t opt-in to installing last time.
-
-Even if you already have a newer version of python, you do need to install python 3.7.5 or whatever version is listed in the first line of C:\dev\ros2-windows\Scripts\ros2-script.py. Any other version will result in ros2 failing to launch.
-
-You need to run `C:\dev\ros2-windows\local_setup.bat` every time you start a new command prompt. Make a batch script for it.
-
 ## ROS 2 Eloquent General Workspace Tips
 
 Make sure to `source install/setup.bash`
+
+Install Dependencies is rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y
 
 Clean workspace is `rm -r build install log`
 
@@ -41,8 +33,8 @@ Configuring the Nvidia Jetson TX2 for CAN Communication:
 
 VESC CAN Status Frames Spreadsheet: https://github.com/codermonkey42/VESC_CAN
 
-Command for starting the joystick node: `ros2 run joy joy_node`
+Start the joystick node: `ros2 run joy joy_node`
 
-Command for starting the webcam node: `ros2 run ros2 run v4l2_camera v4l2_camera_node --video_device /dev/video0`
+Start the webcam node: `ros2 run ros2 run v4l2_camera v4l2_camera_node --video_device /dev/video0`
 
-Command for viewing the webcam stream: `ros2 run rqt_image_view rqt_image_view`
+View the webcam stream: `ros2 run rqt_image_view rqt_image_view`
