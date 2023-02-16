@@ -1,0 +1,17 @@
+/joy_node:
+  ros__parameters:
+    autorepeat_rate: 10.0
+    coalesce_interval_ms: 50
+    deadzone: 0.1
+    device_id: 0
+    device_name: ''
+    qos_overrides:
+      /parameter_events:
+        publisher:
+          depth: 1000
+          durability: volatile
+          history: keep_last
+          reliability: reliable
+    sticky_buttons: false
+    use_sim_time: false
+
