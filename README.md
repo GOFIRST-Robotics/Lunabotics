@@ -33,8 +33,6 @@ Configuring the Nvidia Jetson TX2 for CAN Communication:
 
 VESC CAN Status Frames Spreadsheet: https://github.com/codermonkey42/VESC_CAN
 
-Start the joystick node: `ros2 run joy joy_node`
-
 Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args --params-file joy_node.yaml`
 
 Start the webcam node: `ros2 run v4l2_camera v4l2_camera_node --video_device /dev/video0`
