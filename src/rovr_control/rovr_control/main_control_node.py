@@ -15,6 +15,7 @@ from sensor_msgs.msg import Joy
 
 # Allows us to run tasks in parallel using multiple CPU cores!
 import multiprocessing
+import subprocess
 import time
 
 # Import our gamepad button mappings
@@ -25,6 +26,7 @@ buttons = [0] * 12
 dig_button_toggled = False
 offload_button_toggled = False
 digger_extend_button_toggled = False
+camera_view_toggled = False
 
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
@@ -181,6 +183,18 @@ class MainControlNode(Node):
                 self.autonomous_digging_process.terminate() # Terminate the auto dig process
                 dig_button_toggled = False # When we enter teleop mode, start with the digger off
                 offload_button_toggled = False # When we enter teleop mode, start with the offloader off
+                
+        # Check if the camera toggle button is pressed
+        if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
+            camera_view_toggled = not camera_view_toggled
+            if camera_view_toggled: # Start streaming /dev/video0 on port 5000
+                if camera1 != None:
+                    camera1.terminate()
+                camera0 = subprocess.Popen(['gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=100000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000'], shell=True)
+            else: # Start streaming /dev/video1 on port 5001
+                if camera0 != None:
+                    camera0.terminate()
+                camera1 = subprocess.Popen(['gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=100000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5001'], shell=True)
 
         # Update new button states
         for index in range(len(buttons)):
