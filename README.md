@@ -35,6 +35,8 @@ VESC CAN Status Frames Spreadsheet: https://github.com/codermonkey42/VESC_CAN
 
 Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args --params-file joy_node.yaml`
 
-Start the webcam node: `ros2 run v4l2_camera v4l2_camera_node --video_device /dev/video0`
+(Change the /dev/video device and the port number to add more webcams)
+Gstreamer H265 Encoding: gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=100000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000
 
-View the webcam stream: `ros2 run rqt_image_view rqt_image_view`
+(Change the /dev/video device and the port number to add more webcams)
+Gstreamer H265 Decoding: gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! omxh265dec ! nvvidconv ! xvimagesink
