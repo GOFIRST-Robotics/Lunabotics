@@ -196,7 +196,6 @@ class MainControlNode(Node):
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
             camera_view_toggled = not camera_view_toggled
             if camera_view_toggled: # Start streaming /dev/video0 on port 5000
-                print(camera1, camera0)
                 if camera1 is not None:
                     os.killpg(os.getpgid(camera1.pid), signal.SIGTERM)
                     camera1 = None
