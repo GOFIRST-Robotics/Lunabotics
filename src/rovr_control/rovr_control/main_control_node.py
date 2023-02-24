@@ -16,7 +16,9 @@ from sensor_msgs.msg import Joy
 # Allows us to run tasks in parallel using multiple CPU cores!
 import multiprocessing
 import subprocess
+import signal
 import time
+import os
 
 # Import our gamepad button mappings
 from .gamepad_constants import *
@@ -27,6 +29,9 @@ dig_button_toggled = False
 offload_button_toggled = False
 digger_extend_button_toggled = False
 camera_view_toggled = False
+
+camera0 = None
+camera1 = None
 
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
@@ -154,8 +159,11 @@ class MainControlNode(Node):
         global current_drive_power
         global current_turn_power
         global dig_button_toggled
+        global camera_view_toggled
         global digger_extend_button_toggled
         global offload_button_toggled
+        global camera0
+        global camera1
 
         # Update our current driving powers
         current_drive_power = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
@@ -188,13 +196,16 @@ class MainControlNode(Node):
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
             camera_view_toggled = not camera_view_toggled
             if camera_view_toggled: # Start streaming /dev/video0 on port 5000
-                if camera1 != None:
-                    camera1.terminate()
-                camera0 = subprocess.Popen(['gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=100000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000'], shell=True)
+                print(camera1, camera0)
+                if camera1 is not None:
+                    os.killpg(os.getpgid(camera1.pid), signal.SIGTERM)
+                    camera1 = None
+                camera0 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=100000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000', shell=True, preexec_fn=os.setsid)
             else: # Start streaming /dev/video1 on port 5001
-                if camera0 != None:
-                    camera0.terminate()
-                camera1 = subprocess.Popen(['gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=100000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5001'], shell=True)
+                if camera0 is not None:
+                    os.killpg(os.getpgid(camera0.pid), signal.SIGTERM)
+                    camera0 = None
+                camera1 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=100000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000', shell=True, preexec_fn=os.setsid)
 
         # Update new button states
         for index in range(len(buttons)):
