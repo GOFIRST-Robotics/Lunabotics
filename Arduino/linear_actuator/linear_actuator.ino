@@ -38,7 +38,7 @@ void extend() {
   }
 
   stop_actuator(); // stop the linear actuator
-  Serial.write('1'); // send a confirmation message back to the Jetson
+  Serial.write('3'); // send a confirmation message back to the Jetson
 }
 
 // retract the linear actuator, using a limit switch for feedback
@@ -51,7 +51,7 @@ void retract() {
   }
 
   stop_actuator(); // stop the linear actuator
-  Serial.write('0'); // send a confirmation message back to the Jetson
+  Serial.write('4'); // send a confirmation message back to the Jetson
 }
 
 // stop the linear actuator
