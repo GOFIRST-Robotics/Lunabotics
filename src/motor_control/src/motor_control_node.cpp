@@ -153,14 +153,6 @@ private:
     if(msg->data.find("OFFLOADER_OFF") != std::string::npos) {
       offloading = false;
     }
-
-    // Parse the msg for our linear actuator position commands
-    if(msg->data.find("EXTEND_DIGGER") != std::string::npos) {
-      // TODO: Set position of the linear actuator by sending a 1 over UART to the Arduino
-    }
-    if(msg->data.find("RETRACT_DIGGER") != std::string::npos) {
-      // TODO: Set position of the linear actuator by sending a 0 over UART to the Arduino
-    }
   }
 
   // This method loops repeatedly

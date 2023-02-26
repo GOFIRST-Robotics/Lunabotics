@@ -13,12 +13,12 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 
-# Allows us to run tasks in parallel using multiple CPU cores!
-import multiprocessing
-import subprocess
-import signal
-import time
-import os
+import multiprocessing # Allows us to run tasks in parallel using multiple CPU cores!
+import subprocess # This is for the webcam stream subprocesses
+import signal # Allows us to kill subprocesses
+import serial # Serial communication with the Arduino. Install with: "sudo pip3 install pyserial"
+import time # This is for time.sleep()
+import os # Allows us to kill subprocesses
 
 # Import our gamepad button mappings
 from .gamepad_constants import *
@@ -55,21 +55,19 @@ class MainControlNode(Node):
         self.get_logger().info('Starting Autonomous Digging Procedure!') # Print to the terminal
         time.sleep(5) # TODO: Tune this timing (wait for the digger to get up to speed)
         
-        msg = String()
-        msg.data = 'EXTEND_DIGGER'
-        self.actuators_publisher.publish(msg) # Extend the digger to full depth
-        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-        time.sleep(5); # TODO: Eventually we should replace this with reading a confirmation message from the Arduino!
+        self.arduino.write("1") # Tell the Arduino to extend the linear actuator
+        while True: # Wait for a confirmation message from the Arduino
+            if self.arduino.read() == '3':
+                break
         
         auto_driving.value = True # Start driving forward slowly
         time.sleep(15) # TODO: Tune this timing (how long do we want to drive for?)
         auto_driving.value = False # Stop the drivetrain
         
-        msg = String()
-        msg.data = 'RETRACT_DIGGER'
-        self.actuators_publisher.publish(msg) # Retract the digger back to starting position
-        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-        time.sleep(5); # TODO: Eventually we should replace this with reading a confirmation message from the Arduino!
+        self.arduino.write("0") # Tell the Arduino to retract the linear actuator
+        while True: # Wait for a confirmation message from the Arduino
+            if self.arduino.read() == '4':
+                break
         
         self.get_logger().info('Autonomous Digging Procedure Complete!') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
@@ -77,6 +75,12 @@ class MainControlNode(Node):
 
     def __init__(self):
         super().__init__('publisher')
+        
+        # Try connecting to the Arduino over Serial
+        try:
+            self.arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=10) # TODO: Is this Serial port correct?
+        except:
+            print("ERROR: Could not connect to the Arduino over Serial!")
         
         self.manager = multiprocessing.Manager()
         self.current_state = self.manager.Value("i", states['Teleop']) # Define our robot's initial state
@@ -125,10 +129,6 @@ class MainControlNode(Node):
                 msg.data += ' OFFLOADING_ON'
             elif not offload_button_toggled:
                 msg.data += ' OFFLOADING_OFF'
-            if digger_extend_button_toggled:
-                msg.data += ' EXTEND_DIGGER'
-            elif not digger_extend_button_toggled:
-                msg.data += ' RETRACT_DIGGER'
         elif self.current_state.value == states['Autonomous']:
             pass # TODO: Finish these Autonomous cases:
             # if condition_for_digging:
@@ -139,10 +139,7 @@ class MainControlNode(Node):
             #     msg.data += ' OFFLOADING_ON'
             # if not condition_for_offloading:
             #     msg.data += ' OFFLOADING_OFF'
-            # if condition_for_extending_digger:
-            #     msg.data += ' EXTEND_DIGGER'
-            # if condition_for_retracting_digger:
-            #     msg.data += ' RETRACT_DIGGER'
+            
 
         self.actuators_publisher.publish(msg)
         
@@ -180,6 +177,10 @@ class MainControlNode(Node):
         # Check if the digger_extend button is pressed
         if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
             digger_extend_button_toggled = not digger_extend_button_toggled
+            if digger_extend_button_toggled:
+                self.arduino.write("1") # Tell the Arduino to extend the linear actuator
+            else:
+                self.arduino.write("0") # Tell the Arduino to retract the linear actuator
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
