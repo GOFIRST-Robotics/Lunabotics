@@ -95,9 +95,6 @@ class MainControlNode(Node):
         self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 10)
         drive_power_timer_period = 0.05  # how often to publish measured in seconds
         self.drive_power_timer = self.create_timer(drive_power_timer_period, self.drive_power_timer_callback)
-        
-        # EKF Subscriber
-        self.ekf_subscription = self.create_subscription(PoseWithCovarianceStamped, 'robot_pos_ekf/odom_combined', self.ekf_callback, 10)
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
@@ -240,21 +237,6 @@ class MainControlNode(Node):
         
         if counter >= 20:
             self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
-        
-
-    # EKF stuff # TODO: Finish this callback. How do we implement EKF?
-    def ekf_callback(self, msg):
-        pos_x = msg.pose.pose.position.x
-        pos_y = msg.pose.pose.position.y
-        pos_z = msg.pose.pose.position.z
-
-        orientation_x = msg.pose.pose.orientation.x
-        orientation_y = msg.pose.pose.orientation.y
-        orientation_z = msg.pose.pose.orientation.z
-
-        covariance = msg.pose.covariance
-
-        self.get_logger().info(f'Received a message with covariance of: {covariance}')
 
 
 def main(args=None):
