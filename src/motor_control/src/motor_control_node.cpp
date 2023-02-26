@@ -83,7 +83,7 @@ class MotorControlNode : public rclcpp::Node
     RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %u to %f amps", id, current); // Print to the terminal
   }
 
-  // TODO: This has not been tested yet
+  // TODO: This has not been tested yet! Proceed with caution.
   // Set the speed of the motor in RPM (Rotations Per Minute)
   void vesc_set_RPM(uint32_t id, int rpm) {
     int32_t data = rpm;
@@ -92,7 +92,7 @@ class MotorControlNode : public rclcpp::Node
     RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
-  // TODO: This has not been tested yet
+  // TODO: This has not been tested yet! Proceed with caution.
   // Set the position of the motor in encoder counts
   void vesc_set_position(uint32_t id, int encoderCounts) {
     int32_t data = encoderCounts;
@@ -118,7 +118,7 @@ private:
     angular_drive_power_cmd = msg->angular.z;
   }
 
-  // TODO: The values we are receiving/print still seem to be wrong?? (Besides the CAN ID, that has been working)
+  // TODO: The values we are receiving/printing still seem to be wrong? (Besides the CAN ID, at least that has been working)
   // Listen for status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {

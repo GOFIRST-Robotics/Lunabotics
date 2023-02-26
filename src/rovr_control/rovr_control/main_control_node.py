@@ -78,7 +78,7 @@ class MainControlNode(Node):
         
         # Try connecting to the Arduino over Serial
         try:
-            self.arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=10) # TODO: Is this Serial port correct?
+            self.arduino = serial.Serial('/dev/ttyACM1', 9600, timeout=10) # TODO: Is this Serial port correct? I believe the navX will be /dev/ttyACM0
         except:
             print("ERROR: Could not connect to the Arduino over Serial!")
         

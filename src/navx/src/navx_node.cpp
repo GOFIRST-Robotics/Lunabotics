@@ -36,7 +36,7 @@
 #include "ahrs/AHRS.h"
 #include "AHRS.cpp"
 
-// ROS 2 Parameters // TODO: Not set up as parameters yet
+// Node Settings
 double frequency = 50.0;
 bool euler_enable = false;
 std::string device_path = "/dev/ttyACM0";
