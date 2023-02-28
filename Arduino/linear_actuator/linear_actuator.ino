@@ -23,8 +23,8 @@ void loop() {
   if (Serial.available()) { // check if data is available to be read
     char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
 
-    if (data_received == '1') extend(); // extend the linear actuator
-    if (data_received == '0') retract(); // retract the linear actuator
+    if (data_received == 1) extend(); // extend the linear actuator
+    if (data_received == 0) retract(); // retract the linear actuator
   }
 }
 
@@ -32,13 +32,13 @@ void loop() {
 void extend() {
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 
-  while (digitalRead(limit_switch_extend) == HIGH) { // loop until the limit switch is pressed
+  while (digitalRead(limit_switch_extend) == LOW) { // loop until the limit switch is pressed
     digitalWrite(extend_pin, HIGH);
     digitalWrite(retract_pin, LOW);
   }
 
   stop_actuator(); // stop the linear actuator
-  Serial.write('3'); // send a confirmation message back to the Jetson
+  Serial.write(3); // send a confirmation message back to the Jetson
   digitalWrite(LED_BUILTIN, LOW); // Turn off the built-in LED
 }
 
@@ -46,13 +46,13 @@ void extend() {
 void retract() {
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
   
-  while (digitalRead(limit_switch_retract) == HIGH) { // loop until the limit switch is pressed
+  while (digitalRead(limit_switch_retract) == LOW) { // loop until the limit switch is pressed
     digitalWrite(extend_pin, LOW);
     digitalWrite(retract_pin, HIGH);
   }
 
   stop_actuator(); // stop the linear actuator
-  Serial.write('4'); // send a confirmation message back to the Jetson
+  Serial.write(4); // send a confirmation message back to the Jetson
   digitalWrite(LED_BUILTIN, LOW); // Turn off the built-in LED
 }
 
