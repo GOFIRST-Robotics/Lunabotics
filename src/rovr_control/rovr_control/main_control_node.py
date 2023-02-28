@@ -77,7 +77,10 @@ class MainControlNode(Node):
         super().__init__('publisher')
         
         # Try connecting to the Arduino over Serial
-        self.arduino = serial.Serial('/dev/ttyACM0', 9600, timeout=10) # TODO: Is this Serial port correct? I believe the navX will be /dev/ttyACM0
+        try:
+            self.arduino = serial.Serial('/dev/ttyACM1', 9600, timeout=10) # The navX gyroscope is /dev/ttyACM0
+        except Exception as e:
+            print(e) # If an exception is raised, print it, and then move on
         
         self.manager = multiprocessing.Manager()
         self.current_state = self.manager.Value("i", states['Teleop']) # Define our robot's initial state

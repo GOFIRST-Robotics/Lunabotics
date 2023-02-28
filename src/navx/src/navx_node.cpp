@@ -39,7 +39,7 @@
 // Node Settings
 double frequency = 50.0;
 bool euler_enable = false;
-std::string device_path = "/dev/ttyACM0";
+std::string device_path = "/dev/ttyACM0"; // The Arduino is /dev/ttyACM1
 std::string frame_id = "imu_link";
 int covar_samples = 100;
 
