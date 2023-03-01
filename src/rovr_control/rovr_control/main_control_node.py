@@ -70,11 +70,10 @@ class MainControlNode(Node):
         drive_power_msg.angular.z = turnPower # Turning power
         
         self.drive_power_publisher.publish(drive_power_msg)
-        if counter >= 20:
-            self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+        self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
     
     # This method lays out the procedure for autonomously digging!
-    def auto_dig_procedure(self, state, auto_driving):
+    def auto_dig_procedure(self, state):
         self.get_logger().info('Starting Autonomous Digging Procedure!') # Print to the terminal
         time.sleep(5) # TODO: Tune this timing (wait for the digger to get up to speed)
         
@@ -83,9 +82,9 @@ class MainControlNode(Node):
             if self.arduino.read() == 3:
                 break
         
-        auto_driving.value = True # Start driving forward slowly
+        self.drive(dig_driving_power, 0.0) # Start driving forward slowly
         time.sleep(20) # TODO: Tune this timing (how long do we want to drive for?)
-        auto_driving.value = False # Stop the drivetrain
+        self.drive(0.0, 0.0) # Stop the drivetrain
         
         self.arduino.write(0) # Tell the Arduino to retract the linear actuator
         while True: # Wait for a confirmation message from the Arduino
@@ -121,7 +120,6 @@ class MainControlNode(Node):
         
         self.manager = multiprocessing.Manager()
         self.current_state = self.manager.Value('i', states['Teleop']) # Define our robot's initial state
-        self.auto_driving = self.manager.Value('i', False)
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
@@ -129,8 +127,6 @@ class MainControlNode(Node):
         self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
         # Drive Power Publisher
         self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 10)
-        drive_power_timer_period = 0.05  # how often to publish measured in seconds
-        self.drive_power_timer = self.create_timer(drive_power_timer_period, self.drive_power_timer_callback)
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
@@ -138,7 +134,7 @@ class MainControlNode(Node):
         self.gyro_subscription = self.create_subscription(Imu, 'imu/data', self.gyro_callback, 10)
         
         # Create our autonomous digging process
-        self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state, self.auto_driving])
+        self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state])
         # Create our gyro turn process
         self.gyro_turn_process = multiprocessing.Process(target=self.gyro_turn)
 
@@ -256,14 +252,6 @@ class MainControlNode(Node):
     def gyro_callback(self, msg):
         global current_heading
         current_heading = msg.orientation.z
-
-    # Decides what power (duty cycle) should be sent to the drive motors
-    def drive_power_timer_callback(self):
-        global counter
-
-        # Set power to the drivetrain during Auto_Dig
-        if self.current_state.value == states['Auto_Dig'] and self.auto_driving.value:
-            self.drive(dig_driving_power, 0.0) # Driving power while digging
 
 
 def main(args=None):
