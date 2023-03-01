@@ -15,7 +15,7 @@ from sensor_msgs.msg import Imu
 import multiprocessing # Allows us to run tasks in parallel using multiple CPU cores!
 import subprocess # This is for the webcam stream subprocesses
 import signal # Allows us to kill subprocesses
-import serial # Serial communication with the Arduino. Install with: "sudo pip3 install pyserial"
+import serial # Serial communication with the Arduino. Install with: <sudo pip3 install pyserial>
 import time # This is for time.sleep()
 import os # Allows us to kill subprocesses
 
@@ -48,10 +48,6 @@ min_gyro_turning_power = 0.1 # TODO: Tune this value!
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
 max_drive_power = 1.0
 max_turn_power = 1.0
-
-# These global values are updated by joystick input
-current_drive_power = 0.0
-current_turn_power = 0.0
     
 # Define a global counter for printing to the terminal less often
 counter = 0
@@ -109,6 +105,7 @@ class MainControlNode(Node):
         self.get_logger().info('Publishing: "%s"' % drive_power_msg.data) # Print to the terminal
             
 
+    # Initialize the ROS2 Node
     def __init__(self):
         super().__init__('publisher')
         
@@ -119,8 +116,8 @@ class MainControlNode(Node):
             print(e) # If an exception is raised, print it, and then move on
         
         self.manager = multiprocessing.Manager()
-        self.current_state = self.manager.Value("i", states['Teleop']) # Define our robot's initial state
-        self.auto_driving = self.manager.Value("i", False)
+        self.current_state = self.manager.Value('i', states['Teleop']) # Define our robot's initial state
+        self.auto_driving = self.manager.Value('i', False)
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
@@ -142,10 +139,8 @@ class MainControlNode(Node):
         self.gyro_turn_process = multiprocessing.Process(target=self.gyro_turn)
 
 
-    # Publish the current robot state
+    # Publish a message detailing what the actuators should be doing
     def actuators_timer_callback(self):
-        msg = String()
-
         # Python is silly and you have to declare global variables like this before using them
         global dig_button_toggled
         global digger_extend_button_toggled
@@ -153,10 +148,25 @@ class MainControlNode(Node):
         global counter
 
         if self.current_state.value == states['Emergency_Stop']:
+            msg = String()
             msg.data = 'STOP_ALL_ACTUATORS'
+            
+            self.actuators_publisher.publish(msg)
+            if counter >= 20:
+                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+                counter = 0 # Reset the counter
+            counter += 1 # Increment the counter
         elif self.current_state.value == states['Auto_Dig']:
+            msg = String()
             msg.data = 'DIGGER_ON'
+            
+            self.actuators_publisher.publish(msg)
+            if counter >= 20:
+                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+                counter = 0 # Reset the counter
+            counter += 1 # Increment the counter
         elif self.current_state.value == states['Teleop']:
+            msg = String()
             if dig_button_toggled:
                 msg.data += ' DIGGER_ON'
             elif not dig_button_toggled:
@@ -165,25 +175,14 @@ class MainControlNode(Node):
                 msg.data += ' OFFLOADING_ON'
             elif not offload_button_toggled:
                 msg.data += ' OFFLOADING_OFF'
-        elif self.current_state.value == states['Autonomous']:
-            pass # TODO: Finish these Autonomous cases:
-            # if condition_for_digging:
-            #     msg.data += ' DIGGER_ON'
-            # if not condition_for_digging:
-            #     msg.data += ' DIGGER_OFF'
-            # if condition_for_offloading:
-            #     msg.data += ' OFFLOADING_ON'
-            # if not condition_for_offloading:
-            #     msg.data += ' OFFLOADING_OFF'
+                
+            self.actuators_publisher.publish(msg)
+            if counter >= 20:
+                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+                counter = 0 # Reset the counter
+            counter += 1 # Increment the counter
             
-        self.actuators_publisher.publish(msg)
-        
-        if counter >= 20:
-            self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-            counter = 0
-        counter += 1
-
-
+            
     # When a joystick input is recieved, this callback updates the global power variables accordingly
     def joystick_callback(self, msg):
         
@@ -197,9 +196,24 @@ class MainControlNode(Node):
         global camera0
         global camera1
 
-        # Update our current driving powers
-        current_drive_power = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
-        current_turn_power = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]) * max_turn_power # Turning power
+        # Drive the robot using joystick input during Teleop
+        if self.current_state.value == states['Teleop']:
+            # Create a new ROS2 msg
+            drive_power_msg = Twist()
+            # Default to 0 power for everything at first
+            drive_power_msg.angular.x = 0.0  
+            drive_power_msg.angular.y = 0.0
+            drive_power_msg.angular.z = 0.0
+            drive_power_msg.linear.x = 0.0
+            drive_power_msg.linear.y = 0.0
+            drive_power_msg.linear.z = 0.0
+            
+            drive_power_msg.linear.x = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
+            drive_power_msg.angular.z = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]) * max_turn_power # Turning power
+            
+            self.drive_power_publisher.publish(drive_power_msg)
+            if counter >= 20:
+                self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
         
         # Check if the digger button is pressed
         if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
@@ -219,11 +233,11 @@ class MainControlNode(Node):
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
-            if self.current_state.value == states["Teleop"]:
-                self.current_state.value = states["Auto_Dig"]
+            if self.current_state.value == states['Teleop']:
+                self.current_state.value = states['Auto_Dig']
                 self.autonomous_digging_process.start() # Start the auto dig process
-            elif self.current_state.value == states["Auto_Dig"]:
-                self.current_state.value = states["Teleop"]
+            elif self.current_state.value == states['Auto_Dig']:
+                self.current_state.value = states['Teleop']
                 self.autonomous_digging_process.terminate() # Terminate the auto dig process
                 dig_button_toggled = False # When we enter teleop mode, start with the digger off
                 offload_button_toggled = False # When we enter teleop mode, start with the offloader off
@@ -254,32 +268,25 @@ class MainControlNode(Node):
 
     # Decides what power (duty cycle) should be sent to the drive motors
     def drive_power_timer_callback(self):
-        
-        # Python is silly and you have to declare global variables like this before using them
-        global current_drive_power
-        global current_turn_power
         global counter
-        
-        # Create a new ROS2 msg
-        drive_power_msg = Twist()
-        # Default to 0 power for everything at first
-        drive_power_msg.angular.x = 0.0  
-        drive_power_msg.angular.y = 0.0
-        drive_power_msg.angular.z = 0.0
-        drive_power_msg.linear.x = 0.0
-        drive_power_msg.linear.y = 0.0
-        drive_power_msg.linear.z = 0.0
 
-        if self.current_state.value == states['Teleop']:
-            drive_power_msg.linear.x = current_drive_power # Forward power
-            drive_power_msg.angular.z = current_turn_power # Turning power
-        elif self.current_state.value == states['Auto_Dig'] and self.auto_driving.value:
+        # Set power to the drivetrain during Auto_Dig
+        if self.current_state.value == states['Auto_Dig'] and self.auto_driving.value:
+            # Create a new ROS2 msg
+            drive_power_msg = Twist()
+            # Default to 0 power for everything at first
+            drive_power_msg.angular.x = 0.0  
+            drive_power_msg.angular.y = 0.0
+            drive_power_msg.angular.z = 0.0
+            drive_power_msg.linear.x = 0.0
+            drive_power_msg.linear.y = 0.0
+            drive_power_msg.linear.z = 0.0
+            
             drive_power_msg.linear.x = dig_driving_power # Driving power while digging
-
-        self.drive_power_publisher.publish(drive_power_msg)
-        
-        if counter >= 20:
-            self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+            
+            self.drive_power_publisher.publish(drive_power_msg)
+            if counter >= 20:
+                self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
 
 
 def main(args=None):

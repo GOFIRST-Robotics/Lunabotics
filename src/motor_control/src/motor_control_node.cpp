@@ -137,10 +137,6 @@ private:
     RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
     // Parse the msg for our toggleable motor actions
-    if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {
-      digging = false;
-      offloading = false;
-    }
     if(msg->data.find("DIGGER_ON") != std::string::npos) {
       digging = true;
     }
@@ -151,6 +147,10 @@ private:
       digging = false;
     }
     if(msg->data.find("OFFLOADER_OFF") != std::string::npos) {
+      offloading = false;
+    }
+    if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {
+      digging = false;
       offloading = false;
     }
   }
