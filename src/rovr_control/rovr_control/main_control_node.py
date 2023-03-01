@@ -260,8 +260,8 @@ class MainControlNode(Node):
         global current_turn_power
         global counter
         
-        drive_power_msg = Twist() # Create a new ROS2 msg
-
+        # Create a new ROS2 msg
+        drive_power_msg = Twist()
         # Default to 0 power for everything at first
         drive_power_msg.angular.x = 0.0  
         drive_power_msg.angular.y = 0.0
@@ -284,11 +284,9 @@ class MainControlNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-
     print('Hello from the rovr_control package!')
 
     node = MainControlNode()
-
     rclpy.spin(node)
 
     node.destroy_node()
