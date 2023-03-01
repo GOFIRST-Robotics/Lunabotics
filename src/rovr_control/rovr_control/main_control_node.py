@@ -54,6 +54,25 @@ counter = 0
     
 class MainControlNode(Node):
     
+    # Publish a ROS2 message with the desired drive power and turning power
+    def drive(self, drivePower, turnPower):
+        # Create a new ROS2 msg
+        drive_power_msg = Twist()
+        # Default to 0 power for everything at first
+        drive_power_msg.angular.x = 0.0  
+        drive_power_msg.angular.y = 0.0
+        drive_power_msg.angular.z = 0.0
+        drive_power_msg.linear.x = 0.0
+        drive_power_msg.linear.y = 0.0
+        drive_power_msg.linear.z = 0.0
+        
+        drive_power_msg.linear.x = drivePower # Forward power
+        drive_power_msg.angular.z = turnPower # Turning power
+        
+        self.drive_power_publisher.publish(drive_power_msg)
+        if counter >= 20:
+            self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+    
     # This method lays out the procedure for autonomously digging!
     def auto_dig_procedure(self, state, auto_driving):
         self.get_logger().info('Starting Autonomous Digging Procedure!') # Print to the terminal
@@ -81,28 +100,13 @@ class MainControlNode(Node):
     def gyro_turn(self, angle, relative):
         goal = angle if not relative else current_heading + angle
         
-        # Create a new ROS2 msg
-        drive_power_msg = Twist()
-        # Default to 0 power for everything at first
-        drive_power_msg.angular.x = 0.0  
-        drive_power_msg.angular.y = 0.0
-        drive_power_msg.angular.z = 0.0
-        drive_power_msg.linear.x = 0.0
-        drive_power_msg.linear.y = 0.0
-        drive_power_msg.linear.z = 0.0
-        
         while abs(current_heading - goal) <= gyro_turn_threshold:
             error = angle - goal
-            turningPower = error * gyro_turn_kP
-            drive_power_msg.angular.z = max(turningPower, min_gyro_turning_power) # Set the turning power
+            turningPower = error * gyro_turn_kP # Calculate the turning power
+            self.drive(0.0, max(turningPower, min_gyro_turning_power))
             
-            self.actuators_publisher.publish(drive_power_msg) # Publish the ROS2 msg
-            self.get_logger().info('Publishing: "%s"' % drive_power_msg.data) # Print to the terminal
-            
-        # Stop turning when we've reached our goal
-        drive_power_msg.angular.z = 0.0
-        self.actuators_publisher.publish(drive_power_msg) # Publish the ROS2 msg
-        self.get_logger().info('Publishing: "%s"' % drive_power_msg.data) # Print to the terminal
+        # Stop the robot when we've reached our goal
+        self.drive(0.0, 0.0)
             
 
     # Initialize the ROS2 Node
@@ -198,22 +202,9 @@ class MainControlNode(Node):
 
         # Drive the robot using joystick input during Teleop
         if self.current_state.value == states['Teleop']:
-            # Create a new ROS2 msg
-            drive_power_msg = Twist()
-            # Default to 0 power for everything at first
-            drive_power_msg.angular.x = 0.0  
-            drive_power_msg.angular.y = 0.0
-            drive_power_msg.angular.z = 0.0
-            drive_power_msg.linear.x = 0.0
-            drive_power_msg.linear.y = 0.0
-            drive_power_msg.linear.z = 0.0
-            
-            drive_power_msg.linear.x = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
-            drive_power_msg.angular.z = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]) * max_turn_power # Turning power
-            
-            self.drive_power_publisher.publish(drive_power_msg)
-            if counter >= 20:
-                self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+            drivePower = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
+            turnPower = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]) * max_turn_power # Turning power
+            self.drive(drivePower, turnPower)
         
         # Check if the digger button is pressed
         if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
@@ -272,21 +263,7 @@ class MainControlNode(Node):
 
         # Set power to the drivetrain during Auto_Dig
         if self.current_state.value == states['Auto_Dig'] and self.auto_driving.value:
-            # Create a new ROS2 msg
-            drive_power_msg = Twist()
-            # Default to 0 power for everything at first
-            drive_power_msg.angular.x = 0.0  
-            drive_power_msg.angular.y = 0.0
-            drive_power_msg.angular.z = 0.0
-            drive_power_msg.linear.x = 0.0
-            drive_power_msg.linear.y = 0.0
-            drive_power_msg.linear.z = 0.0
-            
-            drive_power_msg.linear.x = dig_driving_power # Driving power while digging
-            
-            self.drive_power_publisher.publish(drive_power_msg)
-            if counter >= 20:
-                self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+            self.drive(dig_driving_power, 0.0) # Driving power while digging
 
 
 def main(args=None):
