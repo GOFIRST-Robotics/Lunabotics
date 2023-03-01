@@ -9,9 +9,8 @@ from rclpy.node import Node
 # Import ROS 2 formatted message types
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Imu
 
 import multiprocessing # Allows us to run tasks in parallel using multiple CPU cores!
 import subprocess # This is for the webcam stream subprocesses
@@ -30,11 +29,20 @@ offload_button_toggled = False
 digger_extend_button_toggled = False
 camera_view_toggled = False
 
+# By default both camera streams will not exist yet
 camera0 = None
 camera1 = None
 
+# Global variable for storing our current gyroscope heading
+current_heading = 0
+
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
+
+# Gyro Turn Constants
+gyro_turn_threshold = 1 # Measured in degrees # TODO: Tune this value!
+gyro_turn_kP = 0.05 # TODO: Tune this value!
+min_gyro_turning_power = 0.1 # TODO: Tune this value!
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -61,7 +69,7 @@ class MainControlNode(Node):
                 break
         
         auto_driving.value = True # Start driving forward slowly
-        time.sleep(15) # TODO: Tune this timing (how long do we want to drive for?)
+        time.sleep(20) # TODO: Tune this timing (how long do we want to drive for?)
         auto_driving.value = False # Stop the drivetrain
         
         self.arduino.write(0) # Tell the Arduino to retract the linear actuator
@@ -72,6 +80,34 @@ class MainControlNode(Node):
         self.get_logger().info('Autonomous Digging Procedure Complete!') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
         
+    
+    # This method is for turning a specific number of degrees with the navX gyroscope
+    def gyro_turn(self, angle, relative):
+        goal = angle if not relative else current_heading + angle
+        
+        # Create a new ROS2 msg
+        drive_power_msg = Twist()
+        # Default to 0 power for everything at first
+        drive_power_msg.angular.x = 0.0  
+        drive_power_msg.angular.y = 0.0
+        drive_power_msg.angular.z = 0.0
+        drive_power_msg.linear.x = 0.0
+        drive_power_msg.linear.y = 0.0
+        drive_power_msg.linear.z = 0.0
+        
+        while abs(current_heading - goal) <= gyro_turn_threshold:
+            error = angle - goal
+            turningPower = error * gyro_turn_kP
+            drive_power_msg.angular.z = max(turningPower, min_gyro_turning_power) # Set the turning power
+            
+            self.actuators_publisher.publish(drive_power_msg) # Publish the ROS2 msg
+            self.get_logger().info('Publishing: "%s"' % drive_power_msg.data) # Print to the terminal
+            
+        # Stop turning when we've reached our goal
+        drive_power_msg.angular.z = 0.0
+        self.actuators_publisher.publish(drive_power_msg) # Publish the ROS2 msg
+        self.get_logger().info('Publishing: "%s"' % drive_power_msg.data) # Print to the terminal
+            
 
     def __init__(self):
         super().__init__('publisher')
@@ -90,7 +126,6 @@ class MainControlNode(Node):
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
         actuators_timer_period = 0.05  # how often to publish measured in seconds
         self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
-        
         # Drive Power Publisher
         self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 10)
         drive_power_timer_period = 0.05  # how often to publish measured in seconds
@@ -98,9 +133,13 @@ class MainControlNode(Node):
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
+        # NavX Gyroscope Subscriber
+        self.gyro_subscription = self.create_subscription(Imu, 'imu/data', self.gyro_callback, 10)
         
-        # Create our autonomous digging thread
+        # Create our autonomous digging process
         self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state, self.auto_driving])
+        # Create our gyro turn process
+        self.gyro_turn_process = multiprocessing.Process(target=self.gyro_turn)
 
 
     # Publish the current robot state
@@ -137,7 +176,6 @@ class MainControlNode(Node):
             # if not condition_for_offloading:
             #     msg.data += ' OFFLOADING_OFF'
             
-
         self.actuators_publisher.publish(msg)
         
         if counter >= 20:
@@ -208,6 +246,11 @@ class MainControlNode(Node):
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
 
+
+    # When navX gyroscope data is recieved, this callback updates the global variables accordingly
+    def gyro_callback(self, msg):
+        global current_heading
+        current_heading = msg.orientation.z
 
     # Decides what power (duty cycle) should be sent to the drive motors
     def drive_power_timer_callback(self):
