@@ -69,8 +69,8 @@ class MotorControlNode : public rclcpp::Node
 
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(uint32_t id, float percentPower) { 
-    percentPower = std::max(percentPower, -1.0); // Do not allow setting less than -100% power
-    percentPower = std::min(percentPower, 1.0); // Do not allow setting more than 100% power
+    percentPower = std::max(percentPower, (float)(-1)); // Do not allow setting less than -100% power
+    percentPower = std::min(percentPower, (float)(1)); // Do not allow setting more than 100% power
 
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
