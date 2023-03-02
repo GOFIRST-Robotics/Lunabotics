@@ -1,8 +1,10 @@
-// Define the physical pin numbers
+#include <ezButton.h>
+
 const int extend_pin = 10; // motor driver pin
 const int retract_pin = 9; // motor driver pin
-const int limit_switch_extend = 8; // limit switch pin
-const int limit_switch_retract = 7; // limit switch pin
+
+ezButton limit_switch_extend(8); // limit switch pin
+ezButton limit_switch_retract(7); // limit switch pin
 
 // put setup code here to run once:
 void setup() {
@@ -10,8 +12,6 @@ void setup() {
 
   pinMode(extend_pin, OUTPUT);
   pinMode(retract_pin, OUTPUT);
-  pinMode(limit_switch_extend, INPUT);
-  pinMode(limit_switch_retract, INPUT);
   pinMode(LED_BUILTIN, OUTPUT); // The built-in LED
 
   stop_actuator(); // stop the linear actuator
@@ -20,11 +20,20 @@ void setup() {
 
 // put main code here to run repeatedly:
 void loop() {
+  limit_switch_extend.loop();
+  limit_switch_retract.loop();
+
   if (Serial.available()) { // check if data is available to be read
     char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-
     if (data_received == 1) extend(); // extend the linear actuator
     if (data_received == 0) retract(); // retract the linear actuator
+  }
+
+  if(limit_switch_extend.isPressed()) {
+    Serial.println("Extend Limit Switch Pressed!");
+  }
+  if(limit_switch_retract.isPressed()) {
+    Serial.println("Retract Limit Switch Pressed!");
   }
 }
 
@@ -32,9 +41,15 @@ void loop() {
 void extend() {
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 
-  while (digitalRead(limit_switch_extend) == LOW) { // loop until the limit switch is pressed
+  while (limit_switch_extend.isReleased()) { // loop until the limit switch is pressed
     digitalWrite(extend_pin, HIGH);
     digitalWrite(retract_pin, LOW);
+
+    if (Serial.available()) { // check if data is available to be read
+      char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
+      if (data_received == 1) extend(); // extend the linear actuator
+      if (data_received == 0) retract(); // retract the linear actuator
+    }
   }
 
   stop_actuator(); // stop the linear actuator
@@ -46,9 +61,15 @@ void extend() {
 void retract() {
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
   
-  while (digitalRead(limit_switch_retract) == LOW) { // loop until the limit switch is pressed
+  while (limit_switch_retract.isReleased()) { // loop until the limit switch is pressed
     digitalWrite(extend_pin, LOW);
     digitalWrite(retract_pin, HIGH);
+
+    if (Serial.available()) { // check if data is available to be read
+      char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
+      if (data_received == 1) extend(); // extend the linear actuator
+      if (data_received == 0) retract(); // retract the linear actuator
+    }
   }
 
   stop_actuator(); // stop the linear actuator
