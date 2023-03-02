@@ -77,18 +77,18 @@ class MainControlNode(Node):
         self.get_logger().info('Starting Autonomous Digging Procedure!') # Print to the terminal
         time.sleep(5) # TODO: Tune this timing (wait for the digger to get up to speed)
         
-        self.arduino.write(1) # Tell the Arduino to extend the linear actuator
+        self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
         while True: # Wait for a confirmation message from the Arduino
-            if self.arduino.read() == 3:
+            if self.arduino.read() == 'f'.encode('utf_8'):
                 break
         
         self.drive(dig_driving_power, 0.0) # Start driving forward slowly
         time.sleep(20) # TODO: Tune this timing (how long do we want to drive for?)
         self.drive(0.0, 0.0) # Stop the drivetrain
         
-        self.arduino.write(0) # Tell the Arduino to retract the linear actuator
+        self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
         while True: # Wait for a confirmation message from the Arduino
-            if self.arduino.read() == 4:
+            if self.arduino.read() == 's'.encode('utf_8'):
                 break
         
         self.get_logger().info('Autonomous Digging Procedure Complete!') # Print to the terminal
@@ -172,9 +172,9 @@ class MainControlNode(Node):
             elif not dig_button_toggled:
                 msg.data += ' DIGGER_OFF'
             if offload_button_toggled:
-                msg.data += ' OFFLOADING_ON'
+                msg.data += ' OFFLOADER_ON'
             elif not offload_button_toggled:
-                msg.data += ' OFFLOADING_OFF'
+                msg.data += ' OFFLOADER_OFF'
                 
             self.actuators_publisher.publish(msg)
             if counter >= 20:
@@ -214,9 +214,9 @@ class MainControlNode(Node):
         if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
             digger_extend_button_toggled = not digger_extend_button_toggled
             if digger_extend_button_toggled:
-                self.arduino.write(1) # Tell the Arduino to extend the linear actuator
+                self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
             else:
-                self.arduino.write(0) # Tell the Arduino to retract the linear actuator
+                self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
