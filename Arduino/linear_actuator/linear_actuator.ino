@@ -22,8 +22,8 @@ void setup() {
 void loop() {
   if (Serial.available()) { // check if data is available to be read
     char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-    if (data_received == 1) extend(); // extend the linear actuator
-    if (data_received == 0) retract(); // retract the linear actuator
+    if (data_received == 'e') extend(); // extend the linear actuator
+    if (data_received == 'r') retract(); // retract the linear actuator
   }
 }
 
@@ -42,13 +42,13 @@ void extend() {
 
     if (Serial.available()) { // check if data is available to be read
       char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-      if (data_received == 1) extend(); // extend the linear actuator
-      if (data_received == 0) retract(); // retract the linear actuator
+      if (data_received == 'e') extend(); // extend the linear actuator
+      if (data_received == 'r') retract(); // retract the linear actuator
     }
   }
 
   stop_actuator(); // stop the linear actuator
-  Serial.write(3); // send a confirmation message back to the Jetson
+  Serial.write('f'); // send a confirmation message back to the Jetson
   digitalWrite(LED_BUILTIN, LOW); // Turn off the built-in LED
 }
 
@@ -67,13 +67,13 @@ void retract() {
 
     if (Serial.available()) { // check if data is available to be read
       char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-      if (data_received == 1) extend(); // extend the linear actuator
-      if (data_received == 0) retract(); // retract the linear actuator
+      if (data_received == 'e') extend(); // extend the linear actuator
+      if (data_received == 'r') retract(); // retract the linear actuator
     }
   }
 
   stop_actuator(); // stop the linear actuator
-  Serial.write(4); // send a confirmation message back to the Jetson
+  Serial.write('s'); // send a confirmation message back to the Jetson
   digitalWrite(LED_BUILTIN, LOW); // Turn off the built-in LED
 }
 
