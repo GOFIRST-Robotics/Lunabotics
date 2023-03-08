@@ -32,6 +32,8 @@ camera_view_toggled = False
 # By default both camera streams will not exist yet
 camera0 = None
 camera1 = None
+# By default these processes will also not exist yet
+autonomous_digging_process = None
 
 # Global variable for storing our current gyroscope heading
 current_heading = 0
@@ -133,8 +135,6 @@ class MainControlNode(Node):
         # NavX Gyroscope Subscriber
         self.gyro_subscription = self.create_subscription(Imu, 'imu/data', self.gyro_callback, 10)
         
-        # Create our autonomous digging process
-        self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state])
         # Create our gyro turn process
         self.gyro_turn_process = multiprocessing.Process(target=self.gyro_turn)
 
@@ -195,6 +195,7 @@ class MainControlNode(Node):
         global offload_button_toggled
         global camera0
         global camera1
+        global autonomous_digging_process
 
         # Drive the robot using joystick input during Teleop
         if self.current_state.value == states['Teleop']:
@@ -222,10 +223,11 @@ class MainControlNode(Node):
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
             if self.current_state.value == states['Teleop']:
                 self.current_state.value = states['Auto_Dig']
-                self.autonomous_digging_process.start() # Start the auto dig process
+                autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state])
+                autonomous_digging_process.start() # Start the auto dig process
             elif self.current_state.value == states['Auto_Dig']:
                 self.current_state.value = states['Teleop']
-                self.autonomous_digging_process.terminate() # Terminate the auto dig process
+                autonomous_digging_process.kill() # Kill the auto dig process
                 dig_button_toggled = False # When we enter teleop mode, start with the digger off
                 offload_button_toggled = False # When we enter teleop mode, start with the offloader off
                 
@@ -234,12 +236,12 @@ class MainControlNode(Node):
             camera_view_toggled = not camera_view_toggled
             if camera_view_toggled: # Start streaming /dev/video0 on port 5000
                 if camera1 is not None:
-                    os.killpg(os.getpgid(camera1.pid), signal.SIGTERM)
+                    os.killpg(os.getpgid(camera1.pid), signal.SIGTERM) # Kill the camera1 process
                     camera1 = None
                 camera0 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
             else: # Start streaming /dev/video1 on port 5000
                 if camera0 is not None:
-                    os.killpg(os.getpgid(camera0.pid), signal.SIGTERM)
+                    os.killpg(os.getpgid(camera0.pid), signal.SIGTERM) # Kill the camera0 process
                     camera0 = None
                 camera1 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
 
