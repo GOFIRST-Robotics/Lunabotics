@@ -54,7 +54,6 @@ typedef struct {
 AHRS* imu; // Instantiate an AHRS (gyroscope) object
 int seq = 0; // Initialize a counter variable
 std::vector<OrientationEntry> orientationHistory;
-static const float DEG_TO_RAD = M_PI / 180.0F; // Conversion Constant
 static const float GRAVITY = 9.81F; // measured in m/s^2. If we actually go to the moon, remember to change this ;)
 
 /**
@@ -122,12 +121,12 @@ private:
   {
     // Calculate orientation
     OrientationEntry curOrientation;
-    curOrientation.ypr[0] = imu->GetRoll() * DEG_TO_RAD;
-    curOrientation.ypr[1] = imu->GetPitch() * DEG_TO_RAD;
-    curOrientation.ypr[2] = imu->GetYaw() * DEG_TO_RAD;
-    curOrientation.ang_vel[0] = imu->GetRollRate() * DEG_TO_RAD;
-    curOrientation.ang_vel[1] = imu->GetPitchRate() * DEG_TO_RAD;
-    curOrientation.ang_vel[2] = imu->GetYawRate() * DEG_TO_RAD;
+    curOrientation.ypr[0] = imu->GetRoll();
+    curOrientation.ypr[1] = imu->GetPitch();
+    curOrientation.ypr[2] = imu->GetYaw();
+    curOrientation.ang_vel[0] = imu->GetRollRate();
+    curOrientation.ang_vel[1] = imu->GetPitchRate();
+    curOrientation.ang_vel[2] = imu->GetYawRate();
     curOrientation.accel[0] = imu->GetWorldLinearAccelX() * GRAVITY;
     curOrientation.accel[1] = imu->GetWorldLinearAccelY() * GRAVITY;
     curOrientation.accel[2] = imu->GetWorldLinearAccelZ() * GRAVITY;
