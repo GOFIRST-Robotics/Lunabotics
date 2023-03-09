@@ -17,6 +17,7 @@ import subprocess # This is for the webcam stream subprocesses
 import signal # Allows us to kill subprocesses
 import serial # Serial communication with the Arduino. Install with: <sudo pip3 install pyserial>
 import time # This is for time.sleep()
+import math # Gives us access to copysign()
 import os # Allows us to kill subprocesses
 
 # Import our gamepad button mappings
@@ -34,6 +35,7 @@ camera0 = None
 camera1 = None
 # By default these processes will also not exist yet
 autonomous_digging_process = None
+gyro_turn_process = None
 
 # Global variable for storing our current gyroscope heading
 current_heading = 0
@@ -42,9 +44,8 @@ current_heading = 0
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
 
 # Gyro Turn Constants
-gyro_turn_threshold = 1 # Measured in degrees # TODO: Tune this value!
-gyro_turn_kP = 0.05 # TODO: Tune this value!
-min_gyro_turning_power = 0.1 # TODO: Tune this value!
+gyro_turn_threshold = 1 # Measured in degrees # TODO: Adjust this value if needed
+gyro_turn_power = 0.4 # TODO: Adjust this value if needed
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -76,7 +77,7 @@ class MainControlNode(Node):
     
     # This method lays out the procedure for autonomously digging!
     def auto_dig_procedure(self, state):
-        self.get_logger().info('Starting Autonomous Digging Procedure!') # Print to the terminal
+        print('\nStarting Autonomous Digging Procedure!') # Print to the terminal
         time.sleep(5) # TODO: Tune this timing (wait for the digger to get up to speed)
         
         self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
@@ -93,18 +94,17 @@ class MainControlNode(Node):
             if self.arduino.read() == 's'.encode('utf_8'):
                 break
         
-        self.get_logger().info('Autonomous Digging Procedure Complete!') # Print to the terminal
+        print('Autonomous Digging Procedure Complete!\n') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
         
     
-    # This method is for turning a specific number of degrees with the navX gyroscope
+    # This method is for turning a specific number of degrees with the navX2 gyroscope
     def gyro_turn(self, angle, relative):
         goal = angle if not relative else current_heading + angle
         
-        while abs(current_heading - goal) <= gyro_turn_threshold:
-            error = angle - goal
-            turningPower = error * gyro_turn_kP # Calculate the turning power
-            self.drive(0.0, max(turningPower, min_gyro_turning_power))
+        while abs(current_heading - goal) > gyro_turn_threshold:
+            error = current_heading - goal
+            self.drive(0.0, math.copysign(gyro_turn_power, error)) # Turn towards our goal
             
         # Stop the robot when we've reached our goal
         self.drive(0.0, 0.0)
@@ -134,9 +134,6 @@ class MainControlNode(Node):
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
         # NavX Gyroscope Subscriber
         self.gyro_subscription = self.create_subscription(Imu, 'imu/data', self.gyro_callback, 10)
-        
-        # Create our gyro turn process
-        self.gyro_turn_process = multiprocessing.Process(target=self.gyro_turn)
 
 
     # Publish a message detailing what the actuators should be doing
@@ -193,10 +190,11 @@ class MainControlNode(Node):
         global camera_view_toggled
         global digger_extend_button_toggled
         global offload_button_toggled
+        global autonomous_digging_process
+        global gyro_turn_process
         global camera0
         global camera1
-        global autonomous_digging_process
-
+        
         # Drive the robot using joystick input during Teleop
         if self.current_state.value == states['Teleop']:
             drivePower = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
@@ -228,6 +226,7 @@ class MainControlNode(Node):
             elif self.current_state.value == states['Auto_Dig']:
                 self.current_state.value = states['Teleop']
                 autonomous_digging_process.kill() # Kill the auto dig process
+                print('Autonomous Digging Procedure Terminated\n')
                 dig_button_toggled = False # When we enter teleop mode, start with the digger off
                 offload_button_toggled = False # When we enter teleop mode, start with the offloader off
                 
@@ -244,6 +243,17 @@ class MainControlNode(Node):
                     os.killpg(os.getpgid(camera0.pid), signal.SIGTERM) # Kill the camera0 process
                     camera0 = None
                 camera1 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
+
+        # Turn 90 degrees when this button is pressed
+        if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
+            if gyro_turn_process is None:
+                gyro_turn_process = multiprocessing.Process(target=self.gyro_turn, args=[90, True])
+                print('\nBegin Gyro Turn')
+                gyro_turn_process.start() # Start the gyro turn process
+            else:
+                gyro_turn_process.kill() # Kill the gyro turn process
+                gyro_turn_process = None
+                print('Gyro Turn Terminated\n')
 
         # Update new button states
         for index in range(len(buttons)):
