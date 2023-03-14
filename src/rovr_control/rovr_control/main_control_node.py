@@ -201,21 +201,21 @@ class MainControlNode(Node):
             turnPower = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]) * max_turn_power # Turning power
             self.drive(drivePower, turnPower)
         
-        # Check if the digger button is pressed
-        if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-            dig_button_toggled = not dig_button_toggled
-            
-        # Check if the offloader button is pressed
-        if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
-            offload_button_toggled = not offload_button_toggled
-            
-        # Check if the digger_extend button is pressed
-        if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
-            digger_extend_button_toggled = not digger_extend_button_toggled
-            if digger_extend_button_toggled:
-                self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
-            else:
-                self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
+            # Check if the digger button is pressed
+            if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
+                dig_button_toggled = not dig_button_toggled
+                
+            # Check if the offloader button is pressed
+            if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
+                offload_button_toggled = not offload_button_toggled
+                
+            # Check if the digger_extend button is pressed
+            if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+                digger_extend_button_toggled = not digger_extend_button_toggled
+                if digger_extend_button_toggled:
+                    self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
+                else:
+                    self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
