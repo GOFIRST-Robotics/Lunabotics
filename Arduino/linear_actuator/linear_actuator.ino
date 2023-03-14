@@ -30,6 +30,8 @@ void loop() {
 // extend the linear actuator, using a limit switch for feedback
 void extend() {
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
+  digitalWrite(extend_pin, HIGH);
+  digitalWrite(retract_pin, LOW);
 
   while (true) { // loop until the limit switch is pressed
     limit_switch_extend.loop();
@@ -37,13 +39,16 @@ void extend() {
       break;
     }
 
-    digitalWrite(extend_pin, HIGH);
-    digitalWrite(retract_pin, LOW);
-
     if (Serial.available()) { // check if data is available to be read
       char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-      if (data_received == 'e') extend(); // extend the linear actuator
-      if (data_received == 'r') retract(); // retract the linear actuator
+      if (data_received == 'e') {
+        extend(); // extend the linear actuator
+        break;
+      }
+      if (data_received == 'r') {
+        retract(); // retract the linear actuator
+        break;
+      }
     }
   }
 
@@ -55,6 +60,8 @@ void extend() {
 // retract the linear actuator, using a limit switch for feedback
 void retract() {
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
+  digitalWrite(extend_pin, LOW);
+  digitalWrite(retract_pin, HIGH);
   
   while (true) { // loop until the limit switch is pressed
     limit_switch_retract.loop();
@@ -62,13 +69,16 @@ void retract() {
       break;
     }
 
-    digitalWrite(extend_pin, LOW);
-    digitalWrite(retract_pin, HIGH);
-
     if (Serial.available()) { // check if data is available to be read
       char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-      if (data_received == 'e') extend(); // extend the linear actuator
-      if (data_received == 'r') retract(); // retract the linear actuator
+      if (data_received == 'e') {
+        extend(); // extend the linear actuator
+        break;
+      }
+      if (data_received == 'r') {
+        retract(); // retract the linear actuator
+        break;
+      }
     }
   }
 
