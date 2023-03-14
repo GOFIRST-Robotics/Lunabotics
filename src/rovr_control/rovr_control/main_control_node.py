@@ -225,7 +225,7 @@ class MainControlNode(Node):
                 autonomous_digging_process.start() # Start the auto dig process
             elif self.current_state.value == states['Auto_Dig']:
                 self.current_state.value = states['Teleop']
-                autonomous_digging_process.kill() # Kill the auto dig process
+                autonomous_digging_process.terminate() # Kill the auto dig process
                 print('Autonomous Digging Procedure Terminated\n')
                 dig_button_toggled = False # When we enter teleop mode, start with the digger off
                 offload_button_toggled = False # When we enter teleop mode, start with the offloader off
@@ -251,7 +251,7 @@ class MainControlNode(Node):
                 print('\nBegin Gyro Turn')
                 gyro_turn_process.start() # Start the gyro turn process
             else:
-                gyro_turn_process.kill() # Kill the gyro turn process
+                gyro_turn_process.terminate() # Kill the gyro turn process
                 gyro_turn_process = None
                 print('Gyro Turn Terminated\n')
 
