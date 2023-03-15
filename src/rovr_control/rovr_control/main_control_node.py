@@ -158,12 +158,10 @@ class MainControlNode(Node):
             counter += 1 # Increment the counter
             
             
-    # When a joystick input is recieved, this callback updates the global power variables accordingly
+    # When a joystick input is recieved, this callback method processes the input accordingly
     def joystick_callback(self, msg):
         
         # Python is silly and you have to declare global variables like this before using them
-        global current_drive_power
-        global current_turn_power
         global dig_button_toggled
         global camera_view_toggled
         global digger_extend_button_toggled
@@ -172,8 +170,11 @@ class MainControlNode(Node):
         global camera0
         global camera1
         
-        # Drive the robot using joystick input during Teleop
+        # TELEOP CONTROLS BELOW #
+
         if self.current_state.value == states['Teleop']:
+
+            # Drive the robot using joystick input during Teleop
             drivePower = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]) * max_drive_power # Forward power
             turnPower = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]) * max_turn_power # Turning power
             self.drive(drivePower, turnPower)
@@ -193,6 +194,8 @@ class MainControlNode(Node):
                     self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
                 else:
                     self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
+
+        # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
@@ -221,7 +224,7 @@ class MainControlNode(Node):
                     camera0 = None
                 camera1 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
 
-        # Update new button states
+        # Update new button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
 
