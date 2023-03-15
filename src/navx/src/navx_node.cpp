@@ -43,6 +43,8 @@ std::string device_path = "/dev/ttyACM0"; // The Arduino is /dev/ttyACM1
 std::string frame_id = "imu_link";
 int covar_samples = 100;
 
+int counter = 0; // publish less often
+
 // Custom Data Structure for storing IMU data
 typedef struct {
   float ypr[3];
@@ -138,10 +140,9 @@ private:
     imu_msg.header.frame_id = frame_id;
     seq++;
     
-    imu_msg.orientation.x = imu->GetQuaternionX();
-    imu_msg.orientation.y = imu->GetQuaternionY();
-    imu_msg.orientation.z = imu->GetQuaternionZ();
-    imu_msg.orientation.w = imu->GetQuaternionW();
+    imu_msg.orientation.x = curOrientation.ypr[0];
+    imu_msg.orientation.y = curOrientation.ypr[1];
+    imu_msg.orientation.z = curOrientation.ypr[2];
     
     imu_msg.angular_velocity.x = curOrientation.ang_vel[0];
     imu_msg.angular_velocity.y = curOrientation.ang_vel[1];
@@ -156,7 +157,11 @@ private:
                             imu_msg.linear_acceleration_covariance)) {
       // Only publish a message if we have a valid covariance
       imu_pub->publish(imu_msg); // Publish the message
-      RCLCPP_INFO(this->get_logger(), "Publishing an imu_message"); // Print to the terminal
+      if (counter >= 20) {
+        RCLCPP_INFO(this->get_logger(), "Orientation: (%f, %f, %f)", imu_msg.orientation.x, imu_msg.orientation.y, imu_msg.orientation.z); // Print to the terminal
+        counter = 0;
+      }
+      counter++;
     }
 
     if (euler_enable) {
