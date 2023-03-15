@@ -97,7 +97,7 @@ class MainControlNode(Node):
         
         # Try connecting to the Arduino over Serial
         try:
-            self.arduino = serial.Serial('/dev/ttyACM1', 9600, timeout=10) # The navX gyroscope is /dev/ttyACM0
+            self.arduino = serial.Serial('/dev/ttyACM1', 9600) # The navX gyroscope is /dev/ttyACM0
         except Exception as e:
             print(e) # If an exception is raised, print it, and then move on
         
