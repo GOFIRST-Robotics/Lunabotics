@@ -70,6 +70,7 @@ class MainControlNode(Node):
     # This method lays out the procedure for autonomously digging!
     def auto_dig_procedure(self, state):
         print('\nStarting Autonomous Digging Procedure!') # Print to the terminal
+        self.arduino.read_all() # Read all messages from the serial buffer to clear them out
         time.sleep(5) # TODO: Tune this timing (wait for the digger to get up to speed)
         
         self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
