@@ -123,7 +123,7 @@ private:
     OrientationEntry curOrientation;
     curOrientation.ypr[0] = imu->GetRoll();
     curOrientation.ypr[1] = imu->GetPitch();
-    curOrientation.ypr[2] = imu->GetAngle(); // Continous reading (goes beyond 360 degrees) - Use GetYaw() instead if you don't want this
+    curOrientation.ypr[2] = imu->GetYaw();
     curOrientation.ang_vel[0] = imu->GetRollRate();
     curOrientation.ang_vel[1] = imu->GetPitchRate();
     curOrientation.ang_vel[2] = imu->GetYawRate();
