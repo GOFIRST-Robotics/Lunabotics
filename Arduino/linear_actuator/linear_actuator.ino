@@ -48,6 +48,7 @@ void loop() {
 // extend the linear actuator by running the motor forwards
 void extend() {
   extending = true;
+  retracting = false;
   digitalWrite(extend_pin, HIGH);
   digitalWrite(retract_pin, LOW);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
@@ -56,6 +57,7 @@ void extend() {
 // retract the linear actuator by running the motor in reverse
 void retract() {
   retracting = true;
+  extending = false;
   digitalWrite(extend_pin, LOW);
   digitalWrite(retract_pin, HIGH);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
