@@ -15,13 +15,27 @@ colcon build
 . install/setup.sh
 ```
 
-## ROS 2 Eloquent General Workspace Tips
+## ROS 2 General Workspace Tips
 
 Make sure to `source install/setup.bash`
 
 Install Dependencies is `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y`
 
 Clean workspace is `rm -r build install log`
+
+## Joystick Node
+
+Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml`
+
+## Gstreamer Commands
+
+Start Gstreamer H265 Encoding (On Nvidia Jetson): `gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000`
+
+Start Gstreamer H265 Decoding (On Nvidia Jetson): `gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! omxh265dec ! nvvidconv ! xvimagesink`
+
+Start Gstreamer H265 Decoding (On Ubuntu Laptop): `gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H265, payload=96 ! rtph265depay ! h265parse ! nvh265dec ! xvimagesink sync=false`
+
+(Change the /dev/video device and the port number to add more webcams)
 
 ## Useful Resources/References
 
@@ -32,13 +46,3 @@ Configuring the Nvidia Jetson TX2 for CAN Communication:
 2) https://forums.developer.nvidia.com/t/how-to-use-can-on-jetson-tx2/54125
 
 VESC CAN Status Frames Spreadsheet: https://github.com/codermonkey42/VESC_CAN
-
-Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml`
-
-Start Gstreamer H265 Encoding (On Nvidia Jetson): `gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000`
-
-Start Gstreamer H265 Decoding (On Nvidia Jetson): `gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! omxh265dec ! nvvidconv ! xvimagesink`
-
-Start Gstreamer H265 Decoding (On Ubuntu Laptop): `gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H265, payload=96 ! rtph265depay ! h265parse ! nvh265dec ! xvimagesink sync=false`
-
-(Change the /dev/video device and the port number to add more webcams)
