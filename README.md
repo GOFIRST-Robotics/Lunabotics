@@ -35,7 +35,7 @@ Start Gstreamer H265 Decoding (On Nvidia Jetson): `gst-launch-1.0 udpsrc port=50
 
 Start Gstreamer H265 Decoding (On Ubuntu Laptop): `gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H265, payload=96 ! rtph265depay ! h265parse ! nvh265dec ! xvimagesink sync=false`
 
-(Change the /dev/video device to add more webcams, and change the port number to stream multiple webcams at once)
+(Change the /dev/video device to add more webcams, and the port number to stream multiple webcams at once)
 
 ## Useful Resources/References
 
