@@ -27,6 +27,10 @@ Clean workspace is `rm -r build install log`
 
 Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml`
 
+## EKF Node
+
+Start the EKF node with ROS parameters: `ros2 run ekf ekf_node --ros-args --params-file config/ekf_node.yaml`
+
 ## Gstreamer Commands
 
 Start Gstreamer H265 Encoding (On Nvidia Jetson): `gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000`
