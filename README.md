@@ -29,7 +29,7 @@ Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args -
 
 ## EKF Node
 
-Start the EKF node with ROS parameters: `ros2 run ekf ekf_node --ros-args --params-file config/ekf_node.yaml`
+Start the EKF node with ROS parameters: `ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file config/ekf.yaml`
 
 ## Gstreamer Commands
 
