@@ -20,6 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'pointcloud_subscriber = point_processing.gen_grid_world:main',
+            'pointcloud_test_publisher = point_processing.test_publisher:main',
         ],
     },
 )

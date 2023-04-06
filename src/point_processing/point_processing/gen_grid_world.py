@@ -12,6 +12,8 @@ class PointcloudSubscriber(Node):
     def __init__(self):
         super().__init__('pointcloud_subscriber')
         #
+        self.get_logger().info('Node trying to start')#debug to see if starting correctly
+        #
         ## This is for visualization of the received point cloud.
         self.vis = o3d.visualization.Visualizer()
         self.vis.create_window()
@@ -24,6 +26,8 @@ class PointcloudSubscriber(Node):
             10
         )
         self.subscription #prevent unused variable warning
+        #
+        self.get_logger().info('Node started successfully')# isn't running
     
     def listener_callback(self, msg):
         self.get_logger().info('Message received')
@@ -137,13 +141,13 @@ def _get_struct_fmt(is_bigendian, fields, field_names=None):
 def main(args=None):
     # Boilerplate code.
     rclpy.init(args=args)
-    pcd_listener = PCDListener()
-    rclpy.spin(pcd_listener)
+    points_node = PointcloudSubscriber()
+    rclpy.spin(points_node)
     
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    pcd_listener.destroy_node()
+    points_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
