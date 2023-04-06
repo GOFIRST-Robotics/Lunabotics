@@ -33,7 +33,7 @@ class PointcloudSubscriber(Node):
         # The rest here is for visualization. (from https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_subscriber/pcd_subscriber_node.py)
         self.vis.remove_geometry(self.o3d_pcd)
         self.o3d_pcd = o3d.geometry.PointCloud(
-                            o3d.utility.Vector3dVector(pcd_as_numpy_array)
+                            o3d.utility.Vector3dVector(pcd_as_numpy_array))
         #
         self.vis.add_geometry(self.o3d_pcd)
         #
