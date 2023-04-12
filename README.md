@@ -31,9 +31,13 @@ Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args -
 
 Start the EKF node with ROS parameters: `ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file config/ekf.yaml`
 
-## Apriltag Detection Node
+## Intel RealSense Camera Setup
 
-Follow the documentation to set it up on your machine: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag
+Follow the instructions outlined here to set it up on your machine: https://github.com/IntelRealSense/realsense-ros#installation
+
+## Apriltag Detection Setup
+
+Follow this tutorial to set it up on your machine: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/docs/tutorial-usb-cam.md
 
 ## Gstreamer Commands
 
