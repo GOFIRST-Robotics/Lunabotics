@@ -67,6 +67,12 @@ class MainControlNode(Node):
         self.drive_power_publisher.publish(drive_power_msg)
         self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
     
+
+    # Stop the drivetrain
+    def stop(self):
+        self.drive(0.0, 0.0)
+
+
     # This method lays out the procedure for autonomously digging!
     def auto_dig_procedure(self, state):
         print('\nStarting Autonomous Digging Procedure!') # Print to the terminal
@@ -80,7 +86,7 @@ class MainControlNode(Node):
         
         self.drive(dig_driving_power, 0.0) # Start driving forward slowly
         time.sleep(20) # TODO: Tune this timing (how long do we want to drive for?)
-        self.drive(0.0, 0.0) # Stop the drivetrain
+        self.stop() # Stop the drivetrain
         
         self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
         while True: # Wait for a confirmation message from the Arduino
