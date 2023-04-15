@@ -35,9 +35,10 @@ camera0 = None
 camera1 = None
 # By default these processes will also not exist yet
 autonomous_digging_process = None
+autonomous_offload_process = None
 
 # Define the possible states of our robot
-states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3}
+states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3, 'Auto_Offload': 4}
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
@@ -77,7 +78,7 @@ class MainControlNode(Node):
     def auto_dig_procedure(self, state):
         print('\nStarting Autonomous Digging Procedure!') # Print to the terminal
         self.arduino.read_all() # Read all messages from the serial buffer to clear them out
-        time.sleep(5) # TODO: Tune this timing (wait for the digger to get up to speed)
+        time.sleep(5) # TODO: Change this to wait for the digger motor to reach a certain speed
         
         self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
         while True: # Wait for a confirmation message from the Arduino
@@ -94,6 +95,26 @@ class MainControlNode(Node):
                 break
         
         print('Autonomous Digging Procedure Complete!\n') # Print to the terminal
+        state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
+
+
+    # This method lays out the procedure for autonomously offloading!
+    def auto_offload_procedure(self, state):
+        print('\nStarting Autonomous Offload Procedure!') # Print to the terminal
+        
+        # TODO: If there is an apriltag continue, else search for one
+
+        # TODO: Once an Apriltag has been found, do the following:
+        # Turn so that the apriltag is close to the edge of the field of view
+        # Drive forward until it leaves field of view
+        # Turn back 
+        # Repeat until distance to Apriltag is small
+
+        # TODO: Start the offload motor
+        time.sleep(10) # TODO: Tune this timing
+        # TODO: Stop the offload motor
+        
+        print('Autonomous Offload Procedure Complete!\n') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
             
 
@@ -126,7 +147,12 @@ class MainControlNode(Node):
 
     # Process Apriltag Detections
     def apriltags_callback(self, msg):
-        pass # TODO: extract all the info from the tf message and store it in variables
+        apriltag_position_x = msg.____ #TODO something
+        apriltag_position_y = msg.____ #TODO something (dont need this?)
+        apriltag_position_z = msg.____ #TODO something
+        apriltag_orientation_x = msg.____ #TODO something
+        apriltag_orientation_y = msg.____ #TODO something (dont need this?)
+        apriltag_orientation_z = msg.____ #TODO something (dont need this?)
 
 
     # Publish a message detailing what the actuators should be doing
@@ -182,6 +208,7 @@ class MainControlNode(Node):
         global digger_extend_button_toggled
         global offload_button_toggled
         global autonomous_digging_process
+        global autonomous_offload_process
         global camera0
         global camera1
         
@@ -224,6 +251,20 @@ class MainControlNode(Node):
                 print('Autonomous Digging Procedure Terminated\n')
                 dig_button_toggled = False # When we enter teleop mode, start with the digger off
                 offload_button_toggled = False # When we enter teleop mode, start with the offloader off
+
+        # Check if the autonomous offload button is pressed
+        if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
+            if self.current_state.value == states['Teleop']:
+                self.current_state.value = states['Auto_Offload']
+                autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[self.current_state])
+                autonomous_offload_process.start() # Start the auto dig process
+            elif self.current_state.value == states['Auto_Offload']:
+                self.current_state.value = states['Teleop']
+                autonomous_offload_process.kill() # Kill the auto dig process
+                print('Autonomous Offload Procedure Terminated\n')
+                dig_button_toggled = False # When we enter teleop mode, start with the digger off
+                offload_button_toggled = False # When we enter teleop mode, start with the offloader off
+                
                 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
