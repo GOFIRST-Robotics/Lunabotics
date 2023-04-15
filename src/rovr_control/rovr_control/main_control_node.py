@@ -110,9 +110,19 @@ class MainControlNode(Node):
         # Turn back 
         # Repeat until distance to Apriltag is small
 
-        # TODO: Start the offload motor
+        # Start Offloading
+        msg = String()
+        msg.data = 'OFFLOADER_ON'
+        self.actuators_publisher.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+
         time.sleep(10) # TODO: Tune this timing
-        # TODO: Stop the offload motor
+
+        # Stop Offloading
+        msg = String()
+        msg.data = 'OFFLOADER_OFF'
+        self.actuators_publisher.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
         
         print('Autonomous Offload Procedure Complete!\n') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
