@@ -10,7 +10,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
-from sensor_msgs.msg import Imu
+from tf2_msgs.msg import TFMessage
 
 import multiprocessing # Allows us to run tasks in parallel using multiple CPU cores!
 import subprocess # This is for the webcam stream subprocesses
@@ -119,6 +119,14 @@ class MainControlNode(Node):
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
+
+        # Apriltags Subscriber
+        self.joy_subscription = self.create_subscription(TFMessage, 'tf', self.apriltags_callback, 10)
+
+
+    # Process Apriltag Detections
+    def apriltags_callback(self, msg):
+        pass # TODO: extract all the info from the tf message and store it in variables
 
 
     # Publish a message detailing what the actuators should be doing
