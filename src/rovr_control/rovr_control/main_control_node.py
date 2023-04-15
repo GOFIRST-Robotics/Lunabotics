@@ -1,6 +1,6 @@
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2022
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: February 2023
+# Last Updated: May 2023
 
 # Import ROS 2 modules
 import rclpy
@@ -12,12 +12,12 @@ from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
+# Import Python Modules
 import multiprocessing # Allows us to run tasks in parallel using multiple CPU cores!
 import subprocess # This is for the webcam stream subprocesses
 import signal # Allows us to kill subprocesses
 import serial # Serial communication with the Arduino. Install with: <sudo pip3 install pyserial>
 import time # This is for time.sleep()
-import math # Gives us access to copysign()
 import os # Allows us to kill subprocesses
 
 # Import our gamepad button mappings
@@ -25,6 +25,7 @@ from .gamepad_constants import *
 # This is to help with button press detection
 buttons = [0] * 12
 
+# Button States
 dig_button_toggled = False
 offload_button_toggled = False
 digger_extend_button_toggled = False
@@ -38,18 +39,15 @@ autonomous_digging_process = None
 autonomous_offload_process = None
 
 # Define the possible states of our robot
-states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Emergency_Stop': 3, 'Auto_Offload': 4}
+states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Auto_Offload': 3}
 
 # Define the maximum driving power of the robot (duty cycle)
 dig_driving_power = 0.5 # The power to drive at when autonomously digging
 max_drive_power = 1.0
 max_turn_power = 1.0
-    
-# Define a global counter for printing to the terminal less often
-counter = 0
-    
+
+
 class MainControlNode(Node):
-    
     # Publish a ROS2 message with the desired drive power and turning power
     def drive(self, drivePower, turnPower):
         # Create a new ROS2 msg
@@ -77,6 +75,8 @@ class MainControlNode(Node):
     # This method lays out the procedure for autonomously digging!
     def auto_dig_procedure(self, state):
         print('\nStarting Autonomous Digging Procedure!') # Print to the terminal
+        self.digger(True) # Start the digger
+
         self.arduino.read_all() # Read all messages from the serial buffer to clear them out
         time.sleep(5) # TODO: Change this to wait for the digger motor to reach a certain speed
         
@@ -88,6 +88,8 @@ class MainControlNode(Node):
         self.drive(dig_driving_power, 0.0) # Start driving forward slowly
         time.sleep(20) # TODO: Tune this timing (how long do we want to drive for?)
         self.stop() # Stop the drivetrain
+
+        self.digger(False) # Stop the digger
         
         self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
         while True: # Wait for a confirmation message from the Arduino
@@ -124,7 +126,7 @@ class MainControlNode(Node):
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
         
-        print('Autonomous Offload Procedure Complete!\n') # Print to the terminal
+        print('Autonomous Offload Procedure Complete!\offloadern') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
             
 
@@ -143,14 +145,11 @@ class MainControlNode(Node):
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
-        actuators_timer_period = 0.05  # how often to publish measured in seconds
-        self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
-        # Drive Power Publisher
+        # Drive Power Publisheroffloader
         self.drive_power_publisher = self.create_publisher(Twist, 'drive_power', 10)
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
-
         # Apriltags Subscriber
         self.joy_subscription = self.create_subscription(TFMessage, 'tf', self.apriltags_callback, 10)
 
@@ -165,49 +164,27 @@ class MainControlNode(Node):
         apriltag_orientation_z = msg.____ #TODO something (dont need this?)
 
 
-    # Publish a message detailing what the actuators should be doing
-    def actuators_timer_callback(self):
-        # Python is silly and you have to declare global variables like this before using them
-        global dig_button_toggled
-        global digger_extend_button_toggled
-        global offload_button_toggled
-        global counter
+    # True starts the offloader and False stops it
+    def offloader(self, on=True):
+        msg = String()
+        if on:
+            msg.data = 'OFFLOADER_ON'
+        else:
+            msg.data = 'OFFLOADER_OFF'
+        self.actuators_publisher.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
-        if self.current_state.value == states['Emergency_Stop']:
-            msg = String()
-            msg.data = 'STOP_ALL_ACTUATORS'
-            
-            self.actuators_publisher.publish(msg)
-            if counter >= 20:
-                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-                counter = 0 # Reset the counter
-            counter += 1 # Increment the counter
-        elif self.current_state.value == states['Auto_Dig']:
-            msg = String()
+    
+    # True starts the digger and False stops it
+    def digger(self, on=True):
+        msg = String()
+        if on:
             msg.data = 'DIGGER_ON'
-            
-            self.actuators_publisher.publish(msg)
-            if counter >= 20:
-                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-                counter = 0 # Reset the counter
-            counter += 1 # Increment the counter
-        elif self.current_state.value == states['Teleop']:
-            msg = String()
-            if dig_button_toggled:
-                msg.data += ' DIGGER_ON'
-            elif not dig_button_toggled:
-                msg.data += ' DIGGER_OFF'
-            if offload_button_toggled:
-                msg.data += ' OFFLOADER_ON'
-            elif not offload_button_toggled:
-                msg.data += ' OFFLOADER_OFF'
-                
-            self.actuators_publisher.publish(msg)
-            if counter >= 20:
-                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-                counter = 0 # Reset the counter
-            counter += 1 # Increment the counter
-            
+        else:
+            msg.data = 'DIGGER_OFF'
+        self.actuators_publisher.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+
             
     # When a joystick input is recieved, this callback method processes the input accordingly
     def joystick_callback(self, msg):
@@ -234,10 +211,18 @@ class MainControlNode(Node):
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
                 dig_button_toggled = not dig_button_toggled
+                if dig_button_toggled:
+                    self.digger(True)
+                else:
+                    self.digger(False)
                 
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
                 offload_button_toggled = not offload_button_toggled
+                if offload_button_toggled:
+                    self.offloader(True)
+                else:
+                    self.offloader(False)
                 
             # Check if the digger_extend button is pressed
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:

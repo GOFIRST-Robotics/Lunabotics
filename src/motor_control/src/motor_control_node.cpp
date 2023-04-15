@@ -152,10 +152,6 @@ private:
     if(msg->data.find("OFFLOADER_OFF") != std::string::npos) {
       offloading = false;
     }
-    if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {
-      digging = false;
-      offloading = false;
-    }
   }
 
   // This method loops repeatedly
