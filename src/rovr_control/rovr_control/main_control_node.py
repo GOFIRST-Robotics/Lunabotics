@@ -166,30 +166,22 @@ class MainControlNode(Node):
 
     # True starts the offloader and False stops it
     def offloader(self, on=True):
-        global offload_button_toggled
-
         msg = String()
         if on:
             msg.data = 'OFFLOADER_ON'
-            offload_button_toggled = True
         else:
             msg.data = 'OFFLOADER_OFF'
-            offload_button_toggled = False
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
     
     # True starts the digger and False stops it
     def digger(self, on=True):
-        global digger_extend_button_toggled
-
         msg = String()
         if on:
             msg.data = 'DIGGER_ON'
-            digger_extend_button_toggled = True
         else:
             msg.data = 'DIGGER_OFF'
-            digger_extend_button_toggled = False
         self.actuators_publisher.publish(msg)
         self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
@@ -252,8 +244,8 @@ class MainControlNode(Node):
                 self.current_state.value = states['Teleop']
                 autonomous_digging_process.kill() # Kill the auto dig process
                 print('Autonomous Digging Procedure Terminated\n')
-                self.digger(False) # Stop the digger if it is still running  
-                self.offloader(False) # Stop the offloader if it is still running  
+                dig_button_toggled = False # When we enter teleop mode, start with the digger off
+                offload_button_toggled = False # When we enter teleop mode, start with the offloader off
 
         # Check if the autonomous offload button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
@@ -265,7 +257,9 @@ class MainControlNode(Node):
                 self.current_state.value = states['Teleop']
                 autonomous_offload_process.kill() # Kill the auto dig process
                 print('Autonomous Offload Procedure Terminated\n')
-                self.offloader(False) # Stop the digger if it is still running           
+                dig_button_toggled = False # When we enter teleop mode, start with the digger off
+                offload_button_toggled = False # When we enter teleop mode, start with the offloader off
+                
                 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
