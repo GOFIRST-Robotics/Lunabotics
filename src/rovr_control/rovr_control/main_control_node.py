@@ -75,6 +75,9 @@ class MainControlNode(Node):
     # This method lays out the procedure for autonomously digging!
     def auto_dig_procedure(self, state):
         print('\nStarting Autonomous Digging Procedure!') # Print to the terminal
+        self.digger(True) # Start the digger
+        self.offloader(False) # Stop the offloader if it is currently running
+
         self.arduino.read_all() # Read all messages from the serial buffer to clear them out
         time.sleep(5) # TODO: Change this to wait for the digger motor to reach a certain speed
         
@@ -86,6 +89,7 @@ class MainControlNode(Node):
         self.drive(dig_driving_power, 0.0) # Start driving forward slowly
         time.sleep(20) # TODO: Tune this timing (how long do we want to drive for?)
         self.stop() # Stop the drivetrain
+        self.digger(False) # Stop the digger
         
         self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
         while True: # Wait for a confirmation message from the Arduino
@@ -99,6 +103,8 @@ class MainControlNode(Node):
     # This method lays out the procedure for autonomously offloading!
     def auto_offload_procedure(self, state):
         print('\nStarting Autonomous Offload Procedure!') # Print to the terminal
+        self.digger(False) # Stop the digger if it is currently running
+        self.offloader(False) # Stop the offloader if it is currently running
         
         # TODO: If there is an apriltag continue, else search for one
 
@@ -108,19 +114,9 @@ class MainControlNode(Node):
         # Turn back 
         # Repeat until distance to Apriltag is small
 
-        # Start Offloading
-        msg = String()
-        msg.data = 'OFFLOADER_ON'
-        self.actuators_publisher.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-
+        self.offloader(True) # Start Offloading
         time.sleep(10) # TODO: Tune this timing
-
-        # Stop Offloading
-        msg = String()
-        msg.data = 'OFFLOADER_OFF'
-        self.actuators_publisher.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+        self.offloader(False) # Stop Offloading
         
         print('Autonomous Offload Procedure Complete!\n') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
@@ -163,6 +159,27 @@ class MainControlNode(Node):
         apriltag_orientation_z = msg.____ #TODO something (dont need this?)
 
 
+    # Publishes the given actuator command
+    def publish_actuator_cmd(self, cmd):
+        msg = String()
+        msg.data = cmd
+        self.actuators_publisher.publish(msg)
+        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+
+    # Turns the digger on or off
+    def digger(self, on):
+        if on:
+            self.publish_actuator_cmd("DIGGER_ON")
+        else:
+            self.publish_actuator_cmd("DIGGER_OFF")
+    # Turns the offloader on or off
+    def offloader(self, on):
+        if on:
+            self.publish_actuator_cmd("OFFLOADER_ON")
+        else:
+            self.publish_actuator_cmd("OFFLOADER_OFF")
+
+
     # Publish a message detailing what the actuators should be doing
     def actuators_timer_callback(self):
         # Python is silly and you have to declare global variables like this before using them
@@ -172,34 +189,20 @@ class MainControlNode(Node):
         global counter
 
         if self.current_state.value == states['Emergency_Stop']:
-            msg = String()
-            msg.data = 'STOP_ALL_ACTUATORS'
-            self.actuators_publisher.publish(msg)
-            self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-        elif self.current_state.value == states['Auto_Dig']:
-            msg = String()
-            msg.data = 'DIGGER_ON'
-            self.actuators_publisher.publish(msg)
-            if counter >= 20:
-                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-                counter = 0 # Reset the counter
-            counter += 1 # Increment the counter
+            self.publish_actuator_cmd('STOP_ALL_ACTUATORS')
         elif self.current_state.value == states['Teleop']:
-            msg = String()
+            cmd = ''
+
             if digger_toggled:
-                msg.data += ' DIGGER_ON'
+                cmd += ' DIGGER_ON'
             elif not digger_toggled:
-                msg.data += ' DIGGER_OFF'
+                cmd += ' DIGGER_OFF'
             if offloader_toggled:
-                msg.data += ' OFFLOADER_ON'
+                cmd += ' OFFLOADER_ON'
             elif not offloader_toggled:
-                msg.data += ' OFFLOADER_OFF'
+                cmd += ' OFFLOADER_OFF'
                 
-            self.actuators_publisher.publish(msg)
-            if counter >= 20:
-                self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
-                counter = 0 # Reset the counter
-            counter += 1 # Increment the counter
+            self.publish_actuator_cmd(cmd)
             
             
     # When a joystick input is recieved, this callback method processes the input accordingly
