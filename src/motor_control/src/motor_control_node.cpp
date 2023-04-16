@@ -1,8 +1,8 @@
 /*
  * motor_control_node.cpp
- * Sends raw canbus msgs according to motor config.
+ * Publishes CAN bus messages for VESC burshless motor controllers.
  * VERSION: 0.0.5
- * Last changed: February 2023
+ * Last changed: May 2023
  * Original Author: Jude Sauve <sauve031@umn.edu>
  * Maintainer: Anthony Brogni <brogn002@umn.edu>
  * MIT License
@@ -109,7 +109,7 @@ public:
   {
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
-    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("drive_power", 10, std::bind(&MotorControlNode::drive_power_callback, this, _1));
+    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 10, std::bind(&MotorControlNode::drive_power_callback, this, _1));
     actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&MotorControlNode::actuators_callback, this, _1));
     timer = this->create_wall_timer(50ms, std::bind(&MotorControlNode::timer_callback, this));
   }
@@ -137,7 +137,7 @@ private:
 
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
-    RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
+    //RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
     // Parse the msg for our toggleable motor actions
     if(msg->data.find("DIGGER_ON") != std::string::npos) {
