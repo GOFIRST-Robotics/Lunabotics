@@ -46,8 +46,6 @@ dig_driving_power = 0.5 # The power to drive at when autonomously digging
 max_drive_power = 1.0
 max_turn_power = 1.0
     
-# Define a global counter for printing to the terminal less often
-counter = 0
     
 class MainControlNode(Node):
     
@@ -186,7 +184,6 @@ class MainControlNode(Node):
         global digger_toggled
         global digger_extend_toggled
         global offloader_toggled
-        global counter
 
         if self.current_state.value == states['Emergency_Stop']:
             self.publish_actuator_cmd('STOP_ALL_ACTUATORS')
