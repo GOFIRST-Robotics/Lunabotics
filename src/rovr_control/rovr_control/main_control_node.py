@@ -23,30 +23,15 @@ import os # Allows us to kill subprocesses
 
 # Import our gamepad button mappings
 from .gamepad_constants import *
-# This is to help with button press detection
-buttons = [0] * 12
 
-# Define some initial button states
-digger_toggled = False
-offloader_toggled = False
-digger_extend_toggled = False
-camera_view_toggled = False
-
-# By default these camera streams will not exist yet
-camera0 = None
-camera1 = None
-# By default these processes will also not exist yet
-autonomous_digging_process = None
-autonomous_offload_process = None
-
+# GLOBAL VARIABLES #
+buttons = [0] * 12 # This is to help with button press detection
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Auto_Offload': 3, 'Emergency_Stop': 4}
-
 # Define the maximum driving power of the robot (measured in duty cycle)
 dig_driving_power = 0.5 # The power to drive at while autonomously digging
 max_drive_power = 1.0
 max_turn_power = 1.0
-    
     
 class MainControlNode(Node):
     
@@ -98,7 +83,6 @@ class MainControlNode(Node):
         print('Autonomous Digging Procedure Complete!\n') # Print to the terminal
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
 
-
     # This method lays out the procedure for autonomously offloading!
     def auto_offload_procedure(self, state):
         print('\nStarting Autonomous Offload Procedure!') # Print to the terminal
@@ -133,6 +117,19 @@ class MainControlNode(Node):
         
         self.manager = multiprocessing.Manager() # This allows us to modify our current state from within autonomous processes
         self.current_state = self.manager.Value('i', states['Teleop']) # Define our robot's initial state
+
+        # Define some initial button states
+        self.digger_toggled = False
+        self.offloader_toggled = False
+        self.digger_extend_toggled = False
+        self.camera_view_toggled = False
+
+        # By default these camera streams will not exist yet
+        self.camera0 = None
+        self.camera1 = None
+        # By default these processes will also not exist yet
+        self.autonomous_digging_process = None
+        self.autonomous_offload_process = None
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
@@ -177,43 +174,25 @@ class MainControlNode(Node):
         else:
             self.publish_actuator_cmd("OFFLOADER_OFF")
 
-
     # Publish a message detailing what all the actuators should be doing
     def actuators_timer_callback(self):
-        # Python is silly and you have to declare global variables like this before using them
-        global digger_toggled
-        global digger_extend_toggled
-        global offloader_toggled
-
         if self.current_state.value == states['Emergency_Stop']:
             self.publish_actuator_cmd('STOP_ALL_ACTUATORS')
         elif self.current_state.value == states['Teleop']:
             cmd = ''
-
-            if digger_toggled:
+            if self.digger_toggled:
                 cmd += ' DIGGER_ON'
-            elif not digger_toggled:
+            elif not self.digger_toggled:
                 cmd += ' DIGGER_OFF'
-            if offloader_toggled:
+            if self.offloader_toggled:
                 cmd += ' OFFLOADER_ON'
-            elif not offloader_toggled:
+            elif not self.offloader_toggled:
                 cmd += ' OFFLOADER_OFF'
-                
             self.publish_actuator_cmd(cmd)
             
             
     # When a joystick input is recieved, this callback method processes the input accordingly
     def joystick_callback(self, msg):
-        
-        # Python is silly and you have to declare global variables like this before using them
-        global digger_toggled
-        global camera_view_toggled
-        global digger_extend_toggled
-        global offloader_toggled
-        global autonomous_digging_process
-        global autonomous_offload_process
-        global camera0
-        global camera1
         
         # TELEOP CONTROLS BELOW #
 
@@ -226,15 +205,15 @@ class MainControlNode(Node):
         
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                digger_toggled = not digger_toggled
+                self.digger_toggled = not self.digger_toggled
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
-                offloader_toggled = not offloader_toggled
+                self.offloader_toggled = not self.offloader_toggled
                 
             # Check if the digger_extend button is pressed
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
-                digger_extend_toggled = not digger_extend_toggled
-                if digger_extend_toggled:
+                self.digger_extend_toggled = not self.digger_extend_toggled
+                if self.digger_extend_toggled:
                     self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
                 else:
                     self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
@@ -245,41 +224,40 @@ class MainControlNode(Node):
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
             if self.current_state.value == states['Teleop']:
                 self.current_state.value = states['Auto_Dig']
-                autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state])
-                autonomous_digging_process.start() # Start the auto dig process
-                digger_toggled = False # After we finish this autonomous operation, start with the digger off
-                offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
+                self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state])
+                self.autonomous_digging_process.start() # Start the auto dig process
+                self.digger_toggled = False # After we finish this autonomous operation, start with the digger off
+                self.offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
             elif self.current_state.value == states['Auto_Dig']:
                 self.current_state.value = states['Teleop']
-                autonomous_digging_process.kill() # Kill the auto dig process
+                self.autonomous_digging_process.kill() # Kill the auto dig process
                 print('Autonomous Digging Procedure Terminated\n')
         # Check if the autonomous offload button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
             if self.current_state.value == states['Teleop']:
                 self.current_state.value = states['Auto_Offload']
-                autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[self.current_state])
-                autonomous_offload_process.start() # Start the auto dig process
-                digger_toggled = False # After we finish this autonomous operation, start with the digger off
-                offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
+                self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[self.current_state])
+                self.autonomous_offload_process.start() # Start the auto dig process
+                self.digger_toggled = False # After we finish this autonomous operation, start with the digger off
+                self.offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
             elif self.current_state.value == states['Auto_Offload']:
                 self.current_state.value = states['Teleop']
-                autonomous_offload_process.kill() # Kill the auto dig process
+                self.autonomous_offload_process.kill() # Kill the auto dig process
                 print('Autonomous Offload Procedure Terminated\n')
-                
                 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
-            camera_view_toggled = not camera_view_toggled
-            if camera_view_toggled: # Start streaming /dev/video0 on port 5000
-                if camera1 is not None:
-                    os.killpg(os.getpgid(camera1.pid), signal.SIGTERM) # Kill the camera1 process
-                    camera1 = None
-                camera0 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
+            self.camera_view_toggled = not self.camera_view_toggled
+            if self.camera_view_toggled: # Start streaming /dev/video0 on port 5000
+                if self.camera1 is not None:
+                    os.killpg(os.getpgid(self.camera1.pid), signal.SIGTERM) # Kill the self.camera1 process
+                    self.camera1 = None
+                self.camera0 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
             else: # Start streaming /dev/video1 on port 5000
-                if camera0 is not None:
-                    os.killpg(os.getpgid(camera0.pid), signal.SIGTERM) # Kill the camera0 process
-                    camera0 = None
-                camera1 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
+                if self.camera0 is not None:
+                    os.killpg(os.getpgid(self.camera0.pid), signal.SIGTERM) # Kill the self.camera0 process
+                    self.camera0 = None
+                self.camera1 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=192.168.1.40 port=5000', shell=True, preexec_fn=os.setsid)
 
         # Update new button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
