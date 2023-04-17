@@ -84,19 +84,33 @@ class MainControlNode(Node):
         state.value = states['Teleop'] # Enter teleop mode after this autonomous command is finished
 
     # This method lays out the procedure for autonomously offloading!
-    def auto_offload_procedure(self, state):
+    def auto_offload_procedure(self, state, apriltag_x, apriltag_z, apriltag_yaw):
         print('\nStarting Autonomous Offload Procedure!') # Print to the terminal
         self.digger(False) # Stop the digger if it is currently running
         self.offloader(False) # Stop the offloader if it is currently running
         
-        # TODO: If there is an apriltag continue, else search for one
+        # Search for an Apriltag before continuing
+        print('Searching for an Apriltag to dock with...')
+        apriltag_x.value = 0.0
+        self.drive(0.0, 0.3) # Turn slowly to look for an Apriltag
+        while apriltag_x.value == 0.0:
+            pass
+        print(f'Apriltag found! x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
+        self.stop()
 
-        # TODO: Once an Apriltag has been found, do the following:
-        # Turn so that the apriltag is close to the edge of the field of view
-        # Drive forward until it leaves field of view
-        # Turn back 
-        # Repeat until distance to Apriltag is small
+        while apriltag_z.value >= 1: # Continue correcting until we are within 1 meter of the tag #TODO: Tune this distance 
+            self.drive(0.5*apriltag_z.value, 0.6*apriltag_yaw.value) #TODO: Tune both of these P constants
+            print(f'Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
+            time.sleep(0.05) # Add a small delay so we don't overload ROS with too many messages
+        self.stop()
 
+        # Finish docking with the trough
+        print("Docking with the trough")
+        self.drive(0.3, 0.0)
+        time.sleep(4) #TODO: Tune this timing
+        self.stop()
+
+        print("Commence Offloading!")
         self.offloader(True) # Start Offloading
         time.sleep(10) # TODO: Tune this timing
         self.offloader(False) # Stop Offloading
@@ -117,6 +131,9 @@ class MainControlNode(Node):
         
         self.manager = multiprocessing.Manager() # This allows us to modify our current state from within autonomous processes
         self.current_state = self.manager.Value('i', states['Teleop']) # Define our robot's initial state
+        self.apriltag_x = self.manager.Value('f', 0)
+        self.apriltag_z = self.manager.Value('f', 0)
+        self.apriltag_yaw = self.manager.Value('f', 0)
 
         # Define some initial button states
         self.digger_toggled = False
@@ -146,12 +163,12 @@ class MainControlNode(Node):
 
     # Process Apriltag Detections
     def apriltags_callback(self, msg):
-        apriltag_position_x = msg.____ #TODO something
-        apriltag_position_y = msg.____ #TODO something (dont need this?)
-        apriltag_position_z = msg.____ #TODO something
-        apriltag_orientation_x = msg.____ #TODO something
-        apriltag_orientation_y = msg.____ #TODO something (dont need this?)
-        apriltag_orientation_z = msg.____ #TODO something (dont need this?)
+        array = msg.transforms
+        entry = array.pop()
+        self.apriltag_x.value = entry.transform.translation.x # Left-Right Distance to the tag (measured in meters)
+        self.apriltag_z.value = entry.transform.translation.z # Foward-Backward Distance to the tag (measured in meters)
+        self.apriltag_yaw.value = entry.transform.rotation.y # Yaw Angle error to the tag's orientation (measured in radians)
+        #print('x:', self.apriltag_x.value, 'z:', self.apriltag_z.value, 'yaw:', self.apriltag_yaw.value)
 
 
     # This method publishes the given actuator command to 'cmd_actuators'
@@ -159,7 +176,7 @@ class MainControlNode(Node):
         msg = String()
         msg.data = cmd
         self.actuators_publisher.publish(msg)
-        self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+        #self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
     # Turns the digger on or off
     def digger(self, on):
@@ -236,7 +253,7 @@ class MainControlNode(Node):
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
             if self.current_state.value == states['Teleop']:
                 self.current_state.value = states['Auto_Offload']
-                self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[self.current_state])
+                self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[self.current_state, self.apriltag_x, self.apriltag_z, self.apriltag_yaw])
                 self.autonomous_offload_process.start() # Start the auto dig process
                 self.digger_toggled = False # After we finish this autonomous operation, start with the digger off
                 self.offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
