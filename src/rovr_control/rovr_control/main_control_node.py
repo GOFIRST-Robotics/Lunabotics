@@ -247,24 +247,24 @@ class MainControlNode(Node):
                 self.current_state.value = states['Auto_Dig']
                 autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state])
                 autonomous_digging_process.start() # Start the auto dig process
+                digger_toggled = False # After we finish this autonomous operation, start with the digger off
+                offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
             elif self.current_state.value == states['Auto_Dig']:
                 self.current_state.value = states['Teleop']
                 autonomous_digging_process.kill() # Kill the auto dig process
                 print('Autonomous Digging Procedure Terminated\n')
-                digger_toggled = False # When we enter teleop mode, start with the digger off
-                offloader_toggled = False # When we enter teleop mode, start with the offloader off
         # Check if the autonomous offload button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
             if self.current_state.value == states['Teleop']:
                 self.current_state.value = states['Auto_Offload']
                 autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[self.current_state])
                 autonomous_offload_process.start() # Start the auto dig process
+                digger_toggled = False # After we finish this autonomous operation, start with the digger off
+                offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
             elif self.current_state.value == states['Auto_Offload']:
                 self.current_state.value = states['Teleop']
                 autonomous_offload_process.kill() # Kill the auto dig process
                 print('Autonomous Offload Procedure Terminated\n')
-                digger_toggled = False # When we enter teleop mode, start with the digger off
-                offloader_toggled = False # When we enter teleop mode, start with the offloader off
                 
                 
         # Check if the camera toggle button is pressed
