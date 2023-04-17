@@ -65,8 +65,7 @@ class MotorControlNode : public rclcpp::Node
 
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(uint32_t id, float percentPower) { 
-    percentPower = std::max(percentPower, (float)(-1)); // Do not allow setting less than -100% power
-    percentPower = std::min(percentPower, (float)(1)); // Do not allow setting more than 100% power
+    percentPower = std::clamp(percentPower, (float)(-1), (float)(1)); // Do not allow setting more than 100% power in either direction
 
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
@@ -98,6 +97,28 @@ class MotorControlNode : public rclcpp::Node
 
     send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
     RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, encoderCounts); // Print to the terminal
+  }
+
+  // Before sending CAN messages to the drivetrain motors, we want to desaturate the wheel speeds if needed
+  void drive(float linear_power, float angular_power) {
+    linear_power = std::clamp(linear_power, (float)(-1), (float)(1)); // Clamp the linear power between -1 and 1
+    angular_power = std::clamp(angular_power, (float)(-1), (float)(1)); // Clamp the angular power between -1 and 1
+
+    float leftPower = linear_power - angular_power;
+    float rightPower = linear_power + angular_power;
+
+    // Desaturate the wheel speeds if needed
+    float greater_input = std::max(abs(leftPower), abs(rightPower));
+    if (greater_input > float(1)) {
+      float scale_factor = float(1) / greater_input;
+      leftPower *= scale_factor;
+      rightPower *= scale_factor;
+    }
+
+    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, leftPower);
+    vesc_set_duty_cycle(BACK_LEFT_DRIVE, leftPower);
+    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (rightPower) * -1); // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (rightPower) * -1); // Multiply by -1 to invert motor direction
   }
 
 public:
@@ -157,11 +178,8 @@ private:
   // This method loops repeatedly
   void timer_callback()
   {
-    // Send drivetrain CAN messages
-    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, linear_drive_power_cmd - angular_drive_power_cmd);
-    vesc_set_duty_cycle(BACK_LEFT_DRIVE, linear_drive_power_cmd - angular_drive_power_cmd);
-    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1); // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (linear_drive_power_cmd + angular_drive_power_cmd) * -1); // Multiply by -1 to invert motor direction
+    // Drive the robot with the specified linear and angular speeds
+    drive(linear_drive_power_cmd, angular_drive_power_cmd);
 
     // Send digging CAN messages
     vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_POWER : 0.0);
