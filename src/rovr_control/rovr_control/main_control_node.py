@@ -1,8 +1,9 @@
+# This node contains the main control flow of our robot code.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2022
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: May 2023
 
-# Import ROS 2 modules
+# Import the ROS 2 module
 import rclpy
 from rclpy.node import Node
 
@@ -31,7 +32,7 @@ offloader_toggled = False
 digger_extend_toggled = False
 camera_view_toggled = False
 
-# By default both camera streams will not exist yet
+# By default these camera streams will not exist yet
 camera0 = None
 camera1 = None
 # By default these processes will also not exist yet
@@ -41,8 +42,8 @@ autonomous_offload_process = None
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Auto_Offload': 3, 'Emergency_Stop': 4}
 
-# Define the maximum driving power of the robot (duty cycle)
-dig_driving_power = 0.5 # The power to drive at when autonomously digging
+# Define the maximum driving power of the robot (measured in duty cycle)
+dig_driving_power = 0.5 # The power to drive at while autonomously digging
 max_drive_power = 1.0
 max_turn_power = 1.0
     
@@ -122,7 +123,7 @@ class MainControlNode(Node):
 
     # Initialize the ROS2 Node
     def __init__(self):
-        super().__init__('publisher')
+        super().__init__('rovr_control')
         
         # Try connecting to the Arduino over Serial
         try:
@@ -130,7 +131,7 @@ class MainControlNode(Node):
         except Exception as e:
             print(e) # If an exception is raised, print it, and then move on
         
-        self.manager = multiprocessing.Manager()
+        self.manager = multiprocessing.Manager() # This allows us to modify our current state from within autonomous processes
         self.current_state = self.manager.Value('i', states['Teleop']) # Define our robot's initial state
 
         # Actuators Publisher
@@ -142,7 +143,6 @@ class MainControlNode(Node):
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
-
         # Apriltags Subscriber
         self.joy_subscription = self.create_subscription(TFMessage, 'tf', self.apriltags_callback, 10)
 
@@ -157,7 +157,7 @@ class MainControlNode(Node):
         apriltag_orientation_z = msg.____ #TODO something (dont need this?)
 
 
-    # Publishes the given actuator command
+    # This method publishes the given actuator command to 'cmd_actuators'
     def publish_actuator_cmd(self, cmd):
         msg = String()
         msg.data = cmd
@@ -178,7 +178,7 @@ class MainControlNode(Node):
             self.publish_actuator_cmd("OFFLOADER_OFF")
 
 
-    # Publish a message detailing what the actuators should be doing
+    # Publish a message detailing what all the actuators should be doing
     def actuators_timer_callback(self):
         # Python is silly and you have to declare global variables like this before using them
         global digger_toggled

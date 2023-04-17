@@ -1,16 +1,12 @@
-/*
- * motor_control_node.cpp
- * Publishes CAN bus messages for VESC burshless motor controllers.
- * VERSION: 0.0.5
- * Last changed: May 2023
- * Original Author: Jude Sauve <sauve031@umn.edu>
- * Maintainer: Anthony Brogni <brogn002@umn.edu>
- * MIT License
- * Copyright (c) 2018 GOFIRST-Robotics
- */
+// This node publishes CAN bus messages for our VESC burshless motor controllers.
+// Original Author: Jude Sauve <sauve031@umn.edu> in 2018
+// Current Maintainer: Anthony Brogni <brogn002@umn.edu>
+// Last Updated: May 2023
 
-// Import ROS 2 Libraries
+// Import the ROS 2 Library
 #include "rclcpp/rclcpp.hpp"
+
+// Import ROS 2 Formatted Message Types
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/string.hpp"
