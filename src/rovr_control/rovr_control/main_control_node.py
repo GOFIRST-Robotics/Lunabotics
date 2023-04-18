@@ -71,7 +71,7 @@ class MainControlNode(Node):
                 break
         
         self.drive(dig_driving_power, 0.0) # Start driving forward slowly
-        time.sleep(20) # TODO: Tune this timing (how long do we want to drive for?)
+        time.sleep(20) # TODO: Tune this timing (How long do we want to drive for while digging? Or should we be fancy and drive to a pose with SLAM instead?)
         self.stop() # Stop the drivetrain
         self.digger(False) # Stop the digger
         
@@ -98,8 +98,8 @@ class MainControlNode(Node):
         print(f'Apriltag found! x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
         self.stop()
 
-        while apriltag_z.value >= 1: # Continue correcting until we are within 1 meter of the tag #TODO: Tune this distance 
-            self.drive(0.5*apriltag_z.value, 0.6*apriltag_yaw.value) #TODO: Tune both of these P constants
+        while apriltag_z.value >= 1: # Continue correcting until we are within 1 meter of the tag #TODO: Tune this distance
+            self.drive(0.5*apriltag_z.value, 0.6*apriltag_yaw.value) #TODO: Tune both of these P constants on the actual robot
             print(f'Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
             time.sleep(0.05) # Add a small delay so we don't overload ROS with too many messages
         self.stop()
@@ -107,12 +107,12 @@ class MainControlNode(Node):
         # Finish docking with the trough
         print("Docking with the trough")
         self.drive(0.3, 0.0)
-        time.sleep(4) #TODO: Tune this timing
+        time.sleep(4) #TODO: Tune this timing (how long to drive straight for at the end of docking)
         self.stop()
 
         print("Commence Offloading!")
         self.offloader(True) # Start Offloading
-        time.sleep(10) # TODO: Tune this timing
+        time.sleep(10) # TODO: Tune this timing (how long to run the offloader for)
         self.offloader(False) # Stop Offloading
         
         print('Autonomous Offload Procedure Complete!\n') # Print to the terminal

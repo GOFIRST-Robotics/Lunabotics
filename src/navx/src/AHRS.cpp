@@ -1149,19 +1149,6 @@ float AHRS::GetRawMagZ() {
  }
 
 /**
- * Returns the current barometric pressure (in millibar) [navX Aero only].
- *<p>
- *This value is valid only if a barometric pressure sensor is onboard.
- *
- * @return Returns the current barometric pressure (in millibar).
- */
-float AHRS::GetPressure() {
-    // TODO implement for navX-Aero.
-    return 0;
-}
-
-
-/**
  * Returns the current temperature (in degrees centigrade) reported by
  * the sensor's gyro/accelerometer circuit.
  *<p>
