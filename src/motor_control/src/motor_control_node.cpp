@@ -1,6 +1,6 @@
 // This node publishes CAN bus messages for our VESC burshless motor controllers.
 // Original Author: Jude Sauve <sauve031@umn.edu> in 2018
-// Current Maintainer: Anthony Brogni <brogn002@umn.edu>
+// Maintainer: Anthony Brogni <brogn002@umn.edu>
 // Last Updated: May 2023
 
 // Import the ROS 2 Library
@@ -33,7 +33,7 @@ uint32_t CONVEYOR_BELT_MOTOR = 8;
 uint32_t OFFLOAD_BELT_MOTOR = 9;
 
 // Define Motor Power/Speeds Here //
-float DIGGER_ROTATION_POWER = 0.5;
+float DIGGER_ROTATION_SPEED = 2000; // Measured in RPM
 float DIGGER_DEPTH_POWER = 0.5;
 float DRUM_BELT_POWER = 0.5;
 float CONVEYOR_BELT_POWER = 0.5;
@@ -73,30 +73,12 @@ class MotorControlNode : public rclcpp::Node
     RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
-  // Set the current draw of the motor in amps
-  void vesc_set_current(uint32_t id, float current) { 
-    int32_t data = current * 1000; // Convert from current in amps to a signed 32-bit integer
-
-    send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
-    RCLCPP_INFO(this->get_logger(), "Setting the current draw of CAN ID: %u to %f amps", id, current); // Print to the terminal
-  }
-
-  // TODO: This has not been tested yet! Proceed with caution.
   // Set the speed of the motor in RPM (Rotations Per Minute)
   void vesc_set_RPM(uint32_t id, int rpm) {
     int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
     RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
-  }
-
-  // TODO: This has not been tested yet! Proceed with caution.
-  // Set the position of the motor in encoder counts
-  void vesc_set_position(uint32_t id, int encoderCounts) {
-    int32_t data = encoderCounts;
-
-    send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
-    RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, encoderCounts); // Print to the terminal
   }
 
   // Before sending CAN messages to the drivetrain motors, we want to desaturate the wheel speeds if needed
@@ -138,18 +120,16 @@ private:
     angular_drive_power_cmd = msg->angular.z;
   }
 
-  // TODO: The values we are receiving/printing still seem to be wrong? (Besides the CAN ID, at least that has been working)
   // Listen for status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
   {
     uint32_t id = can_msg->id & 0xFF;
 
     uint32_t RPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
-    uint16_t avgMotorCurrent =((can_msg->data[4]<<8) + can_msg->data[5]) / 10;
-    uint16_t dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 1000;
+    uint16_t dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 10;
 
     RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-    RCLCPP_INFO(this->get_logger(), "RPM: %u average motor current: %hu latest duty cycle: %hu", RPM, avgMotorCurrent, dutyCycleNow);
+    RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
   }
 
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
@@ -182,7 +162,7 @@ private:
     drive(linear_drive_power_cmd, angular_drive_power_cmd);
 
     // Send digging CAN messages
-    vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_POWER : 0.0);
+    vesc_set_RPM(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_SPEED : 0.0);
     vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? DRUM_BELT_POWER : 0.0);
     vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? CONVEYOR_BELT_POWER : 0.0);
 
