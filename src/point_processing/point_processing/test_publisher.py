@@ -1,5 +1,7 @@
 # code by Sebastian Grans: https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_publisher/pcd_publisher_node.py
 
+# ros2 run point_processing pointcloud_test_publisher "<path_to_file>"
+
 import sys
 import os
 
