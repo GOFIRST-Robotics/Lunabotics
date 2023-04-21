@@ -9,6 +9,7 @@ from rclpy.node import Node
 
 # Import ROS 2 formatted message types
 from std_msgs.msg import String
+from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
@@ -57,13 +58,16 @@ class MainControlNode(Node):
 
 
     # This method lays out the procedure for autonomously digging!
-    def auto_dig_procedure(self, state):
+    def auto_dig_procedure(self, state, digger_RPM):
         print('\nStarting Autonomous Digging Procedure!') # Print to the terminal
         self.digger(True) # Start the digger
         self.offloader(False) # Stop the offloader if it is currently running
 
         self.arduino.read_all() # Read all messages from the serial buffer to clear them out
-        time.sleep(5) # TODO: Change this to wait for the digger motor to reach a certain speed
+        # Wait for the digger motor to reach our target speed interval (measured in RPM)
+        while True:
+            if 1900 < digger_RPM.value <  2100:
+                break
         
         self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
         while True: # Wait for a confirmation message from the Arduino
@@ -131,9 +135,10 @@ class MainControlNode(Node):
         
         self.manager = multiprocessing.Manager() # This allows us to modify our current state from within autonomous processes
         self.current_state = self.manager.Value('i', states['Teleop']) # Define our robot's initial state
-        self.apriltag_x = self.manager.Value('f', 0)
-        self.apriltag_z = self.manager.Value('f', 0)
-        self.apriltag_yaw = self.manager.Value('f', 0)
+        self.apriltag_x = self.manager.Value('f', 0.0)
+        self.apriltag_z = self.manager.Value('f', 0.0)
+        self.apriltag_yaw = self.manager.Value('f', 0.0)
+        self.current_digger_RPM = self.manager.Value('f', 0.0)
 
         # Define some initial button states
         self.digger_toggled = False
@@ -158,8 +163,10 @@ class MainControlNode(Node):
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
         # Apriltags Subscriber
-        self.joy_subscription = self.create_subscription(TFMessage, 'tf', self.apriltags_callback, 10)
-
+        self.apriltags_subscription = self.create_subscription(TFMessage, 'tf', self.apriltags_callback, 10)
+        # Digger RPM Subsciber
+        self.digger_RPM_subscription = self.create_subscription(Float32, 'digger_RPM', self.digger_RPM_callback, 10)
+        
 
     # Process Apriltag Detections
     def apriltags_callback(self, msg):
@@ -169,6 +176,11 @@ class MainControlNode(Node):
         self.apriltag_z.value = entry.transform.translation.z # Foward-Backward Distance to the tag (measured in meters)
         self.apriltag_yaw.value = entry.transform.rotation.y # Yaw Angle error to the tag's orientation (measured in radians)
         #print('x:', self.apriltag_x.value, 'z:', self.apriltag_z.value, 'yaw:', self.apriltag_yaw.value)
+
+
+    # Update our variable storing the current digger speed
+    def digger_RPM_callback(self, msg):
+        self.current_digger_RPM.value = msg.data # Measured in RPM
 
 
     # This method publishes the given actuator command to 'cmd_actuators'
@@ -241,7 +253,7 @@ class MainControlNode(Node):
         if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
             if self.current_state.value == states['Teleop']:
                 self.current_state.value = states['Auto_Dig']
-                self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state])
+                self.autonomous_digging_process = multiprocessing.Process(target=self.auto_dig_procedure, args=[self.current_state, self.current_digger_RPM])
                 self.autonomous_digging_process.start() # Start the auto dig process
                 self.digger_toggled = False # After we finish this autonomous operation, start with the digger off
                 self.offloader_toggled = False # After we finish this autonomous operation, start with the offloader off
