@@ -10,6 +10,7 @@
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/float32.hpp"
 
 // Import Native C++ Libraries
 #include <string>
@@ -18,6 +19,7 @@
 // Global Variables
 float linear_drive_power_cmd = 0.0;
 float angular_drive_power_cmd = 0.0;
+float current_digger_RPM = 0.0;
 bool digging = false;
 bool offloading = false;
 
@@ -106,6 +108,7 @@ class MotorControlNode : public rclcpp::Node
 public:
   MotorControlNode() : Node("MotorControlNode")
   {
+    digger_RPM_pub = this->create_publisher<std_msgs::msg::Float32>("digger_RPM", 10);
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
     drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 10, std::bind(&MotorControlNode::drive_power_callback, this, _1));
@@ -130,6 +133,8 @@ private:
 
     RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
     RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
+
+    current_digger_RPM = RPM;
   }
 
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
@@ -168,10 +173,16 @@ private:
 
     // Send offloader CAN messages
     vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? CONVEYOR_BELT_POWER : 0.0);
+
+    // Publish the current digger speed in RPM to a topic
+    std_msgs::msg::Float32 digger_RPM_msg;
+    digger_RPM_msg.data = current_digger_RPM;
+    digger_RPM_pub->publish(digger_RPM_msg);
   }
 
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr digger_RPM_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr drive_power_sub;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr actuators_sub;
