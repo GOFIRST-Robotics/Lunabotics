@@ -1,3 +1,6 @@
 [submodule "src/topic_tools"]
 	path = src/topic_tools
 	url = git@github.com:ros-tooling/topic_tools.git
+[submodule "src/robot_localization"]
+	path = src/robot_localization
+	url = git@github.com:cra-ros-pkg/robot_localization.git
