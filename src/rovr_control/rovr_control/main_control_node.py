@@ -11,6 +11,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
@@ -159,6 +160,8 @@ class MainControlNode(Node):
         self.actuators_timer = self.create_timer(actuators_timer_period, self.actuators_timer_callback)
         # Drive Power Publisher
         self.drive_power_publisher = self.create_publisher(Twist, 'cmd_vel', 10)
+        # Apriltag Pose Publisher
+        self.apriltag_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, 'apriltag_pose', 10)
 
         # Joystick Subscriber
         self.joy_subscription = self.create_subscription(Joy, 'joy', self.joystick_callback, 10)
@@ -172,9 +175,25 @@ class MainControlNode(Node):
     def apriltags_callback(self, msg):
         array = msg.transforms
         entry = array.pop()
+
+        # Create a PoseWithCovarianceStamped object from the Apriltag detection
+        pose_object = PoseWithCovarianceStamped()
+        pose_object.header = entry.header
+        pose_object.pose.pose.position.x = entry.transform.translation.x
+        pose_object.pose.pose.position.y = entry.transform.translation.y
+        pose_object.pose.pose.position.z = entry.transform.translation.z
+        pose_object.pose.pose.orientation.x = entry.transform.rotation.x
+        pose_object.pose.pose.orientation.y = entry.transform.rotation.y
+        pose_object.pose.pose.orientation.z = entry.transform.rotation.z
+        pose_object.pose.pose.orientation.w = entry.transform.rotation.w
+        pose_object.pose.covariance = [0.0]*36
+        self.apriltag_pose_publisher.publish(pose_object)
+
+        # Set the value of these variables used for docking with an Apriltag
         self.apriltag_x.value = entry.transform.translation.x # Left-Right Distance to the tag (measured in meters)
         self.apriltag_z.value = entry.transform.translation.z # Foward-Backward Distance to the tag (measured in meters)
         self.apriltag_yaw.value = entry.transform.rotation.y # Yaw Angle error to the tag's orientation (measured in radians)
+
         #print('x:', self.apriltag_x.value, 'z:', self.apriltag_z.value, 'yaw:', self.apriltag_yaw.value)
 
 
