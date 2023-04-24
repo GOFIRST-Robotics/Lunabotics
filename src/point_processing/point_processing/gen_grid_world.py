@@ -15,13 +15,13 @@ class PointcloudSubscriber(Node):
         self.get_logger().info('Node trying to start')#debug to see if starting correctly
         #
         ## This is for visualization of the received point cloud.
-        #self.vis = o3d.visualization.Visualizer()
-        #self.vis.create_window()
-        #self.o3d_pcd = o3d.geometry.PointCloud()
+        self.vis = o3d.visualization.Visualizer()
+        self.vis.create_window()
+        self.o3d_pcd = o3d.geometry.PointCloud()
         #
         self.subscription = self.create_subscription(
-            String,
-            'topic',
+            sensor_msgs.PointCloud2,
+            'points',
             self.listener_callback,
             10
         )
@@ -35,14 +35,14 @@ class PointcloudSubscriber(Node):
         allPoints = np.array(list(read_points(msg)))
         #
         # The rest here is for visualization. (from https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_subscriber/pcd_subscriber_node.py)
-        '''self.vis.remove_geometry(self.o3d_pcd)
+        self.vis.remove_geometry(self.o3d_pcd)
         self.o3d_pcd = o3d.geometry.PointCloud(
-                            o3d.utility.Vector3dVector(pcd_as_numpy_array))
+                            o3d.utility.Vector3dVector(allPoints))
         #
         self.vis.add_geometry(self.o3d_pcd)
         #
         self.vis.poll_events()
-        self.vis.update_renderer()'''
+        self.vis.update_renderer()
         
         
         

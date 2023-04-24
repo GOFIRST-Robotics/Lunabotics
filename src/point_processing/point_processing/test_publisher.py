@@ -36,7 +36,7 @@ class PCDPublisher(Node):
         # believe is related to the ROS1 concept of queue size. 
         # Read more here: 
         # http://wiki.ros.org/rospy/Overview/Publishers%20and%20Subscribers
-        self.pcd_publisher = self.create_publisher(sensor_msgs.PointCloud2, 'pcd', 10)
+        self.pcd_publisher = self.create_publisher(sensor_msgs.PointCloud2, 'points', 10)
         timer_period = 1/30.0
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
