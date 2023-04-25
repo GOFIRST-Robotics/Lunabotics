@@ -49,14 +49,16 @@ class PointcloudSubscriber(Node):
         allPoints = np.array(list(read_points(msg)))
         #self.get_logger().info(f'shape: {allPoints.shape}')
         #
-        sortedPoints = points_to_cells(allPoints)
+        sortedPoints, minx, miny = self.points_to_cells(allPoints)
         #
-        flag_cells(sortedPoints)
+        self.flag_cells(sortedPoints)
         #
-        # The rest here is for visualization. (from https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_subscriber/pcd_subscriber_node.py)
+        # The rest here is for visualization. (modified from https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_subscriber/pcd_subscriber_node.py)
         self.vis.remove_geometry(self.o3d_pcd)
         self.o3d_pcd = o3d.geometry.PointCloud(
                             o3d.utility.Vector3dVector(allPoints))
+        #
+        self.color_points(self.o3d_pcd, minx, miny, sortedPoints)
         #
         self.vis.add_geometry(self.o3d_pcd)
         #
@@ -86,8 +88,8 @@ class PointcloudSubscriber(Node):
             elif allPoints[i][2] < minz:
                 minz = allPoints[i][2]
         #
-        cell_num_x = (maxx - minx) / CELL_SIZE
-        cell_num_y = (maxy - miny) / CELL_SIZE
+        cell_num_x = int((maxx - minx) / CELL_SIZE)
+        cell_num_y = int((maxy - miny) / CELL_SIZE)
         #cell_num_z = (maxz - minz) / CELL_SIZE
         #
         cells = np.empty((cell_num_x, cell_num_y), dtype=object) # create cells array
@@ -96,12 +98,12 @@ class PointcloudSubscriber(Node):
                 cell = Cell()
         #
         for point in allPoints: #organize all points into cells
-            x_index = point[0] / CELL_SIZE - (minx / CELL_SIZE) # use cell size and minimum to calc cell index to insert into
-            y_index = point[1] / CELL_SIZE - (miny / CELL_SIZE)
+            x_index = int(point[0] / CELL_SIZE - (minx / CELL_SIZE)) # use cell size and minimum to calc cell index to insert into
+            y_index = int(point[1] / CELL_SIZE - (miny / CELL_SIZE))
             #
-            cells[x_index][y_index].points.append(point)
+            cells[x_index][y_index].points.append(point) # TODO: thinks cell retrived is None
         #
-        return cells
+        return cells, minx, miny
     #
     def flag_cells(self, sortedPoints):
         """Take cells of points and find the dangerous ones"""
@@ -135,7 +137,21 @@ class PointcloudSubscriber(Node):
         """get z gradient between two cells averages"""
         return abs((avg_b - avg_a) / CELL_SIZE) # every cell average is separated by the cell size (there are no diagonals)
     #
-    #def color_points
+    def color_points(self, pointCloud, minx, miny, cells):
+        pointCloud.paint_uniform_color([0, 255, 0]) # 0-255 rgb scale
+        #
+        for i, pointColor in enumerate(pointCloud.colors):
+            point = pointCloud.points[i] # get point coordinates
+            #
+            x_index = int(point[0] / CELL_SIZE - (minx / CELL_SIZE))
+            y_index = int(point[1] / CELL_SIZE - (miny / CELL_SIZE))
+            #
+            cell = cells[x_index][y_index].points.append(point)
+            if(cell.danger == 1):
+                pointColor = [1, 0, 0] # 0-1 rgb scale
+            elif(cell.danger == 2):
+                pointCloud = [0, 0, 1]
+        # no return value because object is directly edited
         
         
 ## The code below is "ported" from 
