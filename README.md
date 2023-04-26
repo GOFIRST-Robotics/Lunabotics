@@ -45,6 +45,10 @@ Start Gstreamer H265 Encoding (On Nvidia Jetson): `gst-launch-1.0 v4l2src device
 
 Start Gstreamer H265 Decoding (On Nvidia Jetson): `gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! omxh265dec ! nvvidconv ! xvimagesink`
 
+Start Gstreamer H265 Encoding (On Orin Nano): `gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw,format=I420" ! x265enc bitrate=100 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000`
+
+Start Gstreamer H265 Decoding (On Orin Nano): `gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! avdec_h265 ! nvvidconv ! xvimagesink`
+
 Start Gstreamer H265 Decoding (On Ubuntu Laptop): `gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H265, payload=96 ! rtph265depay ! h265parse ! nvh265dec ! xvimagesink sync=false`
 
 (Change the /dev/video device to add more webcams, and the port number to stream multiple webcams at once)
