@@ -27,6 +27,10 @@ Clean workspace is `rm -r build install log`
 
 Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml`
 
+## NavX Node
+
+`ros2 run navx navx_node`
+
 ## EKF Node
 
 Start the EKF node with ROS parameters: `ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file config/ekf.yaml`
