@@ -4,3 +4,6 @@
 [submodule "src/robot_localization"]
 	path = src/robot_localization
 	url = git@github.com:cra-ros-pkg/robot_localization.git
+[submodule "src/realsense-ros"]
+	path = src/realsense-ros
+	url = https://github.com/IntelRealSense/realsense-ros.git
