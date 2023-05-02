@@ -33,6 +33,11 @@ Start the joystick node with ROS parameters: `ros2 run joy joy_node --ros-args -
 
 ## EKF Node
 
+start the navX Node first with the command above, 
+and run the script in /scripts that starts the static transform publisher from base_link to imu_link with the command:
+`./imu_link_transform_publisher.sh`
+
+
 Start the EKF node with ROS parameters: `ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file config/ekf.yaml`
 
 ## Intel RealSense Camera Setup
