@@ -54,7 +54,7 @@ Start Gstreamer H.265 Encoding (On Nvidia Jetson TX2): `gst-launch-1.0 v4l2src d
 
 Start Gstreamer H.265 Decoding (On Nvidia Jetson TX2): `gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! omxh265dec ! nvvidconv ! xvimagesink`
 
-Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): `gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110 port=5000`
+Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): `gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=127.0.0.1 port=5000`
 
 Start Gstreamer H.264 Decoding (On Nvidia Jetson Orin Nano): `gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph264depay ! h264parse ! avdec_h264 ! nvvidconv ! xvimagesink`
 
