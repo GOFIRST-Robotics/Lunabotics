@@ -3,18 +3,25 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     ld = LaunchDescription()
+    
+    joystick_node = Node(
+        package="joy",
+        executable="joy_node",
+        parameters=['config/joy_node.yaml'],
+    )
 
     rovr_control = Node(
         package="rovr_control",
-        node_executable="main_control_node",
+        executable="main_control_node",
     )
 
     motor_control = Node(
         package="motor_control",
-        node_executable="motor_control_node"
+        executable="motor_control_node"
     )
 
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
+    ld.add_action(joystick_node)
 
     return ld
