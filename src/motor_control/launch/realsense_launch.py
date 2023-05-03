@@ -17,13 +17,13 @@ def generate_launch_description():
                     ('/color/camera_info', '/camera_info')]
     )
 
-    apriltag_container = ComposableNodeContainer(
+    realsense_container = ComposableNodeContainer(
         package='rclcpp_components',
-        name='apriltag_container',
+        name='realsense_container',
         namespace='',
         executable='component_container_mt',
         composable_node_descriptions=[realsense_camera_node],
         output='screen'
     )
 
-    return launch.LaunchDescription([apriltag_container])
+    return launch.LaunchDescription([realsense_container])
