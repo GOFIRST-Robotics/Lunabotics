@@ -148,8 +148,8 @@ class MainControlNode(Node):
         self.camera_view_toggled = False
 
         # By default these camera streams will not exist yet
-        self.camera0 = None
-        self.camera1 = None
+        self.front_camera = None
+        self.back_camera = None
         # By default these processes will also not exist yet
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
@@ -296,16 +296,16 @@ class MainControlNode(Node):
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
             self.camera_view_toggled = not self.camera_view_toggled
-            if self.camera_view_toggled: # Start streaming /dev/video0 on port 5000
-                if self.camera1 is not None:
-                    os.killpg(os.getpgid(self.camera1.pid), signal.SIGTERM) # Kill the self.camera1 process
-                    self.camera1 = None
-                self.camera0 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110 port=5000', shell=True, preexec_fn=os.setsid)
-            else: # Start streaming /dev/video1 on port 5000
-                if self.camera0 is not None:
-                    os.killpg(os.getpgid(self.camera0.pid), signal.SIGTERM) # Kill the self.camera0 process
-                    self.camera0 = None
-                self.camera1 = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/video1 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110 port=5000', shell=True, preexec_fn=os.setsid)
+            if self.camera_view_toggled: # Start streaming /dev/front_webcam on port 5000
+                if self.back_camera is not None:
+                    os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM) # Kill the self.back_camera process
+                    self.back_camera = None
+                self.front_camera = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110 port=5000', shell=True, preexec_fn=os.setsid)
+            else: # Start streaming /dev/back_webcam on port 5000
+                if self.front_camera is not None:
+                    os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM) # Kill the self.front_camera process
+                    self.front_camera = None
+                self.back_camera = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110 port=5000', shell=True, preexec_fn=os.setsid)
 
         # Update new button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
