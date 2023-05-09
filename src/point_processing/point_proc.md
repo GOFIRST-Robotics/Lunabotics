@@ -26,6 +26,7 @@ It will accept any PointCloud2 message, and the topic can be changed on line 40 
 The node can be compiled and run using the usual commands:
 
 `colcon build --packages-select point_processing`
+
 `ros2 run point_processing pointcloud_subscriber`
 
 To run the test publisher node, a .ply sample file must be provided:

@@ -14,8 +14,8 @@ import numpy as np
 import open3d as o3d
 
 #define constants
-CELL_SIZE = 10 #size of each cell in mm
-CELL_POINTS_CUTOFF = 5 # minimum number of points required for a cell to be considered statistically valuable\
+CELL_SIZE = 40 #size of each cell in mm
+CELL_POINTS_CUTOFF = 2 # minimum number of points required for a cell to be considered statistically valuable\
 GRAD_THRESH = 1 # gradient threshold to mark a cell as dangerous, always positive, 1 = 45 degrees
 
 class Cell:
@@ -57,9 +57,9 @@ class PointcloudSubscriber(Node):
         #
         #for row in sortedPoints: # print danger level of all cells, can be used for debugging
         #    self.get_logger().info(f'{np.array([cell.danger for cell in row])}')
+        #self.get_logger().info(f'new line')
         #
         # The rest here is for visualization. (modified from https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_subscriber/pcd_subscriber_node.py)
-        '''
         self.vis.remove_geometry(self.o3d_pcd)
         self.o3d_pcd = o3d.geometry.PointCloud(
                             o3d.utility.Vector3dVector(allPoints))
@@ -70,7 +70,6 @@ class PointcloudSubscriber(Node):
         #
         self.vis.poll_events()
         self.vis.update_renderer()
-        '''
     #
     def points_to_cells(self, allPoints):
         """convert list of points from pointcloud input into 2d array of lists of points"""
@@ -122,11 +121,14 @@ class PointcloudSubscriber(Node):
         """Take cells of points and find the dangerous ones"""
         # the follow could be improved by screening out outliers in the cell or marking as dangeorus cells with high variance
         for i, cellRow in enumerate(sortedPoints):
+            #self.get_logger().info(f'{len(cellRow)}')
             for j, cell in enumerate(cellRow):
+                #self.get_logger().info(f'cell at {i}, {j}, len {len(cell.points)}')
                 if len(cell.points) < CELL_POINTS_CUTOFF: # determine if the cell has too few points to be valuable
                     #self.get_logger().info(f'setting danger to 1')
                     cell.danger = 1
-                    break
+                    #self.get_logger().info(f'cell danger at {cell.danger}')
+                    continue
                 else: # cell has enough points, now check gradients to neighboring cells
                     #
                     cell.avg = sum(v[2] for v in cell.points) / len(cell.points) # set average z value of the cell
@@ -135,22 +137,22 @@ class PointcloudSubscriber(Node):
                         if(i != 0):# cell isn't first to be checked
                             if(sortedPoints[i-1][0].danger == 1):
                                 cell.danger = 2
-                                break
+                                continue
                             x_grad = self.get_gradient(cell.avg, sortedPoints[i-1][0].avg)
                             if(x_grad > GRAD_THRESH):
                                 cell.danger = 2
                     else:
                         if(sortedPoints[i][j-1].danger == 1):
                             cell.danger = 2
-                            break
+                            continue
                         y_grad = self.get_gradient(cell.avg, sortedPoints[i][j-1].avg) #check top gradient
                         if(y_grad > GRAD_THRESH):
                             cell.danger = 2
-                            break
+                            continue
                         if(i != 0):# check left gradient also
                             if(sortedPoints[i-1][0].danger == 1):
                                 cell.danger = 2
-                                break
+                                continue
                             x_grad = self.get_gradient(cell.avg, sortedPoints[i-1][0].avg)
                             if(x_grad > GRAD_THRESH):
                                 cell.danger = 2                       
