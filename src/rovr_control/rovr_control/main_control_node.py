@@ -31,7 +31,7 @@ buttons = [0] * 12 # This is to help with button press detection
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Auto_Offload': 3, 'Emergency_Stop': 4}
 # Define the maximum driving power of the robot (measured in duty cycle)
-dig_driving_power = 0.5 # The power to drive at while autonomously digging
+autonomous_driving_power = 0.3 # The power to drive at while autonomously digging/offloading
 max_drive_power = 1.0
 max_turn_power = 1.0
     
@@ -75,7 +75,7 @@ class MainControlNode(Node):
             if self.arduino.read() == 'f'.encode('utf_8'):
                 break
         
-        self.drive(dig_driving_power, 0.0) # Start driving forward slowly
+        self.drive(autonomous_driving_power, 0.0) # Start driving forward slowly
         time.sleep(20) # TODO: Tune this timing (How long do we want to drive for while digging? Or should we be fancy and drive to a pose with SLAM instead?)
         self.stop() # Stop the drivetrain
         self.digger(False) # Stop the digger
@@ -97,14 +97,14 @@ class MainControlNode(Node):
         # Search for an Apriltag before continuing
         print('Searching for an Apriltag to dock with...')
         apriltag_x.value = 0.0
-        self.drive(0.0, 0.3) # Turn slowly to look for an Apriltag
+        time.sleep(0.05) # Add a small delay to see if we can see an Apriltag already
         while apriltag_x.value == 0.0:
-            pass
+            self.drive(0.0, 0.3) # Turn slowly to look for an Apriltag
         print(f'Apriltag found! x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
         self.stop()
 
         while apriltag_z.value >= 1: # Continue correcting until we are within 1 meter of the tag #TODO: Tune this distance
-            self.drive(0.5*apriltag_z.value, 0.6*apriltag_yaw.value) #TODO: Tune both of these P constants on the actual robot
+            self.drive(autonomous_driving_power, 0.5*apriltag_yaw.value + 0.5*apriltag_x.value) #TODO: Tune both of these P constants on the actual robot
             print(f'Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
             time.sleep(0.05) # Add a small delay so we don't overload ROS with too many messages
         self.stop()
