@@ -10,7 +10,7 @@ ezButton limit_switch_retract(7); // retract limit switch pin
 bool extending = false;
 bool retracting = false;
 
-char speed = 150; // PWM value ranges between 0-255
+char buffer[2]; // Store serial data
 
 // put setup code in this method to run once:
 void setup() {
@@ -29,9 +29,9 @@ void loop() {
   limit_switch_retract.loop(); // this method from the ezButton library needs to be called every code cycle
 
   if (Serial.available()) { // check if data is available to be read from the serial buffer
-    char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-    if (data_received == 'e') extend(speed); // extend the linear actuator
-    if (data_received == 'r') retract(speed); // retract the linear actuator
+    Serial.readBytes(buffer, 2);
+    if (buffer[0] == 'e') extend(buffer[1]); // extend the linear actuator
+    if (buffer[0] == 'r') retract(buffer[1]); // retract the linear actuator
   }
 
   // check if the extend limit switch is pressed and we are currently extending
