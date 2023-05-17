@@ -10,7 +10,7 @@ ezButton limit_switch_retract(7); // retract limit switch pin
 bool extending = false;
 bool retracting = false;
 
-int speed = 50; // PWM value ranges between 0-255
+char speed = 50; // PWM value ranges between 0-255
 
 // put setup code in this method to run once:
 void setup() {
@@ -48,7 +48,7 @@ void loop() {
 }
 
 // extend the linear actuator by running the motor forwards
-void extend(int speed) {
+void extend(char speed) {
   extending = true;
   retracting = false;
   analogWrite(extend_pin, speed);
@@ -57,7 +57,7 @@ void extend(int speed) {
 }
 
 // retract the linear actuator by running the motor in reverse
-void retract(int speed) {
+void retract(char speed) {
   retracting = true;
   extending = false;
   analogWrite(extend_pin, 0);
