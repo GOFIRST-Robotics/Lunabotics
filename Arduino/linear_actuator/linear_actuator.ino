@@ -30,8 +30,8 @@ void loop() {
 
   if (Serial.available()) { // check if data is available to be read from the serial buffer
     char data_received = Serial.read(); // read one byte from the serial buffer and save to data_received
-    if (data_received == 'e') extend(); // extend the linear actuator
-    if (data_received == 'r') retract(); // retract the linear actuator
+    if (data_received == 'e') extend(speed); // extend the linear actuator
+    if (data_received == 'r') retract(speed); // retract the linear actuator
   }
 
   // check if the extend limit switch is pressed and we are currently extending
@@ -48,7 +48,7 @@ void loop() {
 }
 
 // extend the linear actuator by running the motor forwards
-void extend() {
+void extend(int speed) {
   extending = true;
   retracting = false;
   analogWrite(extend_pin, speed);
@@ -57,7 +57,7 @@ void extend() {
 }
 
 // retract the linear actuator by running the motor in reverse
-void retract() {
+void retract(int speed) {
   retracting = true;
   extending = false;
   analogWrite(extend_pin, 0);
