@@ -10,6 +10,8 @@ ezButton limit_switch_retract(7); // retract limit switch pin
 bool extending = false;
 bool retracting = false;
 
+int speed = 50; // PWM value ranges between 0-255
+
 // put setup code in this method to run once:
 void setup() {
   Serial.begin(9600); // open serial communication with a baud rate of 9600 bps
@@ -49,8 +51,8 @@ void loop() {
 void extend() {
   extending = true;
   retracting = false;
-  digitalWrite(extend_pin, HIGH);
-  digitalWrite(retract_pin, LOW);
+  analogWrite(extend_pin, speed);
+  analogWrite(retract_pin, 0);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 }
 
@@ -58,15 +60,15 @@ void extend() {
 void retract() {
   retracting = true;
   extending = false;
-  digitalWrite(extend_pin, LOW);
-  digitalWrite(retract_pin, HIGH);
+  analogWrite(extend_pin, 0);
+  analogWrite(retract_pin, speed);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 }
 
 // stop the linear actuator motor
 void stop_actuator() {
-  digitalWrite(extend_pin, LOW);
-  digitalWrite(retract_pin, LOW);
+  analogWrite(extend_pin, 0);
+  analogWrite(retract_pin, 0);
   digitalWrite(LED_BUILTIN, LOW); // Turn off the built-in LED
   extending = false;
   retracting = false;
