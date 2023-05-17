@@ -10,7 +10,7 @@ ezButton limit_switch_retract(7); // retract limit switch pin
 bool extending = false;
 bool retracting = false;
 
-char speed = 50; // PWM value ranges between 0-255
+char speed = 150; // PWM value ranges between 0-255
 
 // put setup code in this method to run once:
 void setup() {
