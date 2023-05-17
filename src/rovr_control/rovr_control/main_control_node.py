@@ -153,6 +153,8 @@ class MainControlNode(Node):
         # By default these processes will also not exist yet
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
+        
+        self.apriltag_camera_x_offset = 0.5 # Measured in Meters # TODO : Adjust this offset!
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
@@ -179,7 +181,7 @@ class MainControlNode(Node):
         # Create a PoseWithCovarianceStamped object from the Apriltag detection
         pose_object = PoseWithCovarianceStamped()
         pose_object.header = entry.header
-        pose_object.pose.pose.position.x = entry.transform.translation.x
+        pose_object.pose.pose.position.x = entry.transform.translation.x + self.apriltag_camera_x_offset
         pose_object.pose.pose.position.y = entry.transform.translation.y
         pose_object.pose.pose.position.z = entry.transform.translation.z
         pose_object.pose.pose.orientation.x = entry.transform.rotation.x
@@ -190,7 +192,7 @@ class MainControlNode(Node):
         self.apriltag_pose_publisher.publish(pose_object)
 
         # Set the value of these variables used for docking with an Apriltag
-        self.apriltag_x.value = entry.transform.translation.x # Left-Right Distance to the tag (measured in meters)
+        self.apriltag_x.value = entry.transform.translation.x + self.apriltag_camera_x_offset # Left-Right Distance to the tag (measured in meters)
         self.apriltag_z.value = entry.transform.translation.z # Foward-Backward Distance to the tag (measured in meters)
         self.apriltag_yaw.value = entry.transform.rotation.y # Yaw Angle error to the tag's orientation (measured in radians)
 
