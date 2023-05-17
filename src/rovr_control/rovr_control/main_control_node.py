@@ -34,6 +34,8 @@ states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Auto_Offload': 3, 'Emerg
 autonomous_driving_power = 0.3 # The power to drive at while autonomously digging/offloading
 max_drive_power = 1.0
 max_turn_power = 1.0
+
+linear_actuator_speed = 50 # PWM value between 0-255
     
 class MainControlNode(Node):
     
@@ -70,7 +72,7 @@ class MainControlNode(Node):
             if 1900 < digger_RPM.value <  2100:
                 break
         
-        self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
+        self.arduino.write(f'e{chr(linear_actuator_speed)}'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
         while True: # Wait for a confirmation message from the Arduino
             if self.arduino.read() == 'f'.encode('utf_8'):
                 break
@@ -80,7 +82,7 @@ class MainControlNode(Node):
         self.stop() # Stop the drivetrain
         self.digger(False) # Stop the digger
         
-        self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
+        self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
         while True: # Wait for a confirmation message from the Arduino
             if self.arduino.read() == 's'.encode('utf_8'):
                 break
@@ -264,9 +266,9 @@ class MainControlNode(Node):
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
                 self.digger_extend_toggled = not self.digger_extend_toggled
                 if self.digger_extend_toggled:
-                    self.arduino.write('e'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
+                    self.arduino.write(f'e{chr(linear_actuator_speed)}'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
                 else:
-                    self.arduino.write('r'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
+                    self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
