@@ -1,4 +1,7 @@
 #include <ezButton.h> // This library makes it easier for us to work with limit switches
+#include <Servo.h> // Allows us to treat a PWM Talon SRX / Victor SP as a Servo with writeMicroseconds()
+
+Servo victorSpeedController;
 
 const int extend_pin = 10; // motor driver forwards pin
 const int retract_pin = 9; // motor driver reverse pin
@@ -16,11 +19,14 @@ char buffer[2]; // Store serial data
 void setup() {
   Serial.begin(9600); // open serial communication with a baud rate of 9600 bps
 
+  victorSpeedController.attach(3); // Victor SP PWM pin
+
   pinMode(extend_pin, OUTPUT); // Declare extend_pin to be an OUTPUT pin
   pinMode(retract_pin, OUTPUT); // Declare retract_pin to be an OUTPUT pin
   pinMode(LED_BUILTIN, OUTPUT); // This is the built-in LED on the Arduino
 
-  stop_actuator(); // stop the linear actuator
+  stop_actuator(); // stop the linear actuator by default
+  stop_small_actuator(); // stop the small linear actuator by default
 }
 
 // put main loop code in this method to run repeatedly:
@@ -30,8 +36,13 @@ void loop() {
 
   if (Serial.available()) { // check if data is available to be read from the serial buffer
     Serial.readBytes(buffer, 2);
+
     if (buffer[0] == 'e') extend(buffer[1]); // extend the linear actuator
     if (buffer[0] == 'r') retract(buffer[1]); // retract the linear actuator
+
+    if (buffer[0] == 'a') extend_small_actuator(buffer[1]); // extend the small linear actuator
+    if (buffer[0] == 'b') retract_small_actuator(buffer[1]); // retract the small linear actuator
+    if (buffer[0] == 'c') stop_small_actuator(); // stop the small linear actuator
   }
 
   // check if the extend limit switch is pressed and we are currently extending
@@ -55,7 +66,6 @@ void extend(char speed) {
   analogWrite(retract_pin, 0);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 }
-
 // retract the linear actuator by running the motor in reverse
 void retract(char speed) {
   retracting = true;
@@ -64,7 +74,6 @@ void retract(char speed) {
   analogWrite(retract_pin, speed);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 }
-
 // stop the linear actuator motor
 void stop_actuator() {
   analogWrite(extend_pin, 0);
@@ -72,4 +81,19 @@ void stop_actuator() {
   digitalWrite(LED_BUILTIN, LOW); // Turn off the built-in LED
   extending = false;
   retracting = false;
+}
+
+// extend the small linear actuator by running the motor forwards
+void extend_small_actuator(char speed) { // input speed is 0-255
+  int microseconds = 1500+((speed*500)/255);
+  victorSpeedController.writeMicroseconds(microseconds); // 1500-2000 is forwards
+}
+// retract the small linear actuator by running the motor in reverse
+void retract_small_actuator(char speed) { // input speed is 0-255
+  int microseconds = 1500-((speed*500)/255);
+  victorSpeedController.writeMicroseconds(microseconds); // 1000-1500 is reverse
+}
+// stop the small linear actuator motor
+void stop_small_actuator() {
+  victorSpeedController.writeMicroseconds(1500); // Puts the Victor in neutral mode
 }
