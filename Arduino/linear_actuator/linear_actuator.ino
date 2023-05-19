@@ -83,18 +83,18 @@ void stop_actuator() {
 }
 
 // extend the small linear actuator by running the motor forwards
-void extend_small_actuator(char speed) { // input speed is 0-255
+void extend_small_actuator(char speed) { // input speed is 0-100
   long speed_long = speed;
-  int microseconds = 1500+((speed_long*500)/255);
+  int microseconds = 1500+((speed_long*500)/100);
   victorSpeedController.writeMicroseconds(microseconds); // 1500-2000 is forwards
 
   delay(4000); // wait for one second before stopping
   stop_small_actuator();
 }
 // retract the small linear actuator by running the motor in reverse
-void retract_small_actuator(char speed) { // input speed is 0-255
+void retract_small_actuator(char speed) { // input speed is 0-100
   long speed_long = speed;
-  int microseconds = 1500-((speed_long*500)/255);
+  int microseconds = 1500-((speed_long*500)/100);
   victorSpeedController.writeMicroseconds(microseconds); // 1000-1500 is reverse
 
   delay(4000); // wait for one second before stopping
