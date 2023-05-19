@@ -1,10 +1,8 @@
 #include <ezButton.h> // This library makes it easier for us to work with limit switches
 #include <Servo.h> // Allows us to treat a PWM Talon SRX / Victor SP as a Servo with writeMicroseconds()
 
-Servo victorSpeedController;
-
-const int extend_pin = 10; // motor driver forwards pin
-const int retract_pin = 9; // motor driver reverse pin
+Servo small_linear_actuator;
+Servo big_linear_actuator;
 
 ezButton limit_switch_extend(8); // extend limit switch pin
 ezButton limit_switch_retract(7); // retract limit switch pin
@@ -19,14 +17,13 @@ char buffer[2]; // Store serial data
 void setup() {
   Serial.begin(9600); // open serial communication with a baud rate of 9600 bps
 
-  victorSpeedController.attach(3); // Victor SP PWM pin
+  small_linear_actuator.attach(3); // Victor SP PWM pin
+  big_linear_actuator.attach(9); // Victor SP PWM pin
 
-  pinMode(extend_pin, OUTPUT); // Declare extend_pin to be an OUTPUT pin
-  pinMode(retract_pin, OUTPUT); // Declare retract_pin to be an OUTPUT pin
   pinMode(LED_BUILTIN, OUTPUT); // This is the built-in LED on the Arduino
 
   stop_actuator(); // stop the linear actuator by default
-  stop_small_actuator(); // stop the small linear actuator by default
+  victor_stop(small_linear_actuator); // stop the small linear actuator by default
 }
 
 // put main loop code in this method to run repeatedly:
@@ -61,22 +58,19 @@ void loop() {
 void extend(char speed) {
   extending = true;
   retracting = false;
-  analogWrite(extend_pin, speed);
-  analogWrite(retract_pin, 0);
+  victor_set_forward_power(big_linear_actuator, speed);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 }
 // retract the linear actuator by running the motor in reverse
 void retract(char speed) {
   retracting = true;
   extending = false;
-  analogWrite(extend_pin, 0);
-  analogWrite(retract_pin, speed);
+  victor_set_reverse_power(big_linear_actuator, speed);
   digitalWrite(LED_BUILTIN, HIGH); // Turn on the built-in LED
 }
 // stop the linear actuator motor
 void stop_actuator() {
-  analogWrite(extend_pin, 0);
-  analogWrite(retract_pin, 0);
+  victor_stop(big_linear_actuator);
   digitalWrite(LED_BUILTIN, LOW); // Turn off the built-in LED
   extending = false;
   retracting = false;
@@ -84,23 +78,27 @@ void stop_actuator() {
 
 // extend the small linear actuator by running the motor forwards
 void extend_small_actuator(char speed) { // input speed is 0-100
-  long speed_long = speed;
-  int microseconds = 1500+((speed_long*500)/100);
-  victorSpeedController.writeMicroseconds(microseconds); // 1500-2000 is forwards
-
-  delay(4000); // wait for one second before stopping
-  stop_small_actuator();
+  victor_set_forward_power(small_linear_actuator, speed);
+  delay(4000); // wait for 4 seconds before stopping
+  victor_stop(small_linear_actuator); // stop the small linear actuator
 }
 // retract the small linear actuator by running the motor in reverse
 void retract_small_actuator(char speed) { // input speed is 0-100
+  victor_set_reverse_power(small_linear_actuator, speed);
+  delay(4000); // wait for 4 seconds before stopping
+  victor_stop(small_linear_actuator); // stop the small linear actuator
+}
+
+void victor_set_forward_power(Servo victor, char speed) { // input speed is 0-100
+  long speed_long = speed;
+  int microseconds = 1500+((speed_long*500)/100);
+  victor.writeMicroseconds(microseconds); // 1500-2000 is forwards
+}
+void victor_set_reverse_power(Servo victor, char speed) { // input speed is 0-100
   long speed_long = speed;
   int microseconds = 1500-((speed_long*500)/100);
-  victorSpeedController.writeMicroseconds(microseconds); // 1000-1500 is reverse
-
-  delay(4000); // wait for one second before stopping
-  stop_small_actuator();
+  victor.writeMicroseconds(microseconds); // 1000-1500 is reverse
 }
-// stop the small linear actuator motor
-void stop_small_actuator() {
-  victorSpeedController.writeMicroseconds(1500); // Puts the Victor in neutral mode
+void victor_stop(Servo victor) {
+  victor.writeMicroseconds(1500); // Puts the Victor in neutral mode
 }

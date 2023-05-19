@@ -35,8 +35,8 @@ autonomous_driving_power = 0.3 # The power to drive at while autonomously diggin
 max_drive_power = 1.0
 max_turn_power = 1.0
 
-linear_actuator_speed = 150 # PWM value between 0-255
-small_linear_actuator_speed = 100 # PWM value between 0-255
+linear_actuator_speed = 50 # Value between 0-100
+small_linear_actuator_speed = 100 # Value between 0-100
     
 class MainControlNode(Node):
     
