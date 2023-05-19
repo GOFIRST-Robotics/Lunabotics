@@ -42,7 +42,6 @@ void loop() {
 
     if (buffer[0] == 'a') extend_small_actuator(buffer[1]); // extend the small linear actuator
     if (buffer[0] == 'b') retract_small_actuator(buffer[1]); // retract the small linear actuator
-    if (buffer[0] == 'c') stop_small_actuator(); // stop the small linear actuator
   }
 
   // check if the extend limit switch is pressed and we are currently extending
@@ -87,11 +86,17 @@ void stop_actuator() {
 void extend_small_actuator(char speed) { // input speed is 0-255
   int microseconds = 1500+((speed*500)/255);
   victorSpeedController.writeMicroseconds(microseconds); // 1500-2000 is forwards
+
+  delay(1000); // wait for one second before stopping
+  stop_small_actuator();
 }
 // retract the small linear actuator by running the motor in reverse
 void retract_small_actuator(char speed) { // input speed is 0-255
   int microseconds = 1500-((speed*500)/255);
   victorSpeedController.writeMicroseconds(microseconds); // 1000-1500 is reverse
+
+  delay(1000); // wait for one second before stopping
+  stop_small_actuator();
 }
 // stop the small linear actuator motor
 void stop_small_actuator() {

@@ -36,6 +36,7 @@ max_drive_power = 1.0
 max_turn_power = 1.0
 
 linear_actuator_speed = 150 # PWM value between 0-255
+small_linear_actuator_speed = 200 # PWM value between 0-255
     
 class MainControlNode(Node):
     
@@ -269,6 +270,12 @@ class MainControlNode(Node):
                     self.arduino.write(f'e{chr(linear_actuator_speed)}'.encode('utf_8')) # Tell the Arduino to extend the linear actuator
                 else:
                     self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('utf_8')) # Tell the Arduino to retract the linear actuator
+                    
+            # Small linear actuator controls
+            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
+                self.arduino.write(f'a{chr(small_linear_actuator_speed)}'.encode('utf_8')) # Extend the small linear actuator
+            if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
+                self.arduino.write(f'b{chr(small_linear_actuator_speed)}'.encode('utf_8')) # Retract the small linear actuator
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
