@@ -31,7 +31,7 @@ buttons = [0] * 12 # This is to help with button press detection
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Auto_Offload': 3, 'Emergency_Stop': 4}
 # Define the maximum driving power of the robot (measured in duty cycle)
-autonomous_driving_power = 0.3 # The power to drive at while autonomously digging/offloading
+autonomous_driving_power = 0.25 # The power to drive at while autonomously digging/offloading
 max_drive_power = 1.0
 max_turn_power = 1.0
 
@@ -78,8 +78,8 @@ class MainControlNode(Node):
             if self.arduino.read() == 'f'.encode('ascii'):
                 break
         
-        self.drive(autonomous_driving_power, 0.0) # Start driving forward slowly
-        time.sleep(20) # TODO: Tune this timing (How long do we want to drive for while digging? Or should we be fancy and drive to a pose with SLAM instead?)
+        self.drive(-1 * autonomous_driving_power, 0.0) # Start driving backwards slowly
+        time.sleep(10) # TODO: Tune this timing (How long do we want to drive for while digging? Or should we be fancy and drive to a pose with SLAM instead?)
         self.stop() # Stop the drivetrain
         self.digger(False) # Stop the digger
         
