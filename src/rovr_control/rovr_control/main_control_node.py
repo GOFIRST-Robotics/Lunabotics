@@ -27,7 +27,7 @@ import os # Allows us to kill subprocesses
 from .gamepad_constants import *
 
 # GLOBAL VARIABLES #
-buttons = [0] * 12 # This is to help with button press detection
+buttons = [0] * 11 # This is to help with button press detection
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2, 'Auto_Offload': 3, 'Emergency_Stop': 4}
 # Define the maximum driving power of the robot (measured in duty cycle)

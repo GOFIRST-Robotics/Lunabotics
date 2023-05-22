@@ -34,7 +34,7 @@ uint32_t CONVEYOR_BELT_MOTOR = 6;
 uint32_t OFFLOAD_BELT_MOTOR = 5;
 
 // Define Motor Power/Speeds Here //
-float DIGGER_ROTATION_SPEED = 2000; // Measured in RPM
+float DIGGER_ROTATION_SPEED = 0.4; // Measured in duty cycle
 float DRUM_BELT_POWER = 0.15;
 float CONVEYOR_BELT_POWER = 0.35;
 float OFFLOAD_BELT_POWER = 0.5;
@@ -165,7 +165,7 @@ private:
     drive(linear_drive_power_cmd, angular_drive_power_cmd);
 
     // Send digging CAN messages
-    vesc_set_RPM(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_SPEED : 0.0);
+    vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_SPEED * -1 : 0.0);
     vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? DRUM_BELT_POWER * -1 : 0.0);
     vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? CONVEYOR_BELT_POWER : 0.0);
 
