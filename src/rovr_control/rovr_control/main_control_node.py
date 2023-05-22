@@ -157,7 +157,7 @@ class MainControlNode(Node):
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
         
-        self.apriltag_camera_x_offset = 0.5 # Measured in Meters # TODO : Adjust this offset!
+        self.apriltag_camera_x_offset = 0.1905 # Measured in Meters
 
         # Actuators Publisher
         self.actuators_publisher = self.create_publisher(String, 'cmd_actuators', 10)
