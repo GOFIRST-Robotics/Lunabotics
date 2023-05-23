@@ -311,12 +311,12 @@ class MainControlNode(Node):
                 if self.back_camera is not None:
                     os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM) # Kill the self.back_camera process
                     self.back_camera = None
-                self.front_camera = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.249 port=5000', shell=True, preexec_fn=os.setsid)
+                self.front_camera = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.117 port=5000', shell=True, preexec_fn=os.setsid)
             else: # Start streaming /dev/back_webcam on port 5000
                 if self.front_camera is not None:
                     os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM) # Kill the self.front_camera process
                     self.front_camera = None
-                self.back_camera = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=200 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.249 port=5000', shell=True, preexec_fn=os.setsid)
+                self.back_camera = subprocess.Popen('gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.117 port=5000', shell=True, preexec_fn=os.setsid)
 
         # Update new button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
