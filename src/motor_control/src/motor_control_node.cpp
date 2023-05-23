@@ -34,7 +34,7 @@ uint32_t CONVEYOR_BELT_MOTOR = 6;
 uint32_t OFFLOAD_BELT_MOTOR = 5;
 
 // Define Motor Power/Speeds Here //
-float DIGGER_ROTATION_SPEED = 0.4; // Measured in duty cycle
+float DIGGER_ROTATION_SPEED = 0.6; // Measured in duty cycle
 float DRUM_BELT_POWER = 0.15;
 float CONVEYOR_BELT_POWER = 0.35;
 float OFFLOAD_BELT_POWER = 0.5;
