@@ -301,7 +301,11 @@ class MainControlNode(Node):
         else:
           # Tell the Arduino to retract the linear actuator
           self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('ascii'))
-
+          
+      # Stop the linear actuator
+      if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
+        self.arduino.write(f'e{chr(0)}'.encode('ascii')) # Send stop command to the Arduino
+          
       # Small linear actuator controls
       if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
         self.arduino.write(f'a{chr(small_linear_actuator_speed)}'.encode(
@@ -313,7 +317,7 @@ class MainControlNode(Node):
     # THE CONTROLS BELOW ALWAYS WORK #
 
     # Check if the autonomous digging button is pressed
-    if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
+    if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
       if self.current_state.value == states['Teleop']:
         self.current_state.value = states['Auto_Dig']
         self.autonomous_digging_process = multiprocessing.Process(
@@ -327,21 +331,22 @@ class MainControlNode(Node):
         self.current_state.value = states['Teleop']
         self.autonomous_digging_process.kill()  # Kill the auto dig process
         print('Autonomous Digging Procedure Terminated\n')
+        
     # Check if the autonomous offload button is pressed
-    if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
-      if self.current_state.value == states['Teleop']:
-        self.current_state.value = states['Auto_Offload']
-        self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[
-                                                                  self.current_state, self.apriltag_x, self.apriltag_z, self.apriltag_yaw])
-        self.autonomous_offload_process.start()  # Start the auto dig process
-        # After we finish this autonomous operation, start with the digger off
-        self.digger_toggled = False
-        # After we finish this autonomous operation, start with the offloader off
-        self.offloader_toggled = False
-      elif self.current_state.value == states['Auto_Offload']:
-        self.current_state.value = states['Teleop']
-        self.autonomous_offload_process.kill()  # Kill the auto dig process
-        print('Autonomous Offload Procedure Terminated\n')
+    # if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
+    #   if self.current_state.value == states['Teleop']:
+    #     self.current_state.value = states['Auto_Offload']
+    #     self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[
+    #                                                               self.current_state, self.apriltag_x, self.apriltag_z, self.apriltag_yaw])
+    #     self.autonomous_offload_process.start()  # Start the auto dig process
+    #     # After we finish this autonomous operation, start with the digger off
+    #     self.digger_toggled = False
+    #     # After we finish this autonomous operation, start with the offloader off
+    #     self.offloader_toggled = False
+    #   elif self.current_state.value == states['Auto_Offload']:
+    #     self.current_state.value = states['Teleop']
+    #     self.autonomous_offload_process.kill()  # Kill the auto dig process
+    #     print('Autonomous Offload Procedure Terminated\n')
 
     # Check if the camera toggle button is pressed
     if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
