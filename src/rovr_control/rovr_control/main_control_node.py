@@ -37,7 +37,7 @@ autonomous_driving_power = 0.25
 max_drive_power = 1.0
 max_turn_power = 1.0
 
-linear_actuator_speed = 25  # Value between 0-100
+linear_actuator_speed = 10  # Value between 0-100
 small_linear_actuator_speed = 100  # Value between 0-100
 
 
