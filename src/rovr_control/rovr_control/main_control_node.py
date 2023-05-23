@@ -68,10 +68,7 @@ class MainControlNode(Node):
         self.offloader(False) # Stop the offloader if it is currently running
 
         self.arduino.read_all() # Read all messages from the serial buffer to clear them out
-        # Wait for the digger motor to reach our target speed interval (measured in RPM)
-        while True:
-            if 1900 < digger_RPM.value <  2100:
-                break
+        time.sleep(2)  # Wait a bit for the digger motor to get up to speed
         
         self.arduino.write(f'e{chr(linear_actuator_speed)}'.encode('ascii')) # Tell the Arduino to extend the linear actuator
         while True: # Wait for a confirmation message from the Arduino
