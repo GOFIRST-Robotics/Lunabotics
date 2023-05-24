@@ -42,15 +42,18 @@ linear_actuator_speed = 10  # Value between 0-100
 small_linear_actuator_speed = 100  # Value between 0-100
 
 
-def get_target_ip(target: str, default: str = ''):
+def get_target_ip(target: str, default: str = '', logger_fn=print):
   try:
     nmap = subprocess.Popen(
         ('nmap', '-sn', '192.168.1.1/24'), stdout=subprocess.PIPE)
     grep = subprocess.check_output(('grep', target), stdin=nmap.stdout)
     nmap.wait()
-    res = grep.decode()
-    return re.sub(r'.*\((.*)\).*', r'\g<1>', res) or default
+    res = re.sub(r'.*\((.*)\).*', r'\g<1>', grep.decode())
+    if not res:
+      raise Exception('target not found')
+    return res
   except:
+    logger_fn(f'target not found; defaulting to {default}')
     return default
 
 
@@ -151,7 +154,8 @@ class MainControlNode(Node):
 
   def __init__(self):
     super().__init__('rovr_control')
-    self.target_ip = get_target_ip('blixt-G14', '192.168.1.117')
+    self.target_ip = get_target_ip(
+      'blixt-G14', '192.168.1.117', self.get_logger().info)
     self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
 
     # Try connecting to the Arduino over Serial
