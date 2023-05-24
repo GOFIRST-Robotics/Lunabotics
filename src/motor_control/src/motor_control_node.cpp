@@ -35,7 +35,7 @@ uint32_t OFFLOAD_BELT_MOTOR = 5;
 
 // Define Motor Power/Speeds Here //
 float DIGGER_ROTATION_SPEED = 0.4; // Measured in duty cycle
-float DRUM_BELT_POWER = 0.25;
+float DRUM_BELT_POWER = 0.2;
 float CONVEYOR_BELT_POWER = 0.35;
 float OFFLOAD_BELT_POWER = 0.5;
 
@@ -129,15 +129,15 @@ private:
     uint32_t RPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
     uint16_t dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 10;
 
-    RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-    RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
+    //RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
+    //RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
 
     current_digger_RPM = RPM;
   }
 
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
-    //RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
+    RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
     
     // Parse the msg for our toggleable motor actions
     if(msg->data.find("DIGGER_ON") != std::string::npos) {

@@ -38,7 +38,8 @@ autonomous_driving_power = 0.25
 max_drive_power = 1.0
 max_turn_power = 1.0
 
-linear_actuator_speed = 10  # Value between 0-100
+linear_actuator_speed = 8  # Value between 0-100
+linear_actuator_up_speed = 40  # Value between 0-100
 small_linear_actuator_speed = 100  # Value between 0-100
 
 
@@ -55,7 +56,6 @@ def get_target_ip(target: str, default: str = '', logger_fn=print):
   except:
     logger_fn(f'target not found; defaulting to {default}')
     return default
-
 
 class MainControlNode(Node):
 
@@ -78,7 +78,6 @@ class MainControlNode(Node):
   # Stop the drivetrain
   def stop(self):
     self.drive(0.0, 0.0)
-
   # This method lays out the procedure for autonomously digging!
 
   def auto_dig_procedure(self, state, digger_RPM):
@@ -96,7 +95,7 @@ class MainControlNode(Node):
         break
 
     # Tell the Arduino to retract the linear actuator
-    self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('ascii'))
+    self.arduino.write(f'r{chr(linear_actuator_up_speed)}'.encode('ascii'))
     while True:  # Wait for a confirmation message from the Arduino
       if self.arduino.read() == 's'.encode('ascii'):
         break
@@ -212,7 +211,6 @@ class MainControlNode(Node):
       Float32, 'digger_RPM', self.digger_RPM_callback, 10)
 
   # Process Apriltag Detections
-
   def apriltags_callback(self, msg):
     array = msg.transforms
     entry = array.pop()
@@ -248,25 +246,26 @@ class MainControlNode(Node):
 
   # This method publishes the given actuator command to 'cmd_actuators'
 
-  def publish_actuator_cmd(self, cmd):
+  def publish_actuator_cmd(self, cmd: str):
     msg = String()
     msg.data = cmd
+    print(f"publishing {msg.data}")
     self.actuators_publisher.publish(msg)
     # self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
   # Turns the digger on or off
-  def digger(self, on):
+  def digger(self, on: bool):
     if on:
-      self.publish_actuator_cmd("DIGGER_ON")
+      self.publish_actuator_cmd(" DIGGER_ON")
     else:
-      self.publish_actuator_cmd("DIGGER_OFF")
+      self.publish_actuator_cmd(" DIGGER_OFF")
   # Turns the offloader on or off
 
   def offloader(self, on):
     if on:
-      self.publish_actuator_cmd("OFFLOADER_ON")
+      self.publish_actuator_cmd(" OFFLOADER_ON")
     else:
-      self.publish_actuator_cmd("OFFLOADER_OFF")
+      self.publish_actuator_cmd(" OFFLOADER_OFF")
 
   # Publish a message detailing what all the actuators should be doing
   def actuators_timer_callback(self):
@@ -314,7 +313,7 @@ class MainControlNode(Node):
           self.arduino.write(f'e{chr(linear_actuator_speed)}'.encode('ascii'))
         else:
           # Tell the Arduino to retract the linear actuator
-          self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('ascii'))
+          self.arduino.write(f'r{chr(linear_actuator_up_speed)}'.encode('ascii'))
 
       # Stop the linear actuator
       if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
@@ -338,14 +337,14 @@ class MainControlNode(Node):
         self.autonomous_digging_process = multiprocessing.Process(
           target=self.auto_dig_procedure, args=[self.current_state, self.current_digger_RPM])
         self.autonomous_digging_process.start()  # Start the auto dig process
-        # After we finish this autonomous operation, start with the digger off
-        self.digger_toggled = False
-        # After we finish this autonomous operation, start with the offloader off
-        self.offloader_toggled = False
       elif self.current_state.value == states['Auto_Dig']:
         self.current_state.value = states['Teleop']
         self.autonomous_digging_process.kill()  # Kill the auto dig process
         print('Autonomous Digging Procedure Terminated\n')
+        # After we finish this autonomous operation, start with the digger off
+        self.digger_toggled = False
+        # After we finish this autonomous operation, start with the offloader off
+        self.offloader_toggled = False
 
     # Check if the autonomous offload button is pressed
     # if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
@@ -371,15 +370,17 @@ class MainControlNode(Node):
           # Kill the self.back_camera process
           os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
           self.back_camera = None
+        self.get_logger().info(f'using ip {self.target_ip}')
         self.front_camera = subprocess.Popen(
-          f'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={self.target_ip} port=5000', shell=True, preexec_fn=os.setsid)
+          f'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110 port=5000', shell=True, preexec_fn=os.setsid)
       else:  # Start streaming /dev/back_webcam on port 5000
         if self.front_camera is not None:
           # Kill the self.front_camera process
           os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM)
           self.front_camera = None
+        self.get_logger().info(f'using ip {self.target_ip}')
         self.back_camera = subprocess.Popen(
-          f'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={self.target_ip} port=5000', shell=True, preexec_fn=os.setsid)
+          f'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110  port=5000', shell=True, preexec_fn=os.setsid)
 
     # Update new button states (this allows us to detect changing button states)
     for index in range(len(buttons)):
