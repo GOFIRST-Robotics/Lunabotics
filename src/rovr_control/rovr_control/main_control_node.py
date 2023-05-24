@@ -42,7 +42,7 @@ linear_actuator_speed = 10  # Value between 0-100
 small_linear_actuator_speed = 100  # Value between 0-100
 
 
-def get_target_ip(target: str, default: str | None):
+def get_target_ip(target: str, default: str = ''):
   try:
     nmap = subprocess.Popen(
         ('nmap', '-sn', '192.168.1.1/24'), stdout=subprocess.PIPE)
