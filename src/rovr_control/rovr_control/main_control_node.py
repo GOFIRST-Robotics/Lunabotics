@@ -22,6 +22,7 @@ import signal  # Allows us to kill subprocesses
 import serial  # Serial communication with the Arduino. Install with: <sudo pip3 install pyserial>
 import time  # This is for time.sleep()
 import os  # Allows us to kill subprocesses
+import re  # Enables using regular expressions
 
 # Import our gamepad button mappings
 from .gamepad_constants import *
@@ -39,6 +40,18 @@ max_turn_power = 1.0
 
 linear_actuator_speed = 10  # Value between 0-100
 small_linear_actuator_speed = 100  # Value between 0-100
+
+
+def get_target_ip(target: str, default: str | None):
+  try:
+    nmap = subprocess.Popen(
+        ('nmap', '-sn', '192.168.1.1/24'), stdout=subprocess.PIPE)
+    grep = subprocess.check_output(('grep', target), stdin=nmap.stdout)
+    nmap.wait()
+    res = grep.decode()
+    return re.sub(r'.*\((.*)\).*', r'\g<1>', res) or default
+  except:
+    return default
 
 
 class MainControlNode(Node):
@@ -84,7 +97,7 @@ class MainControlNode(Node):
     while True:  # Wait for a confirmation message from the Arduino
       if self.arduino.read() == 's'.encode('ascii'):
         break
-      
+
     self.digger(False)  # Stop the digger
 
     print('Autonomous Digging Procedure Complete!\n')  # Print to the terminal
@@ -138,8 +151,6 @@ class MainControlNode(Node):
 
   def __init__(self):
     super().__init__('rovr_control')
-    
-    self.declare_parameter('ip', '192.168.1.117') # Default Value
 
     # Try connecting to the Arduino over Serial
     try:
@@ -270,8 +281,6 @@ class MainControlNode(Node):
   # When a joystick input is recieved, this callback method processes the input accordingly
 
   def joystick_callback(self, msg):
-    
-    ip_param = self.get_parameter('ip').get_parameter_value().string_value
 
     # TELEOP CONTROLS BELOW #
 
@@ -300,11 +309,12 @@ class MainControlNode(Node):
         else:
           # Tell the Arduino to retract the linear actuator
           self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('ascii'))
-          
+
       # Stop the linear actuator
       if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
-        self.arduino.write(f'e{chr(0)}'.encode('ascii')) # Send stop command to the Arduino
-          
+        # Send stop command to the Arduino
+        self.arduino.write(f'e{chr(0)}'.encode('ascii'))
+
       # Small linear actuator controls
       if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
         self.arduino.write(f'a{chr(small_linear_actuator_speed)}'.encode(
@@ -330,7 +340,7 @@ class MainControlNode(Node):
         self.current_state.value = states['Teleop']
         self.autonomous_digging_process.kill()  # Kill the auto dig process
         print('Autonomous Digging Procedure Terminated\n')
-        
+
     # Check if the autonomous offload button is pressed
     # if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
     #   if self.current_state.value == states['Teleop']:
@@ -355,15 +365,16 @@ class MainControlNode(Node):
           # Kill the self.back_camera process
           os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
           self.back_camera = None
+        target_ip = get_target_ip('blixt-G14', '192.168.1.117')
         self.front_camera = subprocess.Popen(
-          f'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={ip_param} port=5000', shell=True, preexec_fn=os.setsid)
+          f'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={target_ip} port=5000', shell=True, preexec_fn=os.setsid)
       else:  # Start streaming /dev/back_webcam on port 5000
         if self.front_camera is not None:
           # Kill the self.front_camera process
           os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM)
           self.front_camera = None
         self.back_camera = subprocess.Popen(
-          f'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={ip_param} port=5000', shell=True, preexec_fn=os.setsid)
+          f'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={target_ip} port=5000', shell=True, preexec_fn=os.setsid)
 
     # Update new button states (this allows us to detect changing button states)
     for index in range(len(buttons)):
