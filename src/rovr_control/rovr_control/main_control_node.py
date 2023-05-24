@@ -143,6 +143,8 @@ class MainControlNode(Node):
 
   def __init__(self):
     super().__init__('rovr_control')
+    
+    self.declare_parameter('ip', '192.168.1.117') # Default Value
 
     # Try connecting to the Arduino over Serial
     try:
@@ -273,6 +275,8 @@ class MainControlNode(Node):
   # When a joystick input is recieved, this callback method processes the input accordingly
 
   def joystick_callback(self, msg):
+    
+    ip_param = self.get_parameter('ip').get_parameter_value().string_value
 
     # TELEOP CONTROLS BELOW #
 
@@ -357,14 +361,14 @@ class MainControlNode(Node):
           os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
           self.back_camera = None
         self.front_camera = subprocess.Popen(
-          'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.117 port=5000', shell=True, preexec_fn=os.setsid)
+          f'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={ip_param} port=5000', shell=True, preexec_fn=os.setsid)
       else:  # Start streaming /dev/back_webcam on port 5000
         if self.front_camera is not None:
           # Kill the self.front_camera process
           os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM)
           self.front_camera = None
         self.back_camera = subprocess.Popen(
-          'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.117 port=5000', shell=True, preexec_fn=os.setsid)
+          f'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host={ip_param} port=5000', shell=True, preexec_fn=os.setsid)
 
     # Update new button states (this allows us to detect changing button states)
     for index in range(len(buttons)):

@@ -7,6 +7,7 @@ def generate_launch_description():
     rovr_control = Node(
         package="rovr_control",
         executable="main_control_node",
+        parameters=[{'ip': '192.168.1.117'}],
     )
 
     motor_control = Node(
