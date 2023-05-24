@@ -154,7 +154,7 @@ class MainControlNode(Node):
   def __init__(self):
     super().__init__('rovr_control')
     self.target_ip = get_target_ip(
-      'blixt-G14', '192.168.1.117', self.get_logger().info)
+      'blixt-G14', '192.168.1.110', self.get_logger().info)
     self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
 
     # Try connecting to the Arduino over Serial
@@ -249,7 +249,7 @@ class MainControlNode(Node):
   def publish_actuator_cmd(self, cmd: str):
     msg = String()
     msg.data = cmd
-    print(f"publishing {msg.data}")
+    #print(f"publishing {msg.data}")
     self.actuators_publisher.publish(msg)
     # self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
@@ -372,7 +372,7 @@ class MainControlNode(Node):
           self.back_camera = None
         self.get_logger().info(f'using ip {self.target_ip}')
         self.front_camera = subprocess.Popen(
-          f'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110 port=5000', shell=True, preexec_fn=os.setsid)
+          'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=%s port=5000'%(self.target_ip), shell=True, preexec_fn=os.setsid)
       else:  # Start streaming /dev/back_webcam on port 5000
         if self.front_camera is not None:
           # Kill the self.front_camera process
@@ -380,7 +380,7 @@ class MainControlNode(Node):
           self.front_camera = None
         self.get_logger().info(f'using ip {self.target_ip}')
         self.back_camera = subprocess.Popen(
-          f'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=192.168.1.110  port=5000', shell=True, preexec_fn=os.setsid)
+          'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=%s  port=5000'%(self.target_ip), shell=True, preexec_fn=os.setsid)
 
     # Update new button states (this allows us to detect changing button states)
     for index in range(len(buttons)):
