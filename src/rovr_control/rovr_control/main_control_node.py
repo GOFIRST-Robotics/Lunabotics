@@ -152,7 +152,7 @@ class MainControlNode(Node):
   def __init__(self):
     super().__init__('rovr_control')
     self.target_ip = get_target_ip('blixt-G14', '192.168.1.117')
-    print(f'setting target ip {self.target_ip}')
+    self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
 
     # Try connecting to the Arduino over Serial
     try:
