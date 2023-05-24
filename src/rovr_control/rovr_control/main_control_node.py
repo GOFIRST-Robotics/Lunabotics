@@ -71,7 +71,7 @@ class MainControlNode(Node):
     self.offloader(False)  # Stop the offloader if it is currently running
 
     self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
-    time.sleep(2)  # Wait a bit for the digger motor to get up to speed
+    time.sleep(2)  # Wait a bit for the drum motor to get up to speed
 
     # Tell the Arduino to extend the linear actuator
     self.arduino.write(f'e{chr(linear_actuator_speed)}'.encode('ascii'))
@@ -79,18 +79,13 @@ class MainControlNode(Node):
       if self.arduino.read() == 'f'.encode('ascii'):
         break
 
-    # Start driving backwards slowly
-    self.drive(-1 * autonomous_driving_power, 0.0)
-    # TODO: Tune this timing (How long do we want to drive for while digging? Or should we be fancy and drive to a pose with SLAM instead?)
-    time.sleep(10)
-    self.stop()  # Stop the drivetrain
-    self.digger(False)  # Stop the digger
-
     # Tell the Arduino to retract the linear actuator
     self.arduino.write(f'r{chr(linear_actuator_speed)}'.encode('ascii'))
     while True:  # Wait for a confirmation message from the Arduino
       if self.arduino.read() == 's'.encode('ascii'):
         break
+      
+    self.digger(False)  # Stop the digger
 
     print('Autonomous Digging Procedure Complete!\n')  # Print to the terminal
     # Enter teleop mode after this autonomous command is finished
