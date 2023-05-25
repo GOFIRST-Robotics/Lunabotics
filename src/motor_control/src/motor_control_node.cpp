@@ -184,7 +184,7 @@ private:
     vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? CONVEYOR_BELT_POWER : 0.0);
 
     // Send offloader CAN messages
-    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? CONVEYOR_BELT_POWER : 0.0);
+    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? CONVEYOR_BELT_POWER * -1 : 0.0);
 
     // Publish the current digger speed in RPM to a topic
     std_msgs::msg::Float32 digger_RPM_msg;
