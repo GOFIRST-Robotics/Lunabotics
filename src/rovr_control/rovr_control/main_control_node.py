@@ -113,7 +113,6 @@ class MainControlNode(Node):
   # This method lays out the procedure for autonomously offloading!
   def auto_offload_procedure(self, state, apriltag_x, apriltag_z, apriltag_yaw):
     print('\nStarting Autonomous Offload Procedure!')  # Print to the terminal
-    self.digger(False)  # Stop the digger if it is currently running
     self.offloader(False)  # Stop the offloader if it is currently running
 
     # Search for an Apriltag before continuing
@@ -247,14 +246,7 @@ class MainControlNode(Node):
     self.actuators_publisher.publish(msg)
     # self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
-  # Turns the digger on or off
-  def digger(self, on: bool):
-    if on:
-      self.publish_actuator_cmd(" DIGGER_ON")
-    else:
-      self.publish_actuator_cmd(" DIGGER_OFF")
   # Turns the offloader on or off
-
   def offloader(self, on):
     if on:
       self.publish_actuator_cmd(" OFFLOADER_ON")
