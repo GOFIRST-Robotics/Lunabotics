@@ -80,7 +80,7 @@ class MainControlNode(Node):
     self.drive(0.0, 0.0)
   # This method lays out the procedure for autonomously digging!
 
-  def auto_dig_procedure(self, state, digger_toggle):
+  def auto_dig_procedure(self, state, digger_toggle, reverse_dig):
     print('\nStarting Autonomous Digging Procedure!')  # Print to the terminal
     digger_toggle.value = True  # Start the digger
 
@@ -104,7 +104,14 @@ class MainControlNode(Node):
       if reading == b's':
         break
 
-    digger_toggle.value = False # Stop the digger
+    # Reverse the digging drum
+    reverse_dig.value = True
+    digger_toggle.value = False 
+    
+    time.sleep(5)  # Wait for 5 seconds
+    
+    # Stop the digger
+    reverse_dig.value = False
 
     print('Autonomous Digging Procedure Complete!\n')  # Print to the terminal
     # Enter teleop mode after this autonomous command is finished
@@ -176,6 +183,7 @@ class MainControlNode(Node):
 
     # Define some initial button states
     self.digger_toggled = self.manager.Value('d', 0)
+    self.reverse_digger = self.manager.Value('d', 0)
     self.offloader_toggled = self.manager.Value('d', 0)
     self.digger_extend_toggled = False
     self.camera_view_toggled = False
@@ -249,26 +257,16 @@ class MainControlNode(Node):
   def actuators_timer_callback(self):
     if self.current_state.value == states['Emergency_Stop']:
       self.publish_actuator_cmd('STOP_ALL_ACTUATORS')
-    elif self.current_state.value == states['Teleop']:
+      # Send stop command to the Arduino
+      self.arduino.write(f'e{chr(0)}'.encode('ascii'))
+    else:
       cmd = ''
       if self.digger_toggled.value:
         cmd += ' DIGGER_ON'
-      elif not self.digger_toggled.value:
+      elif self.reverse_digger.value:
+        cmd += ' REVERSE_DIGGER'
+      else:
         cmd += ' DIGGER_OFF'
-      if self.offloader_toggled.value:
-        cmd += ' OFFLOADER_ON'
-      elif not self.offloader_toggled.value:
-        cmd += ' OFFLOADER_OFF'
-      self.publish_actuator_cmd(cmd)
-    elif self.current_state.value == states['Auto_Dig']:
-      cmd = ''
-      if self.digger_toggled.value:
-        cmd += ' DIGGER_ON'
-      elif not self.digger_toggled.value:
-        cmd += ' DIGGER_OFF'
-      self.publish_actuator_cmd(cmd)
-    elif self.current_state.value == states['Auto_Offload']:
-      cmd = ''
       if self.offloader_toggled.value:
         cmd += ' OFFLOADER_ON'
       elif not self.offloader_toggled.value:
@@ -311,14 +309,18 @@ class MainControlNode(Node):
       if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
         # Send stop command to the Arduino
         self.arduino.write(f'e{chr(0)}'.encode('ascii'))
-
-      # Small linear actuator controls
+        
       if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-        self.arduino.write(f'a{chr(small_linear_actuator_speed)}'.encode(
-          'ascii'))  # Extend the small linear actuator
-      if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
-        self.arduino.write(f'b{chr(small_linear_actuator_speed)}'.encode(
-          'ascii'))  # Retract the small linear actuator
+        self.reverse_digger = not self.reverse_digger
+
+      # NOTE: This hasn't been tested/used yet
+      # # Small linear actuator controls
+      # if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
+      #   self.arduino.write(f'a{chr(small_linear_actuator_speed)}'.encode(
+      #     'ascii'))  # Extend the small linear actuator
+      # if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
+      #   self.arduino.write(f'b{chr(small_linear_actuator_speed)}'.encode(
+      #     'ascii'))  # Retract the small linear actuator
 
     # THE CONTROLS BELOW ALWAYS WORK #
 
@@ -327,7 +329,7 @@ class MainControlNode(Node):
       if self.current_state.value == states['Teleop']:
         self.current_state.value = states['Auto_Dig']
         self.autonomous_digging_process = multiprocessing.Process(
-          target=self.auto_dig_procedure, args=[self.current_state, self.digger_toggled])
+          target=self.auto_dig_procedure, args=[self.current_state, self.digger_toggled, self.reverse_digger])
         self.autonomous_digging_process.start()  # Start the auto dig process
       elif self.current_state.value == states['Auto_Dig']:
         self.current_state.value = states['Teleop']
@@ -340,6 +342,7 @@ class MainControlNode(Node):
         # Stop the linear actuator
         self.arduino.write(f'e{chr(0)}'.encode('ascii'))
 
+    # NOTE: This hasn't been tested/used yet
     # Check if the autonomous offload button is pressed
     # if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
     #   if self.current_state.value == states['Teleop']:

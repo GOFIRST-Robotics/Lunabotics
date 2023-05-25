@@ -21,6 +21,7 @@ float linear_drive_power_cmd = 0.0;
 float angular_drive_power_cmd = 0.0;
 float current_digger_RPM = 0.0;
 bool digging = false;
+bool reverse_digger = false
 bool offloading = false;
 
 // Define CAN IDs Here //
@@ -148,13 +149,18 @@ private:
     }
     if(msg->data.find("DIGGER_OFF") != std::string::npos) {
       digging = false;
+      reverse_digger = false;
     }
     if(msg->data.find("OFFLOADER_OFF") != std::string::npos) {
       offloading = false;
     }
+    if(msg->data.find("REVERSE_DIGGER") != std::string::npos) {
+      reverse_digger = true;
+    }
     if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {
       digging = false;
       offloading = false;
+      reverse_digger = false;
     }
   }
 
@@ -165,7 +171,14 @@ private:
     drive(linear_drive_power_cmd, angular_drive_power_cmd);
 
     // Send digging CAN messages
-    vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, digging ? DIGGER_ROTATION_SPEED * -1 : 0.0);
+    if (digging) {
+      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, DIGGER_ROTATION_SPEED * -1); // forwards
+    }
+    else if (reverse_digger) {
+      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, DIGGER_ROTATION_SPEED); // backwards
+    } else {
+      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, 0); // stop
+    }
     vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? DRUM_BELT_POWER * -1 : 0.0);
     vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? CONVEYOR_BELT_POWER : 0.0);
 
