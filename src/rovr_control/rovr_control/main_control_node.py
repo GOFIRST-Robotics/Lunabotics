@@ -111,9 +111,8 @@ class MainControlNode(Node):
     state.value = states['Teleop']
 
   # This method lays out the procedure for autonomously offloading!
-  def auto_offload_procedure(self, state, apriltag_x, apriltag_z, apriltag_yaw):
+  def auto_offload_procedure(self, state, offloader_toggle, apriltag_x, apriltag_z, apriltag_yaw):
     print('\nStarting Autonomous Offload Procedure!')  # Print to the terminal
-    self.offloader(False)  # Stop the offloader if it is currently running
 
     # Search for an Apriltag before continuing
     print('Searching for an Apriltag to dock with...')
@@ -144,9 +143,9 @@ class MainControlNode(Node):
     self.stop()
 
     print("Commence Offloading!")
-    self.offloader(True)  # Start Offloading
+    self.offloader_toggle.value = 1  # Start Offloading
     time.sleep(10)  # TODO: Tune this timing (how long to run the offloader for)
-    self.offloader(False)  # Stop Offloading
+    self.offloader_toggle.value = 0  # Stop Offloading
 
     print('Autonomous Offload Procedure Complete!\n')  # Print to the terminal
     # Enter teleop mode after this autonomous command is finished
@@ -177,7 +176,7 @@ class MainControlNode(Node):
 
     # Define some initial button states
     self.digger_toggled = self.manager.Value('d', 0)
-    self.offloader_toggled = False
+    self.offloader_toggled = self.manager.Value('d', 0)
     self.digger_extend_toggled = False
     self.camera_view_toggled = False
 
@@ -246,13 +245,6 @@ class MainControlNode(Node):
     self.actuators_publisher.publish(msg)
     # self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
-  # Turns the offloader on or off
-  def offloader(self, on):
-    if on:
-      self.publish_actuator_cmd(" OFFLOADER_ON")
-    else:
-      self.publish_actuator_cmd(" OFFLOADER_OFF")
-
   # Publish a message detailing what all the actuators should be doing
   def actuators_timer_callback(self):
     if self.current_state.value == states['Emergency_Stop']:
@@ -263,16 +255,25 @@ class MainControlNode(Node):
         cmd += ' DIGGER_ON'
       elif not self.digger_toggled.value:
         cmd += ' DIGGER_OFF'
-      if self.offloader_toggled:
+      if self.offloader_toggled.value:
         cmd += ' OFFLOADER_ON'
-      elif not self.offloader_toggled:
+      elif not self.offloader_toggled.value:
         cmd += ' OFFLOADER_OFF'
       self.publish_actuator_cmd(cmd)
     elif self.current_state.value == states['Auto_Dig']:
       cmd = ''
       if self.digger_toggled.value:
         cmd += ' DIGGER_ON'
-      self.publish_actuator_cmd(" DIGGER_ON")
+      elif not self.digger_toggled.value:
+        cmd += ' DIGGER_OFF'
+      self.publish_actuator_cmd(cmd)
+    elif self.current_state.value == states['Auto_Offload']:
+      cmd = ''
+      if self.offloader_toggled.value:
+        cmd += ' OFFLOADER_ON'
+      elif not self.offloader_toggled.value:
+        cmd += ' OFFLOADER_OFF'
+      self.publish_actuator_cmd(cmd)
 
   # When a joystick input is recieved, this callback method processes the input accordingly
 
@@ -294,7 +295,7 @@ class MainControlNode(Node):
         self.digger_toggled.value = not self.digger_toggled.value
       # Check if the offloader button is pressed
       if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
-        self.offloader_toggled = not self.offloader_toggled
+        self.offloader_toggled.value = not self.offloader_toggled.value
 
       # Check if the digger_extend button is pressed
       if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
@@ -335,7 +336,7 @@ class MainControlNode(Node):
         # After we finish this autonomous operation, start with the digger off
         self.digger_toggled.value = 0
         # After we finish this autonomous operation, start with the offloader off
-        self.offloader_toggled = False
+        self.offloader_toggled.value = 0
         # Stop the linear actuator
         self.arduino.write(f'e{chr(0)}'.encode('ascii'))
 
@@ -344,12 +345,12 @@ class MainControlNode(Node):
     #   if self.current_state.value == states['Teleop']:
     #     self.current_state.value = states['Auto_Offload']
     #     self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[
-    #                                                               self.current_state, self.apriltag_x, self.apriltag_z, self.apriltag_yaw])
+    #                                                               self.current_state, self.offloader_toggle, self.apriltag_x, self.apriltag_z, self.apriltag_yaw])
     #     self.autonomous_offload_process.start()  # Start the auto dig process
     #     # After we finish this autonomous operation, start with the digger off
     #     self.digger_toggled.value = 0
     #     # After we finish this autonomous operation, start with the offloader off
-    #     self.offloader_toggled = False
+    #     self.offloader_toggled.value = 0
     #   elif self.current_state.value == states['Auto_Offload']:
     #     self.current_state.value = states['Teleop']
     #     self.autonomous_offload_process.kill()  # Kill the auto dig process
