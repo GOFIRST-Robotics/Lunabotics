@@ -21,7 +21,7 @@ float linear_drive_power_cmd = 0.0;
 float angular_drive_power_cmd = 0.0;
 float current_digger_RPM = 0.0;
 bool digging = false;
-bool reverse_digger = false
+bool reverse_digger = false;
 bool offloading = false;
 
 // Define CAN IDs Here //
@@ -155,6 +155,7 @@ private:
       offloading = false;
     }
     if(msg->data.find("REVERSE_DIGGER") != std::string::npos) {
+      digging = false;
       reverse_digger = true;
     }
     if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {

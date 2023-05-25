@@ -91,22 +91,22 @@ class MainControlNode(Node):
     self.arduino.write(f'e{chr(linear_actuator_speed)}'.encode('ascii'))
     while True:  # Wait for a confirmation message from the Arduino
       reading = self.arduino.read()
+      print(reading)
       if reading == b'f':
         break
       
     time.sleep(5)  # Wait for 5 seconds
-    print('sleep done')
       
     # Tell the Arduino to retract the linear actuator
     self.arduino.write(f'r{chr(linear_actuator_up_speed)}'.encode('ascii'))
     while True:  # Wait for a confirmation message from the Arduino
       reading = self.arduino.read()
+      print(reading)
       if reading == b's':
         break
 
     # Reverse the digging drum
-    reverse_dig.value = True
-    digger_toggle.value = False 
+    digger_toggle.value, reverse_dig.value = False, True
     
     time.sleep(5)  # Wait for 5 seconds
     
@@ -311,7 +311,7 @@ class MainControlNode(Node):
         self.arduino.write(f'e{chr(0)}'.encode('ascii'))
         
       if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-        self.reverse_digger = not self.reverse_digger
+        self.reverse_digger.value = not self.reverse_digger.value
 
       # NOTE: This hasn't been tested/used yet
       # # Small linear actuator controls
