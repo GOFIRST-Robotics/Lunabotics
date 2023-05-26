@@ -135,10 +135,9 @@ class MainControlNode(Node):
     auto_drive_speed.value = 0.0
     auto_turn_speed.value = 0.0
 
-    while apriltag_z.value >= 1.5:  # Continue correcting until we are within 1 meter of the tag #TODO: Tune this distance
-      # TODO: Tune both of these P constants on the actual robot
+    while apriltag_z.value >= 1.5:  # Continue correcting until we are within 1.5 meters of the tag #TODO: Tune this distance
       auto_drive_speed.value = autonomous_driving_power
-      auto_turn_speed.value = -1 * (0.5 * apriltag_yaw.value + 0.5 * apriltag_x.value)
+      auto_turn_speed.value = -1 * (0.5 * apriltag_yaw.value + 0.5 * apriltag_x.value) # TODO: Tune both of these P constants on the actual robot
       print(
         f'Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
       # Add a small delay so we don't overload ROS with too many messages
@@ -150,8 +149,7 @@ class MainControlNode(Node):
     print("Docking with the trough")
     auto_drive_speed.value = autonomous_driving_power
     auto_turn_speed.value = 0.0
-    # TODO: Tune this timing (how long to drive straight for at the end of docking)
-    time.sleep(4)
+    time.sleep(4) # TODO: Tune this timing (how long to drive straight for at the end of docking)
     auto_drive_speed.value = 0.0
     auto_turn_speed.value = 0.0
 
