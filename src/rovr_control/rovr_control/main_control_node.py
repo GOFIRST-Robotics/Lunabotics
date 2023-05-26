@@ -118,7 +118,7 @@ class MainControlNode(Node):
     state.value = states['Teleop']
 
   # This method lays out the procedure for autonomously offloading!
-  def auto_offload_procedure(self, state, offloader_toggle, apriltag_x, apriltag_z, apriltag_yaw):
+  def auto_offload_procedure(self, state, offloader_toggle, apriltag_x, apriltag_z, apriltag_yaw, auto_drive_speed, auto_turn_speed):
     print('\nStarting Autonomous Offload Procedure!')  # Print to the terminal
 
     # Search for an Apriltag before continuing
@@ -127,32 +127,38 @@ class MainControlNode(Node):
     # Add a small delay to see if we can see an Apriltag already
     time.sleep(0.05)
     while apriltag_x.value == 0.0:
-      self.drive(0.0, 0.3)  # Turn slowly to look for an Apriltag
+      # Turn slowly to look for an Apriltag
+      auto_drive_speed.value = 0.0
+      auto_turn_speed.value = 0.3
     print(
       f'Apriltag found! x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
-    self.stop()
+    auto_drive_speed.value = 0.0
+    auto_turn_speed.value = 0.0
 
-    while apriltag_z.value >= 1:  # Continue correcting until we are within 1 meter of the tag #TODO: Tune this distance
+    while apriltag_z.value >= 1.5:  # Continue correcting until we are within 1 meter of the tag #TODO: Tune this distance
       # TODO: Tune both of these P constants on the actual robot
-      self.drive(autonomous_driving_power, 0.5 *
-                 apriltag_yaw.value + 0.5 * apriltag_x.value)
+      auto_drive_speed.value = autonomous_driving_power
+      auto_turn_speed.value = -1 * (0.5 * apriltag_yaw.value + 0.5 * apriltag_x.value)
       print(
         f'Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
       # Add a small delay so we don't overload ROS with too many messages
       time.sleep(0.05)
-    self.stop()
+    auto_drive_speed.value = 0.0
+    auto_turn_speed.value = 0.0
 
     # Finish docking with the trough
     print("Docking with the trough")
-    self.drive(0.3, 0.0)
+    auto_drive_speed.value = autonomous_driving_power
+    auto_turn_speed.value = 0.0
     # TODO: Tune this timing (how long to drive straight for at the end of docking)
     time.sleep(4)
-    self.stop()
+    auto_drive_speed.value = 0.0
+    auto_turn_speed.value = 0.0
 
     print("Commence Offloading!")
-    self.offloader_toggle.value = 1  # Start Offloading
+    offloader_toggle.value = 1  # Start Offloading
     time.sleep(10)  # TODO: Tune this timing (how long to run the offloader for)
-    self.offloader_toggle.value = 0  # Stop Offloading
+    offloader_toggle.value = 0  # Stop Offloading
 
     print('Autonomous Offload Procedure Complete!\n')  # Print to the terminal
     # Enter teleop mode after this autonomous command is finished
@@ -180,6 +186,9 @@ class MainControlNode(Node):
     self.apriltag_x = self.manager.Value('f', 0.0)
     self.apriltag_z = self.manager.Value('f', 0.0)
     self.apriltag_yaw = self.manager.Value('f', 0.0)
+    
+    self.auto_drive_speed = self.manager.Value('f', 0.0)
+    self.auto_turn_speed = self.manager.Value('f', 0.0)
 
     # Define some initial button states
     self.digger_toggled = self.manager.Value('d', 0)
@@ -272,6 +281,8 @@ class MainControlNode(Node):
       elif not self.offloader_toggled.value:
         cmd += ' OFFLOADER_OFF'
       self.publish_actuator_cmd(cmd)
+    if self.current_state.value == states['Auto_Offload']:
+      self.drive(self.auto_drive_speed.value, self.auto_turn_speed.value)
 
   # When a joystick input is recieved, this callback method processes the input accordingly
 
@@ -337,27 +348,25 @@ class MainControlNode(Node):
         print('Autonomous Digging Procedure Terminated\n')
         # After we finish this autonomous operation, start with the digger off
         self.digger_toggled.value = 0
-        # After we finish this autonomous operation, start with the offloader off
-        self.offloader_toggled.value = 0
         # Stop the linear actuator
         self.arduino.write(f'e{chr(0)}'.encode('ascii'))
 
     # NOTE: This hasn't been tested/used yet
     # Check if the autonomous offload button is pressed
-    # if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
-    #   if self.current_state.value == states['Teleop']:
-    #     self.current_state.value = states['Auto_Offload']
-    #     self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[
-    #                                                               self.current_state, self.offloader_toggle, self.apriltag_x, self.apriltag_z, self.apriltag_yaw])
-    #     self.autonomous_offload_process.start()  # Start the auto dig process
-    #     # After we finish this autonomous operation, start with the digger off
-    #     self.digger_toggled.value = 0
-    #     # After we finish this autonomous operation, start with the offloader off
-    #     self.offloader_toggled.value = 0
-    #   elif self.current_state.value == states['Auto_Offload']:
-    #     self.current_state.value = states['Teleop']
-    #     self.autonomous_offload_process.kill()  # Kill the auto dig process
-    #     print('Autonomous Offload Procedure Terminated\n')
+    if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
+      if self.current_state.value == states['Teleop']:
+        self.current_state.value = states['Auto_Offload']
+        self.autonomous_offload_process = multiprocessing.Process(target=self.auto_offload_procedure, args=[
+                                                                  self.current_state, self.offloader_toggled, self.apriltag_x, self.apriltag_z, self.apriltag_yaw, self.auto_drive_speed, self.auto_turn_speed])
+        self.autonomous_offload_process.start()  # Start the auto dig process
+      elif self.current_state.value == states['Auto_Offload']:
+        self.current_state.value = states['Teleop']
+        self.autonomous_offload_process.kill()  # Kill the auto dig process
+        print('Autonomous Offload Procedure Terminated\n')
+        # After we finish this autonomous operation, start with the offloader off
+        self.offloader_toggled.value = 0
+        # Stop driving
+        self.stop()
 
     # Check if the camera toggle button is pressed
     if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
