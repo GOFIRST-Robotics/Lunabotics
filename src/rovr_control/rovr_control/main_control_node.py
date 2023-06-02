@@ -9,7 +9,6 @@ from rclpy.node import Node
 
 # Import ROS 2 formatted message types
 from std_msgs.msg import String
-from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy

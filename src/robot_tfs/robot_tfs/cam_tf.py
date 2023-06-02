@@ -1,10 +1,8 @@
-import math
+import rclpy
+from rclpy.node import Node
 
 from geometry_msgs.msg import Twist, Quaternion
 from sensor_msgs.msg import Imu
-
-import rclpy
-from rclpy.node import Node
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer

@@ -3,15 +3,14 @@
 # last updated 4/24/2023
 # WARNING: Not currently functional
 
-from sensor_msgs.msg import PointCloud2, PointField
 import struct
 import math
-from collections import namedtuple
 import sys
 
 import rclpy
 from rclpy.node import Node
 import sensor_msgs.msg as sensor_msgs
+from sensor_msgs.msg import PointCloud2, PointField
 
 import numpy as np
 import open3d as o3d
