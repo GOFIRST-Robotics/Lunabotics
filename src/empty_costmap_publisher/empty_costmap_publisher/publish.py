@@ -16,6 +16,7 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 
+
 class MinimalPublisher(Node):
 
     def __init__(self):
@@ -28,11 +29,11 @@ class MinimalPublisher(Node):
 
     def timer_callback(self):
         msg = OccupancyGrid(
-            info = MapMetaData(
-                width = 3,
-                height = 3
+            info=MapMetaData(
+                width=3,
+                height=3
             ),
-            data = [0, 0, 0, 0, -1, 0, 0, 0, 0]
+            data=[0, 0, 0, 0, -1, 0, 0, 0, 0]
         )
         msg.header.frame_id = "/map"
         self.publisher_.publish(msg)

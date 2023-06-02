@@ -46,7 +46,8 @@ using std::placeholders::_1;
 class MotorControlNode : public rclcpp::Node
 {
   // Generic method for sending data over the CAN bus
-  void send_can(uint32_t id, int32_t data) {
+  void send_can(uint32_t id, int32_t data)
+  {
     can_msgs::msg::Frame can_msg; // Construct a new CAN message
 
     can_msg.is_rtr = false;
@@ -55,36 +56,39 @@ class MotorControlNode : public rclcpp::Node
 
     can_msg.id = id; // Set the CAN ID for this message
 
-    can_msg.dlc = 4; // Size of the data array (how many bytes to use, maximum of 8)
+    can_msg.dlc = 4;                       // Size of the data array (how many bytes to use, maximum of 8)
     can_msg.data[0] = (data >> 24) & 0xFF; // First byte of data
     can_msg.data[1] = (data >> 16) & 0xFF; // Second byte of data
-    can_msg.data[2] = (data >> 8) & 0xFF; // Third byte of data
-    can_msg.data[3] = data & 0xFF; // Fourth byte of data
-    
+    can_msg.data[2] = (data >> 8) & 0xFF;  // Third byte of data
+    can_msg.data[3] = data & 0xFF;         // Fourth byte of data
+
     can_pub->publish(can_msg); // Publish our new CAN message to the ROS 2 topic
   }
 
   // Set the percent power of the motor between -1.0 and 1.0
-  void vesc_set_duty_cycle(uint32_t id, float percentPower) { 
+  void vesc_set_duty_cycle(uint32_t id, float percentPower)
+  {
     percentPower = std::clamp(percentPower, (float)(-1), (float)(1)); // Do not allow setting more than 100% power in either direction
 
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
-    //RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
+    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
   // Set the speed of the motor in RPM (Rotations Per Minute)
-  void vesc_set_RPM(uint32_t id, int rpm) {
+  void vesc_set_RPM(uint32_t id, int rpm)
+  {
     int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
-    //RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
+    // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
   // Before sending CAN messages to the drivetrain motors, we want to desaturate the wheel speeds if needed
-  void drive(float linear_power, float angular_power) {
-    linear_power = std::clamp(linear_power, (float)(-1), (float)(1)); // Clamp the linear power between -1 and 1
+  void drive(float linear_power, float angular_power)
+  {
+    linear_power = std::clamp(linear_power, (float)(-1), (float)(1));   // Clamp the linear power between -1 and 1
     angular_power = std::clamp(angular_power, (float)(-1), (float)(1)); // Clamp the angular power between -1 and 1
 
     float leftPower = linear_power - angular_power;
@@ -92,23 +96,24 @@ class MotorControlNode : public rclcpp::Node
 
     // Desaturate the wheel speeds if needed
     float greater_input = std::max(abs(leftPower), abs(rightPower));
-    if (greater_input > float(1)) {
+    if (greater_input > float(1))
+    {
       float scale_factor = float(1) / greater_input;
       leftPower *= scale_factor;
       rightPower *= scale_factor;
     }
 
-    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, (leftPower) * -1); // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(BACK_LEFT_DRIVE, (leftPower) * -1); // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, (leftPower) * -1);   // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(BACK_LEFT_DRIVE, (leftPower) * -1);    // Multiply by -1 to invert motor direction
     vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (rightPower) * -1); // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (rightPower) * -1); // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (rightPower) * -1);  // Multiply by -1 to invert motor direction
   }
 
 public:
   MotorControlNode() : Node("MotorControlNode")
   {
     digger_RPM_pub = this->create_publisher<std_msgs::msg::Float32>("digger_RPM", 10);
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100);                                                        // The name of this topic is determined by our CAN_bridge node
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
     drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 10, std::bind(&MotorControlNode::drive_power_callback, this, _1));
     actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&MotorControlNode::actuators_callback, this, _1));
@@ -127,11 +132,11 @@ private:
   {
     uint32_t id = can_msg->id & 0xFF;
 
-    uint32_t RPM = (can_msg->data[0]<<24) + (can_msg->data[1]<<16) + (can_msg->data[2]<<8) + can_msg->data[3];
-    uint16_t dutyCycleNow = ((can_msg->data[6]<<8) + can_msg->data[7]) / 10;
+    uint32_t RPM = (can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3];
+    uint16_t dutyCycleNow = ((can_msg->data[6] << 8) + can_msg->data[7]) / 10;
 
-    //RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-    //RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
+    // RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
+    // RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
 
     current_digger_RPM = RPM;
   }
@@ -139,26 +144,32 @@ private:
   void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
   {
     RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
-    
+
     // Parse the msg for our toggleable motor actions
-    if(msg->data.find("DIGGER_ON") != std::string::npos) {
+    if (msg->data.find("DIGGER_ON") != std::string::npos)
+    {
       digging = true;
     }
-    if(msg->data.find("OFFLOADER_ON") != std::string::npos) {
+    if (msg->data.find("OFFLOADER_ON") != std::string::npos)
+    {
       offloading = true;
     }
-    if(msg->data.find("DIGGER_OFF") != std::string::npos) {
+    if (msg->data.find("DIGGER_OFF") != std::string::npos)
+    {
       digging = false;
       reverse_digger = false;
     }
-    if(msg->data.find("OFFLOADER_OFF") != std::string::npos) {
+    if (msg->data.find("OFFLOADER_OFF") != std::string::npos)
+    {
       offloading = false;
     }
-    if(msg->data.find("REVERSE_DIGGER") != std::string::npos) {
+    if (msg->data.find("REVERSE_DIGGER") != std::string::npos)
+    {
       digging = false;
       reverse_digger = true;
     }
-    if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos) {
+    if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos)
+    {
       digging = false;
       offloading = false;
       reverse_digger = false;
@@ -172,12 +183,16 @@ private:
     drive(linear_drive_power_cmd, angular_drive_power_cmd);
 
     // Send digging CAN messages
-    if (digging) {
+    if (digging)
+    {
       vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, DIGGER_ROTATION_SPEED * -1); // forwards
     }
-    else if (reverse_digger) {
+    else if (reverse_digger)
+    {
       vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, DIGGER_ROTATION_SPEED); // backwards
-    } else {
+    }
+    else
+    {
       vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, 0); // stop
     }
     vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? DRUM_BELT_POWER * -1 : 0.0);
@@ -201,7 +216,8 @@ private:
 };
 
 // Main method for the node
-int main(int argc, char** argv){
+int main(int argc, char **argv)
+{
   // Initialize ROS 2
   rclcpp::init(argc, argv);
 
