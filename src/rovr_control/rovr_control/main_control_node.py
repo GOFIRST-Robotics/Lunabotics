@@ -31,6 +31,7 @@ buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
 states = {'Teleop': 0, 'Autonomous': 1, 'Auto_Dig': 2,
           'Auto_Offload': 3, 'Emergency_Stop': 4}
+
 # Define the maximum driving power of the robot (measured in duty cycle)
 # The power to drive at while autonomously digging/offloading
 autonomous_driving_power = 0.25
@@ -43,6 +44,7 @@ small_linear_actuator_speed = 100  # Value between 0-100
 
 
 def get_target_ip(target: str, default: str = '', logger_fn=print):
+    """ Return the current IP address of Jonathan's laptop using nmap. """
     try:
         nmap = subprocess.Popen(
             ('nmap', '-sn', '192.168.1.1/24'), stdout=subprocess.PIPE)
@@ -59,8 +61,8 @@ def get_target_ip(target: str, default: str = '', logger_fn=print):
 
 class MainControlNode(Node):
 
-    # Publish a ROS2 message with the desired drive power and turning power
     def drive(self, drivePower, turnPower):
+        """ This method publishes a ROS2 message with the desired drive power and turning power. """
         # Create a new ROS2 msg
         drive_power_msg = Twist()
         # Default to 0 power for everything at first
@@ -75,12 +77,12 @@ class MainControlNode(Node):
         self.drive_power_publisher.publish(drive_power_msg)
         # self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
 
-    # Stop the drivetrain
     def stop(self):
+        """ This method stops the drivetrain. """
         self.drive(0.0, 0.0)
-    # This method lays out the procedure for autonomously digging!
 
     def auto_dig_procedure(self, state, digger_toggle, reverse_dig):
+        """ This method lays out the procedure for autonomously digging! """
         # Print to the terminal
         print('\nStarting Autonomous Digging Procedure!')
         digger_toggle.value = True  # Start the digger
@@ -114,14 +116,12 @@ class MainControlNode(Node):
         # Stop the digger
         reverse_dig.value = False
 
-        # Print to the terminal
         print('Autonomous Digging Procedure Complete!\n')
         # Enter teleop mode after this autonomous command is finished
         state.value = states['Teleop']
 
-    # This method lays out the procedure for autonomously offloading!
     def auto_offload_procedure(self, state, offloader_toggle, apriltag_x, apriltag_z, apriltag_yaw, auto_drive_speed, auto_turn_speed):
-        # Print to the terminal
+        """ This method lays out the procedure for autonomously offloading! """
         print('\nStarting Autonomous Offload Procedure!')
 
         # Search for an Apriltag before continuing
@@ -141,10 +141,8 @@ class MainControlNode(Node):
         while apriltag_z.value >= 1.5:  # Continue correcting until we are within 1.5 meters of the tag #TODO: Tune this distance
             auto_drive_speed.value = autonomous_driving_power
             # TODO: Tune both of these P constants on the actual robot
-            auto_turn_speed.value = -1 * \
-                (0.5 * apriltag_yaw.value + 0.5 * apriltag_x.value)
-            print(
-                f'Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
+            auto_turn_speed.value = -1 * (0.5 * apriltag_yaw.value + 0.5 * apriltag_x.value)
+            print(f'Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}')
             # Add a small delay so we don't overload ROS with too many messages
             time.sleep(0.05)
         auto_drive_speed.value = 0.0
@@ -170,12 +168,12 @@ class MainControlNode(Node):
         # Enter teleop mode after this autonomous command is finished
         state.value = states['Teleop']
 
-    # Initialize the ROS2 Node
-
     def __init__(self):
+        """ Initialize the ROS2 Node. """
         super().__init__('rovr_control')
-        # self.target_ip = get_target_ip(
-        #   'blixt-G14', '192.168.1.110', self.get_logger().info)
+
+        # NOTE: The code below is for dynamic ip address asignment, however, we haven't gotten it to work yet :(
+        # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
 
         # Try connecting to the Arduino over Serial
@@ -232,8 +230,8 @@ class MainControlNode(Node):
         self.apriltags_subscription = self.create_subscription(
             TFMessage, 'tf', self.apriltags_callback, 10)
 
-    # Process Apriltag Detections
     def apriltags_callback(self, msg):
+        """ Process the Apriltag detections. """
         array = msg.transforms
         entry = array.pop()
 
@@ -258,19 +256,17 @@ class MainControlNode(Node):
         self.apriltag_z.value = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
         self.apriltag_yaw.value = entry.transform.rotation.y
-
         # print('x:', self.apriltag_x.value, 'z:', self.apriltag_z.value, 'yaw:', self.apriltag_yaw.value)
 
-    # This method publishes the given actuator command to 'cmd_actuators'
-
     def publish_actuator_cmd(self, cmd: str):
+        """ This method publishes the given actuator command to the 'cmd_actuators' topic. """
         msg = String()
         msg.data = cmd
         self.actuators_publisher.publish(msg)
         # self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
 
-    # Publish a message detailing what all the actuators should be doing
     def actuators_timer_callback(self):
+        """ This method publishes a message detailing what all the actuators should be doing. """
         if self.current_state.value == states['Emergency_Stop']:
             self.publish_actuator_cmd('STOP_ALL_ACTUATORS')
             # Send stop command to the Arduino
@@ -291,12 +287,10 @@ class MainControlNode(Node):
         if self.current_state.value == states['Auto_Offload']:
             self.drive(self.auto_drive_speed.value, self.auto_turn_speed.value)
 
-    # When a joystick input is recieved, this callback method processes the input accordingly
-
     def joystick_callback(self, msg):
+        """ This method is called whenever a joystick message is received. """
 
         # TELEOP CONTROLS BELOW #
-
         if self.current_state.value == states['Teleop']:
 
             # Drive the robot using joystick input during Teleop
@@ -360,7 +354,6 @@ class MainControlNode(Node):
                 # Stop the linear actuator
                 self.arduino.write(f'e{chr(0)}'.encode('ascii'))
 
-        # NOTE: This hasn't been tested/used yet
         # Check if the autonomous offload button is pressed
         if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
             if self.current_state.value == states['Teleop']:
@@ -404,6 +397,7 @@ class MainControlNode(Node):
 
 
 def main(args=None):
+    """ The main function. """
     rclpy.init(args=args)
     print('Hello from the rovr_control package!')
 
