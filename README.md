@@ -2,6 +2,8 @@
 
 The official NASA RMC 2023 repository for LUNABOTICS team, a segment of University of Minnesota Robotics.
 
+We started developing on the Nvidia Jetson TX2 (running Ubuntu 18 and ROS 2 Eloquent) but eventually switched over to the newer Nvidia Jetson Orin Nano (running ubuntu 20 and ROS 2 Foxy)
+
 ## How to Run inside Docker Container
 
 Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers: Reopen in Container".
