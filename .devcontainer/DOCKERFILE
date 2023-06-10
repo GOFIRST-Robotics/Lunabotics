@@ -4,7 +4,11 @@ FROM ros:foxy AS cacher
 # Install git and openssh-server
 RUN apt-get update && apt-get install -y \
     git \
-    openssh-server 
+    openssh-server \
+    python3-pip
+
+# Install the pyserial python module
+RUN pip3 install pyserial
 
 # Source ROS 2 Foxy in .bashrc
 RUN echo "source /opt/ros/foxy/setup.bash" >> ~/.bashrc
