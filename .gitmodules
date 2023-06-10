@@ -4,3 +4,9 @@
 [submodule "src/realsense-ros"]
 	path = src/realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
+[submodule "src/navx"]
+	path = src/navx
+	url = https://github.com/GOFIRST-Robotics/navx.git
+[submodule "src/ros2socketcan_bridge"]
+	path = src/ros2socketcan_bridge
+	url = https://github.com/GOFIRST-Robotics/ros2socketcan_bridge.git
