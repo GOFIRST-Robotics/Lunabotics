@@ -4,27 +4,32 @@
 	"name": "Existing Dockerfile",
 	"build": {
 		// Sets the run context to one level up instead of the .devcontainer folder.
-		"context": "..",
+		// "context": "..",
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-		"dockerfile": "../DOCKERFILE"
+		"dockerfile": "DOCKERFILE"
 	},
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "apt-get update && rosdep install -i --from-path src --rosdistro eloquent -y ",
+	"postCreateCommand": "apt-get update && rosdep install -i --from-path src --rosdistro foxy -y ",
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-extension-pack",
-				"github.copilot",
-				"visualstudioexptteam.vscodeintellicode",
+				"GitHub.copilot",
+				"VisualStudioExptTeam.vscodeintellicode",
 				"ms-vscode.makefile-tools",
-				"ms-vscode.hexeditor"
-			],
+				"ms-vscode.hexeditor",
+				"ms-python.python",
+				"donjayamanne.python-extension-pack",
+				"eamodio.gitlens",
+				"ms-python.autopep8",
+				"wayou.vscode-todo-highlight"
+			]
 		}
 	}
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
