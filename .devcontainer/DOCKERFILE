@@ -12,6 +12,8 @@ RUN pip3 install pyserial
 
 # Source ROS 2 Foxy in .bashrc
 RUN echo "source /opt/ros/foxy/setup.bash" >> ~/.bashrc
+# Source our ROS 2 workspace in .bashrc
+RUN echo "source install/setup.bash" >> ~/.bashrc
 
 # Tell git to ignore linux file permission changes
 RUN git config --global core.fileMode false
