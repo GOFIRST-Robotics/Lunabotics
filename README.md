@@ -46,7 +46,11 @@ and run the script in /scripts that starts the static transform publisher from b
 ./imu_link_transform_publisher.sh
 ```
 
-Start the EKF node with ROS parameters: `ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file config/ekf.yaml`
+Start the EKF node with ROS parameters: 
+
+```
+ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file config/ekf.yaml
+```
 
 ## Intel RealSense Camera Setup
 
