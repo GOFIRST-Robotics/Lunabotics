@@ -146,7 +146,6 @@ class PointcloudSubscriber(Node):
                     # self.get_logger().info(f'setting danger to 1')
                     cell.danger = 1
                     # self.get_logger().info(f'cell danger at {cell.danger}')
-                    continue
                 else:  # cell has enough points, now check gradients to neighboring cells
                     #
                     # set average z value of the cell
