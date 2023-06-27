@@ -238,8 +238,7 @@ class MainControlNode(Node):
         # Create a PoseWithCovarianceStamped object from the Apriltag detection
         pose_object = PoseWithCovarianceStamped()
         pose_object.header = entry.header
-        pose_object.pose.pose.position.x = entry.transform.translation.x + \
-            self.apriltag_camera_x_offset
+        pose_object.pose.pose.position.x = entry.transform.translation.x + self.apriltag_camera_x_offset
         pose_object.pose.pose.position.y = entry.transform.translation.y
         pose_object.pose.pose.position.z = entry.transform.translation.z
         pose_object.pose.pose.orientation.x = entry.transform.rotation.x
@@ -250,8 +249,7 @@ class MainControlNode(Node):
         self.apriltag_pose_publisher.publish(pose_object)
 
         # Set the value of these variables used for docking with an Apriltag
-        self.apriltag_x.value = entry.transform.translation.x + \
-            self.apriltag_camera_x_offset  # Left-Right Distance to the tag (measured in meters)
+        self.apriltag_x.value = entry.transform.translation.x + self.apriltag_camera_x_offset  # Left-Right Distance to the tag (measured in meters)
         # Foward-Backward Distance to the tag (measured in meters)
         self.apriltag_z.value = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
@@ -294,10 +292,8 @@ class MainControlNode(Node):
         if self.current_state.value == states['Teleop']:
 
             # Drive the robot using joystick input during Teleop
-            drive_power = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]
-                          ) * max_drive_power  # Forward power
-            turn_power = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]
-                         ) * max_turn_power  # Turning power
+            drive_power = msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * max_drive_power  # Forward power
+            turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * max_turn_power  # Turning power
             self.drive(drive_power, turn_power)
 
             # Check if the digger button is pressed
@@ -384,8 +380,7 @@ class MainControlNode(Node):
             else:  # Start streaming /dev/back_webcam on port 5000
                 if self.front_camera is not None:
                     # Kill the self.front_camera process
-                    os.killpg(os.getpgid(self.front_camera.pid),
-                              signal.SIGTERM)
+                    os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM)
                     self.front_camera = None
                 # self.get_logger().info(f'using ip {self.target_ip}')
                 self.back_camera = subprocess.Popen(
