@@ -28,7 +28,8 @@
 				"donjayamanne.python-extension-pack",
 				"eamodio.gitlens",
 				"ms-python.autopep8",
-				"wayou.vscode-todo-highlight"
+				"wayou.vscode-todo-highlight",
+				"SonarSource.sonarlint-vscode"
 			]
 		}
 	}
