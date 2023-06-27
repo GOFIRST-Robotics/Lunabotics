@@ -61,7 +61,7 @@ def get_target_ip(target: str, default: str = '', logger_fn=print):
 
 class MainControlNode(Node):
 
-    def drive(self, drivePower, turnPower):
+    def drive(self, drive_power, turn_power):
         """ This method publishes a ROS2 message with the desired drive power and turning power. """
         # Create a new ROS2 msg
         drive_power_msg = Twist()
@@ -72,8 +72,8 @@ class MainControlNode(Node):
         drive_power_msg.linear.x = 0.0
         drive_power_msg.linear.y = 0.0
         drive_power_msg.linear.z = 0.0
-        drive_power_msg.linear.x = drivePower  # Forward power
-        drive_power_msg.angular.z = turnPower  # Turning power
+        drive_power_msg.linear.x = drive_power  # Forward power
+        drive_power_msg.angular.z = turn_power  # Turning power
         self.drive_power_publisher.publish(drive_power_msg)
         # self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
 
@@ -294,11 +294,11 @@ class MainControlNode(Node):
         if self.current_state.value == states['Teleop']:
 
             # Drive the robot using joystick input during Teleop
-            drivePower = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]
+            drive_power = (msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS]
                           ) * max_drive_power  # Forward power
-            turnPower = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]
+            turn_power = (msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS]
                          ) * max_turn_power  # Turning power
-            self.drive(drivePower, turnPower)
+            self.drive(drive_power, turn_power)
 
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:

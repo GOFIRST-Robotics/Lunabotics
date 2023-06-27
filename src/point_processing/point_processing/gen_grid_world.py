@@ -54,28 +54,28 @@ class PointcloudSubscriber(Node):
     # this function is called whenever the node detects an update to the pointcloud
     def listener_callback(self, msg):
         # receive the list of all points in the point cloud
-        allPoints = np.array(list(read_points(msg)))
+        all_points = np.array(list(read_points(msg)))
         # log the shape of the list
-        self.get_logger().info(f'received message: {allPoints.shape}')
+        self.get_logger().info(f'received message: {all_points.shape}')
         #
-        sortedPoints = self.points_to_cells(
-            allPoints)  # sort all points into cells
+        sorted_points = self.points_to_cells(
+            all_points)  # sort all points into cells
         #
         # flag cells which are dangerous
-        sortedPoints = self.flag_cells(sortedPoints)
+        sorted_points = self.flag_cells(sorted_points)
         #
         # add here a publisher to export information to pathfinder
         #
-        # for row in sortedPoints: # print danger level of all cells, can be used for debugging
+        # for row in sorted_points: # print danger level of all cells, can be used for debugging
         #    self.get_logger().info(f'{np.array([cell.danger for cell in row])}')
         # self.get_logger().info(f'new line')
         #
         # The rest here is for visualization. (modified from https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_subscriber/pcd_subscriber_node.py)
         self.vis.remove_geometry(self.o3d_pcd)
         self.o3d_pcd = o3d.geometry.PointCloud(
-            o3d.utility.Vector3dVector(allPoints))
+            o3d.utility.Vector3dVector(all_points))
         #
-        self.color_points(self.o3d_pcd, sortedPoints)
+        self.color_points(self.o3d_pcd, sorted_points)
         #
         self.vis.add_geometry(self.o3d_pcd)
         #
@@ -83,29 +83,29 @@ class PointcloudSubscriber(Node):
         self.vis.update_renderer()
     #
 
-    def points_to_cells(self, allPoints):
+    def points_to_cells(self, all_points):
         """convert list of points from pointcloud input into 2d array of lists of points"""
         #
         # initialize variables for minimum and maximum in every axis
-        self.minx = maxx = allPoints[0][0]
-        self.miny = maxy = allPoints[0][1]
-        minz = maxz = allPoints[0][2]
+        self.minx = maxx = all_points[0][0]
+        self.miny = maxy = all_points[0][1]
+        minz = maxz = all_points[0][2]
         #
-        for i in range(len(allPoints)):  # loop through all points to find min and max
-            if allPoints[i][0] > maxx:
-                maxx = allPoints[i][0]
-            elif allPoints[i][0] < self.minx:
-                self.minx = allPoints[i][0]
+        for i in range(len(all_points)):  # loop through all points to find min and max
+            if all_points[i][0] > maxx:
+                maxx = all_points[i][0]
+            elif all_points[i][0] < self.minx:
+                self.minx = all_points[i][0]
             #
-            if allPoints[i][1] > maxy:
-                maxy = allPoints[i][1]
-            elif allPoints[i][1] < self.miny:
-                self.miny = allPoints[i][1]
+            if all_points[i][1] > maxy:
+                maxy = all_points[i][1]
+            elif all_points[i][1] < self.miny:
+                self.miny = all_points[i][1]
             #
-            if allPoints[i][2] > maxz:
-                maxz = allPoints[i][2]
-            elif allPoints[i][2] < minz:
-                minz = allPoints[i][2]
+            if all_points[i][2] > maxz:
+                maxz = all_points[i][2]
+            elif all_points[i][2] < minz:
+                minz = all_points[i][2]
         #
         # calculate number of cells in x and y axis based on cell size and min/maxes
         cell_num_x = int((maxx - self.minx) / CELL_SIZE) + 1
@@ -119,11 +119,11 @@ class PointcloudSubscriber(Node):
                 new_list.append(Cell())
             cells.append(new_list)
         # cells = np.empty((cell_num_x, cell_num_y), dtype=object) # create cells array
-        # for cellRow in cells:
-        #    for cell in cellRow:
+        # for cell_row in cells:
+        #    for cell in cell_row:
         #        cell = Cell()
         #
-        for point in allPoints:  # organize all points into cells
+        for point in all_points:  # organize all points into cells
             # use cell size and minimum to calc cell index to insert into
             x_index = int(point[0] / CELL_SIZE - (self.minx / CELL_SIZE))
             y_index = int(point[1] / CELL_SIZE - (self.miny / CELL_SIZE))
@@ -134,12 +134,12 @@ class PointcloudSubscriber(Node):
         return cells
     #
 
-    def flag_cells(self, sortedPoints):
+    def flag_cells(self, sorted_points):
         """Take cells of points and find the dangerous ones"""
         # the follow could be improved by screening out outliers in the cell or marking as dangeorus cells with high variance
-        for i, cellRow in enumerate(sortedPoints):
-            # self.get_logger().info(f'{len(cellRow)}')
-            for j, cell in enumerate(cellRow):
+        for i, cell_row in enumerate(sorted_points):
+            # self.get_logger().info(f'{len(cell_row)}')
+            for j, cell in enumerate(cell_row):
                 # self.get_logger().info(f'cell at {i}, {j}, len {len(cell.points)}')
                 # determine if the cell has too few points to be valuable
                 if len(cell.points) < CELL_POINTS_CUTOFF:
@@ -155,32 +155,32 @@ class PointcloudSubscriber(Node):
                     #
                     if (j == 0):  # only check gradient left
                         if (i != 0):  # cell isn't first to be checked
-                            if (sortedPoints[i-1][0].danger == 1):
+                            if (sorted_points[i-1][0].danger == 1):
                                 cell.danger = 2
                                 continue
                             x_grad = self.get_gradient(
-                                cell.avg, sortedPoints[i-1][0].avg)
+                                cell.avg, sorted_points[i-1][0].avg)
                             if (x_grad > GRAD_THRESH):
                                 cell.danger = 2
                     else:
-                        if (sortedPoints[i][j-1].danger == 1):
+                        if (sorted_points[i][j-1].danger == 1):
                             cell.danger = 2
                             continue
                         y_grad = self.get_gradient(
-                            cell.avg, sortedPoints[i][j-1].avg)  # check top gradient
+                            cell.avg, sorted_points[i][j-1].avg)  # check top gradient
                         if (y_grad > GRAD_THRESH):
                             cell.danger = 2
                             continue
                         if (i != 0):  # check left gradient also
-                            if (sortedPoints[i-1][0].danger == 1):
+                            if (sorted_points[i-1][0].danger == 1):
                                 cell.danger = 2
                                 continue
                             x_grad = self.get_gradient(
-                                cell.avg, sortedPoints[i-1][0].avg)
+                                cell.avg, sorted_points[i-1][0].avg)
                             if (x_grad > GRAD_THRESH):
                                 cell.danger = 2
         #
-        return sortedPoints
+        return sorted_points
     #
 
     def get_gradient(self, avg_a, avg_b):
@@ -193,7 +193,7 @@ class PointcloudSubscriber(Node):
         cloud.paint_uniform_color([0, 1, 0])  # 0-255 rgb scale
         #
         colors = cloud.colors
-        for i, pointColor in enumerate(colors):
+        for i, point_color in enumerate(colors):
             point = cloud.points[i]  # get point coordinates
             #
             x_index = int(point[0] / CELL_SIZE - (self.minx / CELL_SIZE))
@@ -203,9 +203,9 @@ class PointcloudSubscriber(Node):
             #
             cell = cells[x_index][y_index]
             if (cell.danger == 1):
-                pointColor = [1, 0, 0]  # 0-1 rgb scale
+                point_color = [1, 0, 0]  # 0-1 rgb scale
             elif (cell.danger == 2):
-                pointColor = [0, 0, 1]
+                point_color = [0, 0, 1]
         # no return value because object is directly edited
 
 
