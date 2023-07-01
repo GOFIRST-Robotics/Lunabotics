@@ -37,17 +37,6 @@ states = {
     "Emergency_Stop": 4,
 }
 
-# Define the maximum driving power of the robot (measured in duty cycle)
-# The power to drive at while autonomously digging/offloading
-autonomous_driving_power = 0.25
-max_drive_power = 1.0
-max_turn_power = 1.0
-
-linear_actuator_speed = 8  # Value between 0-100
-linear_actuator_up_speed = 40  # Value between 0-100
-small_linear_actuator_speed = 100  # Value between 0-100
-
-
 def get_target_ip(target: str, default: str = "", logger_fn=print):
     """Return the current IP address of Jonathan's laptop using nmap."""
     try:
@@ -96,7 +85,7 @@ class MainControlNode(Node):
         time.sleep(2)  # Wait a bit for the drum motor to get up to speed
 
         # Tell the Arduino to extend the linear actuator
-        self.arduino.write(f"e{chr(linear_actuator_speed)}".encode("ascii"))
+        self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
         while True:  # Wait for a confirmation message from the Arduino
             reading = self.arduino.read()
             print(reading)
@@ -106,7 +95,7 @@ class MainControlNode(Node):
         time.sleep(5)  # Wait for 5 seconds
 
         # Tell the Arduino to retract the linear actuator
-        self.arduino.write(f"r{chr(linear_actuator_up_speed)}".encode("ascii"))
+        self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
         while True:  # Wait for a confirmation message from the Arduino
             reading = self.arduino.read()
             print(reading)
@@ -156,7 +145,7 @@ class MainControlNode(Node):
         while (
             apriltag_z.value >= 1.5
         ):  # Continue correcting until we are within 1.5 meters of the tag #TODO: Tune this distance
-            auto_drive_speed.value = autonomous_driving_power
+            auto_drive_speed.value = self.autonomous_driving_power
             # TODO: Tune both of these P constants on the actual robot
             auto_turn_speed.value = -1 * (
                 0.5 * apriltag_yaw.value + 0.5 * apriltag_x.value
@@ -171,7 +160,7 @@ class MainControlNode(Node):
 
         # Finish docking with the trough
         print("Docking with the trough")
-        auto_drive_speed.value = autonomous_driving_power
+        auto_drive_speed.value = self.autonomous_driving_power
         auto_turn_speed.value = 0.0
         # TODO: Tune this timing (how long to drive straight for at the end of docking)
         time.sleep(4)
@@ -192,6 +181,32 @@ class MainControlNode(Node):
     def __init__(self):
         """Initialize the ROS2 Node."""
         super().__init__("rovr_control")
+        
+        # Define default values for our ROS parameters below #
+        
+        # Maximum driving/turning speeds
+        self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle
+        self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle
+        self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle
+        # Linear Actuator Speeds
+        self.declare_parameter("linear_actuator_speed", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
+        self.declare_parameter("linear_actuator_up_speed", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
+        self.declare_parameter("small_linear_actuator_speed", 75)  # Duty Cycle value between 0-100 (not 0.0-1.0)
+        # Doubles
+        self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").get_parameter_value().double_value
+        self.max_drive_power = self.get_parameter("max_drive_power").get_parameter_value().double_value
+        self.max_turn_power = self.get_parameter("max_turn_power").get_parameter_value().double_value
+        # Integers
+        self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").get_parameter_value().integer_value
+        self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").get_parameter_value().integer_value
+        self.small_linear_actuator_speed = self.get_parameter("small_linear_actuator_speed").get_parameter_value().integer_value
+        
+        print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
+        print("max_drive_power has been set to:", self.max_drive_power)
+        print("max_turn_power has been set to:", self.max_turn_power)
+        print("linear_actuator_speed has been set to:", self.linear_actuator_speed)
+        print("linear_actuator_up_speed has been set to:", self.linear_actuator_up_speed)
+        print("small_linear_actuator_speed has been set to:", self.small_linear_actuator_speed)
 
         # NOTE: The code below is for dynamic ip address asignment, however, we haven't gotten it to work yet :(
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
@@ -320,10 +335,10 @@ class MainControlNode(Node):
         if self.current_state.value == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             drive_power = (
-                msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * max_drive_power
+                msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
             )  # Forward power
             turn_power = (
-                msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * max_turn_power
+                msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power
             )  # Turning power
             self.drive(drive_power, turn_power)
 
@@ -339,11 +354,11 @@ class MainControlNode(Node):
                 self.digger_extend_toggled = not self.digger_extend_toggled
                 if self.digger_extend_toggled:
                     # Tell the Arduino to extend the linear actuator
-                    self.arduino.write(f"e{chr(linear_actuator_speed)}".encode("ascii"))
+                    self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
                 else:
                     # Tell the Arduino to retract the linear actuator
                     self.arduino.write(
-                        f"r{chr(linear_actuator_up_speed)}".encode("ascii")
+                        f"r{chr(self.linear_actuator_up_speed)}".encode("ascii")
                     )
 
             # Stop the linear actuator

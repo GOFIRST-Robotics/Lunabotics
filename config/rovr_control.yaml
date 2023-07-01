@@ -1,0 +1,8 @@
+main_control_node:
+  ros__parameters:
+    autonomous_driving_power: 0.25   # Measured in Duty Cycle
+    max_drive_power: 1.0             # Measured in Duty Cycle
+    max_turn_power: 1.0              # Measured in Duty Cycle
+    linear_actuator_speed: 8         # Duty Cycle value between 0-100 (not 0.0-1.0)
+    linear_actuator_up_speed: 40     # Duty Cycle value between 0-100 (not 0.0-1.0)
+    small_linear_actuator_speed: 75  # Duty Cycle value between 0-100 (not 0.0-1.0)
