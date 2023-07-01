@@ -1,7 +1,7 @@
 // This node publishes CAN bus messages for our VESC burshless motor controllers.
 // Original Author: Jude Sauve <sauve031@umn.edu> in 2018
 // Maintainer: Anthony Brogni <brogn002@umn.edu>
-// Last Updated: May 2023
+// Last Updated: July 2023
 
 // Import the ROS 2 Library
 #include "rclcpp/rclcpp.hpp"
@@ -33,12 +33,6 @@ const uint32_t DIGGER_ROTATION_MOTOR = 8;
 const uint32_t DIGGER_DRUM_BELT_MOTOR = 7;
 const uint32_t CONVEYOR_BELT_MOTOR = 6;
 const uint32_t OFFLOAD_BELT_MOTOR = 5;
-
-// Define Motor Power/Speeds Here //
-const float DIGGER_ROTATION_SPEED = 0.4; // Measured in duty cycle
-const float DRUM_BELT_POWER = 0.2; // Measured in duty cycle
-const float CONVEYOR_BELT_POWER = 0.35; // Measured in duty cycle
-const float OFFLOAD_BELT_POWER = 0.35; // Measured in duty cycle
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -111,13 +105,37 @@ class MotorControlNode : public rclcpp::Node
 public:
   MotorControlNode() : Node("MotorControlNode")
   {
+    // Define default values for our ROS parameters
+    this->declare_parameter("DIGGER_ROTATION_POWER", 0.4); // Measured in duty cycle
+    this->declare_parameter("DRUM_BELT_POWER", 0.2);       // Measured in duty cycle
+    this->declare_parameter("CONVEYOR_BELT_POWER", 0.35);  // Measured in duty cycle
+    this->declare_parameter("OFFLOAD_BELT_POWER", 0.35);   // Measured in duty cycle
+
     digger_RPM_pub = this->create_publisher<std_msgs::msg::Float32>("digger_RPM", 10);
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100);                                                        // The name of this topic is determined by our CAN_bridge node
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
+
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
     drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 10, std::bind(&MotorControlNode::drive_power_callback, this, _1));
     actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&MotorControlNode::actuators_callback, this, _1));
+
     timer = this->create_wall_timer(50ms, std::bind(&MotorControlNode::timer_callback, this));
+
+    this->DIGGER_ROTATION_POWER = this->get_parameter("DIGGER_ROTATION_POWER").as_double();
+    this->DRUM_BELT_POWER = this->get_parameter("DRUM_BELT_POWER").as_double();
+    this->CONVEYOR_BELT_POWER = this->get_parameter("CONVEYOR_BELT_POWER").as_double();
+    this->OFFLOAD_BELT_POWER = this->get_parameter("OFFLOAD_BELT_POWER").as_double();
+
+    RCLCPP_INFO(this->get_logger(), "DIGGER_ROTATION_POWER has been set to: %f", DIGGER_ROTATION_POWER); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "DRUM_BELT_POWER has been set to: %f", DRUM_BELT_POWER);             // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "CONVEYOR_BELT_POWER has been set to: %f", CONVEYOR_BELT_POWER);     // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "OFFLOAD_BELT_POWER has been set to: %f", OFFLOAD_BELT_POWER);       // Print to the terminal
   }
+
+  // Motor Speeds //
+  float DIGGER_ROTATION_POWER;
+  float DRUM_BELT_POWER;
+  float CONVEYOR_BELT_POWER;
+  float OFFLOAD_BELT_POWER;
 
 private:
   void drive_power_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
@@ -184,21 +202,21 @@ private:
     // Send digging CAN messages
     if (digging)
     {
-      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, DIGGER_ROTATION_SPEED * -1); // forwards
+      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, this->DIGGER_ROTATION_POWER * -1); // forwards
     }
     else if (reverse_digger)
     {
-      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, DIGGER_ROTATION_SPEED); // backwards
+      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, this->DIGGER_ROTATION_POWER); // backwards
     }
     else
     {
       vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, 0); // stop
     }
-    vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? DRUM_BELT_POWER * -1 : 0.0);
-    vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? CONVEYOR_BELT_POWER : 0.0);
+    vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? this->DRUM_BELT_POWER * -1 : 0.0);
+    vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? this->CONVEYOR_BELT_POWER : 0.0);
 
     // Send offloader CAN messages
-    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? OFFLOAD_BELT_POWER * -1 : 0.0);
+    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? this->OFFLOAD_BELT_POWER * -1 : 0.0);
 
     // Publish the current digger speed in RPM to a topic
     std_msgs::msg::Float32 digger_RPM_msg;
