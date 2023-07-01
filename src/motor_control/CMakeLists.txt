@@ -23,6 +23,10 @@ target_compile_features(motor_control_node PUBLIC c_std_99 cxx_std_17)  # Requir
 install(TARGETS motor_control_node
   DESTINATION lib/${PROJECT_NAME})
 
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
