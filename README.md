@@ -25,6 +25,8 @@ Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y` to install pa
 
 Run `rm -r build install log` to clean your workspace.
 
+To configure Sonarlint & Intellisense for C++ development, run `colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1`. Then, point Sonarlint to the `compile_commands.json` file that is created in your `build` directory.
+
 ## Joystick Node
 
 ```
