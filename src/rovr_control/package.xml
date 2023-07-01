@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>rovr_control</name>
-  <version>0.0.5</version>
+  <version>0.1.0</version>
   <description>This is the main robot control loop</description>
   <maintainer email="brogn002@umn.edu">Anthony Brogni</maintainer>
   <license>MIT License</license>

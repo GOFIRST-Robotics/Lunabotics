@@ -27,7 +27,7 @@
 				"ms-python.python",
 				"donjayamanne.python-extension-pack",
 				"eamodio.gitlens",
-				"ms-python.autopep8",
+				"ms-python.black-formatter",
 				"wayou.vscode-todo-highlight",
 				"SonarSource.sonarlint-vscode"
 			]

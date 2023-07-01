@@ -18,22 +18,17 @@ from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 
 class MinimalPublisher(Node):
-
     def __init__(self):
-        super().__init__('minimal_publisher')
+        super().__init__("minimal_publisher")
         # setup publisher to publish an OccupancyGrid to /map topic with max queue depth of 1 message
-        self.publisher_ = self.create_publisher(OccupancyGrid, 'map', 1)
+        self.publisher_ = self.create_publisher(OccupancyGrid, "map", 1)
         timer_period = 1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
 
     def timer_callback(self):
         msg = OccupancyGrid(
-            info=MapMetaData(
-                width=3,
-                height=3
-            ),
-            data=[0, 0, 0, 0, -1, 0, 0, 0, 0]
+            info=MapMetaData(width=3, height=3), data=[0, 0, 0, 0, -1, 0, 0, 0, 0]
         )
         msg.header.frame_id = "/map"
         self.publisher_.publish(msg)
@@ -55,5 +50,5 @@ def main(args=None):
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

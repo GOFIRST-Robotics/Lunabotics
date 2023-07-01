@@ -15,9 +15,8 @@ import open3d as o3d
 
 
 class PCDPublisher(Node):
-
     def __init__(self):
-        super().__init__('pointcloud_test_publisher')
+        super().__init__("pointcloud_test_publisher")
 
         # This executable expectes the first argument to be the path to a
         # point cloud file. I.e. when you run it with ros:
@@ -38,13 +37,14 @@ class PCDPublisher(Node):
         # Read more here:
         # http://wiki.ros.org/rospy/Overview/Publishers%20and%20Subscribers
         self.pcd_publisher = self.create_publisher(
-            sensor_msgs.PointCloud2, 'points', 10)
-        timer_period = 1/30.0
+            sensor_msgs.PointCloud2, "points", 10
+        )
+        timer_period = 1 / 30.0
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
         # This rotation matrix is used for visualization purposes. It rotates
         # the point cloud on each timer callback.
-        self.R = o3d.geometry.get_rotation_matrix_from_xyz([0, 0, np.pi/48])
+        self.R = o3d.geometry.get_rotation_matrix_from_xyz([0, 0, np.pi / 48])
 
     def timer_callback(self):
         # For visualization purposes, I rotate the point cloud with self.R
@@ -54,13 +54,13 @@ class PCDPublisher(Node):
         # into a sensor_msgs.PointCloud2 object. The second argument is the
         # name of the frame the point cloud will be represented in. The default
         # (fixed) frame in RViz is called 'map'
-        self.pcd = point_cloud(self.points, 'map')
+        self.pcd = point_cloud(self.points, "map")
         # Then I publish the PointCloud2 object
         self.pcd_publisher.publish(self.pcd)
 
 
 def point_cloud(points, parent_frame):
-    """ Creates a point cloud message.
+    """Creates a point cloud message.
     Args:
         points: Nx3 array of xyz positions.
         parent_frame: frame in which the point cloud is defined
@@ -84,9 +84,10 @@ def point_cloud(points, parent_frame):
 
     # The fields specify what the bytes represents. The first 4 bytes
     # represents the x-coordinate, the next 4 the y-coordinate, etc.
-    fields = [sensor_msgs.PointField(
-        name=n, offset=i*itemsize, datatype=ros_dtype, count=1)
-        for i, n in enumerate('xyz')]
+    fields = [
+        sensor_msgs.PointField(name=n, offset=i * itemsize, datatype=ros_dtype, count=1)
+        for i, n in enumerate("xyz")
+    ]
 
     # The PointCloud2 message also has a header which specifies which
     # coordinate frame it is represented in.
@@ -101,7 +102,7 @@ def point_cloud(points, parent_frame):
         fields=fields,
         point_step=(itemsize * 3),  # Every point consists of three float32s.
         row_step=(itemsize * 3 * points.shape[0]),
-        data=data
+        data=data,
     )
 
 
@@ -118,5 +119,5 @@ def main(args=None):
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

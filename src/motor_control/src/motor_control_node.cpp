@@ -25,14 +25,14 @@ bool reverse_digger = false;
 bool offloading = false;
 
 // Define CAN IDs Here //
-uint32_t FRONT_LEFT_DRIVE = 1;
-uint32_t BACK_LEFT_DRIVE = 4;
-uint32_t FRONT_RIGHT_DRIVE = 3;
-uint32_t BACK_RIGHT_DRIVE = 2;
-uint32_t DIGGER_ROTATION_MOTOR = 8;
-uint32_t DIGGER_DRUM_BELT_MOTOR = 7;
-uint32_t CONVEYOR_BELT_MOTOR = 6;
-uint32_t OFFLOAD_BELT_MOTOR = 5;
+const uint32_t FRONT_LEFT_DRIVE = 1;
+const uint32_t BACK_LEFT_DRIVE = 4;
+const uint32_t FRONT_RIGHT_DRIVE = 3;
+const uint32_t BACK_RIGHT_DRIVE = 2;
+const uint32_t DIGGER_ROTATION_MOTOR = 8;
+const uint32_t DIGGER_DRUM_BELT_MOTOR = 7;
+const uint32_t CONVEYOR_BELT_MOTOR = 6;
+const uint32_t OFFLOAD_BELT_MOTOR = 5;
 
 // Define Motor Power/Speeds Here //
 float DIGGER_ROTATION_SPEED = 0.4; // Measured in duty cycle
@@ -103,10 +103,10 @@ class MotorControlNode : public rclcpp::Node
       rightPower *= scale_factor;
     }
 
-    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, (leftPower) * -1);   // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(BACK_LEFT_DRIVE, (leftPower) * -1);    // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, (rightPower) * -1); // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, (rightPower) * -1);  // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, leftPower * -1);   // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(BACK_LEFT_DRIVE, leftPower * -1);    // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, rightPower * -1); // Multiply by -1 to invert motor direction
+    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, rightPower * -1);  // Multiply by -1 to invert motor direction
   }
 
 public:

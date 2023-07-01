@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>point_processing</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>Processing updating point maps for use in path finding</description>
   <maintainer email="3rix40@gmail.com">Eric Patton</maintainer>
   <license>Apache License 2.0</license>

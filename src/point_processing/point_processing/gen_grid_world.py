@@ -18,7 +18,9 @@ import open3d as o3d
 # define constants
 CELL_SIZE = 40  # size of each cell in mm
 CELL_POINTS_CUTOFF = 2  # minimum number of points required for a cell to be considered statistically valuable\
-GRAD_THRESH = 1  # gradient threshold to mark a cell as dangerous, always positive, 1 = 45 degrees
+GRAD_THRESH = (
+    1  # gradient threshold to mark a cell as dangerous, always positive, 1 = 45 degrees
+)
 
 
 class Cell:
@@ -30,10 +32,10 @@ class Cell:
 
 class PointcloudSubscriber(Node):
     def __init__(self):  # this function just initializes the node
-        super().__init__('pointcloud_subscriber')
+        super().__init__("pointcloud_subscriber")
         #
         # debug to see if starting correctly
-        self.get_logger().info('Node trying to start')
+        self.get_logger().info("Node trying to start")
         #
         # This is for visualization of the received point cloud.
         self.vis = o3d.visualization.Visualizer()
@@ -42,13 +44,14 @@ class PointcloudSubscriber(Node):
         #
         self.subscription = self.create_subscription(
             sensor_msgs.PointCloud2,
-            'points',  # this is the topic which the node is subscribed to
+            "points",  # this is the topic which the node is subscribed to
             self.listener_callback,
-            10
+            10,
         )
         self.subscription  # prevent unused variable warning
         #
-        self.get_logger().info('Node started successfully')  # isn't running
+        self.get_logger().info("Node started successfully")  # isn't running
+
     #
 
     # this function is called whenever the node detects an update to the pointcloud
@@ -56,10 +59,9 @@ class PointcloudSubscriber(Node):
         # receive the list of all points in the point cloud
         all_points = np.array(list(read_points(msg)))
         # log the shape of the list
-        self.get_logger().info(f'received message: {all_points.shape}')
+        self.get_logger().info(f"received message: {all_points.shape}")
         #
-        sorted_points = self.points_to_cells(
-            all_points)  # sort all points into cells
+        sorted_points = self.points_to_cells(all_points)  # sort all points into cells
         #
         # flag cells which are dangerous
         sorted_points = self.flag_cells(sorted_points)
@@ -72,8 +74,7 @@ class PointcloudSubscriber(Node):
         #
         # The rest here is for visualization. (modified from https://github.com/SebastianGrans/ROS2-Point-Cloud-Demo/blob/master/pcd_demo/pcd_subscriber/pcd_subscriber_node.py)
         self.vis.remove_geometry(self.o3d_pcd)
-        self.o3d_pcd = o3d.geometry.PointCloud(
-            o3d.utility.Vector3dVector(all_points))
+        self.o3d_pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(all_points))
         #
         self.color_points(self.o3d_pcd, sorted_points)
         #
@@ -81,6 +82,7 @@ class PointcloudSubscriber(Node):
         #
         self.vis.poll_events()
         self.vis.update_renderer()
+
     #
 
     def points_to_cells(self, all_points):
@@ -113,7 +115,9 @@ class PointcloudSubscriber(Node):
         # cell_num_z = (maxz - minz) / CELL_SIZE
         #
         cells = []
-        for x in range(cell_num_x):  # fill every cell with a cell object in a new 2d array
+        for x in range(
+            cell_num_x
+        ):  # fill every cell with a cell object in a new 2d array
             new_list = []
             for y in range(cell_num_y):
                 new_list.append(Cell())
@@ -132,6 +136,7 @@ class PointcloudSubscriber(Node):
             cells[x_index][y_index].points.append(point)
         #
         return cells
+
     #
 
     def flag_cells(self, sorted_points):
@@ -149,42 +154,48 @@ class PointcloudSubscriber(Node):
                 else:  # cell has enough points, now check gradients to neighboring cells
                     #
                     # set average z value of the cell
-                    cell.avg = sum(v[2]
-                                   for v in cell.points) / len(cell.points)
+                    cell.avg = sum(v[2] for v in cell.points) / len(cell.points)
                     #
-                    if (j == 0):  # only check gradient left
-                        if (i != 0):  # cell isn't first to be checked
-                            if (sorted_points[i-1][0].danger == 1):
+                    if j == 0:  # only check gradient left
+                        if i != 0:  # cell isn't first to be checked
+                            if sorted_points[i - 1][0].danger == 1:
                                 cell.danger = 2
                                 continue
                             x_grad = self.get_gradient(
-                                cell.avg, sorted_points[i-1][0].avg)
-                            if (x_grad > GRAD_THRESH):
+                                cell.avg, sorted_points[i - 1][0].avg
+                            )
+                            if x_grad > GRAD_THRESH:
                                 cell.danger = 2
                     else:
-                        if (sorted_points[i][j-1].danger == 1):
+                        if sorted_points[i][j - 1].danger == 1:
                             cell.danger = 2
                             continue
                         y_grad = self.get_gradient(
-                            cell.avg, sorted_points[i][j-1].avg)  # check top gradient
-                        if (y_grad > GRAD_THRESH):
+                            cell.avg, sorted_points[i][j - 1].avg
+                        )  # check top gradient
+                        if y_grad > GRAD_THRESH:
                             cell.danger = 2
                             continue
-                        if (i != 0):  # check left gradient also
-                            if (sorted_points[i-1][0].danger == 1):
+                        if i != 0:  # check left gradient also
+                            if sorted_points[i - 1][0].danger == 1:
                                 cell.danger = 2
                                 continue
                             x_grad = self.get_gradient(
-                                cell.avg, sorted_points[i-1][0].avg)
-                            if (x_grad > GRAD_THRESH):
+                                cell.avg, sorted_points[i - 1][0].avg
+                            )
+                            if x_grad > GRAD_THRESH:
                                 cell.danger = 2
         #
         return sorted_points
+
     #
 
     def get_gradient(self, avg_a, avg_b):
         """get z gradient between two cells averages"""
-        return abs((avg_b - avg_a) / CELL_SIZE)  # every cell average is separated by the cell size (there are no diagonals)
+        return abs(
+            (avg_b - avg_a) / CELL_SIZE
+        )  # every cell average is separated by the cell size (there are no diagonals)
+
     #
 
     def color_points(self, cloud, cells):
@@ -201,9 +212,9 @@ class PointcloudSubscriber(Node):
             # self.get_logger().info(f'index: {x_index}, {y_index} out of {len(cells)}, {len(cells[0])}')
             #
             cell = cells[x_index][y_index]
-            if (cell.danger == 1):
+            if cell.danger == 1:
                 point_color = [1, 0, 0]  # 0-1 rgb scale
-            elif (cell.danger == 2):
+            elif cell.danger == 2:
                 point_color = [0, 0, 1]
         # no return value because object is directly edited
 
@@ -212,14 +223,14 @@ class PointcloudSubscriber(Node):
 # https://github.com/ros/common_msgs/tree/noetic-devel/sensor_msgs/src/sensor_msgs
 
 _DATATYPES = {}
-_DATATYPES[PointField.INT8] = ('b', 1)
-_DATATYPES[PointField.UINT8] = ('B', 1)
-_DATATYPES[PointField.INT16] = ('h', 2)
-_DATATYPES[PointField.UINT16] = ('H', 2)
-_DATATYPES[PointField.INT32] = ('i', 4)
-_DATATYPES[PointField.UINT32] = ('I', 4)
-_DATATYPES[PointField.FLOAT32] = ('f', 4)
-_DATATYPES[PointField.FLOAT64] = ('d', 8)
+_DATATYPES[PointField.INT8] = ("b", 1)
+_DATATYPES[PointField.UINT8] = ("B", 1)
+_DATATYPES[PointField.INT16] = ("h", 2)
+_DATATYPES[PointField.UINT16] = ("H", 2)
+_DATATYPES[PointField.INT32] = ("i", 4)
+_DATATYPES[PointField.UINT32] = ("I", 4)
+_DATATYPES[PointField.FLOAT32] = ("f", 4)
+_DATATYPES[PointField.FLOAT64] = ("d", 8)
 
 
 def read_points(cloud, field_names=None, skip_nans=False, uvs=[]):
@@ -236,10 +247,16 @@ def read_points(cloud, field_names=None, skip_nans=False, uvs=[]):
     @return: Generator which yields a list of values for each point.
     @rtype:  generator
     """
-    assert isinstance(
-        cloud, PointCloud2), 'cloud is not a sensor_msgs.msg.PointCloud2'
+    assert isinstance(cloud, PointCloud2), "cloud is not a sensor_msgs.msg.PointCloud2"
     fmt = _get_struct_fmt(cloud.is_bigendian, cloud.fields, field_names)
-    width, height, point_step, row_step, data, isnan = cloud.width, cloud.height, cloud.point_step, cloud.row_step, cloud.data, math.isnan
+    width, height, point_step, row_step, data, isnan = (
+        cloud.width,
+        cloud.height,
+        cloud.point_step,
+        cloud.row_step,
+        cloud.data,
+        math.isnan,
+    )
     unpack_from = struct.Struct(fmt).unpack_from
 
     if skip_nans:
@@ -279,16 +296,22 @@ def read_points(cloud, field_names=None, skip_nans=False, uvs=[]):
 
 
 def _get_struct_fmt(is_bigendian, fields, field_names=None):
-    fmt = '>' if is_bigendian else '<'
+    fmt = ">" if is_bigendian else "<"
 
     offset = 0
-    for field in (f for f in sorted(fields, key=lambda f: f.offset) if field_names is None or f.name in field_names):
+    for field in (
+        f
+        for f in sorted(fields, key=lambda f: f.offset)
+        if field_names is None or f.name in field_names
+    ):
         if offset < field.offset:
-            fmt += 'x' * (field.offset - offset)
+            fmt += "x" * (field.offset - offset)
             offset = field.offset
         if field.datatype not in _DATATYPES:
             print(
-                'Skipping unknown PointField datatype [%d]' % field.datatype, file=sys.stderr)
+                "Skipping unknown PointField datatype [%d]" % field.datatype,
+                file=sys.stderr,
+            )
         else:
             datatype_fmt, datatype_length = _DATATYPES[field.datatype]
             fmt += field.count * datatype_fmt
@@ -310,5 +333,5 @@ def main(args=None):
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
