@@ -20,9 +20,10 @@ from nav_msgs.msg import OccupancyGrid, MapMetaData
 class MinimalPublisher(Node):
     def __init__(self):
         super().__init__("minimal_publisher")
-        # setup publisher to publish an OccupancyGrid to /map topic with max queue depth of 1 message
+        self.declare_parameter("timer_period", 1)  # default value of the parameter (in seconds)
+        # setup publisher to publish an OccupancyGrid to /map topic with queue size of 1 message
         self.publisher_ = self.create_publisher(OccupancyGrid, "map", 1)
-        timer_period = 1  # seconds
+        timer_period = self.get_parameter("timer_period").get_parameter_value().integer_value
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
 
