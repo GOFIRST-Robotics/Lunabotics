@@ -115,11 +115,11 @@ class PointcloudSubscriber(Node):
         # cell_num_z = (maxz - minz) / CELL_SIZE
         #
         cells = []
-        for x in range(
+        for _ in range(
             cell_num_x
         ):  # fill every cell with a cell object in a new 2d array
             new_list = []
-            for y in range(cell_num_y):
+            for _ in range(cell_num_y):
                 new_list.append(Cell())
             cells.append(new_list)
         # cells = np.empty((cell_num_x, cell_num_y), dtype=object) # create cells array

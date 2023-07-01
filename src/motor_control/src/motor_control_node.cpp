@@ -16,7 +16,7 @@
 #include <string>
 #include <stdint.h>
 
-// Global Variables
+// Global Variables //
 float linear_drive_power_cmd = 0.0;
 float angular_drive_power_cmd = 0.0;
 float current_digger_RPM = 0.0;
@@ -35,10 +35,10 @@ const uint32_t CONVEYOR_BELT_MOTOR = 6;
 const uint32_t OFFLOAD_BELT_MOTOR = 5;
 
 // Define Motor Power/Speeds Here //
-float DIGGER_ROTATION_SPEED = 0.4; // Measured in duty cycle
-float DRUM_BELT_POWER = 0.2;
-float CONVEYOR_BELT_POWER = 0.35;
-float OFFLOAD_BELT_POWER = 0.5;
+const float DIGGER_ROTATION_SPEED = 0.4; // Measured in duty cycle
+const float DRUM_BELT_POWER = 0.2; // Measured in duty cycle
+const float CONVEYOR_BELT_POWER = 0.35; // Measured in duty cycle
+const float OFFLOAD_BELT_POWER = 0.35; // Measured in duty cycle
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -46,7 +46,7 @@ using std::placeholders::_1;
 class MotorControlNode : public rclcpp::Node
 {
   // Generic method for sending data over the CAN bus
-  void send_can(uint32_t id, int32_t data)
+  void send_can(uint32_t id, int32_t data) const
   {
     can_msgs::msg::Frame can_msg; // Construct a new CAN message
 
@@ -95,8 +95,7 @@ class MotorControlNode : public rclcpp::Node
     float rightPower = linear_power + angular_power;
 
     // Desaturate the wheel speeds if needed
-    float greater_input = std::max(abs(leftPower), abs(rightPower));
-    if (greater_input > float(1))
+    if (float greater_input = std::max(abs(leftPower), abs(rightPower)); greater_input > float(1))
     {
       float scale_factor = float(1) / greater_input;
       leftPower *= scale_factor;
@@ -199,7 +198,7 @@ private:
     vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? CONVEYOR_BELT_POWER : 0.0);
 
     // Send offloader CAN messages
-    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? CONVEYOR_BELT_POWER * -1 : 0.0);
+    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? OFFLOAD_BELT_POWER * -1 : 0.0);
 
     // Publish the current digger speed in RPM to a topic
     std_msgs::msg::Float32 digger_RPM_msg;
