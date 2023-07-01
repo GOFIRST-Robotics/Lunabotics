@@ -1,7 +1,8 @@
-# this is an implementation of the full update, point method for point processing: https://www.notion.so/Ground-Algorithm-ab538c4bde484908abdde515edaa24a0?pvs=4
-# by Eric Patton (with code from others)
-# last updated 4/24/2023
-# WARNING: Not currently functional
+# This is an implementation of the full updated point method for point processing: https://www.notion.so/Ground-Algorithm-ab538c4bde484908abdde515edaa24a0?pvs=4
+# Original Author: Eric Patton (with code from others) in Spring 2023
+# Maintainer: Eric Patton
+# Last Updated: April 2023
+# FIXME: Not currently functional
 
 import struct
 import math
