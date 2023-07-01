@@ -2,9 +2,9 @@
 
 The official NASA RMC 2023 repository for LUNABOTICS team, a segment of University of Minnesota Robotics.
 
-We started developing on the Nvidia Jetson TX2 (running Ubuntu 18 and ROS 2 Eloquent) but eventually switched over to the newer Nvidia Jetson Orin Nano (running ubuntu 20 and ROS 2 Foxy)
+We started developing on the Nvidia Jetson TX2 (running Ubuntu 18.04 and ROS 2 Eloquent) but eventually switched over to the newer Nvidia Jetson Orin Nano (running Ubuntu 20.04 and ROS 2 Foxy)
 
-## How to Run inside Docker Container
+## How to Run Inside Docker Container
 
 Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers: Reopen in Container".
 Just press "from dockerfile" and then it will build the container and run it.
@@ -19,11 +19,11 @@ source install/setup.sh
 
 ## ROS 2 General Workspace Tips
 
-Make sure to `source install/setup.bash`
+Make sure to `source install/setup.bash` in every new terminal.
 
-Install Dependencies is `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y`
+Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y` to install package dependencies.
 
-Clean workspace is `rm -r build install log`
+Run `rm -r build install log` to clean your workspace.
 
 ## Joystick Node
 
@@ -39,8 +39,8 @@ ros2 run navx navx_node
 
 ## EKF Node
 
-start the navX Node first with the command above, 
-and run the script in /scripts that starts the static transform publisher from base_link to imu_link with the command:
+Start the navX Node first with the command above, and then 
+run the script in /scripts that starts the static transform publisher from base_link to imu_link with the command:
 
 ```
 ./imu_link_transform_publisher.sh
@@ -54,11 +54,11 @@ ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file co
 
 ## Intel RealSense Camera Setup
 
-Follow the instructions outlined here to set it up on your machine: https://github.com/IntelRealSense/realsense-ros#installation
+Follow the instructions outlined [here](https://github.com/IntelRealSense/realsense-ros#installation) to set up the RealSense depth camera on your machine.
 
 ## Apriltag Detection Setup
 
-Follow this tutorial to set it up on your machine: https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/docs/tutorial-usb-cam.md
+Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/docs/tutorial-usb-cam.md) tutorial to set up Apriltag detection on your machine.
 
 ## Gstreamer Commands
 
@@ -108,4 +108,4 @@ Configuring the Nvidia Jetson TX2 for CAN Communication:
 
 2) https://forums.developer.nvidia.com/t/how-to-use-can-on-jetson-tx2/54125
 
-VESC CAN Status Frames Spreadsheet: https://github.com/codermonkey42/VESC_CAN
+[VESC CAN Status Frames Spreadsheet](https://github.com/codermonkey42/VESC_CAN)
