@@ -2,8 +2,6 @@
 
 The official NASA Lunabotics 2024 repository for University of Minnesota Robotics.
 
-We started developing on the Nvidia Jetson TX2 (running Ubuntu 18.04 and ROS 2 Eloquent) but eventually switched over to the newer Nvidia Jetson Orin Nano (running Ubuntu 20.04 and ROS 2 Foxy)
-
 ## How to Run Inside Docker Container
 
 Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers: Reopen in Container".
@@ -39,18 +37,6 @@ Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/d
 
 ## Gstreamer Commands
 
-Start Gstreamer H.265 Encoding (On Nvidia Jetson TX2): 
-
-```
-gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=30/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=I420" ! omxh265enc bitrate=200000 ! "video/x-h265,stream-format=byte-stream" ! h265parse ! rtph265pay ! udpsink host=127.0.0.1 port=5000
-```
-
-Start Gstreamer H.265 Decoding (On Nvidia Jetson TX2): 
-
-```
-gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! omxh265dec ! nvvidconv ! xvimagesink
-```
-
 Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): 
 
 ```
@@ -78,11 +64,5 @@ gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H264, payload
 (Change the /dev/video device to add more webcams, and the port number to stream multiple webcams at once)
 
 ## Useful Resources/References
-
-Configuring the Nvidia Jetson TX2 for CAN Communication: 
-
-1) https://www.mathworks.com/help/supportpkg/nvidia/ug/jetson-can-bus-traffic-sign-detection.html
-
-2) https://forums.developer.nvidia.com/t/how-to-use-can-on-jetson-tx2/54125
 
 [VESC CAN Status Frames Spreadsheet](https://github.com/codermonkey42/VESC_CAN)
