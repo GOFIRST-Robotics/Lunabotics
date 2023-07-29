@@ -33,31 +33,6 @@ To configure Sonarlint & Intellisense for C++ development, run `colcon build --c
 ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml
 ```
 
-## NavX Node
-
-```
-ros2 run navx navx_node
-```
-
-## EKF Node
-
-Start the navX Node first with the command above, and then 
-run the script in /scripts that starts the static transform publisher from base_link to imu_link with the command:
-
-```
-./imu_link_transform_publisher.sh
-```
-
-Start the EKF node with ROS parameters: 
-
-```
-ros2 run robot_localization ekf_node ekf_filter_node --ros-args --params-file config/ekf.yaml
-```
-
-## Intel RealSense Camera Setup
-
-Follow the instructions outlined [here](https://github.com/IntelRealSense/realsense-ros#installation) to set up the RealSense depth camera on your machine.
-
 ## Apriltag Detection Setup
 
 Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/docs/tutorial-usb-cam.md) tutorial to set up Apriltag detection on your machine.
