@@ -1,5 +1,3 @@
-
-
 To install ROS2 eloquent on  turtlebot using rpi 3B+:
 use image 
 https://cdimage.ubuntu.com/releases/18.04/release/
