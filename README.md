@@ -1,6 +1,6 @@
-# LUNABOTICS-2023
+# Lunabotics-2024
 
-The official NASA RMC 2023 repository for LUNABOTICS team, a segment of University of Minnesota Robotics.
+The official NASA Lunabotics 2024 repository for University of Minnesota Robotics.
 
 We started developing on the Nvidia Jetson TX2 (running Ubuntu 18.04 and ROS 2 Eloquent) but eventually switched over to the newer Nvidia Jetson Orin Nano (running Ubuntu 20.04 and ROS 2 Foxy)
 
