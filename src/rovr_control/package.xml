@@ -28,6 +28,7 @@
   <exec_depend>motor_control</exec_depend>
   <exec_depend>joy</exec_depend>
   <exec_depend>rtabmap_ros</exec_depend>
+  <exec_depend>python3-serial</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
