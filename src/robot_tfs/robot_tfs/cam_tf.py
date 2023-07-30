@@ -6,7 +6,6 @@ from sensor_msgs.msg import Imu
 
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
-from tf2_ros.transform_listener import TransformListener
 
 
 class ImuListener(Node):
