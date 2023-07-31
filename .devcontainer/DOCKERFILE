@@ -7,6 +7,15 @@ RUN apt-get update && apt-get install -y \
     openssh-server \
     python3-pip
 
+# Install the ZED SDK (Required for the ZED ROS2 Wrapper)
+RUN apt-get update -y || true ; apt-get install --no-install-recommends lsb-release wget less udev sudo zstd build-essential cmake python3 python3-pip libpng-dev libgomp1 -y ; \
+    python3 -m pip install numpy opencv-python ; \
+    wget -q -O ZED_SDK_Linux_Ubuntu20.run https://download.stereolabs.com/zedsdk/4.0/cu118/ubuntu20 && \
+    chmod +x ZED_SDK_Linux_Ubuntu20.run ; ./ZED_SDK_Linux_Ubuntu20.run -- silent skip_tools && \
+    ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
+    rm ZED_SDK_Linux_Ubuntu20.run && \
+    rm -rf /var/lib/apt/lists/*
+
 # Source ROS 2 Foxy in .bashrc
 RUN echo "source /opt/ros/foxy/setup.bash" >> ~/.bashrc
 # Source our ROS 2 workspace in .bashrc
