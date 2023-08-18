@@ -1,0 +1,22 @@
+# This is the base image that our docker container will be built from\
+ARG BASE
+FROM ${BASE}
+ENV ROS_DISTRO humble
+# Install git and openssh-server
+RUN apt-get update && apt-get install -y \
+    git \
+    openssh-server \
+    python3-pip
+
+
+# Source ROS 2 Foxy in .bashrc
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc
+# Source our ROS 2 workspace in .bashrc
+RUN echo "source install/setup.bash" >> ~/.bashrc
+
+# Tell git to ignore linux file permission changes
+RUN git config --global core.fileMode false
+# Tell git to ignore line ending changes
+RUN git config --global core.autocrlf false
+
+ENTRYPOINT ["/bin/bash"]

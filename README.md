@@ -8,9 +8,11 @@ Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers
 Just press "from dockerfile" and then it will build the container and run it.
 
 When open, run the following commands in the terminal:
+If you want to be able to commit to the repo see:
+https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials
 
 ```
-source /opt/ros/foxy/setup.sh
+source /opt/ros/humble/setup.sh
 colcon build
 source install/setup.sh
 ```

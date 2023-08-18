@@ -2,18 +2,14 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
 {
 	"name": "Existing Dockerfile",
-	"build": {
-		// Sets the run context to one level up instead of the .devcontainer folder.
-		// "context": "..",
-		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-		"dockerfile": "DOCKERFILE"
-	},
+	"image": "umnrobotics/ros:humble-zed-dev",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "apt-get update && rosdep install -i --from-path src --rosdistro foxy -y ",
+	
+	"updateContentCommand": "rosdep install -i --from-path src -y",
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
@@ -30,8 +26,13 @@
 				"ms-python.black-formatter",
 				"wayou.vscode-todo-highlight",
 				"SonarSource.sonarlint-vscode"
-			]
-		}
+			],
+			"settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": { "bash": { "path": "/bin/bash" } },
+				"cmake.sourceDirectory": "/workspaces/Lunabotics-2024/src/motor_control"
+            }
+		}	
 	}
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "devcontainer"
