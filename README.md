@@ -2,6 +2,8 @@
 
 The official NASA Lunabotics 2024 repository for University of Minnesota Robotics.
 
+![Control-Flow Diagram](assets/NASA-Lunabotics-Software-Diagram.png)
+
 ## How to Run Inside Docker Container
 
 Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers: Reopen in Container".
