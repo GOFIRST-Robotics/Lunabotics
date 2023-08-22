@@ -2,7 +2,7 @@
 
 The official NASA Lunabotics 2024 repository for University of Minnesota Robotics.
 
-![Control-Flow Diagram](assets/NASA-Lunabotics-Software-Diagram)
+![Control-Flow Diagram](/assets/NASA-Lunabotics-Software-Diagram)
 
 ## How to Run Inside Docker Container
 
