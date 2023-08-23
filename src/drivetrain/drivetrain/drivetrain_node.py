@@ -9,6 +9,7 @@ from rclpy.node import Node
 
 # Import custom ROS 2 message type
 from rovr_interfaces.msg import MotorCommand
+from geometry_msgs.msg import Twist
 
 
 def clamp(number, minimum, maximum):
@@ -23,6 +24,7 @@ class DrivetrainNode(Node):
         
         # Define publishers and subscribers here
         self.motor_command_pub = self.create_publisher(MotorCommand, "motor_cmd", 10)
+        self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
         
         # Define motor CAN IDs here
         self.FRONT_LEFT_DRIVE = 1
@@ -52,6 +54,10 @@ class DrivetrainNode(Node):
     def stop(self):
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0)
+        
+    def cmd_vel_callback(self, msg):
+        """This method is called whenever a message is received on the cmd_vel topic."""
+        self.drive(msg.linear.x, msg.angular.z)
 
 
 def main(args=None):
