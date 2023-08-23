@@ -28,15 +28,16 @@ class ConveyorNode(Node):
         self.DRUM_BELT_MOTOR = 7
         self.CONVEYOR_BELT_MOTOR = 6
 
-    def set_power(self, power):
+    def set_power(self, drum_belt_power, conveyor_belt_power):
         """This method drives the robot with the desired forward power and turning power."""
-        p = clamp(power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
-        self.motor_command_pub.publish(MotorCommand(self.DRUM_BELT_MOTOR, p))
-        self.motor_command_pub.publish(MotorCommand(self.CONVEYOR_BELT_MOTOR, p))
+        drum_power = clamp(drum_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
+        conveyor_power = clamp(conveyor_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
+        self.motor_command_pub.publish(MotorCommand(self.DRUM_BELT_MOTOR, drum_power))
+        self.motor_command_pub.publish(MotorCommand(self.CONVEYOR_BELT_MOTOR, conveyor_power))
 
     def stop(self):
-        """This method stops the conveyor."""
-        self.set_power(0.0)
+        """This method stops both conveyor belts."""
+        self.set_power(0.0, 0.0)
 
 
 def main(args=None):

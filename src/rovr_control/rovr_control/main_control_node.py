@@ -185,18 +185,28 @@ class MainControlNode(Node):
         # Define default values for our ROS parameters below #
         
         # Maximum driving/turning speeds
-        self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle
-        self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle
-        self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle
+        self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         # Linear Actuator Speeds
         self.declare_parameter("linear_actuator_speed", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("linear_actuator_up_speed", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("small_linear_actuator_speed", 75)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        # Doubles
+        # Motor Speeds
+        self.declare_parameter("digger_rotation_power", 0.4)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("offload_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        
+        # Assign Doubles
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").get_parameter_value().double_value
         self.max_drive_power = self.get_parameter("max_drive_power").get_parameter_value().double_value
         self.max_turn_power = self.get_parameter("max_turn_power").get_parameter_value().double_value
-        # Integers
+        self.digger_rotation_power = self.get_parameter("digger_rotation_power").get_parameter_value().double_value
+        self.drum_belt_power = self.get_parameter("drum_belt_power").get_parameter_value().double_value
+        self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").get_parameter_value().double_value
+        self.offload_belt_power = self.get_parameter("offload_belt_power").get_parameter_value().double_value
+        # Assign Integers
         self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").get_parameter_value().integer_value
         self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").get_parameter_value().integer_value
         self.small_linear_actuator_speed = self.get_parameter("small_linear_actuator_speed").get_parameter_value().integer_value
@@ -207,8 +217,12 @@ class MainControlNode(Node):
         print("linear_actuator_speed has been set to:", self.linear_actuator_speed)
         print("linear_actuator_up_speed has been set to:", self.linear_actuator_up_speed)
         print("small_linear_actuator_speed has been set to:", self.small_linear_actuator_speed)
+        print("digger_rotation_power has been set to:", self.digger_rotation_power)
+        print("drum_belt_power has been set to:", self.drum_belt_power)
+        print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
+        print("offload_belt_power has been set to:", self.offload_belt_power)
 
-        # NOTE: The code below is for dynamic ip address asignment, however, we haven't gotten it to work yet :(
+        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
 

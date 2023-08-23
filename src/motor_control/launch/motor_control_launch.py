@@ -11,7 +11,6 @@ def generate_launch_description():
                 name="motor_control_node",
                 output="screen",
                 emulate_tty=True,
-                parameters=["config/motor_speeds.yaml"],
             )
         ]
     )

@@ -24,7 +24,6 @@ def generate_launch_description():
         package="motor_control",
         executable="motor_control_node",
         name="motor_control_node",
-        parameters=["config/motor_speeds.yaml"],
     )
 
     ld.add_action(rovr_control)
