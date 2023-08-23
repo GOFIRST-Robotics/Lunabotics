@@ -26,15 +26,27 @@ class OffloaderNode(Node):
         
         # Define motor CAN IDs here
         self.OFFLOADER = 5
+        
+        # Current state
+        self.running = False
 
-    def set_power(self, power):
-        """This method drives the robot with the desired forward power and turning power."""
+    def set_power(self, power: float) -> None:
+        """This method sets power to the offloading belt."""
+        self.running = True
         p = clamp(power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
-        self.motor_command_pub.publish(MotorCommand(self.BACK_RIGHT_DRIVE, p))
+        self.motor_command_pub.publish(MotorCommand(self.OFFLOADER, p))
 
-    def stop(self):
-        """This method stops the offloader."""
-        self.set_power(0.0)
+    def stop(self) -> None:
+        """This method stops the offloading belt."""
+        self.running = False
+        self.motor_command_pub.publish(MotorCommand(self.OFFLOADER, 0.0))
+        
+    def toggle(self, drum_power: float) -> None:
+        """This method toggles the offloading belt."""
+        if self.running:
+            self.stop()
+        else:
+            self.set_power(drum_power)
 
 
 def main(args=None):

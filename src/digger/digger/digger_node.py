@@ -26,15 +26,27 @@ class DiggerNode(Node):
         
         # Define motor CAN IDs here
         self.DIGGER = 8
+        
+        # Current state
+        self.running = False
 
-    def set_power(self, power):
-        """This method drives the robot with the desired forward power and turning power."""
+    def set_power(self, power: float) -> None:
+        """This method sets power to the digging drum."""
+        self.running = True
         p = clamp(power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
         self.motor_command_pub.publish(MotorCommand(self.DIGGER, p))
 
-    def stop(self):
-        """This method stops the digger."""
-        self.set_power(0.0)
+    def stop(self) -> None:
+        """This method stops the digging drum."""
+        self.running = False
+        self.motor_command_pub.publish(MotorCommand(self.DIGGER, 0.0))
+        
+    def toggle(self, drum_power: float) -> None:
+        """This method toggles the digging drum."""
+        if self.running:
+            self.stop()
+        else:
+            self.set_power(drum_power)
 
 
 def main(args=None):
