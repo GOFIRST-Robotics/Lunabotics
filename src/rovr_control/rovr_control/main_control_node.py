@@ -22,16 +22,20 @@ import serial  # Serial communication with the Arduino. Install with: <sudo pip3
 import time  # This is for time.sleep()
 import os  # Allows us to kill subprocesses
 import re  # Enables using regular expressions
-from enum import Enum # Enables the use of enumerated types
 
 # Import our gamepad button mappings
 from .gamepad_constants import *
-buttons = [0] * 11  # This is to help with button press detection
 
+# GLOBAL VARIABLES #
+buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
-class States(Enum):
-    Teleop = 0
-    Autonomous = 1
+states = {
+    "Teleop": 0,
+    "Autonomous": 1,
+    "Auto_Dig": 2,
+    "Auto_Offload": 3,
+    "Emergency_Stop": 4,
+}
 
 def get_target_ip(target: str, default: str = "", logger_fn=print):
     """Return the current IP address of Jonathan's laptop using nmap."""
@@ -51,7 +55,7 @@ def get_target_ip(target: str, default: str = "", logger_fn=print):
 
 
 class MainControlNode(Node):
-    def publish_cmd_vel(self, drive_power, turn_power):
+    def drive(self, drive_power, turn_power):
         """This method publishes a ROS2 message with the desired drive power and turning power."""
         # Create a new ROS2 msg
         drive_power_msg = Twist()
@@ -66,6 +70,10 @@ class MainControlNode(Node):
         drive_power_msg.angular.z = turn_power  # Turning power
         self.drive_power_publisher.publish(drive_power_msg)
         # self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
+
+    def stop(self):
+        """This method stops the drivetrain."""
+        self.drive(0.0, 0.0)
 
     def auto_dig_procedure(self, state, digger_toggle, reverse_dig):
         """This method lays out the procedure for autonomously digging!"""
@@ -104,7 +112,7 @@ class MainControlNode(Node):
 
         print("Autonomous Digging Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
-        state.value = States.Teleop
+        state.value = states["Teleop"]
 
     def auto_offload_procedure(
         self,
@@ -168,7 +176,7 @@ class MainControlNode(Node):
         # Print to the terminal
         print("Autonomous Offload Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
-        state.value = States.Teleop
+        state.value = states["Teleop"]
 
     def __init__(self):
         """Initialize the ROS2 Node."""
@@ -227,7 +235,9 @@ class MainControlNode(Node):
 
         # This allows us to modify our current state from within autonomous processes
         self.manager = multiprocessing.Manager()
-        self.state = self.manager.Value("i", States.Teleop)  # Define our robot's initial state
+        self.current_state = self.manager.Value(
+            "i", states["Teleop"]
+        )  # Define our robot's initial state
         self.apriltag_x = self.manager.Value("f", 0.0)
         self.apriltag_z = self.manager.Value("f", 0.0)
         self.apriltag_yaw = self.manager.Value("f", 0.0)
@@ -235,7 +245,10 @@ class MainControlNode(Node):
         self.auto_drive_speed = self.manager.Value("f", 0.0)
         self.auto_turn_speed = self.manager.Value("f", 0.0)
 
-        # Define some initial states
+        # Define some initial button states
+        self.digger_toggled = self.manager.Value("d", 0)
+        self.reverse_digger = self.manager.Value("d", 0)
+        self.offloader_toggled = self.manager.Value("d", 0)
         self.digger_extend_toggled = False
         self.camera_view_toggled = False
 
@@ -248,6 +261,12 @@ class MainControlNode(Node):
 
         self.apriltag_camera_x_offset = 0.1905  # Measured in Meters
 
+        # Actuators Publisher
+        self.actuators_publisher = self.create_publisher(String, "cmd_actuators", 10)
+        actuators_timer_period = 0.05  # how often to publish measured in seconds
+        self.actuators_timer = self.create_timer(
+            actuators_timer_period, self.actuators_timer_callback
+        )
         # Drive Power Publisher
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         # Apriltag Pose Publisher
@@ -294,11 +313,40 @@ class MainControlNode(Node):
         self.apriltag_yaw.value = entry.transform.rotation.y
         # print('x:', self.apriltag_x.value, 'z:', self.apriltag_z.value, 'yaw:', self.apriltag_yaw.value)
 
+    def publish_actuator_cmd(self, cmd: str):
+        """This method publishes the given actuator command to the 'cmd_actuators' topic."""
+        msg = String()
+        msg.data = cmd
+        self.actuators_publisher.publish(msg)
+        # self.get_logger().info('Publishing: "%s"' % msg.data) # Print to the terminal
+
+    def actuators_timer_callback(self):
+        """This method publishes a message detailing what all the actuators should be doing."""
+        if self.current_state.value == states["Emergency_Stop"]:
+            self.publish_actuator_cmd("STOP_ALL_ACTUATORS")
+            # Send stop command to the Arduino
+            self.arduino.write(f"e{chr(0)}".encode("ascii"))
+        else:
+            cmd = ""
+            if self.digger_toggled.value:
+                cmd += " DIGGER_ON"
+            elif self.reverse_digger.value:
+                cmd += " REVERSE_DIGGER"
+            else:
+                cmd += " DIGGER_OFF"
+            if self.offloader_toggled.value:
+                cmd += " OFFLOADER_ON"
+            elif not self.offloader_toggled.value:
+                cmd += " OFFLOADER_OFF"
+            self.publish_actuator_cmd(cmd)
+        if self.current_state.value == states["Auto_Offload"]:
+            self.drive(self.auto_drive_speed.value, self.auto_turn_speed.value)
+
     def joystick_callback(self, msg):
         """This method is called whenever a joystick message is received."""
 
         # TELEOP CONTROLS BELOW #
-        if self.state == States.Teleop:
+        if self.current_state.value == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             drive_power = (
                 msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
@@ -306,14 +354,14 @@ class MainControlNode(Node):
             turn_power = (
                 msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power
             )  # Turning power
-            self.publish_cmd_vel(drive_power, turn_power)
+            self.drive(drive_power, turn_power)
 
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                # TODO: Toggle the digging drum in forward direction
+                self.digger_toggled.value = not self.digger_toggled.value
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
-                # TODO: Toggle the offloader
+                self.offloader_toggled.value = not self.offloader_toggled.value
 
             # Check if the digger_extend button is pressed
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
@@ -332,11 +380,10 @@ class MainControlNode(Node):
                 # Send stop command to the Arduino
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
-            # Toggle the digging drum in reverse direction
             if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-                # TODO: Toggle the digging drum in reverse direction
+                self.reverse_digger.value = not self.reverse_digger.value
 
-            # NOTE: The controls commented out below haven't been tested yet
+            # NOTE: This hasn't been tested/used yet
             # # Small linear actuator controls
             # if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
             #   self.arduino.write(f'a{chr(small_linear_actuator_speed)}'.encode(
@@ -345,51 +392,51 @@ class MainControlNode(Node):
             #   self.arduino.write(f'b{chr(small_linear_actuator_speed)}'.encode(
             #     'ascii'))  # Retract the small linear actuator
 
-        # THE CONTROLS BELOW WILL ALWAYS FUNCTION #
+        # THE CONTROLS BELOW ALWAYS WORK #
 
-        # # Check if the autonomous digging button is pressed
-        # if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
-        #     if self.state.value == States.Teleop:
-        #         self.state.value = States.Autonomous
-        #         self.autonomous_digging_process = multiprocessing.Process(
-        #             target=self.auto_dig_procedure,
-        #             args=[self.state, self.digger_toggled, self.reverse_digger],
-        #         )
-        #         self.autonomous_digging_process.start()  # Start the auto dig process
-        #     elif self.state.value == States.Autonomous:
-        #         self.autonomous_digging_process.kill()  # Kill the auto dig process
-        #         print("Autonomous Digging Procedure Terminated\n")
-        #         self.state.value = States.Teleop
-        #         # After we finish this autonomous operation, start with the digger off
-        #         self.digger_toggled.value = 0
-        #         # Stop the linear actuator
-        #         self.arduino.write(f"e{chr(0)}".encode("ascii"))
+        # Check if the autonomous digging button is pressed
+        if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
+            if self.current_state.value == states["Teleop"]:
+                self.current_state.value = states["Auto_Dig"]
+                self.autonomous_digging_process = multiprocessing.Process(
+                    target=self.auto_dig_procedure,
+                    args=[self.current_state, self.digger_toggled, self.reverse_digger],
+                )
+                self.autonomous_digging_process.start()  # Start the auto dig process
+            elif self.current_state.value == states["Auto_Dig"]:
+                self.current_state.value = states["Teleop"]
+                self.autonomous_digging_process.kill()  # Kill the auto dig process
+                print("Autonomous Digging Procedure Terminated\n")
+                # After we finish this autonomous operation, start with the digger off
+                self.digger_toggled.value = 0
+                # Stop the linear actuator
+                self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
-        # # Check if the autonomous offload button is pressed
-        # if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
-        #     if self.state.value == States.Teleop:
-        #         self.state.value = States.Autonomous
-        #         self.autonomous_offload_process = multiprocessing.Process(
-        #             target=self.auto_offload_procedure,
-        #             args=[
-        #                 self.state,
-        #                 self.offloader_toggled,
-        #                 self.apriltag_x,
-        #                 self.apriltag_z,
-        #                 self.apriltag_yaw,
-        #                 self.auto_drive_speed,
-        #                 self.auto_turn_speed,
-        #             ],
-        #         )
-        #         self.autonomous_offload_process.start()  # Start the auto dig process
-        #     elif self.state.value == States.Autonomous:
-        #         self.autonomous_offload_process.kill()  # Kill the auto dig process
-        #         print("Autonomous Offload Procedure Terminated\n")
-        #         self.state.value = States.Teleop
-        #         # After we finish this autonomous operation, start with the offloader off
-        #         self.offloader_toggled.value = 0
-        #         # Stop driving
-        #         self.publish_cmd_vel(0.0, 0.0)
+        # Check if the autonomous offload button is pressed
+        if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
+            if self.current_state.value == states["Teleop"]:
+                self.current_state.value = states["Auto_Offload"]
+                self.autonomous_offload_process = multiprocessing.Process(
+                    target=self.auto_offload_procedure,
+                    args=[
+                        self.current_state,
+                        self.offloader_toggled,
+                        self.apriltag_x,
+                        self.apriltag_z,
+                        self.apriltag_yaw,
+                        self.auto_drive_speed,
+                        self.auto_turn_speed,
+                    ],
+                )
+                self.autonomous_offload_process.start()  # Start the auto dig process
+            elif self.current_state.value == states["Auto_Offload"]:
+                self.current_state.value = states["Teleop"]
+                self.autonomous_offload_process.kill()  # Kill the auto dig process
+                print("Autonomous Offload Procedure Terminated\n")
+                # After we finish this autonomous operation, start with the offloader off
+                self.offloader_toggled.value = 0
+                # Stop driving
+                self.stop()
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
