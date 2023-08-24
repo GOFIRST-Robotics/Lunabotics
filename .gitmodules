@@ -1,6 +1,3 @@
-[submodule "src/robot_localization"]
-	path = src/robot_localization
-	url = git@github.com:cra-ros-pkg/robot_localization.git
 [submodule "src/ros2socketcan_bridge"]
 	path = src/ros2socketcan_bridge
 	url = https://github.com/GOFIRST-Robotics/ros2socketcan_bridge.git
