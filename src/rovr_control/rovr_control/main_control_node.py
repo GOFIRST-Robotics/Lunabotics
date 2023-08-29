@@ -198,18 +198,17 @@ class MainControlNode(Node):
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("offload_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         
-        # Assign Doubles
-        self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").get_parameter_value().double_value
-        self.max_drive_power = self.get_parameter("max_drive_power").get_parameter_value().double_value
-        self.max_turn_power = self.get_parameter("max_turn_power").get_parameter_value().double_value
-        self.digger_rotation_power = self.get_parameter("digger_rotation_power").get_parameter_value().double_value
-        self.drum_belt_power = self.get_parameter("drum_belt_power").get_parameter_value().double_value
-        self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").get_parameter_value().double_value
-        self.offload_belt_power = self.get_parameter("offload_belt_power").get_parameter_value().double_value
-        # Assign Integers
-        self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").get_parameter_value().integer_value
-        self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").get_parameter_value().integer_value
-        self.small_linear_actuator_speed = self.get_parameter("small_linear_actuator_speed").get_parameter_value().integer_value
+        # Get the values of our ROS parameters
+        self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
+        self.max_drive_power = self.get_parameter("max_drive_power").value
+        self.max_turn_power = self.get_parameter("max_turn_power").value
+        self.digger_rotation_power = self.get_parameter("digger_rotation_power").value
+        self.drum_belt_power = self.get_parameter("drum_belt_power").value
+        self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
+        self.offload_belt_power = self.get_parameter("offload_belt_power").value
+        self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").value
+        self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").value
+        self.small_linear_actuator_speed = self.get_parameter("small_linear_actuator_speed").value
         
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
