@@ -12,9 +12,20 @@ Just press "from dockerfile" and then it will build the container and run it.
 When open, run the following commands in the terminal:
 
 ```
-source /opt/ros/foxy/setup.sh
-colcon build
+colcon build --symlink-install
 source install/setup.sh
+```
+
+If your machine does not have an Nvidia GPU, build using this command instead:
+
+```
+colcon build --symlink-install --packages-skip-regex zed*
+```
+
+If you need to rebuild the remote container uncomment sections in devcontainer that reference remote then, run the following command with devcontainer cli installed:
+
+```
+devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros"
 ```
 
 ## ROS 2 General Workspace Tips
