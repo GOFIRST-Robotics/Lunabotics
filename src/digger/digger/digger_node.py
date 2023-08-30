@@ -34,12 +34,12 @@ class DiggerNode(Node):
         """This method sets power to the digging drum."""
         self.running = True
         p = clamp(power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
-        self.motor_command_pub.publish(MotorCommand(self.DIGGER, p))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.DIGGER, type="duty_cycle", value=p))
 
     def stop(self) -> None:
         """This method stops the digging drum."""
         self.running = False
-        self.motor_command_pub.publish(MotorCommand(self.DIGGER, 0.0))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.DIGGER, type="duty_cycle", value=0.0))
         
     def toggle(self, drum_power: float) -> None:
         """This method toggles the digging drum."""

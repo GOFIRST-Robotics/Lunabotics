@@ -34,12 +34,12 @@ class OffloaderNode(Node):
         """This method sets power to the offloading belt."""
         self.running = True
         p = clamp(power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
-        self.motor_command_pub.publish(MotorCommand(self.OFFLOADER, p))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.OFFLOADER, type="duty_cycle", value=p))
 
     def stop(self) -> None:
         """This method stops the offloading belt."""
         self.running = False
-        self.motor_command_pub.publish(MotorCommand(self.OFFLOADER, 0.0))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.OFFLOADER, type="duty_cycle", value=0.0))
         
     def toggle(self, drum_power: float) -> None:
         """This method toggles the offloading belt."""

@@ -36,14 +36,14 @@ class ConveyorNode(Node):
         self.running = True
         drum_power = clamp(drum_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
         conveyor_power = clamp(conveyor_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
-        self.motor_command_pub.publish(MotorCommand(self.DRUM_BELT_MOTOR, drum_power))
-        self.motor_command_pub.publish(MotorCommand(self.CONVEYOR_BELT_MOTOR, conveyor_power))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.DRUM_BELT_MOTOR, type="duty_cycle", value=drum_power))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.CONVEYOR_BELT_MOTOR, type="duty_cycle", value=conveyor_power))
 
     def stop(self) -> None:
         """This method stops both conveyor belts."""
         self.running = False
-        self.motor_command_pub.publish(MotorCommand(self.DRUM_BELT_MOTOR, 0.0))
-        self.motor_command_pub.publish(MotorCommand(self.CONVEYOR_BELT_MOTOR, 0.0))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.DRUM_BELT_MOTOR, type="duty_cycle", value=0.0))
+        self.motor_command_pub.publish(MotorCommand(can_id=self.CONVEYOR_BELT_MOTOR, type="duty_cycle", value=0.0))
         
     def toggle(self, drum_belt_power: float, conveyor_belt_power: float) -> None:
         """This method toggles the conveyor belts."""

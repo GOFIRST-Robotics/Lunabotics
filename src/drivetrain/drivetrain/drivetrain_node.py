@@ -46,10 +46,10 @@ class DrivetrainNode(Node):
             left_power /= greater_input
             right_power /= greater_input
 
-        self.motor_command_pub.publish(MotorCommand(self.FRONT_LEFT_DRIVE, left_power * -1))   # Multiply by -1 to invert motor direction
-        self.motor_command_pub.publish(MotorCommand(self.BACK_LEFT_DRIVE, left_power * -1))    # Multiply by -1 to invert motor direction
-        self.motor_command_pub.publish(MotorCommand(self.FRONT_RIGHT_DRIVE, right_power * -1)) # Multiply by -1 to invert motor direction
-        self.motor_command_pub.publish(MotorCommand(self.BACK_RIGHT_DRIVE, right_power * -1))  # Multiply by -1 to invert motor direction
+        self.motor_command_pub.publish(MotorCommand(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=left_power * -1))   # Multiply by -1 to invert motor direction
+        self.motor_command_pub.publish(MotorCommand(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=left_power * -1))    # Multiply by -1 to invert motor direction
+        self.motor_command_pub.publish(MotorCommand(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=right_power * -1)) # Multiply by -1 to invert motor direction
+        self.motor_command_pub.publish(MotorCommand(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=right_power * -1))  # Multiply by -1 to invert motor direction
 
     def stop(self):
         """This method stops the drivetrain."""
