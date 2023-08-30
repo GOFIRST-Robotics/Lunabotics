@@ -32,10 +32,12 @@ buttons = [0] * 11  # This is to help with button press detection
 states = {
     "Teleop": 0,
     "Autonomous": 1,
-    "Auto_Dig": 2,
-    "Auto_Offload": 3,
-    "Emergency_Stop": 4,
 }
+
+def update_sharedVar(var, new_value):
+    """This function updates a shared variable in a multiprocessing context."""
+    with var.get_lock():
+        var.value = new_value
 
 def get_target_ip(target: str, default: str = "", logger_fn=print):
     """Return the current IP address of Jonathan's laptop using nmap."""
@@ -75,11 +77,11 @@ class MainControlNode(Node):
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0)
 
-    def auto_dig_procedure(self, state, digger_toggle, reverse_dig):
+    def auto_dig_procedure(self):
         """This method lays out the procedure for autonomously digging!"""
         # Print to the terminal
         print("\nStarting Autonomous Digging Procedure!")
-        digger_toggle.value = True  # Start the digger
+        update_sharedVar(self.sharedVar_diggerToggled, True) # Start the digger
 
         self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
         time.sleep(2)  # Wait a bit for the drum motor to get up to speed
@@ -103,80 +105,70 @@ class MainControlNode(Node):
                 break
 
         # Reverse the digging drum
-        digger_toggle.value, reverse_dig.value = False, True
+        update_sharedVar(self.sharedVar_diggerToggled, False)
+        update_sharedVar(self.sharedVar_reverseDigger, True)
 
         time.sleep(5)  # Wait for 5 seconds
 
         # Stop the digger
-        reverse_dig.value = False
+        update_sharedVar(self.sharedVar_reverseDigger, False)
 
         print("Autonomous Digging Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
-        state.value = states["Teleop"]
+        update_sharedVar(self.state, states["Teleop"])
 
-    def auto_offload_procedure(
-        self,
-        state,
-        offloader_toggle,
-        apriltag_x,
-        apriltag_z,
-        apriltag_yaw,
-        auto_drive_speed,
-        auto_turn_speed,
-    ):
+    def auto_offload_procedure(self):
         """This method lays out the procedure for autonomously offloading!"""
         print("\nStarting Autonomous Offload Procedure!")
 
         # Search for an Apriltag before continuing
         print("Searching for an Apriltag to dock with...")
-        apriltag_x.value = 0.0
+        update_sharedVar(self.sharedVar_apriltagX, 0.0)
         # Add a small delay to see if we can see an Apriltag already
         time.sleep(0.05)
-        while apriltag_x.value == 0.0:
+        while self.sharedVar_apriltagX.value == 0.0:
             # Turn slowly to look for an Apriltag
-            auto_drive_speed.value = 0.0
-            auto_turn_speed.value = 0.3
+            update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
+            update_sharedVar(self.sharedVar_autoTurnPower, 0.3)
         print(
-            f"Apriltag found! x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}"
+            f"Apriltag found! x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
         )
-        auto_drive_speed.value = 0.0
-        auto_turn_speed.value = 0.0
+        update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
+        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
 
         while (
-            apriltag_z.value >= 1.5
+            self.sharedVar_apriltagZ.value >= 1.5
         ):  # Continue correcting until we are within 1.5 meters of the tag #TODO: Tune this distance
-            auto_drive_speed.value = self.autonomous_driving_power
+            update_sharedVar(self.sharedVar_autoDrivePower, self.autonomous_driving_power)
             # TODO: Tune both of these P constants on the actual robot
-            auto_turn_speed.value = -1 * (
-                0.5 * apriltag_yaw.value + 0.5 * apriltag_x.value
-            )
+            update_sharedVar(self.sharedVar_autoTurnPower, -1 * (0.5 * self.sharedVar_apriltagYaw.value + 0.5 * self.sharedVar_apriltagX.value))
             print(
-                f"Tracking Apriltag with pose x: {apriltag_x.value}, z: {apriltag_z.value}, yaw :{apriltag_yaw.value}"
+                f"Tracking Apriltag with pose x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
             )
             # Add a small delay so we don't overload ROS with too many messages
             time.sleep(0.05)
-        auto_drive_speed.value = 0.0
-        auto_turn_speed.value = 0.0
+        update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
+        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
 
         # Finish docking with the trough
         print("Docking with the trough")
-        auto_drive_speed.value = self.autonomous_driving_power
-        auto_turn_speed.value = 0.0
+        update_sharedVar(self.sharedVar_autoDrivePower, self.autonomous_driving_power)
+        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
         # TODO: Tune this timing (how long to drive straight for at the end of docking)
         time.sleep(4)
-        auto_drive_speed.value = 0.0
-        auto_turn_speed.value = 0.0
+        update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
+        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
 
         print("Commence Offloading!")
-        offloader_toggle.value = 1  # Start Offloading
+        update_sharedVar(self.sharedVar_offloaderToggled, 1) # Start Offloading
         # TODO: Tune this timing (how long to run the offloader for)
         time.sleep(10)
-        offloader_toggle.value = 0  # Stop Offloading
+        update_sharedVar(self.sharedVar_offloaderToggled, 0) # Stop Offloading
 
         # Print to the terminal
         print("Autonomous Offload Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
-        state.value = states["Teleop"]
+        update_sharedVar(self.state, states["Teleop"])
 
     def __init__(self):
         """Initialize the ROS2 Node."""
@@ -198,7 +190,7 @@ class MainControlNode(Node):
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("offload_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         
-        # Get the values of our ROS parameters
+        # Assign the ROS Parameters
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
@@ -232,22 +224,17 @@ class MainControlNode(Node):
         except Exception as e:
             print(e)  # If an exception is raised, print it, and then move on
 
-        # This allows us to modify our current state from within autonomous processes
-        self.manager = multiprocessing.Manager()
-        self.current_state = self.manager.Value(
-            "i", states["Teleop"]
-        )  # Define our robot's initial state
-        self.apriltag_x = self.manager.Value("f", 0.0)
-        self.apriltag_z = self.manager.Value("f", 0.0)
-        self.apriltag_yaw = self.manager.Value("f", 0.0)
-
-        self.auto_drive_speed = self.manager.Value("f", 0.0)
-        self.auto_turn_speed = self.manager.Value("f", 0.0)
-
-        # Define some initial button states
-        self.digger_toggled = self.manager.Value("d", 0)
-        self.reverse_digger = self.manager.Value("d", 0)
-        self.offloader_toggled = self.manager.Value("d", 0)
+        # Define shared variables here (shared among all running processes)
+        self.sharedVar_state = multiprocessing.Value("i", states["Teleop"])
+        self.sharedVar_apriltagX = multiprocessing.Value("f", 0.0)
+        self.sharedVar_apriltagZ = multiprocessing.Value("f", 0.0)
+        self.sharedVar_apriltagYaw = multiprocessing.Value("f", 0.0)
+        self.sharedVar_autoDrivePower = multiprocessing.Value("f", 0.0)
+        self.sharedVar_autoTurnPower = multiprocessing.Value("f", 0.0)
+        self.sharedVar_diggerToggled = multiprocessing.Value("d", 0)
+        self.sharedVar_reverseDigger = multiprocessing.Value("d", 0)
+        self.sharedVar_offloaderToggled = multiprocessing.Value("d", 0)
+        
         self.digger_extend_toggled = False
         self.camera_view_toggled = False
 
@@ -302,15 +289,15 @@ class MainControlNode(Node):
         pose_object.pose.covariance = [0.0] * 36
         self.apriltag_pose_publisher.publish(pose_object)
 
-        # Set the value of these variables used for docking with an Apriltag
-        self.apriltag_x.value = (
-            entry.transform.translation.x + self.apriltag_camera_x_offset
-        )  # Left-Right Distance to the tag (measured in meters)
+        ## Set the value of these variables used for docking with an Apriltag ##
+        
+        # Left-Right Distance to the tag (measured in meters)
+        update_sharedVar(self.sharedVar_apriltagX, entry.transform.translation.x + self.apriltag_camera_x_offset)
         # Foward-Backward Distance to the tag (measured in meters)
-        self.apriltag_z.value = entry.transform.translation.z
+        update_sharedVar(self.sharedVar_apriltagZ, entry.transform.translation.z)
         # Yaw Angle error to the tag's orientation (measured in radians)
-        self.apriltag_yaw.value = entry.transform.rotation.y
-        # print('x:', self.apriltag_x.value, 'z:', self.apriltag_z.value, 'yaw:', self.apriltag_yaw.value)
+        update_sharedVar(self.sharedVar_apriltagYaw, entry.transform.rotation.y)
+        # print('x:', self.sharedVar_apriltagX.value, 'z:', self.sharedVar_apriltagZ.value, 'yaw:', self.sharedVar_apriltagYaw.value)
 
     def publish_actuator_cmd(self, cmd: str):
         """This method publishes the given actuator command to the 'cmd_actuators' topic."""
@@ -321,31 +308,26 @@ class MainControlNode(Node):
 
     def actuators_timer_callback(self):
         """This method publishes a message detailing what all the actuators should be doing."""
-        if self.current_state.value == states["Emergency_Stop"]:
-            self.publish_actuator_cmd("STOP_ALL_ACTUATORS")
-            # Send stop command to the Arduino
-            self.arduino.write(f"e{chr(0)}".encode("ascii"))
+        cmd = ""
+        if self.sharedVar_diggerToggled.value:
+            cmd += " DIGGER_ON"
+        elif self.sharedVar_reverseDigger.value:
+            cmd += " sharedVar_reverseDigger"
         else:
-            cmd = ""
-            if self.digger_toggled.value:
-                cmd += " DIGGER_ON"
-            elif self.reverse_digger.value:
-                cmd += " REVERSE_DIGGER"
-            else:
-                cmd += " DIGGER_OFF"
-            if self.offloader_toggled.value:
-                cmd += " OFFLOADER_ON"
-            elif not self.offloader_toggled.value:
-                cmd += " OFFLOADER_OFF"
-            self.publish_actuator_cmd(cmd)
-        if self.current_state.value == states["Auto_Offload"]:
-            self.drive(self.auto_drive_speed.value, self.auto_turn_speed.value)
+            cmd += " DIGGER_OFF"
+        if self.sharedVar_offloaderToggled.value:
+            cmd += " OFFLOADER_ON"
+        elif not self.sharedVar_offloaderToggled.value:
+            cmd += " OFFLOADER_OFF"
+        self.publish_actuator_cmd(cmd)
+        if self.sharedVar_state.value == states["Autonomous"]:
+            self.drive(self.sharedVar_autoDrivePower.value, self.sharedVar_autoTurnPower.value)
 
     def joystick_callback(self, msg):
         """This method is called whenever a joystick message is received."""
 
         # TELEOP CONTROLS BELOW #
-        if self.current_state.value == states["Teleop"]:
+        if self.sharedVar_state.value == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             drive_power = (
                 msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
@@ -357,10 +339,10 @@ class MainControlNode(Node):
 
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                self.digger_toggled.value = not self.digger_toggled.value
+                update_sharedVar(self.sharedVar_diggerToggled, not self.sharedVar_diggerToggled.value)
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
-                self.offloader_toggled.value = not self.offloader_toggled.value
+                update_sharedVar(self.sharedVar_offloaderToggled, not self.sharedVar_offloaderToggled.value)
 
             # Check if the digger_extend button is pressed
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
@@ -380,7 +362,7 @@ class MainControlNode(Node):
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
             if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-                self.reverse_digger.value = not self.reverse_digger.value
+                update_sharedVar(self.sharedVar_reverseDigger, not self.sharedVar_reverseDigger.value)
 
             # NOTE: This hasn't been tested/used yet
             # # Small linear actuator controls
@@ -395,45 +377,35 @@ class MainControlNode(Node):
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
-            if self.current_state.value == states["Teleop"]:
-                self.current_state.value = states["Auto_Dig"]
+            if self.sharedVar_state.value == states["Teleop"]:
+                update_sharedVar(self.sharedVar_state, states["Autonomous"])
                 self.autonomous_digging_process = multiprocessing.Process(
-                    target=self.auto_dig_procedure,
-                    args=[self.current_state, self.digger_toggled, self.reverse_digger],
+                    target=self.auto_dig_procedure
                 )
                 self.autonomous_digging_process.start()  # Start the auto dig process
-            elif self.current_state.value == states["Auto_Dig"]:
-                self.current_state.value = states["Teleop"]
+            elif self.sharedVar_state.value == states["Autonomous"]:
+                update_sharedVar(self.sharedVar_state, states["Teleop"])
                 self.autonomous_digging_process.kill()  # Kill the auto dig process
                 print("Autonomous Digging Procedure Terminated\n")
                 # After we finish this autonomous operation, start with the digger off
-                self.digger_toggled.value = 0
+                update_sharedVar(self.sharedVar_diggerToggled, 0)
                 # Stop the linear actuator
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
         # Check if the autonomous offload button is pressed
         if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
-            if self.current_state.value == states["Teleop"]:
-                self.current_state.value = states["Auto_Offload"]
+            if self.sharedVar_state.value == states["Teleop"]:
+                update_sharedVar(self.sharedVar_state, states["Autonomous"])
                 self.autonomous_offload_process = multiprocessing.Process(
-                    target=self.auto_offload_procedure,
-                    args=[
-                        self.current_state,
-                        self.offloader_toggled,
-                        self.apriltag_x,
-                        self.apriltag_z,
-                        self.apriltag_yaw,
-                        self.auto_drive_speed,
-                        self.auto_turn_speed,
-                    ],
+                    target=self.auto_offload_procedure
                 )
                 self.autonomous_offload_process.start()  # Start the auto dig process
-            elif self.current_state.value == states["Auto_Offload"]:
-                self.current_state.value = states["Teleop"]
+            elif self.sharedVar_state.value == states["Autonomous"]:
+                update_sharedVar(self.sharedVar_state, states["Teleop"])
                 self.autonomous_offload_process.kill()  # Kill the auto dig process
                 print("Autonomous Offload Procedure Terminated\n")
                 # After we finish this autonomous operation, start with the offloader off
-                self.offloader_toggled.value = 0
+                update_sharedVar(self.sharedVar_offloaderToggled, 0)
                 # Stop driving
                 self.stop()
 
