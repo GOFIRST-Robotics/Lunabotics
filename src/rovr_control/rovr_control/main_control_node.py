@@ -16,6 +16,11 @@ from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import OffloaderToggle
+from rovr_interfaces.srv import OffloaderStop
+from rovr_interfaces.srv import OffloaderSetPower
+from rovr_interfaces.srv import ConveyorToggle
+from rovr_interfaces.srv import ConveyorStop
+from rovr_interfaces.srv import ConveyorSetPower
 
 # Import Python Modules
 import multiprocessing  # Allows us to run tasks in parallel using multiple CPU cores!
@@ -86,6 +91,7 @@ class MainControlNode(Node):
         # Print to the terminal
         print("\nStarting Autonomous Digging Procedure!")
         # TODO: Start the digging drum
+        self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
 
         self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
         time.sleep(2)  # Wait a bit for the drum motor to get up to speed
@@ -113,7 +119,8 @@ class MainControlNode(Node):
 
         time.sleep(5)  # Wait for 5 seconds
 
-        # TODO: Stop the digger
+        # TODO: Stop the digging drum
+        self.cli_conveyor_stop.call_async(ConveyorStop.Request())
 
         print("Autonomous Digging Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
@@ -162,10 +169,10 @@ class MainControlNode(Node):
         update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
 
         print("Commence Offloading!")
-        self.cli_offloader_setPower.call_async(OffloaderToggle.Request(power=self.offload_belt_power)) # start offloading
+        self.cli_offloader_setPower.call_async(OffloaderSetPower.Request(power=self.offload_belt_power)) # start offloading
         # TODO: Tune this timing (how long to run the offloader for)
         time.sleep(10)
-        self.cli_offloader_stop.call_async(OffloaderToggle.Request()) # stop offloading
+        self.cli_offloader_stop.call_async(OffloaderStop.Request()) # stop offloading
 
         # Print to the terminal
         print("Autonomous Offload Procedure Complete!\n")
@@ -249,8 +256,11 @@ class MainControlNode(Node):
         
         # Define service clients here
         self.cli_offloader_toggle = self.create_client(OffloaderToggle, "offloader/toggle")
-        self.cli_offloader_stop = self.create_client(OffloaderToggle, "offloader/stop")
-        self.cli_offloader_setPower = self.create_client(OffloaderToggle, "offloader/setPower")
+        self.cli_offloader_stop = self.create_client(OffloaderStop, "offloader/stop")
+        self.cli_offloader_setPower = self.create_client(OffloaderSetPower, "offloader/setPower")
+        self.cli_conveyor_toggle = self.create_client(ConveyorToggle, "conveyor/toggle")
+        self.cli_conveyor_stop = self.create_client(ConveyorStop, "conveyor/stop")
+        self.cli_conveyor_setPower = self.create_client(ConveyorSetPower, "conveyor/setPower")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -304,7 +314,8 @@ class MainControlNode(Node):
 
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                pass # TODO: Toggle the digging drum
+                # TODO: Toggle the digging drum
+                self.cli_conveyor_toggle.call_async(ConveyorToggle.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
                 self.cli_offloader_toggle.call_async(OffloaderToggle.Request(power=self.offload_belt_power))
@@ -327,7 +338,8 @@ class MainControlNode(Node):
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
             if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-                pass # TODO: Reverse the digging drum
+                # TODO: Reverse the digging drum (set negative power)
+                self.cli_conveyor_toggle.call_async(ConveyorToggle.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
 
             # NOTE: This hasn't been tested/used yet
             # # Small linear actuator controls
@@ -354,6 +366,7 @@ class MainControlNode(Node):
                 print("Autonomous Digging Procedure Terminated\n")
                 # After we finish this autonomous operation, start with the digger off
                 # TODO: Stop the digging drum
+                self.cli_conveyor_stop.call_async(ConveyorStop.Request())
                 # Stop the linear actuator
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
@@ -370,7 +383,7 @@ class MainControlNode(Node):
                 self.autonomous_offload_process.kill()  # Kill the auto dig process
                 print("Autonomous Offload Procedure Terminated\n")
                 # After we finish this autonomous operation, start with the offloader off
-                self.cli_offloader_stop.call_async(OffloaderToggle.Request()) # stop offloading
+                self.cli_offloader_stop.call_async(OffloaderStop.Request()) # stop offloading
                 # Stop driving
                 self.stop()
 
