@@ -26,6 +26,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/ConveyorToggle.srv"
   "srv/ConveyorStop.srv"
   "srv/ConveyorSetPower.srv"
+  "srv/DiggerToggle.srv"
+  "srv/DiggerStop.srv"
+  "srv/DiggerSetPower.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)
 

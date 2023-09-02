@@ -1,0 +1,4 @@
+# This service sets power to the digger
+float32 power # duty cycle
+---
+int32 success
