@@ -1,4 +1,4 @@
 # This service toggles the offloader
-float32 power
+float32 power # duty cycle
 ---
 int32 success

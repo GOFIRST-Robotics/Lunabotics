@@ -1,9 +1,9 @@
-# This node contains code for the drivetrain subsystem of the robot.
+# This ROS 2 node contains code for the offloader subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: August 2023
+# Last Updated: September 2023
 
-# Import the ROS 2 module
+# Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
 
@@ -11,8 +11,8 @@ from rclpy.node import Node
 from rovr_interfaces.msg import MotorCommand
 from rovr_interfaces.srv import OffloaderToggle
 
-
-def clamp(number, minimum, maximum):
+# Define helper functions here
+def clamp(number: float, minimum: float, maximum: float) -> float:
     """Clamps a number between the specified minimum and maximum."""
     return max(minimum, min(number, maximum))
 
@@ -33,7 +33,7 @@ class OffloaderNode(Node):
         # Define motor CAN IDs here
         self.OFFLOADER = 5
         
-        # Current state
+        # Current subsystem state
         self.running = False
 
     # Define subsystem methods here
