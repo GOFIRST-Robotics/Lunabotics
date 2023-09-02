@@ -33,7 +33,8 @@
 				"ms-python.black-formatter",
 				"wayou.vscode-todo-highlight",
 				"SonarSource.sonarlint-vscode",
-				"ms-azuretools.vscode-docker"
+				"ms-azuretools.vscode-docker",
+				"nonanonno.vscode-ros2"
 			]
 		}
 	}
