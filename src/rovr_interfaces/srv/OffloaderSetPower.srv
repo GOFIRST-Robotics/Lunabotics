@@ -1,0 +1,4 @@
+# This service sets power to the offloader
+float32 power
+---
+int32 success

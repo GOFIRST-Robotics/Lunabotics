@@ -7,8 +7,9 @@
 import rclpy
 from rclpy.node import Node
 
-# Import custom ROS 2 message type
+# Import custom ROS 2 interfaces
 from rovr_interfaces.msg import MotorCommand
+from rovr_interfaces.srv import OffloaderToggle
 
 
 def clamp(number, minimum, maximum):
@@ -24,12 +25,18 @@ class OffloaderNode(Node):
         # Define publishers and subscribers here
         self.motor_command_pub = self.create_publisher(MotorCommand, "motor_cmd", 10)
         
+        # Define services (methods callable from the outside) here
+        self.srv_toggle = self.create_service(OffloaderToggle, 'offloader/toggle', self.toggle_callback)
+        self.srv_stop = self.create_service(OffloaderToggle, 'offloader/stop', self.stop_callback)
+        self.srv_setPower = self.create_service(OffloaderToggle, 'offloader/setPower', self.set_power_callback)
+        
         # Define motor CAN IDs here
         self.OFFLOADER = 5
         
         # Current state
         self.running = False
 
+    # Define subsystem methods here
     def set_power(self, power: float) -> None:
         """This method sets power to the offloading belt."""
         self.running = True
@@ -40,14 +47,33 @@ class OffloaderNode(Node):
         """This method stops the offloading belt."""
         self.running = False
         self.motor_command_pub.publish(MotorCommand(can_id=self.OFFLOADER, type="duty_cycle", value=0.0))
-        
-    def toggle(self, drum_power: float) -> None:
+
+    def toggle(self, power: float) -> None:
         """This method toggles the offloading belt."""
         if self.running:
             self.stop()
         else:
-            self.set_power(drum_power)
+            self.set_power(power)
+            
+    # Define service callback methods here
+    def set_power_callback(self, request, response) -> None:
+        """This service request sets power to the offloading belt."""
+        self.set_power(request.power)
+        response.success = 1 # indicate success
+        return response
 
+    def stop_callback(self, request, response) -> None:
+        """This service request stops the offloading belt."""
+        self.stop()
+        response.success = 1 # indicate success
+        return response
+
+    def toggle_callback(self, request, response) -> None:
+        """This service request toggles the offloading belt."""
+        self.toggle(request.power)
+        response.success = 1 # indicate success
+        return response
+    
 
 def main(args=None):
     """The main function."""
