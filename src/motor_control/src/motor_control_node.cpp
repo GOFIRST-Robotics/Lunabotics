@@ -97,6 +97,8 @@ private:
 
     uint32_t RPM = (can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3];
     uint16_t dutyCycleNow = ((can_msg->data[6] << 8) + can_msg->data[7]) / 10;
+    // TODO: calculate the current draw of the motor from the CAN data
+    // TODO: calculate the position of the motor from the CAN data
 
     // RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
     // RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
