@@ -232,7 +232,7 @@ class MainControlNode(Node):
         self.autonomous_offload_process = None
 
         # This is a hard-coded physical constant (how off-center is the apriltag camera?)
-        self.apriltag_camera_x_offset = 0.1905  # Measured in Meters
+        self.typeapriltag_camera_offset = 0.1905  # Measured in Meters
         
         # Define service clients here
         self.cli_offloader_toggle = self.create_client(OffloaderToggle, "offloader/toggle")
@@ -263,7 +263,7 @@ class MainControlNode(Node):
         pose_object = PoseWithCovarianceStamped()
         pose_object.header = entry.header
         pose_object.pose.pose.position.x = (
-            entry.transform.translation.x + self.apriltag_camera_x_offset
+            entry.transform.translation.x + self.typeapriltag_camera_offset
         )
         pose_object.pose.pose.position.y = entry.transform.translation.y
         pose_object.pose.pose.position.z = entry.transform.translation.z
@@ -277,7 +277,7 @@ class MainControlNode(Node):
         ## Set the value of these variables used for docking with an Apriltag ##
         
         # Left-Right Distance to the tag (measured in meters)
-        update_sharedVar(self.sharedVar_apriltagX, entry.transform.translation.x + self.apriltag_camera_x_offset)
+        update_sharedVar(self.sharedVar_apriltagX, entry.transform.translation.x + self.typeapriltag_camera_offset)
         # Foward-Backward Distance to the tag (measured in meters)
         update_sharedVar(self.sharedVar_apriltagZ, entry.transform.translation.z)
         # Yaw Angle error to the tag's orientation (measured in radians)
