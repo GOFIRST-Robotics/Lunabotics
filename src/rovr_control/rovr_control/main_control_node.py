@@ -73,8 +73,8 @@ class MainControlNode(Node):
 
     def auto_dig_procedure(self):
         """This method lays out the procedure for autonomously digging!"""
-        # Print to the terminal
         print("\nStarting Autonomous Digging Procedure!")
+        
         self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
         self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
 
@@ -156,7 +156,6 @@ class MainControlNode(Node):
         time.sleep(10)
         self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
 
-        # Print to the terminal
         print("Autonomous Offload Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
         update_sharedVar(self.sharedVar_state, states["Teleop"])
