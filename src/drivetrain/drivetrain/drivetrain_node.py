@@ -12,7 +12,7 @@ from geometry_msgs.msg import Twist
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.msg import MotorCommand
-from rovr_interfaces.srv import DrivetrainStop
+from rovr_interfaces.srv import Stop, Drive
 
 
 # Define helper functions here
@@ -31,7 +31,8 @@ class DrivetrainNode(Node):
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
         
         # Define services (methods callable from the outside) here
-        self.srv_stop = self.create_service(DrivetrainStop, 'drivetrain/stop', self.stop_callback)
+        self.srv_stop = self.create_service(Stop, 'drivetrain/stop', self.stop_callback)
+        self.srv_drive = self.create_service(Drive, 'drivetrain/drive', self.drive_callback)
         
         # Define motor CAN IDs here
         self.FRONT_LEFT_DRIVE = 1
@@ -67,6 +68,12 @@ class DrivetrainNode(Node):
     def stop_callback(self, request, response) -> None:
         """This service request stops the offloading belt."""
         self.stop()
+        response.success = 1 # indicates success
+        return response
+    
+    def drive_callback(self, request, response) -> None:
+        """This service request stops the offloading belt."""
+        self.drive(request.forward_power, request.turning_power)
         response.success = 1 # indicates success
         return response
         

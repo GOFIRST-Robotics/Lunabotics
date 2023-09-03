@@ -21,15 +21,13 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MotorCommand.msg"
   "srv/OffloaderToggle.srv"
-  "srv/OffloaderStop.srv"
+  "srv/Stop.srv"
   "srv/OffloaderSetPower.srv"
   "srv/ConveyorToggle.srv"
-  "srv/ConveyorStop.srv"
   "srv/ConveyorSetPower.srv"
   "srv/DiggerToggle.srv"
-  "srv/DiggerStop.srv"
   "srv/DiggerSetPower.srv"
-  "srv/DrivetrainStop.srv"
+  "srv/Drive.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)
 

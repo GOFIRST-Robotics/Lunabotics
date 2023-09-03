@@ -9,7 +9,7 @@ from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.msg import MotorCommand
-from rovr_interfaces.srv import DiggerToggle, DiggerStop, DiggerSetPower
+from rovr_interfaces.srv import DiggerToggle, DiggerSetPower, Stop
 
 # Define helper functions here
 def clamp(number: float, minimum: float, maximum: float) -> float:
@@ -27,7 +27,7 @@ class DiggerNode(Node):
         
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(DiggerToggle, 'digger/toggle', self.toggle_callback)
-        self.srv_stop = self.create_service(DiggerStop, 'digger/stop', self.stop_callback)
+        self.srv_stop = self.create_service(Stop, 'digger/stop', self.stop_callback)
         self.srv_setPower = self.create_service(DiggerSetPower, 'digger/setPower', self.set_power_callback)
         
         # Define motor CAN IDs here

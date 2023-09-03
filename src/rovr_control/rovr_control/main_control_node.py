@@ -14,10 +14,10 @@ from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import OffloaderToggle, OffloaderStop, OffloaderSetPower
-from rovr_interfaces.srv import ConveyorToggle, ConveyorStop, ConveyorSetPower
-from rovr_interfaces.srv import DiggerToggle, DiggerStop, DiggerSetPower
-from rovr_interfaces.srv import DrivetrainStop
+from rovr_interfaces.srv import OffloaderToggle, OffloaderSetPower
+from rovr_interfaces.srv import ConveyorToggle, ConveyorSetPower
+from rovr_interfaces.srv import DiggerToggle, DiggerSetPower
+from rovr_interfaces.srv import Stop, Drive
 
 # Import Python Modules
 import multiprocessing  # Allows us to run tasks in parallel using multiple CPU cores!
@@ -123,36 +123,32 @@ class MainControlNode(Node):
         time.sleep(0.05)
         while self.sharedVar_apriltagX.value == 0.0:
             # Turn slowly to look for an Apriltag
-            update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
-            update_sharedVar(self.sharedVar_autoTurnPower, 0.3)
+            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3))
         print(
             f"Apriltag found! x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
         )
-        update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
-        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
+        # Stop turning
+        self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
 
-        while (
-            self.sharedVar_apriltagZ.value >= 1.5
-        ):  # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
-            update_sharedVar(self.sharedVar_autoDrivePower, self.autonomous_driving_power)
+        # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
+        while (self.sharedVar_apriltagZ.value >= 1.5):
             # TODO: Tune both of these P constants on the actual robot
-            update_sharedVar(self.sharedVar_autoTurnPower, -1 * (0.5 * self.sharedVar_apriltagYaw.value + 0.5 * self.sharedVar_apriltagX.value))
+            turn = -1 * (0.5 * self.sharedVar_apriltagYaw.value + 0.5 * self.sharedVar_apriltagX.value)
+            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=turn))
             print(
                 f"Tracking Apriltag with pose x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
             )
             # Add a small delay so we don't overload ROS with too many messages
             time.sleep(0.05)
-        update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
-        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
+        # Stop the robot
+        self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
 
         # Finish docking with the trough
         print("Docking with the trough")
-        update_sharedVar(self.sharedVar_autoDrivePower, self.autonomous_driving_power)
-        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
+        self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
         # TODO: Tune this timing (how long to drive straight for at the end of docking)
         time.sleep(4)
-        update_sharedVar(self.sharedVar_autoDrivePower, 0.0)
-        update_sharedVar(self.sharedVar_autoTurnPower, 0.0)
+        self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
 
         print("Commence Offloading!")
         self.cli_offloader_setPower.call_async(OffloaderSetPower.Request(power=self.offload_belt_power)) # start offloading
@@ -224,8 +220,6 @@ class MainControlNode(Node):
         self.sharedVar_apriltagX = multiprocessing.Value("f", 0.0)
         self.sharedVar_apriltagZ = multiprocessing.Value("f", 0.0)
         self.sharedVar_apriltagYaw = multiprocessing.Value("f", 0.0)
-        self.sharedVar_autoDrivePower = multiprocessing.Value("f", 0.0)
-        self.sharedVar_autoTurnPower = multiprocessing.Value("f", 0.0)
         
         self.digger_extend_toggled = False
         self.camera_view_toggled = False
@@ -242,15 +236,16 @@ class MainControlNode(Node):
         
         # Define service clients here
         self.cli_offloader_toggle = self.create_client(OffloaderToggle, "offloader/toggle")
-        self.cli_offloader_stop = self.create_client(OffloaderStop, "offloader/stop")
+        self.cli_offloader_stop = self.create_client(Stop, "offloader/stop")
         self.cli_offloader_setPower = self.create_client(OffloaderSetPower, "offloader/setPower")
         self.cli_conveyor_toggle = self.create_client(ConveyorToggle, "conveyor/toggle")
-        self.cli_conveyor_stop = self.create_client(ConveyorStop, "conveyor/stop")
+        self.cli_conveyor_stop = self.create_client(Stop, "conveyor/stop")
         self.cli_conveyor_setPower = self.create_client(ConveyorSetPower, "conveyor/setPower")
         self.cli_digger_toggle = self.create_client(DiggerToggle, "digger/toggle")
-        self.cli_digger_stop = self.create_client(DiggerToggle, "digger/stop")
-        self.cli_digger_setPower = self.create_client(DiggerToggle, "digger/setPower")
-        self.cli_drivetrain_stop = self.create_client(DrivetrainStop, "drivetrain/stop")
+        self.cli_digger_stop = self.create_client(Stop, "digger/stop")
+        self.cli_digger_setPower = self.create_client(DiggerSetPower, "digger/setPower")
+        self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
+        self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
