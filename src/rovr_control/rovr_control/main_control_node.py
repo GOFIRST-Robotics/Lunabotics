@@ -110,7 +110,7 @@ class MainControlNode(Node):
 
         print("Autonomous Digging Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
-        update_sharedVar(self.state, states["Teleop"])
+        update_sharedVar(self.sharedVar_state, states["Teleop"])
 
     def auto_offload_procedure(self):
         """This method lays out the procedure for autonomously offloading!"""
@@ -159,7 +159,7 @@ class MainControlNode(Node):
         # Print to the terminal
         print("Autonomous Offload Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
-        update_sharedVar(self.state, states["Teleop"])
+        update_sharedVar(self.sharedVar_state, states["Teleop"])
 
     def __init__(self):
         """Initialize the ROS2 Node."""
