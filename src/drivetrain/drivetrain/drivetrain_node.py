@@ -1,18 +1,22 @@
-# This node contains code for the drivetrain subsystem of the robot.
+# This ROS 2 node contains code for the drivetrain subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: August 2023
+# Last Updated: September 2023
 
 # Import the ROS 2 module
 import rclpy
 from rclpy.node import Node
 
-# Import custom ROS 2 message type
-from rovr_interfaces.msg import MotorCommand
+# Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist
 
+# Import custom ROS 2 interfaces
+from rovr_interfaces.msg import MotorCommand
+from rovr_interfaces.srv import DrivetrainStop
 
-def clamp(number, minimum, maximum):
+
+# Define helper functions here
+def clamp(number: float, minimum: float, maximum: float) -> float:
     """Clamps a number between the specified minimum and maximum."""
     return max(minimum, min(number, maximum))
 
@@ -26,12 +30,16 @@ class DrivetrainNode(Node):
         self.motor_command_pub = self.create_publisher(MotorCommand, "motor_cmd", 10)
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
         
+        # Define services (methods callable from the outside) here
+        self.srv_stop = self.create_service(DrivetrainStop, 'drivetrain/stop', self.stop_callback)
+        
         # Define motor CAN IDs here
         self.FRONT_LEFT_DRIVE = 1
         self.BACK_LEFT_DRIVE = 4
         self.FRONT_RIGHT_DRIVE = 3
         self.BACK_RIGHT_DRIVE = 2
 
+    # Define subsystem methods here
     def drive(self, forward_power, turning_power):
         """This method drives the robot with the desired forward power and turning power."""
         linear_power = clamp(forward_power, -1.0, 1.0)  # Clamp the linear power between -1.0 and 1.0
@@ -55,6 +63,14 @@ class DrivetrainNode(Node):
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0)
         
+    # Define service callback methods here
+    def stop_callback(self, request, response) -> None:
+        """This service request stops the offloading belt."""
+        self.stop()
+        response.success = 1 # indicates success
+        return response
+        
+    # Define subscriber callback methods here
     def cmd_vel_callback(self, msg):
         """This method is called whenever a message is received on the cmd_vel topic."""
         self.drive(msg.linear.x, msg.angular.z)

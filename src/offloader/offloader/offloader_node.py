@@ -9,9 +9,7 @@ from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.msg import MotorCommand
-from rovr_interfaces.srv import OffloaderToggle
-from rovr_interfaces.srv import OffloaderStop
-from rovr_interfaces.srv import OffloaderSetPower
+from rovr_interfaces.srv import OffloaderToggle, OffloaderStop, OffloaderSetPower
 
 # Define helper functions here
 def clamp(number: float, minimum: float, maximum: float) -> float:
@@ -61,19 +59,19 @@ class OffloaderNode(Node):
     def set_power_callback(self, request, response) -> None:
         """This service request sets power to the offloading belt."""
         self.set_power(request.power)
-        response.success = 1 # indicate success
+        response.success = 1 # indicates success
         return response
 
     def stop_callback(self, request, response) -> None:
         """This service request stops the offloading belt."""
         self.stop()
-        response.success = 1 # indicate success
+        response.success = 1 # indicates success
         return response
 
     def toggle_callback(self, request, response) -> None:
         """This service request toggles the offloading belt."""
         self.toggle(request.power)
-        response.success = 1 # indicate success
+        response.success = 1 # indicates success
         return response
     
 

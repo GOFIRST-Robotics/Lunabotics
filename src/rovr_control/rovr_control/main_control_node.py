@@ -8,22 +8,16 @@ import rclpy
 from rclpy.node import Node
 
 # Import ROS 2 formatted message types
-from std_msgs.msg import String
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import OffloaderToggle
-from rovr_interfaces.srv import OffloaderStop
-from rovr_interfaces.srv import OffloaderSetPower
-from rovr_interfaces.srv import ConveyorToggle
-from rovr_interfaces.srv import ConveyorStop
-from rovr_interfaces.srv import ConveyorSetPower
-from rovr_interfaces.srv import DiggerToggle
-from rovr_interfaces.srv import DiggerStop
-from rovr_interfaces.srv import DiggerSetPower
+from rovr_interfaces.srv import OffloaderToggle, OffloaderStop, OffloaderSetPower
+from rovr_interfaces.srv import ConveyorToggle, ConveyorStop, ConveyorSetPower
+from rovr_interfaces.srv import DiggerToggle, DiggerStop, DiggerSetPower
+from rovr_interfaces.srv import DrivetrainStop
 
 # Import Python Modules
 import multiprocessing  # Allows us to run tasks in parallel using multiple CPU cores!
@@ -71,23 +65,11 @@ def get_target_ip(target: str, default: str = "", logger_fn=print):
 class MainControlNode(Node):
     def drive(self, drive_power, turn_power):
         """This method publishes a ROS2 message with the desired drive power and turning power."""
-        # Create a new ROS2 msg
-        drive_power_msg = Twist()
-        # Default to 0 power for everything at first
-        drive_power_msg.angular.x = 0.0
-        drive_power_msg.angular.y = 0.0
-        drive_power_msg.angular.z = 0.0
-        drive_power_msg.linear.x = 0.0
-        drive_power_msg.linear.y = 0.0
-        drive_power_msg.linear.z = 0.0
+        drive_power_msg = Twist() # Create a new ROS2 Twist msg
         drive_power_msg.linear.x = drive_power  # Forward power
         drive_power_msg.angular.z = turn_power  # Turning power
         self.drive_power_publisher.publish(drive_power_msg)
         # self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
-
-    def stop(self):
-        """This method stops the drivetrain."""
-        self.drive(0.0, 0.0)
 
     def auto_dig_procedure(self):
         """This method lays out the procedure for autonomously digging!"""
@@ -268,6 +250,7 @@ class MainControlNode(Node):
         self.cli_digger_toggle = self.create_client(DiggerToggle, "digger/toggle")
         self.cli_digger_stop = self.create_client(DiggerToggle, "digger/stop")
         self.cli_digger_setPower = self.create_client(DiggerToggle, "digger/setPower")
+        self.cli_drivetrain_stop = self.create_client(DrivetrainStop, "drivetrain/stop")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -393,7 +376,7 @@ class MainControlNode(Node):
                 # After we finish this autonomous operation, start with the offloader off
                 self.cli_offloader_stop.call_async(OffloaderStop.Request()) # stop offloading
                 # Stop driving
-                self.stop()
+                self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:

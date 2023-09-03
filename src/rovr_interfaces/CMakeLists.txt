@@ -29,6 +29,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/DiggerToggle.srv"
   "srv/DiggerStop.srv"
   "srv/DiggerSetPower.srv"
+  "srv/DrivetrainStop.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)
 

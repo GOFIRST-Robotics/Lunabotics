@@ -9,9 +9,7 @@ from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.msg import MotorCommand
-from rovr_interfaces.srv import ConveyorToggle
-from rovr_interfaces.srv import ConveyorStop
-from rovr_interfaces.srv import ConveyorSetPower
+from rovr_interfaces.srv import ConveyorToggle, ConveyorStop, ConveyorSetPower
 
 # Define helper functions here
 def clamp(number: float, minimum: float, maximum: float) -> float:
@@ -65,19 +63,19 @@ class ConveyorNode(Node):
     def set_power_callback(self, request, response) -> None:
         """This service request sets power to the conveyor belts."""
         self.set_power(request.drum_belt_power, request.conveyor_belt_power)
-        response.success = 1 # indicate success
+        response.success = 1 # indicates success
         return response
 
     def stop_callback(self, request, response) -> None:
         """This service request stops the conveyor belts."""
         self.stop()
-        response.success = 1 # indicate success
+        response.success = 1 # indicates success
         return response
 
     def toggle_callback(self, request, response) -> None:
         """This service request toggles the conveyor belts."""
         self.toggle(request.drum_belt_power, request.conveyor_belt_power)
-        response.success = 1 # indicate success
+        response.success = 1 # indicates success
         return response
     
 
