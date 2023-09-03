@@ -100,13 +100,13 @@ class MainControlNode(Node):
                 break
 
         # Reverse the digging drum
-        self.cli_digger_stop.call_async(DiggerStop.Request())
+        self.cli_digger_stop.call_async(Stop.Request())
         self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
 
         time.sleep(5)  # Wait for 5 seconds
 
-        self.cli_digger_stop.call_async(DiggerStop.Request())
-        self.cli_conveyor_stop.call_async(ConveyorStop.Request())
+        self.cli_digger_stop.call_async(Stop.Request())
+        self.cli_conveyor_stop.call_async(Stop.Request())
 
         print("Autonomous Digging Procedure Complete!\n")
         # Enter teleop mode after this autonomous command is finished
@@ -128,7 +128,7 @@ class MainControlNode(Node):
             f"Apriltag found! x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
         )
         # Stop turning
-        self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
+        self.cli_drivetrain_stop.call_async(Stop.Request())
 
         # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
         while (self.sharedVar_apriltagZ.value >= 1.5):
@@ -141,20 +141,20 @@ class MainControlNode(Node):
             # Add a small delay so we don't overload ROS with too many messages
             time.sleep(0.05)
         # Stop the robot
-        self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
+        self.cli_drivetrain_stop.call_async(Stop.Request())
 
         # Finish docking with the trough
         print("Docking with the trough")
         self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
         # TODO: Tune this timing (how long to drive straight for at the end of docking)
         time.sleep(4)
-        self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
+        self.cli_drivetrain_stop.call_async(Stop.Request())
 
         print("Commence Offloading!")
         self.cli_offloader_setPower.call_async(OffloaderSetPower.Request(power=self.offload_belt_power)) # start offloading
         # TODO: Tune this timing (how long to run the offloader for)
         time.sleep(10)
-        self.cli_offloader_stop.call_async(OffloaderStop.Request()) # stop offloading
+        self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
 
         # Print to the terminal
         print("Autonomous Offload Procedure Complete!\n")
@@ -351,8 +351,8 @@ class MainControlNode(Node):
                 self.autonomous_digging_process.kill()  # Kill the auto dig process
                 print("Autonomous Digging Procedure Terminated\n")
                 # After we finish this autonomous operation, start with the digger off
-                self.cli_digger_stop.call_async(DiggerStop.Request())
-                self.cli_conveyor_stop.call_async(ConveyorStop.Request())
+                self.cli_digger_stop.call_async(Stop.Request())
+                self.cli_conveyor_stop.call_async(Stop.Request())
                 # Stop the linear actuator
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
@@ -369,9 +369,9 @@ class MainControlNode(Node):
                 self.autonomous_offload_process.kill()  # Kill the auto dig process
                 print("Autonomous Offload Procedure Terminated\n")
                 # After we finish this autonomous operation, start with the offloader off
-                self.cli_offloader_stop.call_async(OffloaderStop.Request()) # stop offloading
+                self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
                 # Stop driving
-                self.cli_drivetrain_stop.call_async(DrivetrainStop.Request())
+                self.cli_drivetrain_stop.call_async(Stop.Request())
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
