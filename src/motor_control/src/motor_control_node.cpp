@@ -1,7 +1,7 @@
-// This node publishes CAN bus messages to our VESC burshless motor controllers.
+// This node publishes CAN bus messages to our VESC brushless motor controllers.
 // Original Author: Jude Sauve <sauve031@umn.edu> in 2018
 // Maintainer: Anthony Brogni <brogn002@umn.edu>
-// Last Updated: August 2023
+// Last Updated: September 2023
 
 // Import the ROS 2 Library
 #include "rclcpp/rclcpp.hpp"
@@ -65,13 +65,13 @@ class MotorControlNode : public rclcpp::Node
   // Set the position of the motor in _____ (degrees? encoder counts?)
   void vesc_set_position(uint32_t id, int position)
   {
-    // TODO: Implement this method
+    // TODO: Implement this method!
   }
 
   // Set the current draw of the motor in amps
   void vesc_set_current(uint32_t id, float current)
   {
-    // TODO: Implement this method
+    // TODO: Implement this method!
   }
 
 
