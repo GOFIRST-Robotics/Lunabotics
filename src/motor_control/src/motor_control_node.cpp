@@ -78,12 +78,6 @@ class MotorControlNode : public rclcpp::Node
 public:
   MotorControlNode() : Node("MotorControlNode")
   {
-    // Define default values for our ROS parameters
-    this->declare_parameter("DIGGER_ROTATION_POWER", 0.4); // Measured in duty cycle
-    this->declare_parameter("DRUM_BELT_POWER", 0.2);       // Measured in duty cycle
-    this->declare_parameter("CONVEYOR_BELT_POWER", 0.35);  // Measured in duty cycle
-    this->declare_parameter("OFFLOAD_BELT_POWER", 0.35);   // Measured in duty cycle
-
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100); // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by ros2socketcan_bridge
     command_sub = this->create_subscription<rovr_interfaces::msg::MotorCommand>("motor_cmd", 10, std::bind(&MotorControlNode::command_callback, this, _1)); // The name of this topic is determined by ros2socketcan_bridge
