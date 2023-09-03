@@ -109,8 +109,6 @@ class MainControlNode(Node):
         self.cli_conveyor_stop.call_async(Stop.Request())
 
         print("Autonomous Digging Procedure Complete!\n")
-        # Enter teleop mode after this autonomous command is finished
-        update_sharedVar(self.sharedVar_state, states["Teleop"])
 
     def auto_offload_procedure(self):
         """This method lays out the procedure for autonomously offloading!"""
@@ -157,8 +155,6 @@ class MainControlNode(Node):
         self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
 
         print("Autonomous Offload Procedure Complete!\n")
-        # Enter teleop mode after this autonomous command is finished
-        update_sharedVar(self.sharedVar_state, states["Teleop"])
 
     def __init__(self):
         """Initialize the ROS2 Node."""
@@ -212,7 +208,7 @@ class MainControlNode(Node):
             print(e)  # If an exception is raised, print it, and then move on
 
         # Define shared variables here (shared among all running processes)
-        self.sharedVar_state = multiprocessing.Value("i", states["Teleop"])
+        self.state = states["Teleop"]
         self.sharedVar_apriltagX = multiprocessing.Value("f", 0.0)
         self.sharedVar_apriltagZ = multiprocessing.Value("f", 0.0)
         self.sharedVar_apriltagYaw = multiprocessing.Value("f", 0.0)
@@ -284,7 +280,7 @@ class MainControlNode(Node):
         """This method is called whenever a joystick message is received."""
 
         # TELEOP CONTROLS BELOW #
-        if self.sharedVar_state.value == states["Teleop"]:
+        if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             drive_power = (
                 msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
@@ -337,45 +333,37 @@ class MainControlNode(Node):
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
-            if self.sharedVar_state.value == states["Teleop"]:
-                update_sharedVar(self.sharedVar_state, states["Auto_Dig"])
+            if self.state == states["Teleop"]:
+                self.state = states["Auto_Dig"]
                 self.autonomous_digging_process = multiprocessing.Process(
                     target=self.auto_dig_procedure
                 )
                 self.autonomous_digging_process.start()  # Start the auto dig process
-            elif self.sharedVar_state.value == states["Auto_Dig"]:
-                update_sharedVar(self.sharedVar_state, states["Teleop"])
+            elif self.state == states["Auto_Dig"]:
                 self.autonomous_digging_process.kill()  # Kill the auto dig process
                 print("Autonomous Digging Procedure Terminated\n")
-                # After we finish this autonomous operation, start with the digger off
-                self.cli_digger_stop.call_async(Stop.Request())
-                self.cli_conveyor_stop.call_async(Stop.Request())
-                # Stop the linear actuator
-                self.arduino.write(f"e{chr(0)}".encode("ascii"))
+                self.cli_digger_stop.call_async(Stop.Request()) # stop the digging drum
+                self.cli_conveyor_stop.call_async(Stop.Request()) # stop the conveyor belts
+                self.arduino.write(f"e{chr(0)}".encode("ascii")) # Stop the linear actuator
 
         # Check if the autonomous offload button is pressed
         if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
-            if self.sharedVar_state.value == states["Teleop"]:
-                update_sharedVar(self.sharedVar_state, states["Auto_Offload"])
+            if self.state == states["Teleop"]:
+                self.state = states["Auto_Offload"]
                 self.autonomous_offload_process = multiprocessing.Process(
                     target=self.auto_offload_procedure
                 )
                 self.autonomous_offload_process.start()  # Start the auto dig process
-            elif self.sharedVar_state.value == states["Auto_Offload"]:
-                update_sharedVar(self.sharedVar_state, states["Teleop"])
+            elif self.state == states["Auto_Offload"]:
                 self.autonomous_offload_process.kill()  # Kill the auto dig process
                 print("Autonomous Offload Procedure Terminated\n")
-                # After we finish this autonomous operation, start with the offloader off
                 self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
-                # Stop driving
-                self.cli_drivetrain_stop.call_async(Stop.Request())
+                self.cli_drivetrain_stop.call_async(Stop.Request()) # stop the drivetrain
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
             self.camera_view_toggled = not self.camera_view_toggled
-            if (
-                self.camera_view_toggled
-            ):  # Start streaming /dev/front_webcam on port 5000
+            if (self.camera_view_toggled):  # Start streaming /dev/front_webcam on port 5000
                 if self.back_camera is not None:
                     # Kill the self.back_camera process
                     os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
@@ -398,10 +386,18 @@ class MainControlNode(Node):
                     preexec_fn=os.setsid,
                 )
 
-        # Update new button states (this allows us to detect changing button states)
+        # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
-
+            
+        # Check if the autonomous digging process has finished
+        if self.autonomous_digging_process is not None and not self.autonomous_digging_process.is_alive():
+            self.state = states["Teleop"]
+            self.autonomous_digging_process = None
+        # Check if the autonomous offload process has finished
+        if self.autonomous_offload_process is not None and not self.autonomous_offload_process.is_alive():
+            self.state = states["Teleop"]
+            self.autonomous_offload_process = None
 
 def main(args=None):
     """The main function."""
