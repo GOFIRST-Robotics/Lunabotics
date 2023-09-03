@@ -120,7 +120,7 @@ class MainControlNode(Node):
         print("Searching for an Apriltag to dock with...")
         update_sharedVar(self.sharedVar_apriltagX, 0.0)
         # Add a small delay to see if we can see an Apriltag already
-        time.sleep(0.05)
+        time.sleep(0.1)
         if self.sharedVar_apriltagX.value == 0.0:
             # Start turning slowly to look for an Apriltag
             self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3))
@@ -139,7 +139,7 @@ class MainControlNode(Node):
                 f"Tracking Apriltag with pose x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
             )
             # Add a small delay so we don't overload ROS with too many messages
-            time.sleep(0.05)
+            time.sleep(0.1)
         # Stop the robot
         self.cli_drivetrain_stop.call_async(Stop.Request())
 
