@@ -166,16 +166,12 @@ class MainControlNode(Node):
         super().__init__("rovr_control")
         
         # Define default values for our ROS parameters below #
-        
-        # Maximum driving/turning speeds
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        # Linear Actuator Speeds
         self.declare_parameter("linear_actuator_speed", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("linear_actuator_up_speed", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("small_linear_actuator_speed", 75)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        # Motor Speeds
         self.declare_parameter("digger_rotation_power", 0.4)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
@@ -193,6 +189,7 @@ class MainControlNode(Node):
         self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").value
         self.small_linear_actuator_speed = self.get_parameter("small_linear_actuator_speed").value
         
+        # Print the ROS Parameters to the terminal
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
