@@ -121,14 +121,14 @@ class MainControlNode(Node):
         update_sharedVar(self.sharedVar_apriltagX, 0.0)
         # Add a small delay to see if we can see an Apriltag already
         time.sleep(0.05)
-        while self.sharedVar_apriltagX.value == 0.0:
-            # Turn slowly to look for an Apriltag
+        if self.sharedVar_apriltagX.value == 0.0:
+            # Start turning slowly to look for an Apriltag
             self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3))
-        print(
-            f"Apriltag found! x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
-        )
-        # Stop turning
-        self.cli_drivetrain_stop.call_async(Stop.Request())
+            while self.sharedVar_apriltagX.value == 0.0:
+                print('searching')
+            print(f"Apriltag found! x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}")
+            # Stop turning
+            self.cli_drivetrain_stop.call_async(Stop.Request())
 
         # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
         while (self.sharedVar_apriltagZ.value >= 1.5):
