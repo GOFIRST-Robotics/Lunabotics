@@ -8,7 +8,7 @@ import rclpy
 from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.msg import MotorCommand
+from rovr_interfaces.srv import MotorCommandSet
 from rovr_interfaces.srv import ConveyorToggle, ConveyorSetPower, Stop
 
 # Define helper functions here
@@ -22,8 +22,8 @@ class ConveyorNode(Node):
         """Initialize the ROS 2 conveyor node."""
         super().__init__("conveyor")
         
-        # Define publishers and subscribers here
-        self.motor_command_pub = self.create_publisher(MotorCommand, "motor_cmd", 10)
+        # Define service clients here
+        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(ConveyorToggle, 'conveyor/toggle', self.toggle_callback)
@@ -43,14 +43,14 @@ class ConveyorNode(Node):
         self.running = True
         drum_belt_power = clamp(drum_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
         conveyor_power = clamp(conveyor_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
-        self.motor_command_pub.publish(MotorCommand(can_id=self.DRUM_BELT_MOTOR, type="duty_cycle", value=drum_belt_power))
-        self.motor_command_pub.publish(MotorCommand(can_id=self.CONVEYOR_BELT_MOTOR, type="duty_cycle", value=conveyor_power))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DRUM_BELT_MOTOR, value=drum_belt_power))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=conveyor_power))
 
     def stop(self) -> None:
         """This method stops both conveyor belts."""
         self.running = False
-        self.motor_command_pub.publish(MotorCommand(can_id=self.DRUM_BELT_MOTOR, type="duty_cycle", value=0.0))
-        self.motor_command_pub.publish(MotorCommand(can_id=self.CONVEYOR_BELT_MOTOR, type="duty_cycle", value=0.0))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DRUM_BELT_MOTOR, value=0.0))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=0.0))
 
     def toggle(self, drum_belt_power: float, conveyor_belt_power: float) -> None:
         """This method toggles the conveyor belts."""

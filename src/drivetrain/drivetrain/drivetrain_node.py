@@ -11,7 +11,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.msg import MotorCommand
+from rovr_interfaces.srv import MotorCommandSet
 from rovr_interfaces.srv import Stop, Drive
 
 
@@ -27,8 +27,10 @@ class DrivetrainNode(Node):
         super().__init__("drivetrain")
         
         # Define publishers and subscribers here
-        self.motor_command_pub = self.create_publisher(MotorCommand, "motor_cmd", 10)
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
+        
+        # Define service clients here
+        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, 'drivetrain/stop', self.stop_callback)
@@ -55,10 +57,11 @@ class DrivetrainNode(Node):
             left_power /= greater_input
             right_power /= greater_input
 
-        self.motor_command_pub.publish(MotorCommand(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=left_power * -1))   # Multiply by -1 to invert motor direction
-        self.motor_command_pub.publish(MotorCommand(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=left_power * -1))    # Multiply by -1 to invert motor direction
-        self.motor_command_pub.publish(MotorCommand(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=right_power * -1)) # Multiply by -1 to invert motor direction
-        self.motor_command_pub.publish(MotorCommand(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=right_power * -1))  # Multiply by -1 to invert motor direction
+        # Multiply power by -1 to invert motor direction
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.FRONT_LEFT_DRIVE, value=left_power * -1))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.BACK_LEFT_DRIVE, value=left_power * -1))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.FRONT_RIGHT_DRIVE, value=right_power * -1))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.BACK_RIGHT_DRIVE, value=right_power * -1))
 
     def stop(self):
         """This method stops the drivetrain."""

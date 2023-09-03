@@ -19,7 +19,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/MotorCommand.msg"
+  "srv/MotorCommandGet.srv"
+  "srv/MotorCommandSet.srv"
   "srv/OffloaderToggle.srv"
   "srv/Stop.srv"
   "srv/OffloaderSetPower.srv"

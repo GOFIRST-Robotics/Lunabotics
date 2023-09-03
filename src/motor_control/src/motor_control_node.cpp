@@ -11,14 +11,32 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float32.hpp"
-#include "rovr_interfaces/msg/motor_command.hpp"
+
+// Import custom ROS 2 interfaces
+#include "rovr_interfaces/srv/motor_command_set.hpp"
+#include "rovr_interfaces/srv/motor_command_get.hpp"
 
 // Import Native C++ Libraries
 #include <string>
 #include <stdint.h>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
+#include <chrono>
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
+using std::placeholders::_2;
+
+// Define a struct to store motor data
+struct MotorData {
+  float dutyCycle;
+  float velocity;
+  float current;
+  float position;
+  std::chrono::time_point<std::chrono::steady_clock> timestamp;
+};
 
 class MotorControlNode : public rclcpp::Node
 {
@@ -74,13 +92,53 @@ class MotorControlNode : public rclcpp::Node
     // TODO: Implement this method!
   }
 
+  // Get the current duty cycle of the motor
+  float vesc_get_duty_cycle(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].dutyCycle;
+    } else{
+      return -1; // Return -1 if the data is stale
+    }
+  }
+  // Get the current velocity of the motor in RPM (Rotations Per Minute)
+  float vesc_get_velocity(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].velocity;
+    } else{
+      return -1; // Return -1 if the data is stale
+    }
+  }
+  // Get the current position of the motor
+  float vesc_get_position(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].position;
+    } else{
+      return -1; // Return -1 if the data is stale
+    }
+  }
+  // Get the current draw of the motor in amps
+  float vesc_get_current(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].current;
+    } else{
+      return -1; // Return -1 if the data is stale
+    }
+  }
 
 public:
   MotorControlNode() : Node("MotorControlNode")
   {
+    // Initialize services here
+    srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>("motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
+    srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>("motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
+
+    // Initialize publishers and subscribers here
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100); // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by ros2socketcan_bridge
-    command_sub = this->create_subscription<rovr_interfaces::msg::MotorCommand>("motor_cmd", 10, std::bind(&MotorControlNode::command_callback, this, _1)); // The name of this topic is determined by ros2socketcan_bridge
   }
 
 private:
@@ -89,34 +147,70 @@ private:
   {
     uint32_t id = can_msg->id & 0xFF;
 
-    uint32_t RPM = (can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3];
-    uint16_t dutyCycleNow = ((can_msg->data[6] << 8) + can_msg->data[7]) / 10;
-    // TODO: calculate the current draw of the motor from the CAN data
-    // TODO: calculate the position of the motor from the CAN data
+    float RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+    float dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
+    float current = -1; // TODO: calculate the current draw of the motor from the CAN data
+    float position = -1; // TODO: calculate the position of the motor from the CAN data
 
-    // RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-    // RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
+    // Store the most recent motor data in our hashmap
+    this->can_data[id] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
+
+    // Uncomment the lines below to print the received data to the terminal
+    //RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
+    //RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow, current, position);
   }
 
-  // Execute the specified motor command
-  void command_callback(const rovr_interfaces::msg::MotorCommand::SharedPtr command)
+  // Initialize a hashmap to store the most recent motor data for each CAN ID
+  std::map<uint32_t, MotorData> can_data;
+  // Adjust this data retention threshold as needed
+  const std::chrono::seconds threshold = std::chrono::seconds(1);
+
+  // Callback method for the MotorCommandSet service
+  void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request, std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response)
   {
-    if(command->type == "velocity") {
-      vesc_set_velocity(command->can_id, command->value);
-    } else if (command->type == "duty_cycle") {
-      vesc_set_duty_cycle(command->can_id, command->value);
-    } else if (command->type == "position") {
-      vesc_set_position(command->can_id, command->value);
-    } else if (command->type == "current") {
-      vesc_set_current(command->can_id, command->value);
+    if(request->type == "velocity") {
+      vesc_set_velocity(request->can_id, request->value);
+      response->success = 1; // indicates success
+    } else if (request->type== "duty_cycle") {
+      vesc_set_duty_cycle(request->can_id, request->value);
+      response->success = 1; // indicates success
+    } else if (request->type == "position") {
+      vesc_set_position(request->can_id, request->value);
+      response->success = 1; // indicates success
+    } else if (request->type == "current") {
+      vesc_set_current(request->can_id, request->value);
+      response->success = 1; // indicates success
     } else {
-      RCLCPP_ERROR(this->get_logger(), "Unknown motor command type: '%s'", command->type);
+      RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
+      response->success = 0; // indicates failure
+    }
+  }
+
+  // Callback method for the MotorCommandGet service
+  void get_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Request> request, std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Response> response)
+  {
+    if(request->type == "velocity") {
+      response->result = vesc_get_velocity(request->can_id);
+      response->success = 1; // indicates success
+    } else if (request->type== "duty_cycle") {
+      response->result = vesc_get_duty_cycle(request->can_id);
+      response->success = 1; // indicates success
+    } else if (request->type == "position") {
+      response->result = vesc_get_position(request->can_id);
+      response->success = 1; // indicates success
+    } else if (request->type == "current") {
+      response->result = vesc_get_current(request->can_id);
+      response->success = 1; // indicates success
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
+      response->success = 0; // indicates failure
     }
   }
 
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
-  rclcpp::Subscription<rovr_interfaces::msg::MotorCommand>::SharedPtr command_sub;
+  rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
+  rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
 };
 
 // Main method for the node

@@ -17,7 +17,7 @@ from tf2_msgs.msg import TFMessage
 from rovr_interfaces.srv import OffloaderToggle, OffloaderSetPower
 from rovr_interfaces.srv import ConveyorToggle, ConveyorSetPower
 from rovr_interfaces.srv import DiggerToggle, DiggerSetPower
-from rovr_interfaces.srv import Stop, Drive
+from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 
 # Import Python Modules
 import multiprocessing  # Allows us to run tasks in parallel using multiple CPU cores!
@@ -246,6 +246,7 @@ class MainControlNode(Node):
         self.cli_digger_setPower = self.create_client(DiggerSetPower, "digger/setPower")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
+        self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
