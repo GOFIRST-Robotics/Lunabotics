@@ -36,14 +36,8 @@ buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
 states = {
     "Teleop": 0,
-    "Auto_Dig": 1,
-    "Auto_Offload": 2
+    "Auto_Dig": 1
 }
-
-def update_sharedVar(var, new_value):
-    """This function updates a shared variable in a multiprocessing context."""
-    with var.get_lock():
-        var.value = new_value
 
 def get_target_ip(target: str, default: str = "", logger_fn=print):
     """Return the current IP address of Jonathan's laptop using nmap."""
@@ -110,52 +104,6 @@ class MainControlNode(Node):
 
         print("Autonomous Digging Procedure Complete!\n")
 
-    def auto_offload_procedure(self):
-        """This method lays out the procedure for autonomously offloading!"""
-        print("\nStarting Autonomous Offload Procedure!")
-
-        # Search for an Apriltag before continuing
-        print("Searching for an Apriltag to dock with...")
-        update_sharedVar(self.sharedVar_apriltagX, 0.0)
-        # Add a small delay to see if we can see an Apriltag already
-        time.sleep(0.1)
-        if self.sharedVar_apriltagX.value == 0.0:
-            # Start turning slowly to look for an Apriltag
-            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3))
-            while self.sharedVar_apriltagX.value == 0.0:
-                print('searching')
-            print(f"Apriltag found! x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}")
-            # Stop turning
-            self.cli_drivetrain_stop.call_async(Stop.Request())
-
-        # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
-        while (self.sharedVar_apriltagZ.value >= 1.5):
-            # TODO: Tune both of these P constants on the actual robot
-            turn = -1 * (0.5 * self.sharedVar_apriltagYaw.value + 0.5 * self.sharedVar_apriltagX.value)
-            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=turn))
-            print(
-                f"Tracking Apriltag with pose x: {self.sharedVar_apriltagX.value}, z: {self.sharedVar_apriltagZ.value}, yaw :{self.sharedVar_apriltagYaw.value}"
-            )
-            # Add a small delay so we don't overload ROS with too many messages
-            time.sleep(0.1)
-        # Stop the robot
-        self.cli_drivetrain_stop.call_async(Stop.Request())
-
-        # Finish docking with the trough
-        print("Docking with the trough")
-        self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
-        # TODO: Tune this timing (how long to drive straight for at the end of docking)
-        time.sleep(4)
-        self.cli_drivetrain_stop.call_async(Stop.Request())
-
-        print("Commence Offloading!")
-        self.cli_offloader_setPower.call_async(OffloaderSetPower.Request(power=self.offload_belt_power)) # start offloading
-        # TODO: Tune this timing (how long to run the offloader for)
-        time.sleep(10)
-        self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
-
-        print("Autonomous Offload Procedure Complete!\n")
-
     def __init__(self):
         """Initialize the ROS2 Node."""
         super().__init__("rovr_control")
@@ -207,24 +155,21 @@ class MainControlNode(Node):
         except Exception as e:
             print(e)  # If an exception is raised, print it, and then move on
 
-        # Define shared variables here (shared among all running processes)
-        self.state = states["Teleop"]
-        self.sharedVar_apriltagX = multiprocessing.Value("f", 0.0)
-        self.sharedVar_apriltagZ = multiprocessing.Value("f", 0.0)
-        self.sharedVar_apriltagYaw = multiprocessing.Value("f", 0.0)
-        
+        # Define some initial states here
+        self.state = states["Teleop"] 
         self.digger_extend_toggled = False
         self.camera_view_toggled = False
-
-        # By default these camera streams will not exist yet
         self.front_camera = None
         self.back_camera = None
-        # By default these processes will also not exist yet
         self.autonomous_digging_process = None
-        self.autonomous_offload_process = None
 
-        # This is a hard-coded physical constant (how off-center is the apriltag camera?)
+        # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.typeapriltag_camera_offset = 0.1905  # Measured in Meters
+        
+        # These variables store the most recent Apriltag pose
+        self.apriltagX = 0.0
+        self.apriltagZ = 0.0
+        self.apriltagYaw = 0.0
         
         # Define service clients here
         self.cli_offloader_toggle = self.create_client(OffloaderToggle, "offloader/toggle")
@@ -269,12 +214,12 @@ class MainControlNode(Node):
         ## Set the value of these variables used for docking with an Apriltag ##
         
         # Left-Right Distance to the tag (measured in meters)
-        update_sharedVar(self.sharedVar_apriltagX, entry.transform.translation.x + self.typeapriltag_camera_offset)
+        self.apriltagX = entry.transform.translation.x + self.typeapriltag_camera_offset
         # Foward-Backward Distance to the tag (measured in meters)
-        update_sharedVar(self.sharedVar_apriltagZ, entry.transform.translation.z)
+        self.apriltagZ = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
-        update_sharedVar(self.sharedVar_apriltagYaw, entry.transform.rotation.y)
-        # print('x:', self.sharedVar_apriltagX.value, 'z:', self.sharedVar_apriltagZ.value, 'yaw:', self.sharedVar_apriltagYaw.value)
+        self.apriltagYaw = entry.transform.rotation.y
+        # print('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
 
     def joystick_callback(self, msg):
         """This method is called whenever a joystick message is received."""
@@ -346,20 +291,6 @@ class MainControlNode(Node):
                 self.cli_conveyor_stop.call_async(Stop.Request()) # stop the conveyor belts
                 self.arduino.write(f"e{chr(0)}".encode("ascii")) # Stop the linear actuator
 
-        # Check if the autonomous offload button is pressed
-        if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
-            if self.state == states["Teleop"]:
-                self.state = states["Auto_Offload"]
-                self.autonomous_offload_process = multiprocessing.Process(
-                    target=self.auto_offload_procedure
-                )
-                self.autonomous_offload_process.start()  # Start the auto dig process
-            elif self.state == states["Auto_Offload"]:
-                self.autonomous_offload_process.kill()  # Kill the auto dig process
-                print("Autonomous Offload Procedure Terminated\n")
-                self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
-                self.cli_drivetrain_stop.call_async(Stop.Request()) # stop the drivetrain
-
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
             self.camera_view_toggled = not self.camera_view_toggled
@@ -394,10 +325,6 @@ class MainControlNode(Node):
         if self.autonomous_digging_process is not None and not self.autonomous_digging_process.is_alive():
             self.state = states["Teleop"]
             self.autonomous_digging_process = None
-        # Check if the autonomous offload process has finished
-        if self.autonomous_offload_process is not None and not self.autonomous_offload_process.is_alive():
-            self.state = states["Teleop"]
-            self.autonomous_offload_process = None
 
 def main(args=None):
     """The main function."""
