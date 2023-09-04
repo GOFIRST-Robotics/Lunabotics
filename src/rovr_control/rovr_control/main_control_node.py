@@ -27,8 +27,10 @@ import serial  # Serial communication with the Arduino. Install with: <sudo pip3
 import os  # Allows us to kill subprocesses
 import re  # Enables using regular expressions
 
-# Import our gamepad button mappings
+# Import our logitech gamepad button mappings
 from .gamepad_constants import *
+# Uncomment the line below to use the Xbox controller mappings instead
+# from .xbox_controller_constants import *
 
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
