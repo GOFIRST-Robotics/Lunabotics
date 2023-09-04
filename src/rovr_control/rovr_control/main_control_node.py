@@ -35,7 +35,8 @@ buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
 states = {
     "Teleop": 0,
-    "Auto_Dig": 1
+    "Auto_Dig": 1,
+    "Auto_Offload": 2
 }
 
 def get_target_ip(target: str, default: str = "", logger_fn=print) -> str:
@@ -114,6 +115,7 @@ class MainControlNode(Node):
         self.front_camera = None
         self.back_camera = None
         self.autonomous_digging_process = None
+        self.autonomous_offload_process = None
 
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.typeapriltag_camera_offset = 0.1905  # Measured in Meters
@@ -190,6 +192,51 @@ class MainControlNode(Node):
             self.end_autonomous() # Return to Teleop mode
         except asyncio.CancelledError: # Put termination code here
             print("Autonomous Digging Procedure Terminated\n")
+            self.end_autonomous() # Return to Teleop mode
+            
+    async def auto_offload_procedure(self):
+        """This method lays out the procedure for autonomously offloading!"""
+        print("\nStarting Autonomous Offload Procedure!")
+        try: # Wrap the autonomous procedure in a try-except
+            # Search for an Apriltag before continuing
+            print("Searching for an Apriltag to dock with...")
+            self.apriltagX = 0.0
+            # Add a small delay to see if we can see an Apriltag already
+            await asyncio.sleep(0.1)
+            if self.apriltagX == 0.0:
+                # Start turning slowly to look for an Apriltag
+                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3))
+                while self.apriltagX == 0.0:
+                    print('searching')
+                    await asyncio.sleep(0) # Trick to allow other tasks to run
+                print(f"Apriltag found! x: {self.apriltagX}, z: {self.apriltagZ}, yaw :{self.apriltagYaw}")
+                # Stop turning
+                await self.cli_drivetrain_stop.call_async(Stop.Request())
+            # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
+            while (self.apriltagZ >= 1.5):
+                # TODO: Tune both of these P constants on the actual robot
+                turn = -1 * (0.5 * self.apriltagYaw + 0.5 * self.apriltagX)
+                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=turn))
+                print(f"Tracking Apriltag with pose x: {self.apriltagX}, z: {self.apriltagZ}, yaw :{self.apriltagYaw}")
+                # Add a small delay so we don't overload ROS with too many messages
+                await asyncio.sleep(0.1)
+            # Stop the robot
+            await self.cli_drivetrain_stop.call_async(Stop.Request())
+            # Finish docking with the trough
+            print("Docking with the trough")
+            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
+            # TODO: Tune this timing (how long to drive straight for at the end of docking)
+            await asyncio.sleep(4)
+            await self.cli_drivetrain_stop.call_async(Stop.Request())
+            print("Commence Offloading!")
+            await self.cli_offloader_setPower.call_async(OffloaderSetPower.Request(power=self.offload_belt_power)) # start offloading
+            # TODO: Tune this timing (how long to run the offloader for)
+            await asyncio.sleep(10)
+            await self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
+            print("Autonomous Offload Procedure Complete!\n")
+            self.end_autonomous() # Return to Teleop mode
+        except asyncio.CancelledError: # Put termination code here
+            print("Autonomous Offload Procedure Terminated\n")
             self.end_autonomous() # Return to Teleop mode
 
     def apriltags_callback(self, msg: TFMessage) -> None:
@@ -285,6 +332,15 @@ class MainControlNode(Node):
                 self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure()) # Start the auto dig process
             elif self.state == states["Auto_Dig"]:
                 self.autonomous_digging_process.cancel() # Terminate the auto dig process
+                
+        # Check if the autonomous offload button is pressed
+        if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
+            if self.state == states["Teleop"]:
+                self.stop_all_subsystems() # Stop all subsystems
+                self.state = states["Auto_Offload"]
+                self.autonomous_offload_process = asyncio.ensure_future(self.auto_offload_procedure()) # Start the auto dig process
+            elif self.state == states["Auto_Offload"]:
+                self.autonomous_offload_process.cancel() # Terminate the auto offload process
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
