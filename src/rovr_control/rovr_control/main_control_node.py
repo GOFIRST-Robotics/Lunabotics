@@ -56,46 +56,6 @@ def get_target_ip(target: str, default: str = "", logger_fn=print):
 
 
 class MainControlNode(Node):
-
-    def auto_dig_procedure(self):
-        """This method lays out the procedure for autonomously digging!"""
-        print("\nStarting Autonomous Digging Procedure!")
-        
-        self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
-        self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
-
-        self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
-        time.sleep(2)  # Wait a bit for the drum motor to get up to speed
-
-        # Tell the Arduino to extend the linear actuator
-        self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
-        while True:  # Wait for a confirmation message from the Arduino
-            reading = self.arduino.read()
-            print(reading)
-            if reading == b"f":
-                break
-
-        time.sleep(5)  # Wait for 5 seconds
-
-        # Tell the Arduino to retract the linear actuator
-        self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
-        while True:  # Wait for a confirmation message from the Arduino
-            reading = self.arduino.read()
-            print(reading)
-            if reading == b"s":
-                break
-
-        # Reverse the digging drum
-        self.cli_digger_stop.call_async(Stop.Request())
-        self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
-
-        time.sleep(5)  # Wait for 5 seconds
-
-        self.cli_digger_stop.call_async(Stop.Request())
-        self.cli_conveyor_stop.call_async(Stop.Request())
-
-        print("Autonomous Digging Procedure Complete!\n")
-
     def __init__(self):
         """Initialize the ROS2 Node."""
         super().__init__("rovr_control")
@@ -182,6 +142,45 @@ class MainControlNode(Node):
         self.apriltag_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, "apriltag_pose", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.apriltags_subscription = self.create_subscription(TFMessage, "tf", self.apriltags_callback, 10)
+
+    def auto_dig_procedure(self):
+        """This method lays out the procedure for autonomously digging!"""
+        print("\nStarting Autonomous Digging Procedure!")
+        
+        self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
+        self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
+
+        self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
+        time.sleep(2)  # Wait a bit for the drum motor to get up to speed
+
+        # Tell the Arduino to extend the linear actuator
+        self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
+        while True:  # Wait for a confirmation message from the Arduino
+            reading = self.arduino.read()
+            print(reading)
+            if reading == b"f":
+                break
+
+        time.sleep(5)  # Wait for 5 seconds
+
+        # Tell the Arduino to retract the linear actuator
+        self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
+        while True:  # Wait for a confirmation message from the Arduino
+            reading = self.arduino.read()
+            print(reading)
+            if reading == b"s":
+                break
+
+        # Reverse the digging drum
+        self.cli_digger_stop.call_async(Stop.Request())
+        self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
+
+        time.sleep(5)  # Wait for 5 seconds
+
+        self.cli_digger_stop.call_async(Stop.Request())
+        self.cli_conveyor_stop.call_async(Stop.Request())
+
+        print("Autonomous Digging Procedure Complete!\n")
 
     def apriltags_callback(self, msg):
         """Process the Apriltag detections."""
