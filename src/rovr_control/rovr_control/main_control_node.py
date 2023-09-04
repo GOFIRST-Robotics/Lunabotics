@@ -8,8 +8,7 @@ import rclpy
 from rclpy.node import Node
 
 # Import ROS 2 formatted message types
-from geometry_msgs.msg import Twist
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import Twist, Vector3, PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
@@ -57,13 +56,6 @@ def get_target_ip(target: str, default: str = "", logger_fn=print):
 
 
 class MainControlNode(Node):
-    def drive(self, drive_power, turn_power):
-        """This method publishes a ROS2 message with the desired drive power and turning power."""
-        drive_power_msg = Twist() # Create a new ROS2 Twist msg
-        drive_power_msg.linear.x = drive_power  # Forward power
-        drive_power_msg.angular.z = turn_power  # Turning power
-        self.drive_power_publisher.publish(drive_power_msg)
-        # self.get_logger().info(f'Publishing Angular Power: {drive_power_msg.angular.z}, Linear Power: {drive_power_msg.linear.x}')
 
     def auto_dig_procedure(self):
         """This method lays out the procedure for autonomously digging!"""
@@ -233,7 +225,7 @@ class MainControlNode(Node):
             turn_power = (
                 msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power
             )  # Turning power
-            self.drive(drive_power, turn_power)
+            self.drive_power_publisher.publish(Twist(linear=Vector3(x=drive_power), angular=Vector3(z=turn_power)))
 
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
