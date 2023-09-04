@@ -39,7 +39,7 @@ states = {
 }
 
 def get_target_ip(target: str, default: str = "", logger_fn=print):
-    """Return the current IP address of Jonathan's laptop using nmap."""
+    """Return the current IP address of the laptop using nmap."""
     try:
         nmap = subprocess.Popen(
             ("nmap", "-sn", "192.168.1.1/24"), stdout=subprocess.PIPE
