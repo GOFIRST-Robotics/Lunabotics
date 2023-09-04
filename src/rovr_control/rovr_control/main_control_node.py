@@ -6,6 +6,7 @@
 # Import the ROS 2 module
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import SingleThreadedExecutor # This is needed to run multiple callbacks in a single thread
 
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist, Vector3, PoseWithCovarianceStamped
@@ -19,11 +20,10 @@ from rovr_interfaces.srv import DiggerToggle, DiggerSetPower
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 
 # Import Python Modules
-import multiprocessing  # Allows us to run tasks in parallel using multiple CPU cores!
+import asyncio # Allows the creation of asynchronous autonomous procedures!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import serial  # Serial communication with the Arduino. Install with: <sudo pip3 install pyserial>
-import time  # This is for time.sleep()
 import os  # Allows us to kill subprocesses
 import re  # Enables using regular expressions
 
@@ -38,7 +38,7 @@ states = {
     "Auto_Dig": 1
 }
 
-def get_target_ip(target: str, default: str = "", logger_fn=print):
+def get_target_ip(target: str, default: str = "", logger_fn=print) -> str:
     """Return the current IP address of the laptop using nmap."""
     try:
         nmap = subprocess.Popen(
@@ -56,7 +56,7 @@ def get_target_ip(target: str, default: str = "", logger_fn=print):
 
 
 class MainControlNode(Node):
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ROS2 Node."""
         super().__init__("rovr_control")
         
@@ -143,15 +143,23 @@ class MainControlNode(Node):
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.apriltags_subscription = self.create_subscription(TFMessage, "tf", self.apriltags_callback, 10)
 
-    def auto_dig_procedure(self):
+    def stop_all_subsystems(self) -> None:
+        """This method stops all subsystems on the robot."""
+        self.cli_offloader_stop.call_async(Stop.Request()) # Stop the offloader
+        self.cli_conveyor_stop.call_async(Stop.Request()) # Stop the conveyor
+        self.cli_digger_stop.call_async(Stop.Request()) # Stop the digger
+        self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop the drivetrain
+        self.arduino.write(f"e{chr(0)}".encode("ascii")) # Stop the linear actuator
+
+    async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
         print("\nStarting Autonomous Digging Procedure!")
         
-        self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
-        self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
+        await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
+        await self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
 
         self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
-        time.sleep(2)  # Wait a bit for the drum motor to get up to speed
+        await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
 
         # Tell the Arduino to extend the linear actuator
         self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
@@ -161,7 +169,7 @@ class MainControlNode(Node):
             if reading == b"f":
                 break
 
-        time.sleep(5)  # Wait for 5 seconds
+        await asyncio.sleep(5)  # Wait for 5 seconds
 
         # Tell the Arduino to retract the linear actuator
         self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
@@ -172,17 +180,19 @@ class MainControlNode(Node):
                 break
 
         # Reverse the digging drum
-        self.cli_digger_stop.call_async(Stop.Request())
-        self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
+        await self.cli_digger_stop.call_async(Stop.Request())
+        await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
 
-        time.sleep(5)  # Wait for 5 seconds
+        await asyncio.sleep(5)  # Wait for 5 seconds
 
-        self.cli_digger_stop.call_async(Stop.Request())
-        self.cli_conveyor_stop.call_async(Stop.Request())
+        await self.cli_digger_stop.call_async(Stop.Request())
+        await self.cli_conveyor_stop.call_async(Stop.Request())
 
         print("Autonomous Digging Procedure Complete!\n")
+        self.stop_all_subsystems() # Stop all subsystems
+        self.state = states["Teleop"] # Return to Teleop mode
 
-    def apriltags_callback(self, msg):
+    def apriltags_callback(self, msg: TFMessage) -> None:
         """Process the Apriltag detections."""
         array = msg.transforms
         entry = array.pop()
@@ -206,13 +216,13 @@ class MainControlNode(Node):
         
         # Left-Right Distance to the tag (measured in meters)
         self.apriltagX = entry.transform.translation.x + self.typeapriltag_camera_offset
-        # Foward-Backward Distance to the tag (measured in meters)
+        # Forward-Backward Distance to the tag (measured in meters)
         self.apriltagZ = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
         self.apriltagYaw = entry.transform.rotation.y
         # print('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
 
-    def joystick_callback(self, msg):
+    def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
 
         # TELEOP CONTROLS BELOW #
@@ -270,17 +280,14 @@ class MainControlNode(Node):
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
             if self.state == states["Teleop"]:
+                self.stop_all_subsystems() # Stop all subsystems
                 self.state = states["Auto_Dig"]
-                self.autonomous_digging_process = multiprocessing.Process(
-                    target=self.auto_dig_procedure
-                )
-                self.autonomous_digging_process.start()  # Start the auto dig process
+                self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure()) # Start the auto dig process
             elif self.state == states["Auto_Dig"]:
-                self.autonomous_digging_process.kill()  # Kill the auto dig process
+                self.autonomous_digging_process.cancel() # Kill the auto dig process
+                self.stop_all_subsystems() # Stop all subsystems
                 print("Autonomous Digging Procedure Terminated\n")
-                self.cli_digger_stop.call_async(Stop.Request()) # stop the digging drum
-                self.cli_conveyor_stop.call_async(Stop.Request()) # stop the conveyor belts
-                self.arduino.write(f"e{chr(0)}".encode("ascii")) # Stop the linear actuator
+                self.state = states["Teleop"] # Return to Teleop mode
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
@@ -312,19 +319,24 @@ class MainControlNode(Node):
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
             
-        # Check if the autonomous digging process has finished
-        if self.autonomous_digging_process is not None and not self.autonomous_digging_process.is_alive():
-            self.state = states["Teleop"]
-            self.autonomous_digging_process = None
+async def spin(executor: SingleThreadedExecutor) -> None:
+    """This function is called in the main function to run the executor."""
+    while rclpy.ok(): # While ROS is still running
+        executor.spin_once() # Spin the executor once
+        await asyncio.sleep(0) # Setting the delay to 0 provides an optimized path to allow other tasks to run.
 
-def main(args=None):
-    """The main function."""
+def main(args=None) -> None:
     rclpy.init(args=args)
     print("Hello from the rovr_control package!")
 
-    node = MainControlNode()
-    rclpy.spin(node)
+    node = MainControlNode() # Instantiate the node
+    executor = SingleThreadedExecutor() # Create an executor
+    executor.add_node(node) # Add the node to the executor
+    
+    loop = asyncio.get_event_loop() # Get the event loop
+    loop.run_until_complete(spin(executor)) # Run the spin function in the event loop
 
+    # Clean up and shutdown
     node.destroy_node()
     rclpy.shutdown()
 
