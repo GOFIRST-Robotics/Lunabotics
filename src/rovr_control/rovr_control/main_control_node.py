@@ -150,47 +150,47 @@ class MainControlNode(Node):
         self.cli_digger_stop.call_async(Stop.Request()) # Stop the digger
         self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop the drivetrain
         self.arduino.write(f"e{chr(0)}".encode("ascii")) # Stop the linear actuator
+        
+    def end_autonomous(self) -> None:
+        """This method returns to teleop control."""
+        self.stop_all_subsystems() # Stop all subsystems
+        self.state = states["Teleop"] # Return to Teleop mode
 
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
         print("\nStarting Autonomous Digging Procedure!")
-        
-        await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
-        await self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
-
-        self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
-        await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
-
-        # Tell the Arduino to extend the linear actuator
-        self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
-        while True:  # Wait for a confirmation message from the Arduino
-            reading = self.arduino.read()
-            print(reading)
-            if reading == b"f":
-                break
-
-        await asyncio.sleep(5)  # Wait for 5 seconds
-
-        # Tell the Arduino to retract the linear actuator
-        self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
-        while True:  # Wait for a confirmation message from the Arduino
-            reading = self.arduino.read()
-            print(reading)
-            if reading == b"s":
-                break
-
-        # Reverse the digging drum
-        await self.cli_digger_stop.call_async(Stop.Request())
-        await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
-
-        await asyncio.sleep(5)  # Wait for 5 seconds
-
-        await self.cli_digger_stop.call_async(Stop.Request())
-        await self.cli_conveyor_stop.call_async(Stop.Request())
-
-        print("Autonomous Digging Procedure Complete!\n")
-        self.stop_all_subsystems() # Stop all subsystems
-        self.state = states["Teleop"] # Return to Teleop mode
+        try: # Wrap the autonomous procedure in a try-except
+            await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
+            await self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
+            self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
+            await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
+            # Tell the Arduino to extend the linear actuator
+            self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
+            while True:  # Wait for a confirmation message from the Arduino
+                reading = self.arduino.read()
+                print(reading)
+                if reading == b"f":
+                    break
+            await asyncio.sleep(5)  # Wait for 5 seconds
+            # Tell the Arduino to retract the linear actuator
+            self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
+            while True:  # Wait for a confirmation message from the Arduino
+                reading = self.arduino.read()
+                print(reading)
+                if reading == b"s":
+                    break
+            # Reverse the digging drum
+            await self.cli_digger_stop.call_async(Stop.Request())
+            await asyncio.sleep(0.5) # Let the digger slow down
+            await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
+            await asyncio.sleep(5) # Wait for 5 seconds
+            await self.cli_digger_stop.call_async(Stop.Request())
+            await self.cli_conveyor_stop.call_async(Stop.Request())
+            print("Autonomous Digging Procedure Complete!\n")
+            self.end_autonomous() # Return to Teleop mode
+        except asyncio.CancelledError: # Put termination code here
+            print("Autonomous Digging Procedure Terminated\n")
+            self.end_autonomous() # Return to Teleop mode
 
     def apriltags_callback(self, msg: TFMessage) -> None:
         """Process the Apriltag detections."""
@@ -284,10 +284,7 @@ class MainControlNode(Node):
                 self.state = states["Auto_Dig"]
                 self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure()) # Start the auto dig process
             elif self.state == states["Auto_Dig"]:
-                self.autonomous_digging_process.cancel() # Kill the auto dig process
-                self.stop_all_subsystems() # Stop all subsystems
-                print("Autonomous Digging Procedure Terminated\n")
-                self.state = states["Teleop"] # Return to Teleop mode
+                self.autonomous_digging_process.cancel() # Terminate the auto dig process
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
