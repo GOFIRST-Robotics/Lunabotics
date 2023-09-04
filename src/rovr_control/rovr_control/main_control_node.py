@@ -173,6 +173,7 @@ class MainControlNode(Node):
                 print(reading)
                 if reading == b"f":
                     break
+                await asyncio.sleep(0) # Trick to allow other tasks to run ;)
             await asyncio.sleep(5)  # Wait for 5 seconds
             # Tell the Arduino to retract the linear actuator
             self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
@@ -181,6 +182,7 @@ class MainControlNode(Node):
                 print(reading)
                 if reading == b"s":
                     break
+                await asyncio.sleep(0) # Trick to allow other tasks to run ;)
             # Reverse the digging drum
             await self.cli_digger_stop.call_async(Stop.Request())
             await asyncio.sleep(0.5) # Let the digger slow down
@@ -208,7 +210,7 @@ class MainControlNode(Node):
                 await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3))
                 while self.apriltagX == 0.0:
                     print('searching')
-                    await asyncio.sleep(0) # Trick to allow other tasks to run
+                    await asyncio.sleep(0) # Trick to allow other tasks to run ;)
                 print(f"Apriltag found! x: {self.apriltagX}, z: {self.apriltagZ}, yaw :{self.apriltagYaw}")
                 # Stop turning
                 await self.cli_drivetrain_stop.call_async(Stop.Request())
