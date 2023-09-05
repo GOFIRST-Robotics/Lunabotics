@@ -204,7 +204,7 @@ private:
       response->success = 1; // indicates success
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
-      response->success = 0; // indicates failure
+      response->success = 1; // indicates failure
     }
   }
 
@@ -225,7 +225,7 @@ private:
       response->success = response->success = response->result == -1 ? 0 : 1;
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
-      response->success = 0; // indicates failure
+      response->success = 1; // indicates failure
     }
   }
 

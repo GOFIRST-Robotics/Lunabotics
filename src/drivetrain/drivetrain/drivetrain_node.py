@@ -71,13 +71,13 @@ class DrivetrainNode(Node):
     def stop_callback(self, request, response) -> None:
         """This service request stops the offloading belt."""
         self.stop()
-        response.success = 1 # indicates success
+        response.success = 0 # indicates success
         return response
     
     def drive_callback(self, request, response) -> None:
         """This service request stops the offloading belt."""
         self.drive(request.forward_power, request.turning_power)
-        response.success = 1 # indicates success
+        response.success = 0 # indicates success
         return response
         
     # Define subscriber callback methods here
