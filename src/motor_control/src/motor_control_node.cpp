@@ -151,8 +151,9 @@ private:
   // Continously send idle packets to our motor controllers
   void timer_callback()
   {
-    for (uint32_t id = 1; i <= 8; i++) {
-      if (current_msg. ) {
+    for (uint32_t id = 1; id <= 8; id++) {   
+      // If the motor controller has previously received a command, continue to send the most recent command   
+      if (current_msg.count(id) == 1) {
         send_can(id + std::get<0>(current_msg[id]), std::get<1>(current_msg[id]));
       } 
     }
@@ -183,9 +184,6 @@ private:
 
   // Initialize a hashmap to store the most recent msg for each CAN ID
   std::map<uint32_t, std::tuple<uint32_t, int32_t>> current_msg;
-  for (int id = 1; id <= 8; id++) {
-    current_msg[id] = NULL;
-  }
 
   // Callback method for the MotorCommandSet service
   void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request, std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response)
