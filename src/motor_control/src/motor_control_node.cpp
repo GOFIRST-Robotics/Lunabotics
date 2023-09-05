@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <tuple> // for tuples
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -68,6 +69,7 @@ class MotorControlNode : public rclcpp::Node
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
+    this->current_msg[id] = make_tuple(id + 0x00000000, data); // update the hashmap
     // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
@@ -77,6 +79,7 @@ class MotorControlNode : public rclcpp::Node
     int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
+    this->current_msg[id] = make_tuple(id + 0x00000300, data); // update the hashmap
     // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
@@ -136,12 +139,25 @@ public:
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>("motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>("motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
+    // Initialize timers here
+    timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
+
     // Initialize publishers and subscribers here
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100); // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by ros2socketcan_bridge
   }
 
 private:
+  // Continously send idle packets to our motor controllers
+  void timer_callback()
+  {
+    for (uint32_t id = 1; i <= 8; i++) {
+      if (current_msg. ) {
+        send_can(id + std::get<0>(current_msg[id]), std::get<1>(current_msg[id]));
+      } 
+    }
+  }
+
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg)
   {
@@ -164,6 +180,12 @@ private:
   std::map<uint32_t, MotorData> can_data;
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
+
+  // Initialize a hashmap to store the most recent msg for each CAN ID
+  std::map<uint32_t, std::tuple<uint32_t, int32_t>> current_msg;
+  for (int id = 1; id <= 8; id++) {
+    current_msg[id] = NULL;
+  }
 
   // Callback method for the MotorCommandSet service
   void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request, std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response)
@@ -207,6 +229,7 @@ private:
     }
   }
 
+  rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
