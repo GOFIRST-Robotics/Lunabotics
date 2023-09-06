@@ -73,7 +73,7 @@ class MotorControlNode : public rclcpp::Node
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
@@ -83,7 +83,7 @@ class MotorControlNode : public rclcpp::Node
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
     this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
+    RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
   // Set the position of the motor in _____ (degrees? encoder counts?)
