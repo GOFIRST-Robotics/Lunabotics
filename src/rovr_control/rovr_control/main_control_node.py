@@ -69,7 +69,6 @@ class MainControlNode(Node):
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("linear_actuator_speed", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("linear_actuator_up_speed", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        self.declare_parameter("small_linear_actuator_speed", 75)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("digger_rotation_power", 0.4)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
@@ -85,7 +84,6 @@ class MainControlNode(Node):
         self.offload_belt_power = self.get_parameter("offload_belt_power").value
         self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").value
         self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").value
-        self.small_linear_actuator_speed = self.get_parameter("small_linear_actuator_speed").value
         
         # Print the ROS Parameters to the terminal
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
@@ -93,7 +91,6 @@ class MainControlNode(Node):
         print("max_turn_power has been set to:", self.max_turn_power)
         print("linear_actuator_speed has been set to:", self.linear_actuator_speed)
         print("linear_actuator_up_speed has been set to:", self.linear_actuator_up_speed)
-        print("small_linear_actuator_speed has been set to:", self.small_linear_actuator_speed)
         print("digger_rotation_power has been set to:", self.digger_rotation_power)
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
@@ -316,15 +313,6 @@ class MainControlNode(Node):
                 # Reverse the digging drum (set negative power)
                 self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
                 self.cli_conveyor_toggle.call_async(ConveyorToggle.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
-
-            # NOTE: This hasn't been tested/used yet
-            # # Small linear actuator controls
-            # if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-            #   self.arduino.write(f'a{chr(small_linear_actuator_speed)}'.encode(
-            #     'ascii'))  # Extend the small linear actuator
-            # if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
-            #   self.arduino.write(f'b{chr(small_linear_actuator_speed)}'.encode(
-            #     'ascii'))  # Retract the small linear actuator
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
