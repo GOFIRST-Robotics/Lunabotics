@@ -22,9 +22,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/MotorCommandGet.srv"
   "srv/MotorCommandSet.srv"
   "srv/Stop.srv"
-  "srv/OffloaderSetPower.srv"
+  "srv/SetPower.srv"
   "srv/ConveyorSetPower.srv"
-  "srv/DiggerSetPower.srv"
   "srv/Drive.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)

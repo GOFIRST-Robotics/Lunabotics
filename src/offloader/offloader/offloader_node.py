@@ -9,7 +9,7 @@ from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet
-from rovr_interfaces.srv import OffloaderSetPower, Stop
+from rovr_interfaces.srv import SetPower, Stop
 
 # Define helper functions here
 def clamp(number: float, minimum: float, maximum: float) -> float:
@@ -26,9 +26,9 @@ class OffloaderNode(Node):
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         
         # Define services (methods callable from the outside) here
-        self.srv_toggle = self.create_service(OffloaderSetPower, 'offloader/toggle', self.toggle_callback)
+        self.srv_toggle = self.create_service(SetPower, 'offloader/toggle', self.toggle_callback)
         self.srv_stop = self.create_service(Stop, 'offloader/stop', self.stop_callback)
-        self.srv_setPower = self.create_service(OffloaderSetPower, 'offloader/setPower', self.set_power_callback)
+        self.srv_setPower = self.create_service(SetPower, 'offloader/setPower', self.set_power_callback)
         
         # Define motor CAN IDs here
         self.OFFLOADER = 5

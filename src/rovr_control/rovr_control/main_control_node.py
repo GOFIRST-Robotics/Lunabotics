@@ -14,7 +14,7 @@ from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import OffloaderSetPower, ConveyorSetPower, DiggerSetPower
+from rovr_interfaces.srv import ConveyorSetPower, SetPower
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 
 # Import Python Modules
@@ -123,15 +123,15 @@ class MainControlNode(Node):
         self.apriltagYaw = 0.0
         
         # Define service clients here
-        self.cli_offloader_toggle = self.create_client(OffloaderSetPower, "offloader/toggle")
+        self.cli_offloader_toggle = self.create_client(SetPower, "offloader/toggle")
         self.cli_offloader_stop = self.create_client(Stop, "offloader/stop")
-        self.cli_offloader_setPower = self.create_client(OffloaderSetPower, "offloader/setPower")
+        self.cli_offloader_setPower = self.create_client(SetPower, "offloader/setPower")
         self.cli_conveyor_toggle = self.create_client(ConveyorSetPower, "conveyor/toggle")
         self.cli_conveyor_stop = self.create_client(Stop, "conveyor/stop")
         self.cli_conveyor_setPower = self.create_client(ConveyorSetPower, "conveyor/setPower")
-        self.cli_digger_toggle = self.create_client(DiggerSetPower, "digger/toggle")
+        self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Stop, "digger/stop")
-        self.cli_digger_setPower = self.create_client(DiggerSetPower, "digger/setPower")
+        self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -159,7 +159,7 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously digging!"""
         print("\nStarting Autonomous Digging Procedure!")
         try: # Wrap the autonomous procedure in a try-except
-            await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=self.digger_rotation_power))
             await self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
             self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
             await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
@@ -183,7 +183,7 @@ class MainControlNode(Node):
             # Reverse the digging drum
             await self.cli_digger_stop.call_async(Stop.Request())
             await asyncio.sleep(0.5) # Let the digger slow down
-            await self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
             await asyncio.sleep(5) # Wait for 5 seconds
             await self.cli_digger_stop.call_async(Stop.Request())
             await self.cli_conveyor_stop.call_async(Stop.Request())
@@ -228,7 +228,7 @@ class MainControlNode(Node):
             await asyncio.sleep(4)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             print("Commence Offloading!")
-            await self.cli_offloader_setPower.call_async(OffloaderSetPower.Request(power=self.offload_belt_power)) # start offloading
+            await self.cli_offloader_setPower.call_async(SetPower.Request(power=self.offload_belt_power)) # start offloading
             # TODO: Tune this timing (how long to run the offloader for)
             await asyncio.sleep(10)
             await self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
@@ -284,11 +284,11 @@ class MainControlNode(Node):
 
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                self.cli_digger_toggle.call_async(DiggerSetPower.Request(power=self.digger_rotation_power))
+                self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_rotation_power))
                 self.cli_conveyor_toggle.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
-                self.cli_offloader_toggle.call_async(OffloaderSetPower.Request(power=self.offload_belt_power))
+                self.cli_offloader_toggle.call_async(SetPower.Request(power=self.offload_belt_power))
 
             # Check if the digger_extend button is pressed
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
@@ -309,7 +309,7 @@ class MainControlNode(Node):
 
             if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
                 # Reverse the digging drum (set negative power)
-                self.cli_digger_setPower.call_async(DiggerSetPower.Request(power=-1 * self.digger_rotation_power))
+                self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
                 self.cli_conveyor_toggle.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
 
         # THE CONTROLS BELOW ALWAYS WORK #
