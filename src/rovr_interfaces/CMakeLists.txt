@@ -21,12 +21,9 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/MotorCommandGet.srv"
   "srv/MotorCommandSet.srv"
-  "srv/OffloaderToggle.srv"
   "srv/Stop.srv"
   "srv/OffloaderSetPower.srv"
-  "srv/ConveyorToggle.srv"
   "srv/ConveyorSetPower.srv"
-  "srv/DiggerToggle.srv"
   "srv/DiggerSetPower.srv"
   "srv/Drive.srv"
 )

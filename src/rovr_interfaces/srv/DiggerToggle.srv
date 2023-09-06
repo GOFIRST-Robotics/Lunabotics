@@ -1,4 +1,0 @@
-# This service toggles the digger
-float32 power # duty cycle
----
-int32 success
