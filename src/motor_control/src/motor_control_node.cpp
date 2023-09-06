@@ -30,6 +30,9 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+// Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS
+const int NUMBER_OF_MOTORS = 8;
+
 // Define a struct to store motor data
 struct MotorData {
   float dutyCycle;
@@ -69,7 +72,7 @@ class MotorControlNode : public rclcpp::Node
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
-    this->current_msg[id] = make_tuple(id + 0x00000000, data); // update the hashmap
+    this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
     // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
@@ -79,7 +82,7 @@ class MotorControlNode : public rclcpp::Node
     int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
-    this->current_msg[id] = make_tuple(id + 0x00000300, data); // update the hashmap
+    this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
     // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
@@ -148,10 +151,10 @@ public:
   }
 
 private:
-  // Continously send idle packets to our motor controllers
+  // Continuously send CAN messages to our motor controllers so they don't timeout
   void timer_callback()
   {
-    for (uint32_t id = 1; id <= 8; id++) {   
+    for (uint32_t id = 1; id <= NUMBER_OF_MOTORS; id++) {   
       // If the motor controller has previously received a command, continue to send the most recent command   
       if (current_msg.count(id) == 1) {
         send_can(id + std::get<0>(current_msg[id]), std::get<1>(current_msg[id]));
