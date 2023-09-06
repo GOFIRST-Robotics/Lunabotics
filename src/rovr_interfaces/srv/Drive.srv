@@ -1,5 +1,0 @@
-# This service drives the robot with the given forward and turning powers
-float32 forward_power # duty cycle
-float32 turning_power # duty cycle
----
-int32 success
