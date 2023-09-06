@@ -1,0 +1,3 @@
+# This service stops a subsystem
+---
+int32 success

@@ -1,6 +1,0 @@
-motor_control_node:
-  ros__parameters:
-    DIGGER_ROTATION_POWER: 0.4 # Measured in Duty Cycle
-    DRUM_BELT_POWER: 0.2       # Measured in Duty Cycle
-    CONVEYOR_BELT_POWER: 0.35  # Measured in Duty Cycle
-    OFFLOAD_BELT_POWER: 0.35   # Measured in Duty Cycle

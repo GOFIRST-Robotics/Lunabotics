@@ -1,7 +1,7 @@
-// This node publishes CAN bus messages for our VESC burshless motor controllers.
+// This node publishes CAN bus messages to our VESC brushless motor controllers.
 // Original Author: Jude Sauve <sauve031@umn.edu> in 2018
 // Maintainer: Anthony Brogni <brogn002@umn.edu>
-// Last Updated: July 2023
+// Last Updated: September 2023
 
 // Import the ROS 2 Library
 #include "rclcpp/rclcpp.hpp"
@@ -12,30 +12,35 @@
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float32.hpp"
 
+// Import custom ROS 2 interfaces
+#include "rovr_interfaces/srv/motor_command_set.hpp"
+#include "rovr_interfaces/srv/motor_command_get.hpp"
+
 // Import Native C++ Libraries
 #include <string>
 #include <stdint.h>
-
-// Global Variables //
-float linear_drive_power_cmd = 0.0;
-float angular_drive_power_cmd = 0.0;
-float current_digger_RPM = 0.0;
-bool digging = false;
-bool reverse_digger = false;
-bool offloading = false;
-
-// Define CAN IDs Here //
-const uint32_t FRONT_LEFT_DRIVE = 1;
-const uint32_t BACK_LEFT_DRIVE = 4;
-const uint32_t FRONT_RIGHT_DRIVE = 3;
-const uint32_t BACK_RIGHT_DRIVE = 2;
-const uint32_t DIGGER_ROTATION_MOTOR = 8;
-const uint32_t DIGGER_DRUM_BELT_MOTOR = 7;
-const uint32_t CONVEYOR_BELT_MOTOR = 6;
-const uint32_t OFFLOAD_BELT_MOTOR = 5;
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
+#include <chrono>
+#include <tuple> // for tuples
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
+using std::placeholders::_2;
+
+// Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS
+const uint32_t NUMBER_OF_MOTORS = 8;
+
+// Define a struct to store motor data
+struct MotorData {
+  float dutyCycle;
+  float velocity;
+  float current;
+  float position;
+  std::chrono::time_point<std::chrono::steady_clock> timestamp;
+};
 
 class MotorControlNode : public rclcpp::Node
 {
@@ -67,169 +72,169 @@ class MotorControlNode : public rclcpp::Node
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
-    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
+    this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
+    RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print to the terminal
   }
 
-  // Set the speed of the motor in RPM (Rotations Per Minute)
-  void vesc_set_RPM(uint32_t id, int rpm)
+  // Set the velocity of the motor in RPM (Rotations Per Minute)
+  void vesc_set_velocity(uint32_t id, int rpm)
   {
     int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
-    // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
+    this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
+    RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
-  // Before sending CAN messages to the drivetrain motors, we want to desaturate the wheel speeds if needed
-  void drive(float linear_power, float angular_power)
+  // Set the position of the motor in _____ (degrees? encoder counts?)
+  void vesc_set_position(uint32_t id, int position)
   {
-    linear_power = std::clamp(linear_power, (float)(-1), (float)(1));   // Clamp the linear power between -1 and 1
-    angular_power = std::clamp(angular_power, (float)(-1), (float)(1)); // Clamp the angular power between -1 and 1
+    // TODO: Implement this method!
+  }
 
-    float leftPower = linear_power - angular_power;
-    float rightPower = linear_power + angular_power;
+  // Set the current draw of the motor in amps
+  void vesc_set_current(uint32_t id, float current)
+  {
+    // TODO: Implement this method!
+  }
 
-    // Desaturate the wheel speeds if needed
-    if (float greater_input = std::max(abs(leftPower), abs(rightPower)); greater_input > float(1))
-    {
-      float scale_factor = float(1) / greater_input;
-      leftPower *= scale_factor;
-      rightPower *= scale_factor;
+  // Get the current duty cycle of the motor
+  float vesc_get_duty_cycle(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].dutyCycle;
+    } else{
+      return -1; // Return -1 if the data is stale
     }
-
-    vesc_set_duty_cycle(FRONT_LEFT_DRIVE, leftPower * -1);   // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(BACK_LEFT_DRIVE, leftPower * -1);    // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(FRONT_RIGHT_DRIVE, rightPower * -1); // Multiply by -1 to invert motor direction
-    vesc_set_duty_cycle(BACK_RIGHT_DRIVE, rightPower * -1);  // Multiply by -1 to invert motor direction
+  }
+  // Get the current velocity of the motor in RPM (Rotations Per Minute)
+  float vesc_get_velocity(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].velocity;
+    } else{
+      return -1; // Return -1 if the data is stale
+    }
+  }
+  // Get the current position of the motor
+  float vesc_get_position(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].position;
+    } else{
+      return -1; // Return -1 if the data is stale
+    }
+  }
+  // Get the current draw of the motor in amps
+  float vesc_get_current(uint32_t id)
+  {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].current;
+    } else{
+      return -1; // Return -1 if the data is stale
+    }
   }
 
 public:
   MotorControlNode() : Node("MotorControlNode")
   {
-    // Define default values for our ROS parameters
-    this->declare_parameter("DIGGER_ROTATION_POWER", 0.4); // Measured in duty cycle
-    this->declare_parameter("DRUM_BELT_POWER", 0.2);       // Measured in duty cycle
-    this->declare_parameter("CONVEYOR_BELT_POWER", 0.35);  // Measured in duty cycle
-    this->declare_parameter("OFFLOAD_BELT_POWER", 0.35);   // Measured in duty cycle
+    // Initialize services here
+    srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>("motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
+    srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>("motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
-    digger_RPM_pub = this->create_publisher<std_msgs::msg::Float32>("digger_RPM", 10);
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100); // The name of this topic is determined by our CAN_bridge node
+    // Initialize timers here
+    timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
-    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by our CAN_bridge node
-    drive_power_sub = this->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 10, std::bind(&MotorControlNode::drive_power_callback, this, _1));
-    actuators_sub = this->create_subscription<std_msgs::msg::String>("cmd_actuators", 10, std::bind(&MotorControlNode::actuators_callback, this, _1));
-
-    timer = this->create_wall_timer(50ms, std::bind(&MotorControlNode::timer_callback, this));
-
-    this->DIGGER_ROTATION_POWER = this->get_parameter("DIGGER_ROTATION_POWER").as_double();
-    this->DRUM_BELT_POWER = this->get_parameter("DRUM_BELT_POWER").as_double();
-    this->CONVEYOR_BELT_POWER = this->get_parameter("CONVEYOR_BELT_POWER").as_double();
-    this->OFFLOAD_BELT_POWER = this->get_parameter("OFFLOAD_BELT_POWER").as_double();
-
-    RCLCPP_INFO(this->get_logger(), "DIGGER_ROTATION_POWER has been set to: %f", DIGGER_ROTATION_POWER); // Print to the terminal
-    RCLCPP_INFO(this->get_logger(), "DRUM_BELT_POWER has been set to: %f", DRUM_BELT_POWER);             // Print to the terminal
-    RCLCPP_INFO(this->get_logger(), "CONVEYOR_BELT_POWER has been set to: %f", CONVEYOR_BELT_POWER);     // Print to the terminal
-    RCLCPP_INFO(this->get_logger(), "OFFLOAD_BELT_POWER has been set to: %f", OFFLOAD_BELT_POWER);       // Print to the terminal
+    // Initialize publishers and subscribers here
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100); // The name of this topic is determined by ros2socketcan_bridge
+    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1)); // The name of this topic is determined by ros2socketcan_bridge
   }
-
-  // Motor Speeds //
-  float DIGGER_ROTATION_POWER;
-  float DRUM_BELT_POWER;
-  float CONVEYOR_BELT_POWER;
-  float OFFLOAD_BELT_POWER;
 
 private:
-  void drive_power_callback(const geometry_msgs::msg::Twist::SharedPtr msg) const
+  // Continuously send CAN messages to our motor controllers so they don't timeout
+  void timer_callback()
   {
-    linear_drive_power_cmd = msg->linear.x;
-    angular_drive_power_cmd = msg->angular.z;
+    for (uint32_t id = 1; id <= NUMBER_OF_MOTORS; id++) {   
+      // If the motor controller has previously received a command, continue to send the most recent command   
+      if (current_msg.count(id) == 1) {
+        send_can(std::get<0>(current_msg[id]), std::get<1>(current_msg[id]));
+      } 
+    }
   }
 
-  // Listen for status frames sent by our VESC motor controllers
-  void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) const
+  // Listen for CAN status frames sent by our VESC motor controllers
+  void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg)
   {
     uint32_t id = can_msg->id & 0xFF;
 
-    uint32_t RPM = (can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3];
-    uint16_t dutyCycleNow = ((can_msg->data[6] << 8) + can_msg->data[7]) / 10;
+    float RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+    float dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
+    float current = -1; // TODO: calculate the current draw of the motor from the CAN data
+    float position = -1; // TODO: calculate the position of the motor from the CAN data
 
-    // RCLCPP_INFO(this->get_logger(), "Recieved status frame from CAN ID %u with the following data:", id);
-    // RCLCPP_INFO(this->get_logger(), "RPM: %u Duty Cycle: %hu%%", RPM, dutyCycleNow);
+    // Store the most recent motor data in our hashmap
+    this->can_data[id] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
-    current_digger_RPM = RPM;
+    // Uncomment the lines below to print the received data to the terminal
+    //RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
+    //RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow, current, position);
   }
 
-  void actuators_callback(const std_msgs::msg::String::SharedPtr msg) const
-  {
-    RCLCPP_INFO(this->get_logger(), "I heard this actuator_cmd: '%s'", msg->data.c_str());
+  // Initialize a hashmap to store the most recent motor data for each CAN ID
+  std::map<uint32_t, MotorData> can_data;
+  // Adjust this data retention threshold as needed
+  const std::chrono::seconds threshold = std::chrono::seconds(1);
 
-    // Parse the msg for our toggleable motor actions
-    if (msg->data.find("DIGGER_ON") != std::string::npos)
-    {
-      digging = true;
-    }
-    if (msg->data.find("OFFLOADER_ON") != std::string::npos)
-    {
-      offloading = true;
-    }
-    if (msg->data.find("DIGGER_OFF") != std::string::npos)
-    {
-      digging = false;
-      reverse_digger = false;
-    }
-    if (msg->data.find("OFFLOADER_OFF") != std::string::npos)
-    {
-      offloading = false;
-    }
-    if (msg->data.find("REVERSE_DIGGER") != std::string::npos)
-    {
-      digging = false;
-      reverse_digger = true;
-    }
-    if (msg->data.find("STOP_ALL_ACTUATORS") != std::string::npos)
-    {
-      digging = false;
-      offloading = false;
-      reverse_digger = false;
+  // Initialize a hashmap to store the most recent msg for each CAN ID
+  std::map<uint32_t, std::tuple<uint32_t, int32_t>> current_msg;
+
+  // Callback method for the MotorCommandSet service
+  void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request, std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response)
+  {
+    if(request->type == "velocity") {
+      vesc_set_velocity(request->can_id, request->value);
+      response->success = 1; // indicates success
+    } else if (request->type== "duty_cycle") {
+      vesc_set_duty_cycle(request->can_id, request->value);
+      response->success = 1; // indicates success
+    } else if (request->type == "position") {
+      vesc_set_position(request->can_id, request->value);
+      response->success = 1; // indicates success
+    } else if (request->type == "current") {
+      vesc_set_current(request->can_id, request->value);
+      response->success = 1; // indicates success
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
+      response->success = 1; // indicates failure
     }
   }
 
-  // This method loops repeatedly
-  void timer_callback()
+  // Callback method for the MotorCommandGet service
+  void get_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Request> request, std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Response> response)
   {
-    // Drive the robot with the specified linear and angular speeds
-    drive(linear_drive_power_cmd, angular_drive_power_cmd);
-
-    // Send digging CAN messages
-    if (digging)
-    {
-      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, this->DIGGER_ROTATION_POWER * -1); // forwards
+    if(request->type == "velocity") {
+      response->result = vesc_get_velocity(request->can_id);
+      response->success = response->result == -1 ? 0 : 1;
+    } else if (request->type== "duty_cycle") {
+      response->result = vesc_get_duty_cycle(request->can_id);
+      response->success = response->success = response->result == -1 ? 0 : 1;
+    } else if (request->type == "position") {
+      response->result = vesc_get_position(request->can_id);
+      response->success = response->success = response->result == -1 ? 0 : 1;
+    } else if (request->type == "current") {
+      response->result = vesc_get_current(request->can_id);
+      response->success = response->success = response->result == -1 ? 0 : 1;
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
+      response->success = 1; // indicates failure
     }
-    else if (reverse_digger)
-    {
-      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, this->DIGGER_ROTATION_POWER); // backwards
-    }
-    else
-    {
-      vesc_set_duty_cycle(DIGGER_ROTATION_MOTOR, 0); // stop
-    }
-    vesc_set_duty_cycle(DIGGER_DRUM_BELT_MOTOR, digging ? this->DRUM_BELT_POWER * -1 : 0.0);
-    vesc_set_duty_cycle(CONVEYOR_BELT_MOTOR, digging ? this->CONVEYOR_BELT_POWER : 0.0);
-
-    // Send offloader CAN messages
-    vesc_set_duty_cycle(OFFLOAD_BELT_MOTOR, offloading ? this->OFFLOAD_BELT_POWER * -1 : 0.0);
-
-    // Publish the current digger speed in RPM to a topic
-    std_msgs::msg::Float32 digger_RPM_msg;
-    digger_RPM_msg.data = current_digger_RPM;
-    digger_RPM_pub->publish(digger_RPM_msg);
   }
 
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr digger_RPM_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr drive_power_sub;
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr actuators_sub;
+  rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
+  rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
 };
 
 // Main method for the node
