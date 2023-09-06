@@ -31,7 +31,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 // Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS
-const int NUMBER_OF_MOTORS = 8;
+const uint32_t NUMBER_OF_MOTORS = 8;
 
 // Define a struct to store motor data
 struct MotorData {
@@ -157,7 +157,7 @@ private:
     for (uint32_t id = 1; id <= NUMBER_OF_MOTORS; id++) {   
       // If the motor controller has previously received a command, continue to send the most recent command   
       if (current_msg.count(id) == 1) {
-        send_can(id + std::get<0>(current_msg[id]), std::get<1>(current_msg[id]));
+        send_can(std::get<0>(current_msg[id]), std::get<1>(current_msg[id]));
       } 
     }
   }
