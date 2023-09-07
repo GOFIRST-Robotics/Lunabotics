@@ -11,11 +11,6 @@ from rclpy.node import Node
 from rovr_interfaces.srv import MotorCommandSet
 from rovr_interfaces.srv import ConveyorSetPower, Stop
 
-# Define helper functions here
-def clamp(number: float, minimum: float, maximum: float) -> float:
-    """Clamps a number between the specified minimum and maximum."""
-    return max(minimum, min(number, maximum))
-
 
 class ConveyorNode(Node):
     def __init__(self):
@@ -38,11 +33,9 @@ class ConveyorNode(Node):
         self.running = False
 
     # Define subsystem methods here
-    def set_power(self, drum_belt_power: float, conveyor_belt_power: float) -> None:
+    def set_power(self, drum_belt_power: float, conveyor_power: float) -> None:
         """This method sets power to the conveyor belts."""
         self.running = True
-        drum_belt_power = clamp(drum_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
-        conveyor_power = clamp(conveyor_belt_power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DRUM_BELT_MOTOR, value=-1*drum_belt_power))
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=conveyor_power))
 
