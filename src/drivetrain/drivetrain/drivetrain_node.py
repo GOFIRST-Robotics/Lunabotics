@@ -15,12 +15,6 @@ from rovr_interfaces.srv import MotorCommandSet
 from rovr_interfaces.srv import Stop, Drive
 
 
-# Define helper functions here
-def clamp(number: float, minimum: float, maximum: float) -> float:
-    """Clamps a number between the specified minimum and maximum."""
-    return max(minimum, min(number, maximum))
-
-
 class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
@@ -45,8 +39,8 @@ class DrivetrainNode(Node):
     # Define subsystem methods here
     def drive(self, forward_power, turning_power):
         """This method drives the robot with the desired forward power and turning power."""
-        linear_power = clamp(forward_power, -1.0, 1.0)  # Clamp the linear power between -1.0 and 1.0
-        angular_power = clamp(turning_power, -1.0, 1.0)  # Clamp the angular power between -1.0 and 1.0
+        linear_power = min(max(-1.0, forward_power), 1.0)  # Clamp the linear power between -1.0 and 1.0
+        angular_power = min(max(-1.0, turning_power), 1.0)  # Clamp the angular power between -1.0 and 1.0
 
         left_power = linear_power - angular_power
         right_power = linear_power + angular_power

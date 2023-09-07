@@ -11,11 +11,6 @@ from rclpy.node import Node
 from rovr_interfaces.srv import MotorCommandSet
 from rovr_interfaces.srv import SetPower, Stop
 
-# Define helper functions here
-def clamp(number: float, minimum: float, maximum: float) -> float:
-    """Clamps a number between the specified minimum and maximum."""
-    return max(minimum, min(number, maximum))
-
 
 class OffloaderNode(Node):
     def __init__(self):
@@ -40,7 +35,7 @@ class OffloaderNode(Node):
     def set_power(self, power: float) -> None:
         """This method sets power to the offloading belt."""
         self.running = True
-        p = clamp(power, -1.0, 1.0)  # Clamp the power between -1.0 and 1.0
+        p = min(max(-1.0, power), 1.0) # Clamp the power between -1.0 and 1.0
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.OFFLOADER, value=-1*p))
 
     def stop(self) -> None:
