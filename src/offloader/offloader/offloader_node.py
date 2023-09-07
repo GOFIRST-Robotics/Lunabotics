@@ -35,8 +35,7 @@ class OffloaderNode(Node):
     def set_power(self, power: float) -> None:
         """This method sets power to the offloading belt."""
         self.running = True
-        p = min(max(-1.0, power), 1.0) # Clamp the power between -1.0 and 1.0
-        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.OFFLOADER, value=-1*p))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.OFFLOADER, value=-1*power))
 
     def stop(self) -> None:
         """This method stops the offloading belt."""

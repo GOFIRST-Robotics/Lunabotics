@@ -39,11 +39,8 @@ class DrivetrainNode(Node):
     # Define subsystem methods here
     def drive(self, forward_power, turning_power):
         """This method drives the robot with the desired forward power and turning power."""
-        linear_power = min(max(-1.0, forward_power), 1.0)  # Clamp the linear power between -1.0 and 1.0
-        angular_power = min(max(-1.0, turning_power), 1.0)  # Clamp the angular power between -1.0 and 1.0
-
-        left_power = linear_power - angular_power
-        right_power = linear_power + angular_power
+        left_power = forward_power - turning_power
+        right_power = forward_power + turning_power
 
         # Desaturate the wheel speeds if needed
         greater_input = max(abs(left_power), abs(right_power))
