@@ -1,0 +1,5 @@
+# This service sets power to the linear actuator and either waits for the actuator to finish moving or returns immediately.
+int32 power # Duty Cycle value between 0-100 (not 0.0-1.0)
+bool wait # if true, wait for the actuator to finish moving before returning
+---
+int32 success

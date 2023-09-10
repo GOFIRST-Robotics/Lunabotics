@@ -15,13 +15,12 @@ from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import ConveyorSetPower, SetPower
-from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
+from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, LinearActuator
 
 # Import Python Modules
 import asyncio # Allows the creation of asynchronous autonomous procedures!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
-import serial  # Serial communication with the Arduino. Install with: <sudo pip3 install pyserial>
 import os  # Allows us to kill subprocesses
 import re  # Enables using regular expressions
 
@@ -65,8 +64,8 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("linear_actuator_speed", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        self.declare_parameter("linear_actuator_up_speed", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
+        self.declare_parameter("linear_actuator_power", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
+        self.declare_parameter("linear_actuator_up_power", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("digger_rotation_power", 0.4)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
@@ -80,15 +79,15 @@ class MainControlNode(Node):
         self.drum_belt_power = self.get_parameter("drum_belt_power").value
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
         self.offload_belt_power = self.get_parameter("offload_belt_power").value
-        self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").value
-        self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").value
+        self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
+        self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
         
         # Print the ROS Parameters to the terminal #
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
-        print("linear_actuator_speed has been set to:", self.linear_actuator_speed)
-        print("linear_actuator_up_speed has been set to:", self.linear_actuator_up_speed)
+        print("linear_actuator_power has been set to:", self.linear_actuator_power)
+        print("linear_actuator_up_power has been set to:", self.linear_actuator_up_power)
         print("digger_rotation_power has been set to:", self.digger_rotation_power)
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
@@ -97,13 +96,6 @@ class MainControlNode(Node):
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
-
-        # Try connecting to the Arduino over Serial
-        try:
-            # Set this as a static Serial port!
-            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600) # 9600 is the baud rate
-        except Exception as e:
-            print(e)  # If an exception is raised, print it, and then move on
 
         # Define some initial states here
         self.state = states["Teleop"] 
@@ -131,7 +123,11 @@ class MainControlNode(Node):
         self.cli_conveyor_setPower = self.create_client(ConveyorSetPower, "conveyor/setPower")
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Stop, "digger/stop")
+        self.cli_linear_actuator_stop = self.create_client(Stop, "digger/stop_linear_actuator")
+        self.cli_digger_extend = self.create_client(LinearActuator, "digger/extend")
+        self.cli_digger_retract = self.create_client(LinearActuator, "digger/retract")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
+        self.cli_digger_read_all = self.create_client(Stop, "digger/read_all")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -148,7 +144,7 @@ class MainControlNode(Node):
         self.cli_conveyor_stop.call_async(Stop.Request()) # Stop the conveyor
         self.cli_digger_stop.call_async(Stop.Request()) # Stop the digger
         self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop the drivetrain
-        self.arduino.write(f"e{chr(0)}".encode("ascii")) # Stop the linear actuator
+        self.cli_linear_actuator_stop.call_async(Stop.Request()) # Stop the linear actuator
         
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -161,29 +157,14 @@ class MainControlNode(Node):
         try: # Wrap the autonomous procedure in a try-except
             await self.cli_digger_setPower.call_async(SetPower.Request(power=self.digger_rotation_power))
             await self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
-            self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
+            await self.cli_digger_read_all.call_async(Stop.Request()) # Read all messages from the Arduino serial buffer to clear them out
             await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
-            # Tell the Arduino to extend the linear actuator
-            self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
-            while True:  # Wait for a confirmation message from the Arduino
-                reading = self.arduino.read()
-                print(reading)
-                if reading == b"f":
-                    break
-                await asyncio.sleep(0) # Trick to allow other tasks to run ;)
+            await self.cli_digger_extend.call_async(LinearActuator.Request(power=self.linear_actuator_power, wait=True)) # Extend the linear actuator
             await asyncio.sleep(5)  # Wait for 5 seconds
-            # Tell the Arduino to retract the linear actuator
-            self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
-            while True:  # Wait for a confirmation message from the Arduino
-                reading = self.arduino.read()
-                print(reading)
-                if reading == b"s":
-                    break
-                await asyncio.sleep(0) # Trick to allow other tasks to run ;)
-            # Reverse the digging drum
+            await self.cli_digger_retract.call_async(LinearActuator.Request(power=self.linear_actuator_up_power, wait=True)) # Retract the linear actuator
             await self.cli_digger_stop.call_async(Stop.Request())
             await asyncio.sleep(0.5) # Let the digger slow down
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power)) # Reverse the digging drum
             await asyncio.sleep(5) # Wait for 5 seconds
             await self.cli_digger_stop.call_async(Stop.Request())
             await self.cli_conveyor_stop.call_async(Stop.Request())
@@ -197,40 +178,29 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously offloading!"""
         print("\nStarting Autonomous Offload Procedure!")
         try: # Wrap the autonomous procedure in a try-except
-            # Search for an Apriltag before continuing
-            print("Searching for an Apriltag to dock with...")
+            print("Searching for an Apriltag to dock with...") # Search for an Apriltag before continuing
             self.apriltagX = 0.0
-            # Add a small delay to see if we can see an Apriltag already
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.1) # Add a small delay in case we can see an Apriltag already
             if self.apriltagX == 0.0:
-                # Start turning slowly to look for an Apriltag
-                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3))
+                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3)) # Start turning slowly to look for an Apriltag
                 while self.apriltagX == 0.0:
                     print('searching')
                     await asyncio.sleep(0) # Trick to allow other tasks to run ;)
                 print(f"Apriltag found! x: {self.apriltagX}, z: {self.apriltagZ}, yaw :{self.apriltagYaw}")
-                # Stop turning
-                await self.cli_drivetrain_stop.call_async(Stop.Request())
-            # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
-            while (self.apriltagZ >= 1.5):
-                # TODO: Tune both of these P constants on the actual robot
-                turn = -1 * (0.5 * self.apriltagYaw + 0.5 * self.apriltagX)
+                await self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop turning
+            while (self.apriltagZ >= 1.5): # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
+                turn = -1 * (0.5 * self.apriltagYaw + 0.5 * self.apriltagX) # TODO: Tune both of these P constants on the actual robot
                 await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=turn))
                 print(f"Tracking Apriltag with pose x: {self.apriltagX}, z: {self.apriltagZ}, yaw :{self.apriltagYaw}")
-                # Add a small delay so we don't overload ROS with too many messages
-                await asyncio.sleep(0.1)
-            # Stop the robot
-            await self.cli_drivetrain_stop.call_async(Stop.Request())
-            # Finish docking with the trough
-            print("Docking with the trough")
+                await asyncio.sleep(0.1) # Add a small delay so we don't overload ROS with too many messages
+            await self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop the robot
+            print("Docking with the trough") # Finish docking with the trough
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
-            # TODO: Tune this timing (how long to drive straight for at the end of docking)
-            await asyncio.sleep(4)
+            await asyncio.sleep(4) # TODO: Tune this timing (how long to drive straight for at the end of docking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             print("Commence Offloading!")
             await self.cli_offloader_setPower.call_async(SetPower.Request(power=self.offload_belt_power)) # start offloading
-            # TODO: Tune this timing (how long to run the offloader for)
-            await asyncio.sleep(10)
+            await asyncio.sleep(10) # TODO: Tune this timing (how long to run the offloader for)
             await self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
             print("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous() # Return to Teleop mode
@@ -298,17 +268,14 @@ class MainControlNode(Node):
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
                 self.digger_extend_toggled = not self.digger_extend_toggled
                 if self.digger_extend_toggled:
-                    # Tell the Arduino to extend the linear actuator
-                    self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
+                    # Extend the linear actuator
+                    self.cli_digger_extend.call_async(LinearActuator.Request(power=self.linear_actuator_power, wait=False))
                 else:
-                    # Tell the Arduino to retract the linear actuator
-                    self.arduino.write(
-                        f"r{chr(self.linear_actuator_up_speed)}".encode("ascii")
-                    )
+                    # Retract the linear actuator
+                    self.cli_digger_retract.call_async(LinearActuator.Request(power=self.linear_actuator_up_power, wait=False))
             # Stop the linear actuator
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
-                # Send stop command to the Arduino
-                self.arduino.write(f"e{chr(0)}".encode("ascii"))
+                self.cli_linear_actuator_stop.call_async(Stop.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 

@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetPower.srv"
   "srv/ConveyorSetPower.srv"
   "srv/Drive.srv"
+  "srv/LinearActuator.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)
 
