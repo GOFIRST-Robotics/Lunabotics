@@ -63,13 +63,11 @@ class DrivetrainNode(Node):
         """This service request stops the drivetrain."""
         self.stop()
         response.success = 0 # indicates success
-        return response
     
     def drive_callback(self, request, response) -> None:
         """This service request drives the robot with the specified speeds."""
         self.drive(request.forward_power, request.turning_power)
         response.success = 0 # indicates success
-        return response
         
     # Define subscriber callback methods here
     def cmd_vel_callback(self, msg):

@@ -54,19 +54,16 @@ class DiggerNode(Node):
         """This service request sets power to the digging drum."""
         self.set_power(request.power)
         response.success = 0 # indicates success
-        return response
 
     def stop_callback(self, request, response) -> None:
         """This service request stops the digging drum."""
         self.stop()
         response.success = 0 # indicates success
-        return response
 
     def toggle_callback(self, request, response) -> None:
         """This service request toggles the digging drum."""
         self.toggle(request.power)
         response.success = 0 # indicates success
-        return response
     
 
 def main(args=None):
