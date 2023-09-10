@@ -34,12 +34,6 @@ from .autonomous_procedures import autonomous_procedure, auto_offload_procedure,
 
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
-# Define the possible states of our robot
-states = {
-    "Teleop": 0,
-    "Auto_Dig": 1,
-    "Auto_Offload": 2
-}
 
 def get_target_ip(target: str, default: str = "", logger_fn=print) -> str:
     """Return the current IP address of the laptop using nmap."""
@@ -103,9 +97,16 @@ class MainControlNode(Node):
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
+        
+        # Define the possible states of our robot
+        self.states = {
+            "Teleop": 0,
+            "Auto_Dig": 1,
+            "Auto_Offload": 2
+        }
 
         # Define some initial states here
-        self.state = states["Teleop"] 
+        self.state = self.states["Teleop"] 
         self.digger_extend_toggled = False
         self.camera_view_toggled = False
         self.front_camera = None
@@ -187,7 +188,7 @@ class MainControlNode(Node):
         """This method is called whenever a joystick message is received."""
 
         # TELEOP CONTROLS BELOW #
-        if self.state == states["Teleop"]:
+        if self.state == self.states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             drive_power = (
                 msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
@@ -226,20 +227,20 @@ class MainControlNode(Node):
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
-            if self.state == states["Teleop"]:
+            if self.state == self.states["Teleop"]:
                 self.stop_all_subsystems() # Stop all subsystems
-                self.state = states["Auto_Dig"]
+                self.state = self.states["Auto_Dig"]
                 self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig.run()) # Start the auto dig process
-            elif self.state == states["Auto_Dig"]:
+            elif self.state == self.states["Auto_Dig"]:
                 self.autonomous_digging_process.cancel() # Terminate the auto dig process
                 
         # Check if the autonomous offload button is pressed
         if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
-            if self.state == states["Teleop"]:
+            if self.state == self.states["Teleop"]:
                 self.stop_all_subsystems() # Stop all subsystems
-                self.state = states["Auto_Offload"]
+                self.state = self.states["Auto_Offload"]
                 self.autonomous_offload_process = asyncio.ensure_future(self.auto_offload.run()) # Start the auto dig process
-            elif self.state == states["Auto_Offload"]:
+            elif self.state == self.states["Auto_Offload"]:
                 self.autonomous_offload_process.cancel() # Terminate the auto offload process
 
         # Check if the camera toggle button is pressed
