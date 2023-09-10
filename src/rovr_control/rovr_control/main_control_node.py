@@ -72,7 +72,7 @@ class MainControlNode(Node):
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("offload_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         
-        # Assign the ROS Parameters
+        # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
@@ -83,7 +83,7 @@ class MainControlNode(Node):
         self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").value
         self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").value
         
-        # Print the ROS Parameters to the terminal
+        # Print the ROS Parameters to the terminal #
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
@@ -94,14 +94,14 @@ class MainControlNode(Node):
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
         print("offload_belt_power has been set to:", self.offload_belt_power)
 
-        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work yet
+        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
 
         # Try connecting to the Arduino over Serial
         try:
             # Set this as a static Serial port!
-            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600)
+            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600) # 9600 is the baud rate
         except Exception as e:
             print(e)  # If an exception is raised, print it, and then move on
 
@@ -286,6 +286,10 @@ class MainControlNode(Node):
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
                 self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_rotation_power))
                 self.cli_conveyor_toggle.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
+            # Reverse the digging drum (set negative power)
+            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
+                self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
+                self.cli_conveyor_toggle.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
                 self.cli_offloader_toggle.call_async(SetPower.Request(power=self.offload_belt_power))
@@ -301,16 +305,10 @@ class MainControlNode(Node):
                     self.arduino.write(
                         f"r{chr(self.linear_actuator_up_speed)}".encode("ascii")
                     )
-
             # Stop the linear actuator
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 # Send stop command to the Arduino
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
-
-            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-                # Reverse the digging drum (set negative power)
-                self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
-                self.cli_conveyor_toggle.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
