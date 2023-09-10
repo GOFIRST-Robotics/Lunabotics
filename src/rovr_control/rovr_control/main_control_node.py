@@ -29,6 +29,9 @@ from .gamepad_constants import *
 # Uncomment the line below to use the Xbox controller mappings instead
 # from .xbox_controller_constants import *
 
+# Import our async autonomous methods
+from .autonomous_procedures import autonomous_procedure, auto_offload_procedure, auto_dig_procedure
+
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
@@ -92,6 +95,10 @@ class MainControlNode(Node):
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
         print("offload_belt_power has been set to:", self.offload_belt_power)
+        
+        # Define autonomous procedure objects below #
+        self.auto_dig = autonomous_procedure(self, "Auto_Dig", auto_dig_procedure)
+        self.auto_offload = autonomous_procedure(self, "Auto_Offload", auto_offload_procedure)
 
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
@@ -145,68 +152,6 @@ class MainControlNode(Node):
         self.cli_digger_stop.call_async(Stop.Request()) # Stop the digger
         self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop the drivetrain
         self.cli_linear_actuator_stop.call_async(Stop.Request()) # Stop the linear actuator
-        
-    def end_autonomous(self) -> None:
-        """This method returns to teleop control."""
-        self.stop_all_subsystems() # Stop all subsystems
-        self.state = states["Teleop"] # Return to Teleop mode
-
-    async def auto_dig_procedure(self) -> None:
-        """This method lays out the procedure for autonomously digging!"""
-        print("\nStarting Autonomous Digging Procedure!")
-        try: # Wrap the autonomous procedure in a try-except
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=self.digger_rotation_power))
-            await self.cli_conveyor_setPower.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
-            await self.cli_digger_read_all.call_async(Stop.Request()) # Read all messages from the Arduino serial buffer to clear them out
-            await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
-            await self.cli_digger_extend.call_async(LinearActuator.Request(power=self.linear_actuator_power, wait=True)) # Extend the linear actuator
-            await asyncio.sleep(5)  # Wait for 5 seconds
-            await self.cli_digger_retract.call_async(LinearActuator.Request(power=self.linear_actuator_up_power, wait=True)) # Retract the linear actuator
-            await self.cli_digger_stop.call_async(Stop.Request())
-            await asyncio.sleep(0.5) # Let the digger slow down
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power)) # Reverse the digging drum
-            await asyncio.sleep(5) # Wait for 5 seconds
-            await self.cli_digger_stop.call_async(Stop.Request())
-            await self.cli_conveyor_stop.call_async(Stop.Request())
-            print("Autonomous Digging Procedure Complete!\n")
-            self.end_autonomous() # Return to Teleop mode
-        except asyncio.CancelledError: # Put termination code here
-            print("Autonomous Digging Procedure Terminated\n")
-            self.end_autonomous() # Return to Teleop mode
-            
-    async def auto_offload_procedure(self):
-        """This method lays out the procedure for autonomously offloading!"""
-        print("\nStarting Autonomous Offload Procedure!")
-        try: # Wrap the autonomous procedure in a try-except
-            print("Searching for an Apriltag to dock with...") # Search for an Apriltag before continuing
-            self.apriltagX = 0.0
-            await asyncio.sleep(0.1) # Add a small delay in case we can see an Apriltag already
-            if self.apriltagX == 0.0:
-                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, turning_power=0.3)) # Start turning slowly to look for an Apriltag
-                while self.apriltagX == 0.0:
-                    print('searching')
-                    await asyncio.sleep(0) # Trick to allow other tasks to run ;)
-                print(f"Apriltag found! x: {self.apriltagX}, z: {self.apriltagZ}, yaw :{self.apriltagYaw}")
-                await self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop turning
-            while (self.apriltagZ >= 1.5): # Continue correcting until we are within 1.5 meters of the tag # TODO: Tune this distance
-                turn = -1 * (0.5 * self.apriltagYaw + 0.5 * self.apriltagX) # TODO: Tune both of these P constants on the actual robot
-                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=turn))
-                print(f"Tracking Apriltag with pose x: {self.apriltagX}, z: {self.apriltagZ}, yaw :{self.apriltagYaw}")
-                await asyncio.sleep(0.1) # Add a small delay so we don't overload ROS with too many messages
-            await self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop the robot
-            print("Docking with the trough") # Finish docking with the trough
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
-            await asyncio.sleep(4) # TODO: Tune this timing (how long to drive straight for at the end of docking)
-            await self.cli_drivetrain_stop.call_async(Stop.Request())
-            print("Commence Offloading!")
-            await self.cli_offloader_setPower.call_async(SetPower.Request(power=self.offload_belt_power)) # start offloading
-            await asyncio.sleep(10) # TODO: Tune this timing (how long to run the offloader for)
-            await self.cli_offloader_stop.call_async(Stop.Request()) # stop offloading
-            print("Autonomous Offload Procedure Complete!\n")
-            self.end_autonomous() # Return to Teleop mode
-        except asyncio.CancelledError: # Put termination code here
-            print("Autonomous Offload Procedure Terminated\n")
-            self.end_autonomous() # Return to Teleop mode
 
     def apriltags_callback(self, msg: TFMessage) -> None:
         """Process the Apriltag detections."""
@@ -284,7 +229,7 @@ class MainControlNode(Node):
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems() # Stop all subsystems
                 self.state = states["Auto_Dig"]
-                self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure()) # Start the auto dig process
+                self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig.run()) # Start the auto dig process
             elif self.state == states["Auto_Dig"]:
                 self.autonomous_digging_process.cancel() # Terminate the auto dig process
                 
@@ -293,7 +238,7 @@ class MainControlNode(Node):
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems() # Stop all subsystems
                 self.state = states["Auto_Offload"]
-                self.autonomous_offload_process = asyncio.ensure_future(self.auto_offload_procedure()) # Start the auto dig process
+                self.autonomous_offload_process = asyncio.ensure_future(self.auto_offload.run()) # Start the auto dig process
             elif self.state == states["Auto_Offload"]:
                 self.autonomous_offload_process.cancel() # Terminate the auto offload process
 
