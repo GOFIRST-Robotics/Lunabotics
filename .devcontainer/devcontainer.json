@@ -26,7 +26,6 @@
 			"extensions": [
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-extension-pack",
-				"GitHub.copilot",
 				"VisualStudioExptTeam.vscodeintellicode",
 				"ms-vscode.makefile-tools",
 				"ms-python.python",
