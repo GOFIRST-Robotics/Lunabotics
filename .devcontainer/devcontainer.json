@@ -36,7 +36,6 @@
 				"charliermarsh.ruff",
 				"wayou.vscode-todo-highlight",
 				"SonarSource.sonarlint-vscode",
-				"xaver.clang-format",
 				"ms-azuretools.vscode-docker",
 				"nonanonno.vscode-ros2"
 			],
