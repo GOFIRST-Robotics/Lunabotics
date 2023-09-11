@@ -103,7 +103,6 @@ class MainControlNode(Node):
 
         # Define some initial states here
         self.state = self.states["Teleop"]
-        self.digger_extend_toggled = False
         self.camera_view_toggled = False
         self.front_camera = None
         self.back_camera = None
@@ -128,6 +127,7 @@ class MainControlNode(Node):
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Stop, "digger/stop")
         self.cli_linear_actuator_stop = self.create_client(Stop, "digger/stop_linear_actuator")
+        self.cli_linear_actuator_toggle = self.create_client(LinearActuator, "digger/toggle_linear_actuator")
         self.cli_digger_extend = self.create_client(LinearActuator, "digger/extend")
         self.cli_digger_retract = self.create_client(LinearActuator, "digger/retract")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
@@ -210,17 +210,7 @@ class MainControlNode(Node):
 
             # Check if the digger_extend button is pressed
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
-                self.digger_extend_toggled = not self.digger_extend_toggled
-                if self.digger_extend_toggled:
-                    # Extend the linear actuator
-                    self.cli_digger_extend.call_async(
-                        LinearActuator.Request(power=self.linear_actuator_power, wait=False)
-                    )
-                else:
-                    # Retract the linear actuator
-                    self.cli_digger_retract.call_async(
-                        LinearActuator.Request(power=self.linear_actuator_up_power, wait=False)
-                    )
+                self.cli_linear_actuator_toggle.call_async(LinearActuator.Request(extend_power=self.linear_actuator_power, retract_power=self.linear_actuator_up_power))
             # Stop the linear actuator
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 self.cli_linear_actuator_stop.call_async(Stop.Request())

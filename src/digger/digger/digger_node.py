@@ -37,6 +37,7 @@ class DiggerNode(Node):
         self.srv_stop_linear_actuator = self.create_service(
             Stop, "digger/stop_linear_actuator", self.stop_linear_actuator_callback
         )
+        self.srv_toggle_linear_actuator = self.create_service(LinearActuator, "digger/toggle_linear_actuator", self.toggle_linear_actuator_callback)
         self.srv_extend = self.create_service(LinearActuator, "digger/extend", self.extend_callback)
         self.srv_retract = self.create_service(LinearActuator, "digger/retract", self.retract_callback)
         self.srv_read_all = self.create_service(Stop, "digger/read_all", self.read_all_callback)
@@ -46,6 +47,7 @@ class DiggerNode(Node):
 
         # Current subsystem state
         self.running = False
+        self.extended = False
 
     # Define digging drum methods here
     def set_power(self, power: float) -> None:
@@ -69,7 +71,7 @@ class DiggerNode(Node):
     def extend(self, power: int, wait: bool = False):
         """This method extends the linear actuator."""
         self.arduino.write(f"e{chr(power)}".encode("ascii"))
-        # TODO: This wait until done case doesn't seem to be working
+        self.extended = True
         if wait:  # Wait for a confirmation message from the Arduino (if we want to)
             reading = self.arduino.read()
             while reading != b"f":  # this is just the character we arbitrarily chose in the Arduino code:
@@ -78,11 +80,18 @@ class DiggerNode(Node):
     def retract(self, power: int, wait: bool = False):
         """This method retracts the linear actuator."""
         self.arduino.write(f"r{chr(power)}".encode("ascii"))
-        # TODO: This wait until done case doesn't seem to be working
+        self.extended = False
         if wait:  # Wait for a confirmation message from the Arduino (if we want to)
             reading = self.arduino.read()
             while reading != b"s":  # this is just the character we arbitrarily chose in the Arduino code
                 reading = self.arduino.read()
+                
+    def toggle_linear_actuator(self, extend_power: float, retract_power: float):
+        """This method toggles the linear actuator."""
+        if self.extended:
+            self.retract(retract_power)
+        else:
+            self.extend(extend_power)
 
     def stop_linear_actuator(self):
         """This method stops the linear actuator."""
@@ -120,13 +129,19 @@ class DiggerNode(Node):
 
     def extend_callback(self, request, response) -> None:
         """This service request extends the linear actuator."""
-        self.extend(request.power, request.wait)
+        self.extend(request.extend_power, request.wait)
         response.success = 0  # indicates success
         return response
 
     def retract_callback(self, request, response) -> None:
         """This service request retracts the linear actuator."""
-        self.retract(request.power, request.wait)
+        self.retract(request.retract_power, request.wait)
+        response.success = 0  # indicates success
+        return response
+    
+    def toggle_linear_actuator_callback(self, request, response) -> None:
+        """This service request retracts the linear actuator."""
+        self.toggle_linear_actuator(request.extend_power, request.retract_power)
         response.success = 0  # indicates success
         return response
 

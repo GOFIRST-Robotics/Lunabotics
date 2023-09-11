@@ -52,11 +52,11 @@ async def auto_dig_procedure(node_instance: Node) -> None:
     )  # Read all messages from the Arduino serial buffer to clear them out
     await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
     await node_instance.cli_digger_extend.call_async(
-        LinearActuator.Request(power=node_instance.linear_actuator_power, wait=True)
+        LinearActuator.Request(extend_power=node_instance.linear_actuator_power, wait=True)
     )  # Extend the linear actuator
     await asyncio.sleep(5)  # Wait for 5 seconds
     await node_instance.cli_digger_retract.call_async(
-        LinearActuator.Request(power=node_instance.linear_actuator_up_power, wait=True)
+        LinearActuator.Request(retract_power=node_instance.linear_actuator_up_power, wait=True)
     )  # Retract the linear actuator
     await node_instance.cli_digger_stop.call_async(Stop.Request())
     await asyncio.sleep(0.5)  # Let the digger slow down
