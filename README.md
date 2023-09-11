@@ -42,6 +42,11 @@ colcon build --symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 ```
 Then, point Sonarlint to the `compile_commands.json` file that is created in your `build` directory.
 
+To normalize line endings in git, use the command:
+```
+git config --global core.autocrlf true
+```
+
 ## Joystick Node
 
 ```
