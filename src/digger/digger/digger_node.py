@@ -69,6 +69,7 @@ class DiggerNode(Node):
     def extend(self, power: int, wait: bool = False):
         """This method extends the linear actuator."""
         self.arduino.write(f"e{chr(power)}".encode("ascii"))
+        # TODO: This wait until done case doesn't seem to be working
         if wait:  # Wait for a confirmation message from the Arduino (if we want to)
             reading = self.arduino.read()
             while reading != b"f":  # this is just the character we arbitrarily chose in the Arduino code:
@@ -77,6 +78,7 @@ class DiggerNode(Node):
     def retract(self, power: int, wait: bool = False):
         """This method retracts the linear actuator."""
         self.arduino.write(f"r{chr(power)}".encode("ascii"))
+        # TODO: This wait until done case doesn't seem to be working
         if wait:  # Wait for a confirmation message from the Arduino (if we want to)
             reading = self.arduino.read()
             while reading != b"s":  # this is just the character we arbitrarily chose in the Arduino code
