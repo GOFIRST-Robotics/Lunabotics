@@ -58,7 +58,7 @@
 					"--ignore=E501" // Ignore line too long
 				],
 				"[c++]": {
-					"editor.defaultFormatter": "ms-vscode.cpptools",
+					"editor.defaultFormatter": "ms-vscode.cpptools"
 				},
 				"C_Cpp.clang_format_fallbackStyle": "{ ColumnLimit: 120 }"
 			}
