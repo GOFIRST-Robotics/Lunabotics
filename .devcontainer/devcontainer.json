@@ -26,7 +26,6 @@
 				"GitHub.copilot",
 				"VisualStudioExptTeam.vscodeintellicode",
 				"ms-vscode.makefile-tools",
-				"ms-vscode.hexeditor",
 				"ms-python.python",
 				"donjayamanne.python-extension-pack",
 				"eamodio.gitlens",
@@ -35,7 +34,16 @@
 				"SonarSource.sonarlint-vscode",
 				"ms-azuretools.vscode-docker",
 				"nonanonno.vscode-ros2"
-			]
+			],
+			"settings": {
+				"git.autofetch": true,
+				"editor.inlineSuggest.enabled": true,
+				"editor.formatOnSave": true,
+				"files.autoSave": "afterDelay",
+				"[python]": {
+					"editor.defaultFormatter": "ms-python.black-formatter"
+				}
+			}
 		}
 	}
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
