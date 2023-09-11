@@ -30,7 +30,6 @@
 				"ms-vscode.makefile-tools",
 				"ms-python.python",
 				"donjayamanne.python-extension-pack",
-				"eamodio.gitlens",
 				"ms-python.black-formatter",
 				"charliermarsh.ruff",
 				"wayou.vscode-todo-highlight",
