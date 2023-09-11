@@ -43,8 +43,8 @@
 				"git.autofetch": true,
 				"editor.inlineSuggest.enabled": true,
 				"files.autoSave": "afterDelay",
+				"editor.formatOnSave": true,
 				"[python]": {
-					"editor.formatOnSave": true,
 					"editor.defaultFormatter": "ms-python.black-formatter",
 					"editor.codeActionsOnSave": {
 						"source.fixAll": true
