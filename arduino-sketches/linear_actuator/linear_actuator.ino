@@ -41,14 +41,14 @@ void loop()
   }
 
   // check if the extend limit switch is pressed and we are currently extending
-  if (limit_switch_extend.isPressed() && extending)
+  if (limit_switch_extend.isPressed() && extending) // TODO: I don't think isPressed() is the right method to be using
   {
     stop_actuator();   // stop the linear actuator
     Serial.write('f'); // send a message over serial to the Jetson
   }
 
   // check if the retract limit switch is pressed and we are currently retracting
-  if (limit_switch_retract.isPressed() && retracting)
+  if (limit_switch_retract.isPressed() && retracting) // TODO: I don't think isPressed() is the right method to be using
   {
     stop_actuator();   // stop the linear actuator
     Serial.write('s'); // send a message over serial to the Jetson
