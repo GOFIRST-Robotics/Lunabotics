@@ -210,7 +210,11 @@ class MainControlNode(Node):
 
             # Check if the digger_extend button is pressed
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
-                self.cli_linear_actuator_toggle.call_async(LinearActuator.Request(extend_power=self.linear_actuator_power, retract_power=self.linear_actuator_up_power))
+                self.cli_linear_actuator_toggle.call_async(
+                    LinearActuator.Request(
+                        extend_power=self.linear_actuator_power, retract_power=self.linear_actuator_up_power
+                    )
+                )
             # Stop the linear actuator
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 self.cli_linear_actuator_stop.call_async(Stop.Request())

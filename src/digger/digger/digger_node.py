@@ -37,7 +37,9 @@ class DiggerNode(Node):
         self.srv_stop_linear_actuator = self.create_service(
             Stop, "digger/stop_linear_actuator", self.stop_linear_actuator_callback
         )
-        self.srv_toggle_linear_actuator = self.create_service(LinearActuator, "digger/toggle_linear_actuator", self.toggle_linear_actuator_callback)
+        self.srv_toggle_linear_actuator = self.create_service(
+            LinearActuator, "digger/toggle_linear_actuator", self.toggle_linear_actuator_callback
+        )
         self.srv_extend = self.create_service(LinearActuator, "digger/extend", self.extend_callback)
         self.srv_retract = self.create_service(LinearActuator, "digger/retract", self.retract_callback)
         self.srv_read_all = self.create_service(Stop, "digger/read_all", self.read_all_callback)
@@ -85,7 +87,7 @@ class DiggerNode(Node):
             reading = self.arduino.read()
             while reading != b"s":  # this is just the character we arbitrarily chose in the Arduino code
                 reading = self.arduino.read()
-                
+
     def toggle_linear_actuator(self, extend_power: float, retract_power: float):
         """This method toggles the linear actuator."""
         if self.extended:
@@ -138,7 +140,7 @@ class DiggerNode(Node):
         self.retract(request.retract_power, request.wait)
         response.success = 0  # indicates success
         return response
-    
+
     def toggle_linear_actuator_callback(self, request, response) -> None:
         """This service request retracts the linear actuator."""
         self.toggle_linear_actuator(request.extend_power, request.retract_power)
