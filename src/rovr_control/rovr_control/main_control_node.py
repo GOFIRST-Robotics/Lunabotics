@@ -6,7 +6,7 @@
 # Import the ROS 2 module
 import rclpy
 from rclpy.node import Node
-from rclpy.executors import SingleThreadedExecutor # This is needed to run multiple callbacks in a single thread
+from rclpy.executors import SingleThreadedExecutor  # This is needed to run multiple callbacks in a single thread
 
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist, Vector3, PoseWithCovarianceStamped
@@ -18,7 +18,7 @@ from rovr_interfaces.srv import ConveyorSetPower, SetPower
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, LinearActuator
 
 # Import Python Modules
-import asyncio # Allows the creation of asynchronous autonomous procedures!
+import asyncio  # Allows the creation of asynchronous autonomous procedures!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
@@ -26,6 +26,7 @@ import re  # Enables using regular expressions
 
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
+
 # Uncomment the line below to use the Xbox controller mappings instead
 # from .xbox_controller_constants import *
 
@@ -35,12 +36,11 @@ from .autonomous_procedures import autonomous_procedure, auto_offload_procedure,
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
 
+
 def get_target_ip(target: str, default: str = "", logger_fn=print) -> str:
     """Return the current IP address of the laptop using nmap."""
     try:
-        nmap = subprocess.Popen(
-            ("nmap", "-sn", "192.168.1.1/24"), stdout=subprocess.PIPE
-        )
+        nmap = subprocess.Popen(("nmap", "-sn", "192.168.1.1/24"), stdout=subprocess.PIPE)
         grep = subprocess.check_output(("grep", target), stdin=nmap.stdout)
         nmap.wait()
         res = re.sub(r".*\((.*)\).*", r"\g<1>", grep.decode())
@@ -56,7 +56,7 @@ class MainControlNode(Node):
     def __init__(self) -> None:
         """Initialize the ROS2 Node."""
         super().__init__("rovr_control")
-        
+
         # Define default values for our ROS parameters below #
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
@@ -67,7 +67,7 @@ class MainControlNode(Node):
         self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("offload_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
-        
+
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
@@ -78,7 +78,7 @@ class MainControlNode(Node):
         self.offload_belt_power = self.get_parameter("offload_belt_power").value
         self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
         self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
-        
+
         # Print the ROS Parameters to the terminal #
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
@@ -89,7 +89,7 @@ class MainControlNode(Node):
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
         print("offload_belt_power has been set to:", self.offload_belt_power)
-        
+
         # Define autonomous procedure objects below #
         self.auto_dig = autonomous_procedure(self, "Auto_Dig", auto_dig_procedure)
         self.auto_offload = autonomous_procedure(self, "Auto_Offload", auto_offload_procedure)
@@ -97,16 +97,12 @@ class MainControlNode(Node):
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
-        
+
         # Define the possible states of our robot
-        self.states = {
-            "Teleop": 0,
-            "Auto_Dig": 1,
-            "Auto_Offload": 2
-        }
+        self.states = {"Teleop": 0, "Auto_Dig": 1, "Auto_Offload": 2}
 
         # Define some initial states here
-        self.state = self.states["Teleop"] 
+        self.state = self.states["Teleop"]
         self.digger_extend_toggled = False
         self.camera_view_toggled = False
         self.front_camera = None
@@ -116,12 +112,12 @@ class MainControlNode(Node):
 
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.typeapriltag_camera_offset = 0.1905  # Measured in Meters
-        
+
         # These variables store the most recent Apriltag pose
         self.apriltagX = 0.0
         self.apriltagZ = 0.0
         self.apriltagYaw = 0.0
-        
+
         # Define service clients here
         self.cli_offloader_toggle = self.create_client(SetPower, "offloader/toggle")
         self.cli_offloader_stop = self.create_client(Stop, "offloader/stop")
@@ -148,11 +144,11 @@ class MainControlNode(Node):
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_offloader_stop.call_async(Stop.Request()) # Stop the offloader
-        self.cli_conveyor_stop.call_async(Stop.Request()) # Stop the conveyor
-        self.cli_digger_stop.call_async(Stop.Request()) # Stop the digger
-        self.cli_drivetrain_stop.call_async(Stop.Request()) # Stop the drivetrain
-        self.cli_linear_actuator_stop.call_async(Stop.Request()) # Stop the linear actuator
+        self.cli_offloader_stop.call_async(Stop.Request())  # Stop the offloader
+        self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor
+        self.cli_digger_stop.call_async(Stop.Request())  # Stop the digger
+        self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
+        self.cli_linear_actuator_stop.call_async(Stop.Request())  # Stop the linear actuator
 
     def apriltags_callback(self, msg: TFMessage) -> None:
         """Process the Apriltag detections."""
@@ -162,9 +158,7 @@ class MainControlNode(Node):
         # Create a PoseWithCovarianceStamped object from the Apriltag detection
         pose_object = PoseWithCovarianceStamped()
         pose_object.header = entry.header
-        pose_object.pose.pose.position.x = (
-            entry.transform.translation.x + self.typeapriltag_camera_offset
-        )
+        pose_object.pose.pose.position.x = entry.transform.translation.x + self.typeapriltag_camera_offset
         pose_object.pose.pose.position.y = entry.transform.translation.y
         pose_object.pose.pose.position.z = entry.transform.translation.z
         pose_object.pose.pose.orientation.x = entry.transform.rotation.x
@@ -175,7 +169,7 @@ class MainControlNode(Node):
         self.apriltag_pose_publisher.publish(pose_object)
 
         ## Set the value of these variables used for docking with an Apriltag ##
-        
+
         # Left-Right Distance to the tag (measured in meters)
         self.apriltagX = entry.transform.translation.x + self.typeapriltag_camera_offset
         # Forward-Backward Distance to the tag (measured in meters)
@@ -190,22 +184,26 @@ class MainControlNode(Node):
         # TELEOP CONTROLS BELOW #
         if self.state == self.states["Teleop"]:
             # Drive the robot using joystick input during Teleop
-            drive_power = (
-                msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
-            )  # Forward power
-            turn_power = (
-                msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power
-            )  # Turning power
+            drive_power = msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
+            turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(Twist(linear=Vector3(x=drive_power), angular=Vector3(z=turn_power)))
 
             # Check if the digger button is pressed
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
                 self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_rotation_power))
-                self.cli_conveyor_toggle.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
+                self.cli_conveyor_toggle.call_async(
+                    ConveyorSetPower.Request(
+                        drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
+                    )
+                )
             # Reverse the digging drum (set negative power)
             if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
                 self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
-                self.cli_conveyor_toggle.call_async(ConveyorSetPower.Request(drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power))
+                self.cli_conveyor_toggle.call_async(
+                    ConveyorSetPower.Request(
+                        drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
+                    )
+                )
             # Check if the offloader button is pressed
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
                 self.cli_offloader_toggle.call_async(SetPower.Request(power=self.offload_belt_power))
@@ -215,10 +213,14 @@ class MainControlNode(Node):
                 self.digger_extend_toggled = not self.digger_extend_toggled
                 if self.digger_extend_toggled:
                     # Extend the linear actuator
-                    self.cli_digger_extend.call_async(LinearActuator.Request(power=self.linear_actuator_power, wait=False))
+                    self.cli_digger_extend.call_async(
+                        LinearActuator.Request(power=self.linear_actuator_power, wait=False)
+                    )
                 else:
                     # Retract the linear actuator
-                    self.cli_digger_retract.call_async(LinearActuator.Request(power=self.linear_actuator_up_power, wait=False))
+                    self.cli_digger_retract.call_async(
+                        LinearActuator.Request(power=self.linear_actuator_up_power, wait=False)
+                    )
             # Stop the linear actuator
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 self.cli_linear_actuator_stop.call_async(Stop.Request())
@@ -228,25 +230,29 @@ class MainControlNode(Node):
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
             if self.state == self.states["Teleop"]:
-                self.stop_all_subsystems() # Stop all subsystems
+                self.stop_all_subsystems()  # Stop all subsystems
                 self.state = self.states["Auto_Dig"]
-                self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig.run()) # Start the auto dig process
+                self.autonomous_digging_process = asyncio.ensure_future(
+                    self.auto_dig.run()
+                )  # Start the auto dig process
             elif self.state == self.states["Auto_Dig"]:
-                self.autonomous_digging_process.cancel() # Terminate the auto dig process
-                
+                self.autonomous_digging_process.cancel()  # Terminate the auto dig process
+
         # Check if the autonomous offload button is pressed
         if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
             if self.state == self.states["Teleop"]:
-                self.stop_all_subsystems() # Stop all subsystems
+                self.stop_all_subsystems()  # Stop all subsystems
                 self.state = self.states["Auto_Offload"]
-                self.autonomous_offload_process = asyncio.ensure_future(self.auto_offload.run()) # Start the auto dig process
+                self.autonomous_offload_process = asyncio.ensure_future(
+                    self.auto_offload.run()
+                )  # Start the auto dig process
             elif self.state == self.states["Auto_Offload"]:
-                self.autonomous_offload_process.cancel() # Terminate the auto offload process
+                self.autonomous_offload_process.cancel()  # Terminate the auto offload process
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
             self.camera_view_toggled = not self.camera_view_toggled
-            if (self.camera_view_toggled):  # Start streaming /dev/front_webcam on port 5000
+            if self.camera_view_toggled:  # Start streaming /dev/front_webcam on port 5000
                 if self.back_camera is not None:
                     # Kill the self.back_camera process
                     os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
@@ -272,23 +278,25 @@ class MainControlNode(Node):
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
-            
+
+
 async def spin(executor: SingleThreadedExecutor) -> None:
     """This function is called in the main function to run the executor."""
-    while rclpy.ok(): # While ROS is still running
-        executor.spin_once() # Spin the executor once
-        await asyncio.sleep(0) # Setting the delay to 0 provides an optimized path to allow other tasks to run.
+    while rclpy.ok():  # While ROS is still running
+        executor.spin_once()  # Spin the executor once
+        await asyncio.sleep(0)  # Setting the delay to 0 provides an optimized path to allow other tasks to run.
+
 
 def main(args=None) -> None:
     rclpy.init(args=args)
     print("Hello from the rovr_control package!")
 
-    node = MainControlNode() # Instantiate the node
-    executor = SingleThreadedExecutor() # Create an executor
-    executor.add_node(node) # Add the node to the executor
-    
-    loop = asyncio.get_event_loop() # Get the event loop
-    loop.run_until_complete(spin(executor)) # Run the spin function in the event loop
+    node = MainControlNode()  # Instantiate the node
+    executor = SingleThreadedExecutor()  # Create an executor
+    executor.add_node(node)  # Add the node to the executor
+
+    loop = asyncio.get_event_loop()  # Get the event loop
+    loop.run_until_complete(spin(executor))  # Run the spin function in the event loop
 
     # Clean up and shutdown
     node.destroy_node()
