@@ -11,7 +11,7 @@ from rclpy.node import Node
 import serial  # Serial communication with the Arduino. Install with: <sudo pip3 install pyserial>
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import MotorCommandSet
+from rovr_interfaces.srv import MotorCommandSet, ReadSerial
 from rovr_interfaces.srv import SetPower, Stop, LinearActuator
 
 
@@ -42,7 +42,8 @@ class DiggerNode(Node):
         )
         self.srv_extend = self.create_service(LinearActuator, "digger/extend", self.extend_callback)
         self.srv_retract = self.create_service(LinearActuator, "digger/retract", self.retract_callback)
-        self.srv_read_all = self.create_service(Stop, "digger/read_all", self.read_all_callback)
+        self.srv_read_all = self.create_service(ReadSerial, "digger/read_all", self.read_all_callback)
+        self.srv_read = self.create_service(ReadSerial, "digger/read", self.read_callback)
 
         # Define motor CAN IDs here
         self.DIGGER = 8
@@ -70,23 +71,15 @@ class DiggerNode(Node):
             self.set_power(power)
 
     # Define linear actuator methods here
-    def extend(self, power: int, wait: bool = False):
+    def extend(self, power: int):
         """This method extends the linear actuator."""
         self.arduino.write(f"e{chr(power)}".encode("ascii"))
         self.extended = True
-        if wait:  # Wait for a confirmation message from the Arduino (if we want to)
-            reading = self.arduino.read()
-            while reading != b"f":  # this is just the character we arbitrarily chose in the Arduino code:
-                reading = self.arduino.read()
 
-    def retract(self, power: int, wait: bool = False):
+    def retract(self, power: int):
         """This method retracts the linear actuator."""
         self.arduino.write(f"r{chr(power)}".encode("ascii"))
         self.extended = False
-        if wait:  # Wait for a confirmation message from the Arduino (if we want to)
-            reading = self.arduino.read()
-            while reading != b"s":  # this is just the character we arbitrarily chose in the Arduino code
-                reading = self.arduino.read()
 
     def toggle_linear_actuator(self, extend_power: float, retract_power: float):
         """This method toggles the linear actuator."""
@@ -98,10 +91,6 @@ class DiggerNode(Node):
     def stop_linear_actuator(self):
         """This method stops the linear actuator."""
         self.arduino.write(f"e{chr(0)}".encode("ascii"))
-
-    def read_all(self):
-        """This method reads all messages from the serial buffer to clear them out."""
-        self.arduino.read_all()
 
     # Define digging drum service callback methods here
     def set_power_callback(self, request, response) -> None:
@@ -131,13 +120,13 @@ class DiggerNode(Node):
 
     def extend_callback(self, request, response) -> None:
         """This service request extends the linear actuator."""
-        self.extend(request.extend_power, request.wait)
+        self.extend(request.extend_power)
         response.success = 0  # indicates success
         return response
 
     def retract_callback(self, request, response) -> None:
         """This service request retracts the linear actuator."""
-        self.retract(request.retract_power, request.wait)
+        self.retract(request.retract_power)
         response.success = 0  # indicates success
         return response
 
@@ -148,9 +137,14 @@ class DiggerNode(Node):
         return response
 
     def read_all_callback(self, request, response) -> None:
-        """This service request reads all messages from the serial buffer."""
-        self.read_all()
+        """This service request reads all messages from the serial buffer to clear them."""
+        self.arduino.read_all()
         response.success = 0  # indicates success
+        return response
+
+    def read_callback(self, request, response) -> None:
+        """This service request reads a message from the Arduino serial buffer."""
+        response.data = self.arduino.read()
         return response
 
 

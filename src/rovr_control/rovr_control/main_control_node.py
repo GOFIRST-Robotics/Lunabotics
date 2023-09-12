@@ -14,7 +14,7 @@ from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import ConveyorSetPower, SetPower
+from rovr_interfaces.srv import ConveyorSetPower, SetPower, ReadSerial
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, LinearActuator
 
 # Import Python Modules
@@ -131,7 +131,8 @@ class MainControlNode(Node):
         self.cli_digger_extend = self.create_client(LinearActuator, "digger/extend")
         self.cli_digger_retract = self.create_client(LinearActuator, "digger/retract")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
-        self.cli_digger_read_all = self.create_client(Stop, "digger/read_all")
+        self.cli_digger_read_all = self.create_client(ReadSerial, "digger/read_all")
+        self.cli_digger_read = self.create_client(ReadSerial, "digger/read")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
