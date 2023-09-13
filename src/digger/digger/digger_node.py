@@ -71,24 +71,24 @@ class DiggerNode(Node):
             self.set_power(power)
 
     # Define linear actuator methods here
-    def extend(self, power: int):
+    def extend(self, power: int) -> None:
         """This method extends the linear actuator."""
         self.arduino.write(f"e{chr(power)}".encode("ascii"))
         self.extended = True
 
-    def retract(self, power: int):
+    def retract(self, power: int) -> None:
         """This method retracts the linear actuator."""
         self.arduino.write(f"r{chr(power)}".encode("ascii"))
         self.extended = False
 
-    def toggle_linear_actuator(self, extend_power: float, retract_power: float):
+    def toggle_linear_actuator(self, extend_power: float, retract_power: float) -> None:
         """This method toggles the linear actuator."""
         if self.extended:
             self.retract(retract_power)
         else:
             self.extend(extend_power)
 
-    def stop_linear_actuator(self):
+    def stop_linear_actuator(self) -> None:
         """This method stops the linear actuator."""
         self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
