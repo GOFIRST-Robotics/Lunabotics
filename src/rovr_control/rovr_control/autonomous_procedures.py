@@ -56,7 +56,7 @@ async def auto_dig_procedure(node_instance: Node) -> None:
     )
     # Wait for a confirmation message from the Arduino
     reading = await node_instance.cli_digger_read.call_async(ReadSerial.Request())
-    while reading != b"f":  # this is just the character we arbitrarily chose in the Arduino code:
+    while reading.data != "f":  # this is just the character we arbitrarily chose in the Arduino code:
         reading = await node_instance.cli_digger_read.call_async(ReadSerial.Request())
         await asyncio.sleep(0)  # trick to allow other tasks to run ;)
     await asyncio.sleep(5)  # Wait for 5 seconds
@@ -66,7 +66,7 @@ async def auto_dig_procedure(node_instance: Node) -> None:
     )
     # Wait for a confirmation message from the Arduino
     reading = await node_instance.cli_digger_read.call_async(ReadSerial.Request())
-    while reading != b"s":  # this is just the character we arbitrarily chose in the Arduino code
+    while reading.data != "s":  # this is just the character we arbitrarily chose in the Arduino code
         reading = await node_instance.cli_digger_read.call_async(ReadSerial.Request())
         await asyncio.sleep(0)  # trick to allow other tasks to run ;)
     await node_instance.cli_digger_stop.call_async(Stop.Request())

@@ -1,3 +1,4 @@
 # This service reads from the Arduino serial bus
 ---
+int32 success
 string data

@@ -144,7 +144,8 @@ class DiggerNode(Node):
 
     def read_callback(self, request, response) -> None:
         """This service request reads a message from the Arduino serial buffer."""
-        response.data = self.arduino.read()
+        response.data = self.arduino.read().decode('ascii')
+        response.success = 0  # indicates success
         return response
 
 
