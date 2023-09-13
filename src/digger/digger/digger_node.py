@@ -23,7 +23,7 @@ class DiggerNode(Node):
         # Try connecting to the Arduino over Serial
         try:
             # Set this as a static Serial port!
-            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600)  # 9600 is the baud rate
+            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600, timeout=0.25)  # 9600 is the baud rate
         except Exception as e:
             self.get_logger().error(str(e))  # If an exception is raised, log it, and then move on
 
