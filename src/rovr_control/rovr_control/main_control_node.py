@@ -275,14 +275,15 @@ class MainControlNode(Node):
     def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
 
-        # TELEOP CONTROLS BELOW #
+        # PUT TELEOP CONTROLS BELOW #
+        
         if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             drive_power = msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
             turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(Twist(linear=Vector3(x=drive_power), angular=Vector3(z=turn_power)))
 
-            # Check if the digger button is pressed
+            # Check if the digger button is pressed #
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
                 self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_rotation_power))
                 self.cli_conveyor_toggle.call_async(
@@ -290,11 +291,19 @@ class MainControlNode(Node):
                         drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
                     )
                 )
-            # Check if the offloader button is pressed
+            # Reverse the digging drum (set negative power) #
+            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
+                self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
+                self.cli_conveyor_toggle.call_async(
+                    ConveyorSetPower.Request(
+                        drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
+                    )
+                )
+            # Check if the offloader button is pressed #
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
                 self.cli_offloader_toggle.call_async(SetPower.Request(power=self.offload_belt_power))
 
-            # Check if the digger_extend button is pressed
+            # Check if the digger_extend button is pressed #
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
                 self.digger_extend_toggled = not self.digger_extend_toggled
                 if self.digger_extend_toggled:
@@ -303,20 +312,11 @@ class MainControlNode(Node):
                 else:
                     # Tell the Arduino to retract the linear actuator
                     self.arduino.write(f"r{chr(self.linear_actuator_up_power)}".encode("ascii"))
-
-            # Stop the linear actuator
+            # Stop the linear actuator #
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 # Send stop command to the Arduino
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
 
-            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-                # Reverse the digging drum (set negative power)
-                self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
-                self.cli_conveyor_toggle.call_async(
-                    ConveyorSetPower.Request(
-                        drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
-                    )
-                )
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
