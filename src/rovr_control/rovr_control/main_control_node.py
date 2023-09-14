@@ -68,7 +68,7 @@ class MainControlNode(Node):
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("offload_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
 
-        # Assign the ROS Parameters
+        # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
@@ -79,7 +79,7 @@ class MainControlNode(Node):
         self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
         self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
 
-        # Print the ROS Parameters to the terminal
+        # Print the ROS Parameters to the terminal below #
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
@@ -90,7 +90,7 @@ class MainControlNode(Node):
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
         print("offload_belt_power has been set to:", self.offload_belt_power)
 
-        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work yet
+        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
 
