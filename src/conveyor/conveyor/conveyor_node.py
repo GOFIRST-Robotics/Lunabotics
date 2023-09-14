@@ -83,9 +83,9 @@ class ConveyorNode(Node):
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    print("Initializing the Conveyor subsystem!")
 
     node = ConveyorNode()
+    node.get_logger().info("Initializing the Conveyor subsystem!")
     rclpy.spin(node)
 
     node.destroy_node()

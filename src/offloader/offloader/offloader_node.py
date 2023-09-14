@@ -74,9 +74,9 @@ class OffloaderNode(Node):
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    print("Initializing the Offloader subsystem!")
 
     node = OffloaderNode()
+    node.get_logger().info("Initializing the Offloader subsystem!")
     rclpy.spin(node)
 
     node.destroy_node()
