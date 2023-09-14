@@ -97,7 +97,7 @@ class MainControlNode(Node):
         # Try connecting to the Arduino over Serial
         try:
             # Set this as a static Serial port!
-            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600)
+            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600, timeout=0.01)
         except Exception as e:
             print(e)  # If an exception is raised, print it, and then move on
 
@@ -165,21 +165,19 @@ class MainControlNode(Node):
             await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
             # Tell the Arduino to extend the linear actuator
             self.arduino.write(f"e{chr(self.linear_actuator_power)}".encode("ascii"))
-            while True:  # Wait for a confirmation message from the Arduino
-                reading = self.arduino.read()
-                print(reading)
-                if reading == b"f":
-                    break
-                await asyncio.sleep(0)  # Trick to allow other tasks to run ;)
+            # Wait for a confirmation message from the Arduino
+            reading = self.arduino.read().decode("ascii")
+            while reading != "f":
+                reading = self.arduino.read().decode("ascii")
+                await asyncio.sleep(0.01)  # Trick to allow other tasks to run ;)
             await asyncio.sleep(5)  # Wait for 5 seconds
             # Tell the Arduino to retract the linear actuator
             self.arduino.write(f"r{chr(self.linear_actuator_up_power)}".encode("ascii"))
-            while True:  # Wait for a confirmation message from the Arduino
-                reading = self.arduino.read()
-                print(reading)
-                if reading == b"s":
-                    break
-                await asyncio.sleep(0)  # Trick to allow other tasks to run ;)
+            # Wait for a confirmation message from the Arduino
+            reading = self.arduino.read().decode("ascii")
+            while reading != "s":
+                reading = self.arduino.read().decode("ascii")
+                await asyncio.sleep(0.01)  # Trick to allow other tasks to run ;)
             # Reverse the digging drum
             await self.cli_digger_stop.call_async(Stop.Request())
             await asyncio.sleep(0.5)  # Let the digger slow down
