@@ -61,8 +61,8 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("linear_actuator_speed", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        self.declare_parameter("linear_actuator_up_speed", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
+        self.declare_parameter("linear_actuator_power", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
+        self.declare_parameter("linear_actuator_up_power", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("digger_rotation_power", 0.4)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
@@ -76,15 +76,15 @@ class MainControlNode(Node):
         self.drum_belt_power = self.get_parameter("drum_belt_power").value
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
         self.offload_belt_power = self.get_parameter("offload_belt_power").value
-        self.linear_actuator_speed = self.get_parameter("linear_actuator_speed").value
-        self.linear_actuator_up_speed = self.get_parameter("linear_actuator_up_speed").value
+        self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
+        self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
 
         # Print the ROS Parameters to the terminal
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
-        print("linear_actuator_speed has been set to:", self.linear_actuator_speed)
-        print("linear_actuator_up_speed has been set to:", self.linear_actuator_up_speed)
+        print("linear_actuator_power has been set to:", self.linear_actuator_power)
+        print("linear_actuator_up_power has been set to:", self.linear_actuator_up_power)
         print("digger_rotation_power has been set to:", self.digger_rotation_power)
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
@@ -164,7 +164,7 @@ class MainControlNode(Node):
             self.arduino.read_all()  # Read all messages from the serial buffer to clear them out
             await asyncio.sleep(2)  # Wait a bit for the drum motor to get up to speed
             # Tell the Arduino to extend the linear actuator
-            self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
+            self.arduino.write(f"e{chr(self.linear_actuator_power)}".encode("ascii"))
             while True:  # Wait for a confirmation message from the Arduino
                 reading = self.arduino.read()
                 print(reading)
@@ -173,7 +173,7 @@ class MainControlNode(Node):
                 await asyncio.sleep(0)  # Trick to allow other tasks to run ;)
             await asyncio.sleep(5)  # Wait for 5 seconds
             # Tell the Arduino to retract the linear actuator
-            self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
+            self.arduino.write(f"r{chr(self.linear_actuator_up_power)}".encode("ascii"))
             while True:  # Wait for a confirmation message from the Arduino
                 reading = self.arduino.read()
                 print(reading)
@@ -299,10 +299,10 @@ class MainControlNode(Node):
                 self.digger_extend_toggled = not self.digger_extend_toggled
                 if self.digger_extend_toggled:
                     # Tell the Arduino to extend the linear actuator
-                    self.arduino.write(f"e{chr(self.linear_actuator_speed)}".encode("ascii"))
+                    self.arduino.write(f"e{chr(self.linear_actuator_power)}".encode("ascii"))
                 else:
                     # Tell the Arduino to retract the linear actuator
-                    self.arduino.write(f"r{chr(self.linear_actuator_up_speed)}".encode("ascii"))
+                    self.arduino.write(f"r{chr(self.linear_actuator_up_power)}".encode("ascii"))
 
             # Stop the linear actuator
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
