@@ -72,9 +72,9 @@ class DiggerNode(Node):
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    print("Initializing the Digger subsystem!")
 
     node = DiggerNode()
+    node.get_logger().info("Initializing the Digger subsystem!")
     rclpy.spin(node)
 
     node.destroy_node()

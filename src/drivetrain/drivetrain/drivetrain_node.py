@@ -88,9 +88,9 @@ class DrivetrainNode(Node):
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    print("Initializing the Drivetrain subsystem!")
 
     node = DrivetrainNode()
+    node.get_logger().info("Initializing the Drivetrain subsystem!")
     rclpy.spin(node)
 
     node.destroy_node()
