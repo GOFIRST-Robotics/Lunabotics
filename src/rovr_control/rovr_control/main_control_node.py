@@ -276,7 +276,7 @@ class MainControlNode(Node):
         """This method is called whenever a joystick message is received."""
 
         # PUT TELEOP CONTROLS BELOW #
-        
+
         if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             drive_power = msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
@@ -316,7 +316,6 @@ class MainControlNode(Node):
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 # Send stop command to the Arduino
                 self.arduino.write(f"e{chr(0)}".encode("ascii"))
-
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
