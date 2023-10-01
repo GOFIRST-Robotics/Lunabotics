@@ -6,10 +6,10 @@ The official NASA Lunabotics 2024 repository for University of Minnesota Robotic
 
 ## How to Run Inside Docker Container
 
-Open this repository in vscode then run ctrl-shift-p and type "Remote-Containers: Reopen in Container".
+Open this repository in vscode then press ctrl+shift+p and type "Remote-Containers: Reopen in Container".
 Just press "from dockerfile" and then it will build the container and run it.
 
-When open, run the following commands in the terminal:
+After opening, run the following commands in the terminal:
 
 ```
 colcon build --symlink-install
@@ -22,7 +22,7 @@ If your machine does not have an Nvidia GPU, build using this command instead:
 colcon build --symlink-install --packages-skip-regex zed*
 ```
 
-If you need to rebuild the remote container, uncomment the sections in devcontainer that reference remote, then run the following command with the devcontainer cli installed:
+If you need to rebuild the remote container image, uncomment the sections in devcontainer that reference remote, then run the following command with the devcontainer cli installed:
 
 ```
 devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros"
@@ -47,7 +47,7 @@ To normalize line endings in git, use the command:
 git config --global core.autocrlf true
 ```
 
-## Joystick Node
+## Start the Joystick Node with params
 
 ```
 ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml
@@ -57,7 +57,7 @@ ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml
 
 Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/docs/tutorial-usb-cam.md) tutorial to set up Apriltag detection on your machine.
 
-## Gstreamer Commands
+## Useful Gstreamer Commands
 
 Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): 
 
