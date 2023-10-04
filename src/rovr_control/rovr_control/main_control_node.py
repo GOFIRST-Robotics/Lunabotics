@@ -271,6 +271,16 @@ class MainControlNode(Node):
             if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
                 self.cli_offloader_toggle.call_async(SetPower.Request(power=self.offload_belt_power))
 
+            # Check if the digger_extend button is pressed #
+            if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+                self.digger_extend_toggled = not self.digger_extend_toggled
+                if self.digger_extend_toggled:
+                    # Tell the Arduino to extend the linear actuator
+                    self.arduino.write(f"e{chr(self.linear_actuator_power)}".encode("ascii"))
+                else:
+                    # Tell the Arduino to retract the linear actuator
+                    self.arduino.write(f"r{chr(self.linear_actuator_up_power)}".encode("ascii"))
+                    
             # Stop the linear actuator #
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 # Send stop command to the Arduino
