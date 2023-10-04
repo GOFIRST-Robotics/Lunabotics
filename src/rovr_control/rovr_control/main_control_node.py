@@ -66,7 +66,6 @@ class MainControlNode(Node):
         self.declare_parameter("digger_rotation_power", 0.4)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("offload_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -75,7 +74,6 @@ class MainControlNode(Node):
         self.digger_rotation_power = self.get_parameter("digger_rotation_power").value
         self.drum_belt_power = self.get_parameter("drum_belt_power").value
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
-        self.offload_belt_power = self.get_parameter("offload_belt_power").value
         self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
         self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
 
@@ -88,7 +86,7 @@ class MainControlNode(Node):
         print("digger_rotation_power has been set to:", self.digger_rotation_power)
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
-        print("offload_belt_power has been set to:", self.offload_belt_power)
+       
 
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
@@ -109,7 +107,6 @@ class MainControlNode(Node):
         self.back_camera = None
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
-
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.typeapriltag_camera_offset = 0.1905  # Measured in Meters
 
@@ -119,9 +116,6 @@ class MainControlNode(Node):
         self.apriltagYaw = 0.0
 
         # Define service clients here
-        self.cli_offloader_toggle = self.create_client(SetPower, "offloader/toggle")
-        self.cli_offloader_stop = self.create_client(Stop, "offloader/stop")
-        self.cli_offloader_setPower = self.create_client(SetPower, "offloader/setPower")
         self.cli_conveyor_toggle = self.create_client(ConveyorSetPower, "conveyor/toggle")
         self.cli_conveyor_stop = self.create_client(Stop, "conveyor/stop")
         self.cli_conveyor_setPower = self.create_client(ConveyorSetPower, "conveyor/setPower")
@@ -140,7 +134,6 @@ class MainControlNode(Node):
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_offloader_stop.call_async(Stop.Request())  # Stop the offloader
         self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor
         self.cli_digger_stop.call_async(Stop.Request())  # Stop the digger
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
@@ -194,6 +187,7 @@ class MainControlNode(Node):
     async def auto_offload_procedure(self):
         """This method lays out the procedure for autonomously offloading!"""
         print("\nStarting Autonomous Offload Procedure!")
+    
         try:  # Wrap the autonomous procedure in a try-except
             # Search for an Apriltag before continuing
             print("Searching for an Apriltag to dock with...")
@@ -230,12 +224,7 @@ class MainControlNode(Node):
             await asyncio.sleep(4)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             print("Commence Offloading!")
-            await self.cli_offloader_setPower.call_async(
-                SetPower.Request(power=self.offload_belt_power)
-            )  # start offloading
-            # TODO: Tune this timing (how long to run the offloader for)
             await asyncio.sleep(10)
-            await self.cli_offloader_stop.call_async(Stop.Request())  # stop offloading
             print("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
@@ -297,9 +286,6 @@ class MainControlNode(Node):
                         drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
                     )
                 )
-            # Check if the offloader button is pressed #
-            if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
-                self.cli_offloader_toggle.call_async(SetPower.Request(power=self.offload_belt_power))
 
             # Check if the digger_extend button is pressed #
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
@@ -338,6 +324,7 @@ class MainControlNode(Node):
                 )  # Start the auto dig process
             elif self.state == states["Auto_Offload"]:
                 self.autonomous_offload_process.cancel()  # Terminate the auto offload process
+           
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
