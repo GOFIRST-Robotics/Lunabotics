@@ -169,8 +169,6 @@ class MainControlNode(Node):
             while reading != "s":
                 reading = self.arduino.read().decode("ascii")
                 await asyncio.sleep(0.01)  # Trick to allow other tasks to run ;)
-            # Reverse the digging drum
-            await asyncio.sleep(0.5)  # Let the digger slow down
             await asyncio.sleep(5)  # Wait for 5 seconds
             await self.cli_conveyor_stop.call_async(Stop.Request())
             print("Autonomous Digging Procedure Complete!\n")
