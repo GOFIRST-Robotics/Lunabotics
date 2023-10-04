@@ -30,16 +30,10 @@ def generate_launch_description():
         executable="conveyor_node",
         name="conveyor_node",
     )
-    digger = Node(
-        package="digger",
-        executable="digger_node",
-        name="digger_node",
-    )
 
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
     ld.add_action(drivetrain)
     ld.add_action(conveyor)
-    ld.add_action(digger)
 
     return ld

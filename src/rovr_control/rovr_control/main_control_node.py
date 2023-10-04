@@ -63,7 +63,6 @@ class MainControlNode(Node):
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("linear_actuator_power", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("linear_actuator_up_power", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        self.declare_parameter("digger_rotation_power", 0.4)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("drum_belt_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
 
@@ -71,7 +70,6 @@ class MainControlNode(Node):
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
-        self.digger_rotation_power = self.get_parameter("digger_rotation_power").value
         self.drum_belt_power = self.get_parameter("drum_belt_power").value
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
         self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
@@ -83,7 +81,6 @@ class MainControlNode(Node):
         print("max_turn_power has been set to:", self.max_turn_power)
         print("linear_actuator_power has been set to:", self.linear_actuator_power)
         print("linear_actuator_up_power has been set to:", self.linear_actuator_up_power)
-        print("digger_rotation_power has been set to:", self.digger_rotation_power)
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
        
@@ -101,7 +98,6 @@ class MainControlNode(Node):
 
         # Define some initial states here
         self.state = states["Teleop"]
-        self.digger_extend_toggled = False
         self.camera_view_toggled = False
         self.front_camera = None
         self.back_camera = None
@@ -119,9 +115,6 @@ class MainControlNode(Node):
         self.cli_conveyor_toggle = self.create_client(ConveyorSetPower, "conveyor/toggle")
         self.cli_conveyor_stop = self.create_client(Stop, "conveyor/stop")
         self.cli_conveyor_setPower = self.create_client(ConveyorSetPower, "conveyor/setPower")
-        self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
-        self.cli_digger_stop = self.create_client(Stop, "digger/stop")
-        self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -135,7 +128,6 @@ class MainControlNode(Node):
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
         self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor
-        self.cli_digger_stop.call_async(Stop.Request())  # Stop the digger
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
         self.arduino.write(f"e{chr(0)}".encode("ascii"))  # Stop the linear actuator
 
@@ -148,7 +140,6 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously digging!"""
         print("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=self.digger_rotation_power))
             await self.cli_conveyor_setPower.call_async(
                 ConveyorSetPower.Request(
                     drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
@@ -171,12 +162,7 @@ class MainControlNode(Node):
             while reading != "s":
                 reading = self.arduino.read().decode("ascii")
                 await asyncio.sleep(0.01)  # Trick to allow other tasks to run ;)
-            # Reverse the digging drum
-            await self.cli_digger_stop.call_async(Stop.Request())
-            await asyncio.sleep(0.5)  # Let the digger slow down
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
             await asyncio.sleep(5)  # Wait for 5 seconds
-            await self.cli_digger_stop.call_async(Stop.Request())
             await self.cli_conveyor_stop.call_async(Stop.Request())
             print("Autonomous Digging Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
@@ -270,23 +256,6 @@ class MainControlNode(Node):
             turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(Twist(linear=Vector3(x=drive_power), angular=Vector3(z=turn_power)))
 
-            # Check if the digger button is pressed #
-            if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_rotation_power))
-                self.cli_conveyor_toggle.call_async(
-                    ConveyorSetPower.Request(
-                        drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
-                    )
-                )
-            # Reverse the digging drum (set negative power) #
-            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-                self.cli_digger_setPower.call_async(SetPower.Request(power=-1 * self.digger_rotation_power))
-                self.cli_conveyor_toggle.call_async(
-                    ConveyorSetPower.Request(
-                        drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
-                    )
-                )
-
             # Check if the digger_extend button is pressed #
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
                 self.digger_extend_toggled = not self.digger_extend_toggled
@@ -296,6 +265,7 @@ class MainControlNode(Node):
                 else:
                     # Tell the Arduino to retract the linear actuator
                     self.arduino.write(f"r{chr(self.linear_actuator_up_power)}".encode("ascii"))
+                    
             # Stop the linear actuator #
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 # Send stop command to the Arduino
