@@ -223,10 +223,12 @@ class MainControlNode(Node):
             # TODO: Tune this timing (how long to drive straight for at the end of docking)
             await asyncio.sleep(4)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
+            print("Commence Offloading!")
             await asyncio.sleep(10)
+            print("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-
+            print("Autonomous Offload Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
     def apriltags_callback(self, msg: TFMessage) -> None:
@@ -322,7 +324,6 @@ class MainControlNode(Node):
                 )  # Start the auto dig process
             elif self.state == states["Auto_Offload"]:
                 self.autonomous_offload_process.cancel()  # Terminate the auto offload process
-                  # Start the auto dig process
            
 
         # Check if the camera toggle button is pressed
