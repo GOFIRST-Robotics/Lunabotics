@@ -30,3 +30,6 @@
 	path = src/isaac_ros/isaac_ros_visual_slam
 	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam.git
 	branch = main
+[submodule "src/realsense-ros"]
+	path = src/realsense-ros
+	url = https://github.com/IntelRealSense/realsense-ros.git
