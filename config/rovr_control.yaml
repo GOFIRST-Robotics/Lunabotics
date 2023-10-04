@@ -8,4 +8,4 @@ main_control_node:
     digger_rotation_power: 0.4       # Measured in Duty Cycle (0.0-1.0)
     drum_belt_power: 0.2             # Measured in Duty Cycle (0.0-1.0)
     conveyor_belt_power: 0.35        # Measured in Duty Cycle (0.0-1.0)
-    offload_belt_power: 0.35         # Measured in Duty Cycle (0.0-1.0)
+    
