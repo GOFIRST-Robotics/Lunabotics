@@ -15,25 +15,29 @@ class ros_check_load(Node):
 
     def __init__(self):
         super().__init__("check_load")
+        self.bridge = CvBridge()
         self.pub = self.create_publisher(Bool, 'readyDump', 10)
         self.prior_checks = []
-        self.timer = self.create_timer(POLLRATE, self.publish_distance)
         depth_image_topic = '/camera/camera/depth/image_raw'
+        self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
+        self.timer = self.create_timer(POLLRATE, self.publish_distance)
+        
         self.depth_image = None
-        subscriber = Node.create_subscription(self, Image, depth_image_topic, self.depth_image_callback, 10)
+        
 
     def depth_image_callback(self, msg):
-        bridge = CvBridge()
-        self.depth_image = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        self.depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
 
     def publish_distance(self):
         try:
            ##depth = frames.get_depth_frame() #not .get_depth_frane()
             average_tally = 0
             depth = self.depth_image
+            if depth == None:
+                return
             for y in range(YRESOLUTION):
                 for x in range(XRESOLUTION):
-                    average_tally += depth.get_distance(x, y)
+                    average_tally += depth[x, y]
             msg = Bool()
             if len(self.prior_checks) >= CONSECUTIVECYCLES:
                 self.prior_checks.pop(0)
