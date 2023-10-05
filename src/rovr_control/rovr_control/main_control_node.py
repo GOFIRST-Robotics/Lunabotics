@@ -14,7 +14,7 @@ from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import ConveyorSetPower, SetPower
+from rovr_interfaces.srv import ConveyorSetPower
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 
 # Import Python Modules
@@ -83,7 +83,6 @@ class MainControlNode(Node):
         print("linear_actuator_up_power has been set to:", self.linear_actuator_up_power)
         print("drum_belt_power has been set to:", self.drum_belt_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
-       
 
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
@@ -98,13 +97,15 @@ class MainControlNode(Node):
 
         # Define some initial states here
         self.state = states["Teleop"]
+        self.digger_extend_toggled = False
         self.camera_view_toggled = False
         self.front_camera = None
         self.back_camera = None
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
+
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
-        self.typeapriltag_camera_offset = 0.1905  # Measured in Meters
+        self.apriltag_camera_offset = 0.1905  # Measured in Meters
 
         # These variables store the most recent Apriltag pose
         self.apriltagX = 0.0
@@ -173,7 +174,6 @@ class MainControlNode(Node):
     async def auto_offload_procedure(self):
         """This method lays out the procedure for autonomously offloading!"""
         print("\nStarting Autonomous Offload Procedure!")
-    
         try:  # Wrap the autonomous procedure in a try-except
             # Search for an Apriltag before continuing
             print("Searching for an Apriltag to dock with...")
@@ -225,7 +225,7 @@ class MainControlNode(Node):
         # Create a PoseWithCovarianceStamped object from the Apriltag detection
         pose_object = PoseWithCovarianceStamped()
         pose_object.header = entry.header
-        pose_object.pose.pose.position.x = entry.transform.translation.x + self.typeapriltag_camera_offset
+        pose_object.pose.pose.position.x = entry.transform.translation.x + self.apriltag_camera_offset
         pose_object.pose.pose.position.y = entry.transform.translation.y
         pose_object.pose.pose.position.z = entry.transform.translation.z
         pose_object.pose.pose.orientation.x = entry.transform.rotation.x
@@ -238,7 +238,7 @@ class MainControlNode(Node):
         ## Set the value of these variables used for docking with an Apriltag ##
 
         # Left-Right Distance to the tag (measured in meters)
-        self.apriltagX = entry.transform.translation.x + self.typeapriltag_camera_offset
+        self.apriltagX = entry.transform.translation.x + self.apriltag_camera_offset
         # Forward-Backward Distance to the tag (measured in meters)
         self.apriltagZ = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
@@ -256,6 +256,14 @@ class MainControlNode(Node):
             turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(Twist(linear=Vector3(x=drive_power), angular=Vector3(z=turn_power)))
 
+            # Check if the conveyor button is pressed #
+            if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
+                self.cli_conveyor_toggle.call_async(
+                    ConveyorSetPower.Request(
+                        drum_belt_power=self.drum_belt_power, conveyor_belt_power=self.conveyor_belt_power
+                    )
+                )
+
             # Check if the digger_extend button is pressed #
             if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
                 self.digger_extend_toggled = not self.digger_extend_toggled
@@ -265,7 +273,6 @@ class MainControlNode(Node):
                 else:
                     # Tell the Arduino to retract the linear actuator
                     self.arduino.write(f"r{chr(self.linear_actuator_up_power)}".encode("ascii"))
-                    
             # Stop the linear actuator #
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 # Send stop command to the Arduino
@@ -294,7 +301,6 @@ class MainControlNode(Node):
                 )  # Start the auto dig process
             elif self.state == states["Auto_Offload"]:
                 self.autonomous_offload_process.cancel()  # Terminate the auto offload process
-           
 
         # Check if the camera toggle button is pressed
         if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
