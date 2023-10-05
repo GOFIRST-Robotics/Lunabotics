@@ -23,7 +23,8 @@ setup(
     entry_points={
         "console_scripts": [
         "conveyor_node = conveyor.conveyor_node:main", 
-        "check_load = conveyor.check_load:main"
+        "check_load = conveyor.check_load:main",
+        "ros_check_load = conveyor.ros_check_load:main",
         ],
     },
 )
