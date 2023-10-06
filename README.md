@@ -59,6 +59,24 @@ Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/d
 
 ## Useful Gstreamer Commands
 
+Start Gstreamer AV1 Encoding (On Nvidia Jetson AGX Orin): 
+
+```
+TODO
+```
+
+Start Gstreamer AV1 Decoding (On Nvidia Jetson AGX Orin): 
+
+```
+TODO
+```
+
+Start Gstreamer AV1 Decoding (On Ubuntu Laptop): 
+
+```
+TODO
+```
+
 Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): 
 
 ```
@@ -69,12 +87,6 @@ Start Gstreamer H.264 Decoding (On Nvidia Jetson Orin Nano):
 
 ```
 gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph264depay ! h264parse ! avdec_h264 ! nvvidconv ! xvimagesink
-```
-
-Start Gstreamer H.265 Decoding (On Ubuntu Laptop): 
-
-```
-gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H265, payload=96 ! rtph265depay ! h265parse ! nvh265dec ! xvimagesink sync=false
 ```
 
 Start Gstreamer H.264 Decoding (On Ubuntu Laptop): 
