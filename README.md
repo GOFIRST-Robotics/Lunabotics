@@ -62,13 +62,13 @@ Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/d
 Start Gstreamer AV1 Encoding (On Nvidia Jetson AGX Orin): 
 
 ```
-gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=300 ! "video/x-av1" ! udpsink host=127.0.0.1 port=5000
+gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=127.0.0.1 port=5000
 ```
 
 Start Gstreamer AV1 Decoding (On Nvidia Jetson AGX Orin): 
 
 ```
-TODO
+gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=15/1" ! queue ! nvv4l2decoder ! nv3dsink
 ```
 
 Start Gstreamer AV1 Decoding (On Ubuntu Laptop): 
