@@ -100,4 +100,6 @@ gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H264, payload
 ## Useful Resources/References
 
 [VESC CAN Status Frames Spreadsheet](https://github.com/codermonkey42/VESC_CAN)
+[VESC 6 CAN Formats](https://vesc-project.com/sites/default/files/imce/u15301/VESC6_CAN_CommandsTelemetry.pdf)
+[VESC Control with CAN](https://dongilc.gitbook.io/openrobot-inc/tutorials/control-with-can)
 [Accelerated GStreamer Guide](https://docs.nvidia.com/jetson/archives/r35.2.1/DeveloperGuide/text/SD/Multimedia/AcceleratedGstreamer.html)
