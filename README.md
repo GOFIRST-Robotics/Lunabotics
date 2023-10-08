@@ -71,10 +71,12 @@ Start Gstreamer AV1 Decoding (On Nvidia Jetson AGX Orin):
 gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=15/1" ! queue ! nvv4l2decoder ! nv3dsink
 ```
 
-Start Gstreamer AV1 Decoding (On Ubuntu Laptop): 
+Start Gstreamer AV1 Decoding (On Ubuntu Laptop w/ Docker runtime need nvcr login): 
 
 ```
-TODO
+xhost +
+docker run -it --rm --net=host --gpus all -e DISPLAY=$DISPLAY --device /dev/snd -v /tmp/.X11-unix/:/tmp/.X11-unix nvcr.io/nvidia/deepstream:6.3-triton-multiarch 
+gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=15/1" ! queue ! nvv4l2decoder ! nveglglessink
 ```
 
 Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): 
