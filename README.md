@@ -59,6 +59,26 @@ Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/d
 
 ## Useful Gstreamer Commands
 
+Start Gstreamer AV1 Encoding (On Nvidia Jetson AGX Orin): 
+
+```
+gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=127.0.0.1 port=5000
+```
+
+Start Gstreamer AV1 Decoding (On Nvidia Jetson AGX Orin): 
+
+```
+gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=15/1" ! queue ! nvv4l2decoder ! nv3dsink
+```
+
+Start Gstreamer AV1 Decoding (On Ubuntu Laptop w/ Docker runtime need nvcr login): 
+
+```
+xhost +
+docker run -it --rm --net=host --gpus all -e DISPLAY=$DISPLAY --device /dev/snd -v /tmp/.X11-unix/:/tmp/.X11-unix nvcr.io/nvidia/deepstream:6.3-triton-multiarch 
+gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=15/1" ! queue ! nvv4l2decoder ! nveglglessink
+```
+
 Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): 
 
 ```
@@ -71,12 +91,6 @@ Start Gstreamer H.264 Decoding (On Nvidia Jetson Orin Nano):
 gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph264depay ! h264parse ! avdec_h264 ! nvvidconv ! xvimagesink
 ```
 
-Start Gstreamer H.265 Decoding (On Ubuntu Laptop): 
-
-```
-gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H265, payload=96 ! rtph265depay ! h265parse ! nvh265dec ! xvimagesink sync=false
-```
-
 Start Gstreamer H.264 Decoding (On Ubuntu Laptop): 
 
 ```
@@ -85,6 +99,14 @@ gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H264, payload
 
 (Change the /dev/video device to add more webcams, and the port number to stream multiple webcams at once)
 
-## Useful Resources/References
+## VESC CAN Bus Resources/References
 
 [VESC CAN Status Frames Spreadsheet](https://github.com/codermonkey42/VESC_CAN)
+
+[VESC 6 CAN Formats](https://vesc-project.com/sites/default/files/imce/u15301/VESC6_CAN_CommandsTelemetry.pdf)
+
+[VESC Control with CAN](https://dongilc.gitbook.io/openrobot-inc/tutorials/control-with-can)
+
+## GStreamer Resources/References
+
+[Accelerated GStreamer Guide](https://docs.nvidia.com/jetson/archives/r35.2.1/DeveloperGuide/text/SD/Multimedia/AcceleratedGstreamer.html)
