@@ -84,12 +84,19 @@ class MotorControlNode : public rclcpp::Node {
 
   // Set the position of the motor in _____ (degrees? encoder counts?)
   void vesc_set_position(uint32_t id, int position) {
-    // TODO: Implement this method!
+    // encoder thing???????
+    // closed loop PID position
+    int32_t data = position;
+    send_can(id + 0x00000400, data); // ID must be modified to signify this is an position command
+    this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
   }
 
   // Set the current draw of the motor in amps
   void vesc_set_current(uint32_t id, float current) {
-    // TODO: Implement this method!
+    int32_t data = current * 1000; // I think amperage
+
+    send_can(id + 0x00000100, data); // ID must be modified to signify this is an current command
+    this->current_msg[id] = std::make_tuple(id + 0x00000100, data); // update the hashmap
   }
 
   // Get the current duty cycle of the motor
@@ -191,9 +198,9 @@ private:
     this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
-    // RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
-    // RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow,
-    // current, position);
+    RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
+    RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow,
+    current, position);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
