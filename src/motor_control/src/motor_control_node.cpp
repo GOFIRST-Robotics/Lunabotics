@@ -78,7 +78,7 @@ class MotorControlNode : public rclcpp::Node {
     int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
-    this->current_msg[id] = std::make_tuple(id + 0x00000300, data);                  // update the hashmap
+    this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
     // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
@@ -157,24 +157,38 @@ private:
 
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {
-    uint32_t vescId = can_msg->id & 0xFF;
-    uint32_t frame = can_msg->id >> 8;
+    uint32_t motorId = can_msg->id & 0xFF;
+    uint32_t statusId = (can_msg->id >> 8) & 0xFF;
 
-    float dutyCycleNow = this->can_data[vescId].dutyCycle;
-    float RPM = this->can_data[vescId].velocity;
-    float current = this->can_data[vescId].current;
-    float position = this->can_data[vescId].position;
+    float dutyCycleNow = -1;
+    float RPM = -1;
+    float current = -1;
+    float position = -1;
 
-    if (frame == 1) { // first frame
-      RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+    if (this->can_data.count(motorId) > 0) {
+      dutyCycleNow = this->can_data[motorId].dutyCycle;
+      RPM = this->can_data[motorId].velocity;
+      current = this->can_data[motorId].current;
+      position = this->can_data[motorId].position;
+    }
+
+    switch (statusId) // Switches between frames
+    {
+    case 1: // Frame 1 (RPM & DutyCycle)
+      RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) +
+                               can_msg->data[3]);
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
-      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 1000);
-    } else if (frame = 4) { // fourth frame
-      position = static_cast<float>(can_msg->data[6] + can_msg->data[7]);
+      break;
+
+    case 4: // Frame 4 (Position & Current)
+      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10);
+      position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]);
+
+      break;
     }
 
     // Store the most recent motor data in our hashmap
-    this->can_data[vescId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
+    this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
     // RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
