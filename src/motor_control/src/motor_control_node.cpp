@@ -157,15 +157,24 @@ private:
 
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {
-    uint32_t id = can_msg->id & 0xFF;
+    uint32_t vescId = can_msg->id & 0xFF;
+    uint32_t frame = can_msg->id >> 8;
 
-    float RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-    float dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
-    float current = -1;  // TODO: calculate the current draw of the motor from the CAN data
-    float position = -1; // TODO: calculate the position of the motor from the CAN data
+    float dutyCycleNow = this->can_data[vescId].dutyCycle;
+    float RPM = this->can_data[vescId].velocity;
+    float current = this->can_data[vescId].current;
+    float position = this->can_data[vescId].position;
+
+    if (frame == 1) { // first frame
+      RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
+      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 1000);
+    } else if (frame = 4) { // fourth frame
+      position = static_cast<float>(can_msg->data[6] + can_msg->data[7]);
+    }
 
     // Store the most recent motor data in our hashmap
-    this->can_data[id] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
+    this->can_data[vescId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
     // RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
