@@ -4,7 +4,6 @@ from std_msgs.msg import *
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 
-
 YRESOLUTION = 480 # whatever y componenet (vertical) resolution the camera is
 XRESOLUTION = 640 # same as above, but in the x direction
 DISTANCETHRESH = .25 # how small should the distance between top and conveyor be before offload (in meters)?
@@ -18,56 +17,43 @@ class ros_check_load(Node):
         self.bridge = CvBridge()
         self.pub = self.create_publisher(Bool, 'readyDump', 10)
         self.prior_checks = []
-        depth_image_topic = '/camera/camera/depth/image_raw'
+        depth_image_topic = '/depth/image_rect_raw'
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
-        
         self.depth_image = None
         
-
     def depth_image_callback(self, msg):
-        self.depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        self.depth_image = self.bridge.imgmsg_to_cv2(msg, msg.encoding)
+        
 
     def publish_distance(self):
         try:
-           ##depth = frames.get_depth_frame() #not .get_depth_frane()
-            average_tally = 0
             depth = self.depth_image
-            if depth == None:
+            if depth is None:
                 return
-            for y in range(YRESOLUTION):
-                for x in range(XRESOLUTION):
-                    average_tally += depth[x, y]
-            msg = Bool()
-            if len(self.prior_checks) >= CONSECUTIVECYCLES:
-                self.prior_checks.pop(0)
-            if average_tally / (XRESOLUTION * YRESOLUTION) <= DISTANCETHRESH:
+            
+            height, width = depth.shape[:2]
+            center_x, center_y = width // 2, height // 2
+            start_x = max(0, center_x - XRESOLUTION // 2)
+            end_x = min(width, center_x + XRESOLUTION // 2)
+            start_y = max(0, center_y - YRESOLUTION // 2)
+            end_y = min(height, center_y + YRESOLUTION // 2)
+            roi = depth[start_y:end_y, start_x:end_x]
+
+            if roi.mean() <= DISTANCETHRESH:
                 self.prior_checks.append(True)
             else:
                 self.prior_checks.append(False)
-
-            if False not in self.prior_checks and len(self.prior_checks) >= CONSECUTIVECYCLES:
-                msg.data = True
-                print("True")
-            else:
-                msg.data = False
-                print("False")
-
-            self.pub.publish(msg)
-
+                
+            if len(self.prior_checks >= CONSECUTIVECYCLES):
+                self.prior_checks.pop(0)
+                if (False not in self.prior_checks):
+                    msg = Bool()
+                    msg.data = True
+                    self.pub.publish(msg)
         except Exception as e:
             print(e)
-            pass
-
-
-
-
-
-
-
-
-
-
+            return
 
 def main(args=None):
     """The main function."""
