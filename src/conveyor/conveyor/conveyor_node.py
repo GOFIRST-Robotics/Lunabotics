@@ -9,7 +9,7 @@ from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet
-from rovr_interfaces.srv import ConveyorSetPower, Stop
+from rovr_interfaces.srv import SetPower, Stop
 
 
 class ConveyorNode(Node):
@@ -21,9 +21,9 @@ class ConveyorNode(Node):
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
         # Define services (methods callable from the outside) here
-        self.srv_toggle = self.create_service(ConveyorSetPower, "conveyor/toggle", self.toggle_callback)
+        self.srv_toggle = self.create_service(SetPower, "conveyor/toggle", self.toggle_callback)
         self.srv_stop = self.create_service(Stop, "conveyor/stop", self.stop_callback)
-        self.srv_setPower = self.create_service(ConveyorSetPower, "conveyor/setPower", self.set_power_callback)
+        self.srv_setPower = self.create_service(SetPower, "conveyor/setPower", self.set_power_callback)
 
         # Define motor CAN IDs here
         
