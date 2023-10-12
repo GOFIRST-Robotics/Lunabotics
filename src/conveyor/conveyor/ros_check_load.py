@@ -19,7 +19,6 @@ class ros_check_load(Node):
         self.pub = self.create_publisher(Bool, 'readyDump', 10)
         self.prior_checks = []
         depth_image_topic = '/depth/image_rect_raw'
-        depth_image_topic = '/depth/image_rect_raw'
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
         self.depth_image = None
@@ -31,8 +30,6 @@ class ros_check_load(Node):
     def publish_distance(self):
         try:
             depth = self.depth_image
-            if depth is None:
-                return
             
             height, width = depth.shape[:2]
             center_x, center_y = width // 2, height // 2
@@ -40,13 +37,13 @@ class ros_check_load(Node):
             end_x = min(width, center_x + XRESOLUTION // 2)
             start_y = max(0, center_y - YRESOLUTION // 2)
             end_y = min(height, center_y + YRESOLUTION // 2)
-            roi = depth[start_y:end_y, start_x:end_x]
+            resized_img = depth[start_y:end_y, start_x:end_x]
 
-            denoised_image = cv2.GaussianBlur(cv_image, (5, 5), 0)
+            denoised_image = cv2.GaussianBlur(resized_img, (5, 5), 0)
 
-            print(roi.mean())
+            print(denoised_image.mean())
             print(depth.mean())
-            if roi.mean() <= DISTANCETHRESH:
+            if denoised_image.mean() <= DISTANCETHRESH:
                 
                 self.prior_checks.append(True)
             else:
