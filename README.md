@@ -127,7 +127,6 @@ mttcan
 
 sudo ip link set can0 up type can bitrate 500000
 sudo ip link set can1 up type can bitrate 500000
-
 ```
 
 4: Run the command "sudo crontab -e" and put this line in the file that appears:
@@ -136,21 +135,21 @@ sudo ip link set can1 up type can bitrate 500000
 @reboot sleep 5 && echo 'robot' | sudo -S sh /can_startup.sh 2>&1 | logger -t mycmd
 ```
 
-And that should work. If it dosen't and you need to read the output of the crontab, use this command:
+And that should work. If it doesn't and you need to read the output of the crontab, use this command:
 
 ```
 sudo grep 'mycmd' /var/log/syslog
 ```
 
-## GStreamer Resources/References
-
-[Accelerated GStreamer Guide](https://docs.nvidia.com/jetson/archives/r35.2.1/DeveloperGuide/text/SD/Multimedia/AcceleratedGstreamer.html)
-
-## Jetson HDD
+## Jetson External HDD Commands
 
 ```
-    sudo service docker stop
+sudo service docker stop
 sudo mv /var/lib/docker /hd/docker
 sudo ln -s /hd/docker /var/lib/docker # Create a symbolic link
 sudo service docker start
 ```
+
+## GStreamer Resources/References
+
+[Accelerated GStreamer Guide](https://docs.nvidia.com/jetson/archives/r35.2.1/DeveloperGuide/text/SD/Multimedia/AcceleratedGstreamer.html)
