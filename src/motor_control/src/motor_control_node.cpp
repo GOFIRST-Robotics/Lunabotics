@@ -164,6 +164,9 @@ private:
 
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {
+
+    RCLCPP_INFO(this->get_logger(), "CAN_callback Running!");
+
     uint32_t motorId = can_msg->id & 0xFF;
     uint32_t statusId = (can_msg->id >> 8) & 0xFF;
 
@@ -172,12 +175,12 @@ private:
     float current = -1;
     float position = -1;
 
-    if (this->can_data.count(motorId) > 0) {
-      dutyCycleNow = this->can_data[motorId].dutyCycle;
-      RPM = this->can_data[motorId].velocity;
-      current = this->can_data[motorId].current;
-      position = this->can_data[motorId].position;
-    }
+    // if (this->can_data.count(motorId) > 0) {
+    //   dutyCycleNow = this->can_data[motorId].dutyCycle;
+    //   RPM = this->can_data[motorId].velocity;
+    //   current = this->can_data[motorId].current;
+    //   position = this->can_data[motorId].position;
+    // }
 
     switch (statusId) // Switches between frames
     {
@@ -198,7 +201,7 @@ private:
     this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
-    RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
+    RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", motorId);
     RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow,
     current, position);
   }
