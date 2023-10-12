@@ -2,10 +2,11 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import *
 from sensor_msgs.msg import Image
+import cv2 
 from cv_bridge import CvBridge
 
-YRESOLUTION = 480 # whatever y componenet (vertical) resolution the camera is
-XRESOLUTION = 640 # same as above, but in the x direction
+YRESOLUTION = 280 # whatever y componenet (vertical) resolution the camera is
+XRESOLUTION = 340 # same as above, but in the x direction
 DISTANCETHRESH = .25 # how small should the distance between top and conveyor be before offload (in meters)?
 POLLRATE = 1 # Wait time between each distance check (in seconds)
 CONSECUTIVECYCLES = 4 # Make sure the reading is consistent
@@ -17,6 +18,7 @@ class ros_check_load(Node):
         self.bridge = CvBridge()
         self.pub = self.create_publisher(Bool, 'readyDump', 10)
         self.prior_checks = []
+        depth_image_topic = '/depth/image_rect_raw'
         depth_image_topic = '/depth/image_rect_raw'
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
@@ -40,12 +42,17 @@ class ros_check_load(Node):
             end_y = min(height, center_y + YRESOLUTION // 2)
             roi = depth[start_y:end_y, start_x:end_x]
 
+            denoised_image = cv2.GaussianBlur(cv_image, (5, 5), 0)
+
+            print(roi.mean())
+            print(depth.mean())
             if roi.mean() <= DISTANCETHRESH:
+                
                 self.prior_checks.append(True)
             else:
                 self.prior_checks.append(False)
                 
-            if len(self.prior_checks >= CONSECUTIVECYCLES):
+            if (len(self.prior_checks) >= CONSECUTIVECYCLES):
                 self.prior_checks.pop(0)
                 if (False not in self.prior_checks):
                     msg = Bool()
