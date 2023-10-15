@@ -1,7 +1,7 @@
-# This ROS 2 node contains code for the drivetrain subsystem of the robot.
+# This ROS 2 node contains code for the swerve drivetrain subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: September 2023
+# Last Updated: October 2023
 
 # Import the ROS 2 module
 import rclpy
@@ -15,6 +15,28 @@ from rovr_interfaces.srv import MotorCommandSet
 from rovr_interfaces.srv import Stop, Drive
 
 
+# This class represents an individual swerve module
+class SwerveModule:
+    def __init__(self, drive_motor, turning_motor):
+        self.drive_motor_can_id = drive_motor
+        self.turning_motor_can_id = turning_motor
+        pass  # TODO: Finish implementing this constructor
+
+    def set_power(self, power: float) -> None:
+        pass  # TODO: Implement this method
+
+    def set_angle(self, angle: float) -> None:
+        pass  # TODO: Implement this method
+
+    def get_absolute_angle(self) -> float:
+        pass  # TODO: Implement this method
+
+    def set_state(self, power: float, angle: float) -> None:
+        self.setPower(power)
+        self.setAngle(angle)
+
+
+# This class represents the drivetrain as a whole (4 swerve modules)
 class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
@@ -30,15 +52,17 @@ class DrivetrainNode(Node):
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
 
-        # Define motor CAN IDs here
-        self.FRONT_LEFT_DRIVE = 1
-        self.BACK_LEFT_DRIVE = 4
-        self.FRONT_RIGHT_DRIVE = 3
-        self.BACK_RIGHT_DRIVE = 2
+        # TODO: Instantiate 4 SwerveModule objects below (back_left, back_right, front_left, front_right)
 
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward power and turning power."""
+
+        # TODO: This drive() method will need to be completely rewritten for swerve
+        # Look up swerve drive kinematics equations and write code here to implement them
+        # Essentially, we need to take the forward_power, horizontal_power, and turning_power
+        # and compute the what the angles and powers of all 4 swerve modules should be
+
         left_power = forward_power - turning_power
         right_power = forward_power + turning_power
 
@@ -49,6 +73,8 @@ class DrivetrainNode(Node):
             right_power /= greater_input
 
         # Multiply power by -1 to invert motor direction
+        # TODO: Instead of directly calling the motor services like below, utilize the setPower() and setAngle()
+        # methods of the SwerveModule objects
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.FRONT_LEFT_DRIVE, value=left_power * -1)
         )
@@ -64,7 +90,7 @@ class DrivetrainNode(Node):
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
-        self.drive(0.0, 0.0)
+        self.drive(0.0, 0.0, 0.0)
 
     # Define service callback methods here
     def stop_callback(self, request, response):
@@ -75,14 +101,14 @@ class DrivetrainNode(Node):
 
     def drive_callback(self, request, response):
         """This service request drives the robot with the specified speeds."""
-        self.drive(request.forward_power, request.turning_power)
+        self.drive(request.forward_power, request.horizontal_power, request.turning_power) # TODO: You will need to modify the Drive srv (service) type to add a horizontal_power parameter
         response.success = 0  # indicates success
         return response
 
     # Define subscriber callback methods here
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.x, msg.angular.z)
+        self.drive(msg.linear.x, msg.linear.y, msg.angular.z)  # TODO: Is this correct?
 
 
 def main(args=None):
