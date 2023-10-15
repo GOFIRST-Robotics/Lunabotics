@@ -55,7 +55,7 @@ class DrivetrainNode(Node):
         # TODO: Instantiate 4 SwerveModule objects below (back_left, back_right, front_left, front_right)
 
     # Define subsystem methods here
-    def drive(self, forward_power, horizontal_power, turning_power):
+    def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward power and turning power."""
 
         # TODO: This drive() method will need to be completely rewritten for swerve
@@ -88,25 +88,25 @@ class DrivetrainNode(Node):
             MotorCommandSet.Request(type="duty_cycle", can_id=self.BACK_RIGHT_DRIVE, value=right_power * -1)
         )
 
-    def stop(self):
+    def stop(self) -> None:
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0, 0.0)
 
     # Define service callback methods here
-    def stop_callback(self, request, response) -> None:
+    def stop_callback(self, request, response):
         """This service request stops the drivetrain."""
         self.stop()
         response.success = 0  # indicates success
         return response
 
-    def drive_callback(self, request, response) -> None:
+    def drive_callback(self, request, response):
         """This service request drives the robot with the specified speeds."""
         self.drive(request.forward_power, request.horizontal_power, request.turning_power) # TODO: You will need to modify the Drive srv (service) type to add a horizontal_power parameter
         response.success = 0  # indicates success
         return response
 
     # Define subscriber callback methods here
-    def cmd_vel_callback(self, msg):
+    def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
         self.drive(msg.linear.x, msg.linear.y, msg.angular.z)  # TODO: Is this correct?
 
