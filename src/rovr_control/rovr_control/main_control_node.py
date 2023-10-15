@@ -168,7 +168,7 @@ class MainControlNode(Node):
             print("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
-    async def auto_offload_procedure(self):
+    async def auto_offload_procedure(self) -> None:
         """This method lays out the procedure for autonomously offloading!"""
         print("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except

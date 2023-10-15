@@ -57,19 +57,19 @@ class ConveyorNode(Node):
             self.set_power(conveyor_belt_power)
 
     # Define service callback methods here
-    def set_power_callback(self, request, response) -> None:
+    def set_power_callback(self, request, response):
         """This service request sets power to the conveyor belts."""
         self.set_power(request.conveyor_belt_power)
         response.success = 0  # indicates success
         return response
 
-    def stop_callback(self, request, response) -> None:
+    def stop_callback(self, request, response):
         """This service request stops the conveyor belts."""
         self.stop()
         response.success = 0  # indicates success
         return response
 
-    def toggle_callback(self, request, response) -> None:
+    def toggle_callback(self, request, response):
         """This service request toggles the conveyor belts."""
         self.toggle(request.conveyor_belt_power)
         response.success = 0  # indicates success
