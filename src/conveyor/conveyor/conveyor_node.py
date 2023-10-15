@@ -6,6 +6,7 @@
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
+import serial  # Allows for serial communication with an Arduino. Install with "sudo pip3 install pyserial".
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet
@@ -26,17 +27,33 @@ class ConveyorNode(Node):
         self.srv_setPower = self.create_service(SetPower, "conveyor/setPower", self.set_power_callback)
 
         # Define motor CAN IDs here
-        
         self.CONVEYOR_BELT_MOTOR = 6
 
         # Current subsystem state
         self.running = False
 
+        # For now, we will assume that we are using an Arduino to send PWM commands to the linear actuator(s)
+        try:  # Try connecting to the Arduino over Serial
+            # Set "/dev/Arduino_Uno" as a static Serial port!
+            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600, timeout=0.01)
+        except Exception as e:
+            print(e)  # If an exception is raised, print it, and then move on
+
+    # Define Arduino helper methods here
+    def clear_serial_buffer(self) -> None:
+        self.arduino.read_all()
+        
+    def read_serial(self) -> str:
+        return self.arduino.read().decode("ascii")
+    
+    def write_serial(self, msg: str) -> None:
+        self.arduino.write(msg.encode("ascii"))
+
     # Define subsystem methods here
     def set_power(self, conveyor_power: float) -> None:
         """This method sets power to the conveyor belts."""
         self.running = True
-        
+
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=conveyor_power)
         )
@@ -44,7 +61,7 @@ class ConveyorNode(Node):
     def stop(self) -> None:
         """This method stops both conveyor belts."""
         self.running = False
-        
+
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=0.0)
         )
@@ -55,6 +72,12 @@ class ConveyorNode(Node):
             self.stop()
         else:
             self.set_power(conveyor_belt_power)
+
+    def set_incline_angle(self, angle: float) -> None:
+        pass  # TODO: Implement this method by sending a command to the Arduino and then waiting for a response
+
+    def set_height(self, height: float) -> None:
+        pass  # TODO: Implement this method by sending a command to the Arduino and then waiting for a response
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -72,6 +95,16 @@ class ConveyorNode(Node):
     def toggle_callback(self, request, response):
         """This service request toggles the conveyor belts."""
         self.toggle(request.conveyor_belt_power)
+        response.success = 0  # indicates success
+        return response
+
+    def set_incline_callback(self, request, response):
+        # TODO: Implement this callback wrapper
+        response.success = 0  # indicates success
+        return response
+
+    def set_height_callback(self, request, response):
+        # TODO: Implement this callback wrapper
         response.success = 0  # indicates success
         return response
 
