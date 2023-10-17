@@ -28,10 +28,13 @@ class check_load(Node):
             frames = self.pipeline.wait_for_frames()
             depth = frames.get_depth_frame() #not .get_depth_frane()
             average_tally = 0
+            
             for y in range(YRESOLUTION):
                 for x in range(XRESOLUTION):
                     average_tally += depth.get_distance(x, y)
             msg = Bool()
+            
+            print(average_tally / (XRESOLUTION * YRESOLUTION))
             if len(self.prior_checks) >= CONSECUTIVECYCLES:
                 self.prior_checks.pop(0)
             if average_tally / (XRESOLUTION * YRESOLUTION) <= DISTANCETHRESH:
@@ -41,10 +44,10 @@ class check_load(Node):
 
             if False not in self.prior_checks and len(self.prior_checks) >= CONSECUTIVECYCLES:
                 msg.data = True
-                print("True")
+                #print("True")
             else:
                 msg.data = False
-                print("False")
+                #print("False")
 
             self.pub.publish(msg)
 
