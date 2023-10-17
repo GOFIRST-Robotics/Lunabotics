@@ -6,7 +6,6 @@
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
-import serial  # Allows for serial communication with an Arduino. Install with "sudo pip3 install pyserial".
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet
@@ -32,22 +31,6 @@ class ConveyorNode(Node):
         # Current subsystem state
         self.running = False
 
-        # For now, we will assume that we are using an Arduino to send PWM commands to the linear actuator(s)
-        try:  # Try connecting to the Arduino over Serial
-            # Set "/dev/Arduino_Uno" as a static Serial port!
-            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600, timeout=0.01)
-        except Exception as e:
-            print(e)  # If an exception is raised, print it, and then move on
-
-    # Define Arduino helper methods here
-    def clear_serial_buffer(self) -> None:
-        self.arduino.read_all()
-        
-    def read_serial(self) -> str:
-        return self.arduino.read().decode("ascii")
-    
-    def write_serial(self, msg: str) -> None:
-        self.arduino.write(msg.encode("ascii"))
 
     # Define subsystem methods here
     def set_power(self, conveyor_power: float) -> None:
@@ -74,7 +57,7 @@ class ConveyorNode(Node):
             self.set_power(conveyor_belt_power)
 
     def set_height(self, height: float) -> None:
-        pass  # TODO: Implement this method by sending a command to the Arduino and then waiting for a response
+        pass  # TODO: Implement this method
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
