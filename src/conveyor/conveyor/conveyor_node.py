@@ -9,7 +9,7 @@ from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet
-from rovr_interfaces.srv import SetPower, Stop
+from rovr_interfaces.srv import SetPower, Stop, SetHeight
 
 
 class ConveyorNode(Node):
@@ -24,10 +24,10 @@ class ConveyorNode(Node):
         self.srv_toggle = self.create_service(SetPower, "conveyor/toggle", self.toggle_callback)
         self.srv_stop = self.create_service(Stop, "conveyor/stop", self.stop_callback)
         self.srv_setPower = self.create_service(SetPower, "conveyor/setPower", self.set_power_callback)
-
+        self.srv_setHeight = self.create_service(SetHeight, "conveyor/setHeight", self.set_height_callback)
         # Define motor CAN IDs here
         self.CONVEYOR_BELT_MOTOR = 6
-
+        self.HEIGHT_ADJUST_MOTOR = 420
         # Current subsystem state
         self.running = False
 
@@ -57,7 +57,13 @@ class ConveyorNode(Node):
             self.set_power(conveyor_belt_power)
 
     def set_height(self, height: float) -> None:
-        pass  # TODO: Implement this method
+        """This service request sets the height of the conveyor belts. Idk actually tho."""
+        
+
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=height)
+        )
+        #pass  # TODO: Implement this method
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -80,6 +86,7 @@ class ConveyorNode(Node):
 
     def set_height_callback(self, request, response):
         # TODO: Implement this callback wrapper
+        self.set_height(request.height)
         response.success = 0  # indicates success
         return response
 
