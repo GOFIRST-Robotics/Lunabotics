@@ -73,9 +73,6 @@ class ConveyorNode(Node):
         else:
             self.set_power(conveyor_belt_power)
 
-    def set_incline_angle(self, angle: float) -> None:
-        pass  # TODO: Implement this method by sending a command to the Arduino and then waiting for a response
-
     def set_height(self, height: float) -> None:
         pass  # TODO: Implement this method by sending a command to the Arduino and then waiting for a response
 
@@ -95,11 +92,6 @@ class ConveyorNode(Node):
     def toggle_callback(self, request, response):
         """This service request toggles the conveyor belts."""
         self.toggle(request.conveyor_belt_power)
-        response.success = 0  # indicates success
-        return response
-
-    def set_incline_callback(self, request, response):
-        # TODO: Implement this callback wrapper
         response.success = 0  # indicates success
         return response
 
