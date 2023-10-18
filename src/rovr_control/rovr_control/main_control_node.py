@@ -62,8 +62,6 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("linear_actuator_power", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        self.declare_parameter("linear_actuator_up_power", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
 
         # Assign the ROS Parameters to member variables below #
@@ -71,15 +69,11 @@ class MainControlNode(Node):
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
-        self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
-        self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
 
         # Print the ROS Parameters to the terminal below #
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
-        print("linear_actuator_power has been set to:", self.linear_actuator_power)
-        print("linear_actuator_up_power has been set to:", self.linear_actuator_up_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
 
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet:
