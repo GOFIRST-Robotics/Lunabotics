@@ -14,7 +14,7 @@ from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower
+from rovr_interfaces.srv import SetPower, SetHeight
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 
 # Import Python Modules
@@ -104,6 +104,7 @@ class MainControlNode(Node):
         self.cli_conveyor_toggle = self.create_client(SetPower, "conveyor/toggle")
         self.cli_conveyor_stop = self.create_client(Stop, "conveyor/stop")
         self.cli_conveyor_setPower = self.create_client(SetPower, "conveyor/setPower")
+        self.cli_conveyor_setHeight = self.create_client(SetHeight, "conveyor/setHeight")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -118,7 +119,7 @@ class MainControlNode(Node):
         """This method stops all subsystems on the robot."""
         self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-        # TODO: Send a stop command to the conveyor linear actuator(s)
+        # TODO: Stop the conveyor pulley system (height adjust)
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -130,7 +131,7 @@ class MainControlNode(Node):
         print("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
-            # TODO: Angle the conveyor into the ground here
+            await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=2000)) # Lower the conveyor into the ground # TODO: Adjust this height
             await asyncio.sleep(5)  # Wait for 5 seconds before moving on
             # Start driving forward
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
@@ -147,9 +148,9 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously offloading!"""
         print("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            # TODO: send the robot to the proper offloading coordinates using SLAM
+            # TODO: Send the robot to the proper offloading coordinates using SLAM
             await self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-            # TODO: angle up our conveyor in preparation for dumping
+            await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=0)) # Raise up the conveyor in preparation for dumping # TODO: Adjust this height
             print("Commence Offloading!")
             await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
             await asyncio.sleep(10) # How long to offload for
@@ -207,10 +208,8 @@ class MainControlNode(Node):
                     )
                 )
 
-            # TODO: Manually adjust the height of the conveyor with right trigger
+            # TODO: Manually adjust the height of the conveyor with the left and right triggers
             
-            # TODO: Manually adjust the angle/incline of the conveyor with left trigger
-
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the autonomous digging button is pressed

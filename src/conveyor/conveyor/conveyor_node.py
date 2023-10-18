@@ -35,23 +35,22 @@ class ConveyorNode(Node):
 
     # Define subsystem methods here
     def set_power(self, conveyor_power: float) -> None:
-        """This method sets power to the conveyor belts."""
+        """This method sets power to the conveyor belt."""
         self.running = True
-
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=conveyor_power)
         )
 
     def stop(self) -> None:
-        """This method stops both conveyor belts."""
+        """This method stops the conveyor belt."""
         self.running = False
-
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=0.0)
         )
+        # TODO: Stop the height adjust pulley here too? Or make a seperate method & service for that?
 
     def toggle(self, conveyor_belt_power: float) -> None:
-        """This method toggles the conveyor belts."""
+        """This method toggles the conveyor belt."""
         if self.running:
             self.stop()
         else:
@@ -65,19 +64,19 @@ class ConveyorNode(Node):
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
-        """This service request sets power to the conveyor belts."""
+        """This service request sets power to the conveyor belt."""
         self.set_power(request.conveyor_belt_power)
         response.success = 0  # indicates success
         return response
 
     def stop_callback(self, request, response):
-        """This service request stops the conveyor belts."""
+        """This service request stops the conveyor belt."""
         self.stop()
         response.success = 0  # indicates success
         return response
 
     def toggle_callback(self, request, response):
-        """This service request toggles the conveyor belts."""
+        """This service request toggles the conveyor belt."""
         self.toggle(request.conveyor_belt_power)
         response.success = 0  # indicates success
         return response
