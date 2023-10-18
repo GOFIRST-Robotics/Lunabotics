@@ -11,6 +11,8 @@ from rclpy.node import Node
 from rovr_interfaces.srv import MotorCommandSet
 from rovr_interfaces.srv import SetPower, Stop, SetHeight
 
+from std_msgs.msg import Bool, Float32
+
 
 class ConveyorNode(Node):
     def __init__(self):
@@ -27,9 +29,13 @@ class ConveyorNode(Node):
         self.srv_setHeight = self.create_service(SetHeight, "conveyor/setHeight", self.set_height_callback)
         
         # TODO: Create a publisher that publishes the current conveyor height as a float32 to /conveyor/height
+        self.publisher_height = self.create_publisher(Float32, "/conveyor/height")
+
         # TODO: Create another publisher that publishes a bool to /conveyor/goal_reached describing if the latest height goal has been reached
-        
+        self.publisher_goal_reached = self.create_publisher(Bool, "/conveyor/goal_reached")
+
         # TODO: create a timer that runs every 100ms and publishes messages using the publishers defined above
+        self.timer = self.create_timer(0.1, self.timer_callback)
 
         # Define motor CAN IDs here
         self.CONVEYOR_BELT_MOTOR = 6
@@ -72,8 +78,18 @@ class ConveyorNode(Node):
         )
         
     # TODO: Create a method to stop the height adjust pulley
-    
+    def stop_height_adjust(self) -> None:
+        """This method stops the height adjust pulley"""
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.HEIGHT_ADJUST_MOTOR, value=0.0)
+        )
+
     # TODO: Create a method to set power (duty cycle) to the height adjust pulley for manual control
+    def set_height_power(self, height_power: float) -> None:
+        """This method sets power to the height adjust pulley"""
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.HEIGHT_ADJUST_MOTOR, value=height_power)
+        )
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -101,11 +117,24 @@ class ConveyorNode(Node):
         return response
     
     # TODO: Create a service wrapper for the method to stop the height adjust pulley
+    def stop_height_callback(self, request, response):
+        """This service request stops the conveyor belt."""
+        self.stop_height_adjust()
+        response.success = 0  # indicates success
+        return response
     
      # TODO: Create a service wrapper for the method to set power (duty cycle) to the height adjust pulley
 
     # Define timer callback methods here
     # TODO: Create a timer callback method for the 100ms timer that publishes using the 2 publishers
+    def timer_callback(self):
+        msg_height = Float32()
+        msg_height.data = self.height
+        self.publisher_height.publish(msg_height)
+
+        msg_goal_reached = Bool()
+        msg_goal_reached.data = abs(self.current_goal_height - self.height) <= self.goal_threshold
+        self.publisher_goal_reached.publish(msg_goal_reached)
 
 
 def main(args=None):
