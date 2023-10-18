@@ -12,7 +12,7 @@ CONVEYORTOCAM = .3 # distance from camera to top of conveyor in meters.
 DISTANCETHRESH = 200 # how small should the distance between top and conveyor be before offload (in meters)?
 POLLRATE = .5 # Wait time between each distance check (in seconds)
 CONSECUTIVECYCLES = 4 # Make sure the reading is consistent
-conveyor_height_topic = "/conveyor/displacement" # should be meters, if not, convert
+conveyor_height_topic = "/conveyor/height" # should be meters, if not, convert
 
 class ros_check_load(Node):
 
