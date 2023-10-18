@@ -1,20 +1,20 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import *
+from std_msgs.msg import Bool
 
 import pyrealsense2 as rs
 
-YRESOLUTION = 480 # whatever y componenet (vertical) resolution the camera is
-XRESOLUTION = 640 # same as above, but in the x direction
-DISTANCETHRESH = .25 # how small should the distance between top and conveyor be before offload (in meters)?
-POLLRATE = 1 # Wait time between each distance check (in seconds)
-CONSECUTIVECYCLES = 4 # Make sure the reading is consistent
+YRESOLUTION = 480  # whatever y componenet (vertical) resolution the camera is
+XRESOLUTION = 640  # same as above, but in the x direction
+DISTANCETHRESH = 0.25  # how small should the distance between top and conveyor be before offload (in meters)?
+POLLRATE = 1  # Wait time between each distance check (in seconds)
+CONSECUTIVECYCLES = 4  # Make sure the reading is consistent
+
 
 class check_load(Node):
-
     def __init__(self):
         super().__init__("check_load")
-        self.pub = self.create_publisher(Bool, 'readyDump', 10)
+        self.pub = self.create_publisher(Bool, "readyDump", 10)
         self.prior_checks = []
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
         self.pipeline = rs.pipeline()
@@ -26,14 +26,14 @@ class check_load(Node):
     def publish_distance(self):
         try:
             frames = self.pipeline.wait_for_frames()
-            depth = frames.get_depth_frame() #not .get_depth_frane()
+            depth = frames.get_depth_frame()  # not .get_depth_frane()
             average_tally = 0
-            
+
             for y in range(YRESOLUTION):
                 for x in range(XRESOLUTION):
                     average_tally += depth.get_distance(x, y)
             msg = Bool()
-            
+
             print(average_tally / (XRESOLUTION * YRESOLUTION))
             if len(self.prior_checks) >= CONSECUTIVECYCLES:
                 self.prior_checks.pop(0)
@@ -44,16 +44,15 @@ class check_load(Node):
 
             if False not in self.prior_checks and len(self.prior_checks) >= CONSECUTIVECYCLES:
                 msg.data = True
-                #print("True")
+                # print("True")
             else:
                 msg.data = False
-                #print("False")
+                # print("False")
 
             self.pub.publish(msg)
 
         except Exception as e:
             print(e)
-            pass
 
 
 def main(args=None):
