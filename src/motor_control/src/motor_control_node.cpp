@@ -174,12 +174,15 @@ private:
     float RPM = -1;
     float current = -1;
     float position = -1;
+    // Check if 'motorId' is a key in the 'can_data' map
     if (this->can_data.count(motorId) == 1) {
+      // If 'motorId' is found in 'can_data', update the variables with the corresponding values
       dutyCycleNow = this->can_data[motorId].dutyCycle;
       RPM = this->can_data[motorId].velocity;
       current = this->can_data[motorId].current;
       position = this->can_data[motorId].position;
     }
+
 
     switch (statusId) {
     case 1: // Frame 1 (RPM & Current & DutyCycle)
