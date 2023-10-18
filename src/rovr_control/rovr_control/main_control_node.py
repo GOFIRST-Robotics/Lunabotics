@@ -91,6 +91,7 @@ class MainControlNode(Node):
         self.back_camera = None
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
+        self.conveyor_goal_reached = True
 
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.apriltag_camera_offset = 0.1905  # Measured in Meters
@@ -114,12 +115,13 @@ class MainControlNode(Node):
         self.apriltag_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, "apriltag_pose", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.apriltags_subscription = self.create_subscription(TFMessage, "tf", self.apriltags_callback, 10)
+        # TODO: Subscribe to /conveyor/goal_reached
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
         self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-        # TODO: Stop the conveyor pulley system (height adjust)
+        # TODO: Stop the conveyor pulley system (height adjust) using the new service
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -132,12 +134,14 @@ class MainControlNode(Node):
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
             await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=2000)) # Lower the conveyor into the ground # TODO: Adjust this height
-            await asyncio.sleep(5)  # Wait for 5 seconds before moving on
+            # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
             # Start driving forward
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
             # TODO: Drive forward until our conveyor is full OR we reach the end of the arena OR we reach an obstacle
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_conveyor_stop.call_async(Stop.Request())
+            await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=500)) # Raise the conveyor back up a bit # TODO: Adjust this height
+            # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
             print("Autonomous Digging Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
@@ -151,6 +155,7 @@ class MainControlNode(Node):
             # TODO: Send the robot to the proper offloading coordinates using SLAM
             await self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
             await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=0)) # Raise up the conveyor in preparation for dumping # TODO: Adjust this height
+            # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
             print("Commence Offloading!")
             await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
             await asyncio.sleep(10) # How long to offload for
@@ -264,6 +269,8 @@ class MainControlNode(Node):
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
 
+
+# TODO: define a callback function for the /conveyor/goal_reached subscriber that updates  self.conveyor_goal_reached accordingly
 
 async def spin(executor: SingleThreadedExecutor) -> None:
     """This function is called in the main function to run the executor."""
