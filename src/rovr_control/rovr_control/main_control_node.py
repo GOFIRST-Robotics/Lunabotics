@@ -21,6 +21,7 @@ from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 import asyncio  # Allows the creation of asynchronous autonomous procedures!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
+import serial  # Allows serial communication with an Arduino. Install with "sudo pip3 install pyserial".
 import os  # Allows us to kill subprocesses
 import re  # Enables using regular expressions
 
@@ -36,19 +37,20 @@ buttons = [0] * 11  # This is to help with button press detection
 states = {"Teleop": 0, "Auto_Dig": 1, "Auto_Offload": 2}
 
 
-def get_target_ip(target: str, default: str = "", logger_fn=print) -> str:
-    """Return the current IP address of the laptop using nmap."""
-    try:
-        nmap = subprocess.Popen(("nmap", "-sn", "192.168.1.1/24"), stdout=subprocess.PIPE)
-        grep = subprocess.check_output(("grep", target), stdin=nmap.stdout)
-        nmap.wait()
-        res = re.sub(r".*\((.*)\).*", r"\g<1>", grep.decode())
-        if not res:
-            raise Exception("target not found")
-        return res
-    except:
-        logger_fn(f"target not found; defaulting to {default}")
-        return default
+# NOTE: The method commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet:
+# def get_target_ip(target: str, default: str = "", logger_fn=print) -> str:
+#     """Return the current IP address of the laptop using nmap."""
+#     try:
+#         nmap = subprocess.Popen(("nmap", "-sn", "192.168.1.1/24"), stdout=subprocess.PIPE)
+#         grep = subprocess.check_output(("grep", target), stdin=nmap.stdout)
+#         nmap.wait()
+#         res = re.sub(r".*\((.*)\).*", r"\g<1>", grep.decode())
+#         if not res:
+#             raise Exception("target not found")
+#         return res
+#     except:
+#         logger_fn(f"target not found; defaulting to {default}")
+#         return default
 
 
 class MainControlNode(Node):
@@ -60,8 +62,6 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("linear_actuator_power", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
-        self.declare_parameter("linear_actuator_up_power", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("conveyor_height_manual_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
 
@@ -71,21 +71,24 @@ class MainControlNode(Node):
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
         self.conveyor_height_manual_power = self.get_parameter("conveyor_height_manual_power").value
-        self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
-        self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
 
         # Print the ROS Parameters to the terminal below #
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
-        print("linear_actuator_power has been set to:", self.linear_actuator_power)
-        print("linear_actuator_up_power has been set to:", self.linear_actuator_up_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
         print("conveyor_height_manual_power has been set to:", self.conveyor_height_manual_power)
 
-        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
+        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet:
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
         # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
+
+        # Try connecting to an Arduino over Serial (USB)
+        try:
+            # Set "/dev/Arduino_Uno" as a static Serial port!
+            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600, timeout=0.01)
+        except Exception as e:
+            print(e)  # If an exception is raised, print it, and then move on
 
         # Define some initial states here
         self.state = states["Teleop"]
