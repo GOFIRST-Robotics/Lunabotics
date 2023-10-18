@@ -63,12 +63,14 @@ class MainControlNode(Node):
         self.declare_parameter("linear_actuator_power", 8)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("linear_actuator_up_power", 40)  # Duty Cycle value between 0-100 (not 0.0-1.0)
         self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("conveyor_height_manual_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
+        self.conveyor_height_manual_power = self.get_parameter("conveyor_height_manual_power").value
         self.linear_actuator_power = self.get_parameter("linear_actuator_power").value
         self.linear_actuator_up_power = self.get_parameter("linear_actuator_up_power").value
 
@@ -79,6 +81,7 @@ class MainControlNode(Node):
         print("linear_actuator_power has been set to:", self.linear_actuator_power)
         print("linear_actuator_up_power has been set to:", self.linear_actuator_up_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
+        print("conveyor_height_manual_power has been set to:", self.conveyor_height_manual_power)
 
         # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet
         # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
@@ -214,6 +217,7 @@ class MainControlNode(Node):
                 )
 
             # TODO: Manually adjust the height of the conveyor with the left and right triggers
+            # Use the conveyor_height_manual_power parameter and the MotorSet service
             
         # THE CONTROLS BELOW ALWAYS WORK #
 
