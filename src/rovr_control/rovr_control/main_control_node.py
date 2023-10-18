@@ -21,9 +21,7 @@ from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 import asyncio  # Allows the creation of asynchronous autonomous procedures!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
-import serial  # Allows serial communication with an Arduino. Install with "sudo pip3 install pyserial".
 import os  # Allows us to kill subprocesses
-import re  # Enables using regular expressions
 
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
@@ -35,22 +33,6 @@ from .gamepad_constants import *
 buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
 states = {"Teleop": 0, "Auto_Dig": 1, "Auto_Offload": 2}
-
-
-# NOTE: The method commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet:
-# def get_target_ip(target: str, default: str = "", logger_fn=print) -> str:
-#     """Return the current IP address of the laptop using nmap."""
-#     try:
-#         nmap = subprocess.Popen(("nmap", "-sn", "192.168.1.1/24"), stdout=subprocess.PIPE)
-#         grep = subprocess.check_output(("grep", target), stdin=nmap.stdout)
-#         nmap.wait()
-#         res = re.sub(r".*\((.*)\).*", r"\g<1>", grep.decode())
-#         if not res:
-#             raise Exception("target not found")
-#         return res
-#     except:
-#         logger_fn(f"target not found; defaulting to {default}")
-#         return default
 
 
 class MainControlNode(Node):
@@ -75,17 +57,6 @@ class MainControlNode(Node):
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
         print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
-
-        # NOTE: The code commented out below is for dynamic ip address asignment, but we haven't gotten it to work consistantly yet:
-        # self.target_ip = get_target_ip('blixt-G14', '192.168.1.110', self.get_logger().info)
-        # self.get_logger().info(f'set camera stream target ip to {self.target_ip}')
-
-        # Try connecting to an Arduino over Serial (USB)
-        try:
-            # Set "/dev/Arduino_Uno" as a static Serial port!
-            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600, timeout=0.01)
-        except Exception as e:
-            print(e)  # If an exception is raised, print it, and then move on
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -158,8 +129,8 @@ class MainControlNode(Node):
             # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
             print("Commence Offloading!")
             await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
-            await asyncio.sleep(10) # How long to offload for
-            await self.cli_conveyor_stop.call_async(Stop.Request()) # Stop the conveyor belt
+            await asyncio.sleep(10)  # How long to offload for
+            await self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor belt
             print("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
@@ -207,12 +178,8 @@ class MainControlNode(Node):
 
             # Check if the conveyor button is pressed #
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                self.cli_conveyor_toggle.call_async(
-                    SetPower.Request(
-                        conveyor_belt_power=self.conveyor_belt_power
-                    )
-                )
-                
+                self.cli_conveyor_toggle.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
+
             # TODO: Manually adjust the height of the conveyor with the left and right triggers
 
         # THE CONTROLS BELOW ALWAYS WORK #
