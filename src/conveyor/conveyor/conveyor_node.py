@@ -25,12 +25,13 @@ class ConveyorNode(Node):
         self.srv_stop = self.create_service(Stop, "conveyor/stop", self.stop_callback)
         self.srv_setPower = self.create_service(SetPower, "conveyor/setPower", self.set_power_callback)
         self.srv_setHeight = self.create_service(SetHeight, "conveyor/setHeight", self.set_height_callback)
+
         # Define motor CAN IDs here
         self.CONVEYOR_BELT_MOTOR = 6
         self.HEIGHT_ADJUST_MOTOR = 420
-        # Current subsystem state
-        self.running = False
 
+        # Current state of the conveyor belt
+        self.running = False
 
     # Define subsystem methods here
     def set_power(self, conveyor_power: float) -> None:
@@ -57,13 +58,10 @@ class ConveyorNode(Node):
             self.set_power(conveyor_belt_power)
 
     def set_height(self, height: float) -> None:
-        """This service request sets the height of the conveyor belts. Idk actually tho."""
-        
-
+        """This method sets the height of the conveyor."""
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=height)
         )
-        #pass  # TODO: Implement this method
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -85,7 +83,7 @@ class ConveyorNode(Node):
         return response
 
     def set_height_callback(self, request, response):
-        # TODO: Implement this callback wrapper
+        """This service request sets the height of the conveyor."""
         self.set_height(request.height)
         response.success = 0  # indicates success
         return response
