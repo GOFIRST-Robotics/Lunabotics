@@ -54,10 +54,9 @@ class ros_check_load(Node):
                 (2 * (math.atan((0.5 * CONVEYORSIZEY) / (self.conveyor_height + CONVEYORTOCAM)))) * (180 / math.pi)
             )
 
-            percentFOVx = (
-                perceptionChangeX / 86
-            )  # compare the degrees of vision it would occupy to the FOV of the realsense
-            percentFOVy = perceptionChangeY / 57
+            percentFOVx = min(perceptionChangeX / 86, 1)
+            # compare the degrees of vision it would occupy to the FOV of the realsense
+            percentFOVy = min(perceptionChangeY / 57, 1)
 
             change_x = (
                 int(self.img_width * percentFOVx / 2)
