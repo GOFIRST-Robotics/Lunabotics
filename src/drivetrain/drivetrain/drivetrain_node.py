@@ -20,13 +20,12 @@ class SwerveModule:
     def __init__(self, drive_motor, turning_motor):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
-        pass  # TODO: Finish implementing this constructor
 
     def set_power(self, power: float) -> None:
-        pass  # TODO: Implement this method by calling MotorCommandSet node (type= "duty cycle")
+        pass  # TODO: Implement this method by calling the MotorCommandSet service (type="duty cycle")
 
     def set_angle(self, angle: float) -> None:
-        pass  # TODO: Implement this method by calling MotorCommandGet node (double check this is the correct node)
+        pass  # TODO: Implement this method by calling the MotorCommandSet service (type="position")
 
     def get_absolute_angle(self) -> float:
         pass  # TODO: Implement this method
@@ -52,7 +51,7 @@ class DrivetrainNode(Node):
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
 
-        #Assigning can_id motor to each swerve module
+        # Assigning can_id motor to each swerve module
         self.back_left_drive = 1
         self.back_left_turn = 2
         self.front_left_drive = 3
@@ -61,13 +60,11 @@ class DrivetrainNode(Node):
         self.back_right_turn = 6
         self.front_right_drive = 7
         self.front_right_turn = 8
-    
+
         self.back_left = SwerveModule(self.back_left_drive, self.back_left_turn)
         self.front_left = SwerveModule(self.front_left_drive, self.front_left_turn)
         self.back_right = SwerveModule(self.back_right_drive, self.back_right_turn)
         self.front_right = SwerveModule(self.front_right_drive, self.front_right_turn)
-
-        # TODO: Instantiate 4 SwerveModule objects below (back_left, back_right, front_left, front_right) DONE
 
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
@@ -116,14 +113,16 @@ class DrivetrainNode(Node):
 
     def drive_callback(self, request, response):
         """This service request drives the robot with the specified speeds."""
-        self.drive(request.forward_power, request.horizontal_power, request.turning_power) # TODO: You will need to modify the Drive srv (service) type to add a horizontal_power parameter
+        self.drive(
+            request.forward_power, request.horizontal_power, request.turning_power
+        )  # TODO: You will need to modify the Drive srv (service) type to add a horizontal_power parameter
         response.success = 0  # indicates success
         return response
 
     # Define subscriber callback methods here
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.x, msg.linear.y, msg.angular.z)  # TODO: Is this correct?
+        self.drive(msg.linear.x, msg.linear.y, msg.angular.z)  # TODO: Check if this is correct
 
 
 def main(args=None):
