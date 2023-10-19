@@ -163,17 +163,14 @@ private:
 
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {
-
-    RCLCPP_INFO(this->get_logger(), "CAN_callback Running!");
-
     uint32_t motorId = can_msg->id & 0xFF;
-    uint32_t statusId = (can_msg->id >> 8) & 0xFF;
+    uint32_t statusId = (can_msg->id >> 8) & 0xFF; // Packet Status, not frame ID
 
     // TODO: This chunk of code below can probably be simplified somehow
-    float dutyCycleNow = -1;
-    float RPM = -1;
-    float current = -1;
-    float position = -1;
+    float dutyCycleNow = 0;
+    float RPM = 0;
+    float current = 0;
+    float position = 0;
     if (this->can_data.count(motorId) == 1) {
       dutyCycleNow = this->can_data[motorId].dutyCycle;
       RPM = this->can_data[motorId].velocity;
@@ -182,12 +179,12 @@ private:
     }
 
     switch (statusId) {
-    case 1: // Frame 1 (RPM & Current & DutyCycle)
+    case 9: // Packet Status 9 (RPM & Current & DutyCycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10);
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
       break;
-    case 4: // Frame 4 (Position)
+    case 16: // Packet Status 16 (Position)
       position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]);
       break;
     }
@@ -196,7 +193,7 @@ private:
     this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
-    RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", motorId);
+    RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
     RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow, current, position);
   }
 
