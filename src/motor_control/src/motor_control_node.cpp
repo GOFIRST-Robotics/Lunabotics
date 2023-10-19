@@ -81,9 +81,9 @@ class MotorControlNode : public rclcpp::Node {
     // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
   }
 
-  // Set the position of the motor in _____ (degrees? encoder counts?) // TODO: Figure out what units are used
+  // Set the position of the motor in _____ (degrees)
   void vesc_set_position(uint32_t id, int position) {
-    int32_t data = position;
+    int32_t data = position * 1000000;
 
     send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
     this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
@@ -172,11 +172,13 @@ private:
     float current = 0;
     float position = 0;
     if (this->can_data.count(motorId) == 1) {
+      // If 'motorId' is found in 'can_data', update the variables with the corresponding values
       dutyCycleNow = this->can_data[motorId].dutyCycle;
       RPM = this->can_data[motorId].velocity;
       current = this->can_data[motorId].current;
       position = this->can_data[motorId].position;
     }
+
 
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
