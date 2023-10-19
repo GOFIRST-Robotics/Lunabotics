@@ -23,10 +23,10 @@ class SwerveModule:
         pass  # TODO: Finish implementing this constructor
 
     def set_power(self, power: float) -> None:
-        pass  # TODO: Implement this method
+        pass  # TODO: Implement this method by calling MotorCommandSet node (type= "duty cycle")
 
     def set_angle(self, angle: float) -> None:
-        pass  # TODO: Implement this method
+        pass  # TODO: Implement this method by calling MotorCommandGet node (double check this is the correct node)
 
     def get_absolute_angle(self) -> float:
         pass  # TODO: Implement this method
@@ -52,7 +52,22 @@ class DrivetrainNode(Node):
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
 
-        # TODO: Instantiate 4 SwerveModule objects below (back_left, back_right, front_left, front_right)
+        #Assigning can_id motor to each swerve module
+        self.back_left_drive = 1
+        self.back_left_turn = 2
+        self.front_left_drive = 3
+        self.front_left_turn = 4
+        self.back_right_drive = 5
+        self.back_right_turn = 6
+        self.front_right_drive = 7
+        self.front_right_turn = 8
+    
+        self.back_left = SwerveModule(self.back_left_drive, self.back_left_turn)
+        self.front_left = SwerveModule(self.front_left_drive, self.front_left_turn)
+        self.back_right = SwerveModule(self.back_right_drive, self.back_right_turn)
+        self.front_right = SwerveModule(self.front_right_drive, self.front_right_turn)
+
+        # TODO: Instantiate 4 SwerveModule objects below (back_left, back_right, front_left, front_right) DONE
 
     # Define subsystem methods here
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
