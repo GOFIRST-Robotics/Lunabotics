@@ -1,5 +1,5 @@
 # Base Image
-FROM ros:humble
+FROM stereolabs/zed:4.0-devel-cuda11.8-ubuntu20.04
 
 # Disable debian interactive mode
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,44 +8,43 @@ ENV ROS_DISTRO=humble
 # Suppress the setuptools deprecated warning
 ENV PYTHONWARNINGS="ignore:setup.py install is deprecated::setuptools.command.install"
 
-# Check the CPU architecture
-ARG TARGETARCH
+# Add keys and sources for ROS 2 Humble need to install from source because jetpack hasn't been released yet
+RUN apt update && apt install curl -y && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
+    apt update && sudo apt install -y \
+    python3-flake8-docstrings \
+    python3-pip \
+    python3-pytest-cov \
+    ros-dev-tools && \
+    python3 -m pip install -U \
+    flake8-blind-except \
+    flake8-builtins \
+    flake8-class-newline \
+    flake8-comprehensions \
+    flake8-deprecated \
+    flake8-import-order \
+    flake8-quotes \
+    "pytest>=5.3" \
+    pytest-repeat \
+    pytest-rerunfailures && \
+    mkdir -p ~/ros2_humble/src && \
+    cd ~/ros2_humble && \
+    vcs import --input https://raw.githubusercontent.com/ros2/ros2/humble/ros2.repos src && \
+    rosdep init && \
+    rosdep update && \
+    rosdep install --from-paths src --ignore-src -y --skip-keys "fastcdr rti-connext-dds-6.0.1 urdfdom_headers"
+RUN cd ~/ros2_humble && \
+    colcon build --symlink-install 
 
-# Install git and openssh-server
-RUN apt-get update && apt-get install -y \
-    git \
-    openssh-server \
-    python3-pip
-
-# Install the ZED SDK (Required for the ZED ROS2 Wrapper)
-RUN if [ "$TARGETARCH" = "x86_64" ] || [ "$TARGETARCH" = "amd64" ]; then \
-        echo "Building for x86 architecture"; \
-        apt-get update -y || true ; apt-get install --no-install-recommends lsb-release wget less udev sudo zstd build-essential cmake python3 python3-pip libpng-dev libgomp1 -y ; \
-        python3 -m pip install numpy opencv-python ; \
-        wget -q -O ZED_SDK_Linux_Ubuntu22.run https://download.stereolabs.com/zedsdk/4.0/cu121/ubuntu22 && \
-        chmod +x ZED_SDK_Linux_Ubuntu22.run ; ./ZED_SDK_Linux_Ubuntu22.run -- silent skip_tools && \
-        ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
-        rm ZED_SDK_Linux_Ubuntu22.run && \
-        rm -rf /var/lib/apt/lists/* ; \
-    elif [ "$TARGETARCH" = "aarch64" ] || [ "$TARGETARCH" = "arm64" ]; then \
-        echo "Building for ARM architecture"; \
-        echo "# R${L4T_MAJOR} (release), REVISION: ${L4T_MINOR}" > /etc/nv_tegra_release && \
-        apt-get update -y || true && \
-        apt-get install -y --no-install-recommends zstd wget less cmake curl gnupg2 \
-        build-essential python3 python3-pip python3-dev python3-setuptools libusb-1.0-0-dev -y && \
-        pip install protobuf && \
-        wget -q --no-check-certificate -O ZED_SDK_Linux_JP.run \
-        https://download.stereolabs.com/zedsdk/4.0/l4t35.3/jetsons && \
-        chmod +x ZED_SDK_Linux_JP.run ; ./ZED_SDK_Linux_JP.run silent skip_tools && \
-        rm -rf /usr/local/zed/resources/* && \
-        rm -rf ZED_SDK_Linux_JP.run && \
-        rm -rf /var/lib/apt/lists/* ; \
-    else \
-        echo "Unsupported architecture"; \
-        exit 1; \
-    fi
-
+# Add Local workspace dependencies
+COPY my.repos /root/ros2_humble/
+RUN vcs import --input my.repos src && \
+    rm my.repos && \
+    cd ~/ros2_humble && \
+    rosdep install --from-paths src --ignore-src -y --skip-keys "fastcdr rti-connext-dds-6.0.1 urdfdom_headers" && \
+    colcon build --symlink-install
 # Source ROS 2 Humble in .bashrc
-RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+RUN echo "source ~/ros2_humble/install/local_setup.bash" >> ~/.bashrc
 # Source our ROS 2 workspace in .bashrc
 RUN echo "source install/setup.bash" >> ~/.bashrc

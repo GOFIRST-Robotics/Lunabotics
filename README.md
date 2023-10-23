@@ -12,6 +12,7 @@ Just press "from dockerfile" and then it will build the container and run it.
 After opening, run the following commands in the terminal:
 
 ```
+git submodule update --recursive --remote
 colcon build --symlink-install
 source install/setup.sh
 ```
@@ -21,18 +22,30 @@ If your machine does not have an Nvidia GPU, build using this command instead:
 ```
 colcon build --symlink-install --packages-skip-regex zed*
 ```
-
-If you need to rebuild the remote container image, uncomment the sections in devcontainer that reference remote, then run the following command with the devcontainer cli installed:
+For the nvidia containers use the following before running run_dev.sh
 
 ```
+printf "CONFIG_IMAGE_KEY=ros2_humble.can.user.zed \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
+``` 
+Then,
+```
+cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
+../scripts/run_dev.sh ~/Lunabotics-2024
+```
+
+```
+docker manifest rm umnrobotics/zed:latest 
+docker manifest create umnrobotics/zed:latest --amend stereolabs/zed:3.8-devel-l4t-r35.1 --amend stereolabs/zed:4.0-devel-cuda11.8-ubuntu20.04
+docker manifest push umnrobotics/zed:latest
 devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros"
+
 ```
 
 ## ROS 2 General Workspace Tips
 
 Make sure to `source install/setup.bash` in every new terminal.
 
-Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y` to install package dependencies.
+Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "nvblox"` to install package dependencies.
 
 Run `rm -r build install log` to clean your workspace.
 
