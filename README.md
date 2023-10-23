@@ -22,17 +22,19 @@ If your machine does not have an Nvidia GPU, build using this command instead:
 ```
 colcon build --symlink-install --packages-skip-regex zed*
 ```
-For the Nvidia containers use the following before running run_dev.sh
+For the Nvidia containers use the following before running run_dev.sh:
 
 ```
 printf "CONFIG_IMAGE_KEY=ros2_humble.can.user.zed \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
 ``` 
-Then,
+Then: (this is the only command you need to run if developing on the Jetson itself!)
+
 ```
 cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
 ../scripts/run_dev.sh ~/Lunabotics-2024
 ```
-It is also worth noting that currently only ZedX is supported by Nvidia so if you are building Zed on Jetson you will need the following
+It is also worth noting that currently only ZedX is supported by Nvidia so if you are building Zed on Jetson you will need the following:
+
 ```
 colcon build --symlink-install --packages-select-regex zed* --cmake-args -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"
 ```
