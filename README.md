@@ -32,6 +32,10 @@ Then,
 cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
 ../scripts/run_dev.sh ~/Lunabotics-2024
 ```
+It is also worth noting that currently on zedx was supported by nvidia so if you are build zed on jetson you will need the following
+```
+colcon build --symlink-install --packages-select-regex zed* --cmake-args -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"
+```
 
 ```
 docker manifest rm umnrobotics/zed:latest 
