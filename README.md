@@ -38,10 +38,11 @@ colcon build --symlink-install --packages-select-regex zed* --cmake-args -DCMAKE
 ```
 
 ```
-docker manifest rm umnrobotics/zed:latest 
-docker manifest create umnrobotics/zed:latest --amend stereolabs/zed:3.8-devel-l4t-r35.1 --amend stereolabs/zed:4.0-devel-cuda11.8-ubuntu20.04
-docker manifest push umnrobotics/zed:latest
-devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros"
+docker manifest rm umnrobotics/isaac_ros:latest
+docker manifest create umnrobotics/isaac_ros:latest --amend umnrobotics/isaac_ros:aarch64-humble-zed --amend umnrobotics/isaac_ros:x86_64-humble-zed
+docker manifest push umnrobotics/isaac_ros:latest
+docker buildx create --use
+devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:isaac_ros_devcontainer"
 
 ```
 
