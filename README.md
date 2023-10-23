@@ -12,6 +12,7 @@ Just press "from dockerfile" and then it will build the container and run it.
 After opening, run the following commands in the terminal:
 
 ```
+git submodule update --recursive --remote
 colcon build --symlink-install
 source install/setup.sh
 ```
@@ -21,18 +22,35 @@ If your machine does not have an Nvidia GPU, build using this command instead:
 ```
 colcon build --symlink-install --packages-skip-regex zed*
 ```
-
-If you need to rebuild the remote container image, uncomment the sections in devcontainer that reference remote, then run the following command with the devcontainer cli installed:
+For the nvidia containers use the following before running run_dev.sh
 
 ```
-devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros"
+printf "CONFIG_IMAGE_KEY=ros2_humble.can.user.zed \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
+``` 
+Then,
+```
+cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
+../scripts/run_dev.sh ~/Lunabotics-2024
+```
+It is also worth noting that currently on zedx was supported by nvidia so if you are build zed on jetson you will need the following
+```
+colcon build --symlink-install --packages-select-regex zed* --cmake-args -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"
+```
+
+```
+docker manifest rm umnrobotics/isaac_ros:latest
+docker manifest create umnrobotics/isaac_ros:latest --amend umnrobotics/isaac_ros:aarch64-humble-zed --amend umnrobotics/isaac_ros:x86_64-humble-zed
+docker manifest push umnrobotics/isaac_ros:latest
+docker buildx create --use
+devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:isaac_ros_devcontainer"
+
 ```
 
 ## ROS 2 General Workspace Tips
 
 Make sure to `source install/setup.bash` in every new terminal.
 
-Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y` to install package dependencies.
+Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "nvblox"` to install package dependencies.
 
 Run `rm -r build install log` to clean your workspace.
 
