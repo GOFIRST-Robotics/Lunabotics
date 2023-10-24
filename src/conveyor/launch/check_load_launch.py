@@ -12,7 +12,8 @@ def generate_launch_description():
             ('/camera/camera/depth/image_rect_raw', '/depth/image_rect_raw'),
             ('/camera/depth/image_rect_raw', '/depth/image_rect_raw'),
             ('/depth/image_rect_raw', '/depth/image_rect_raw'),
-        ]
+        ],
+        arguments=['depth_module.profile', '1280x720x30']
     )
     
     check_load = Node(
