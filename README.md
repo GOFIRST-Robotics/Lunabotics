@@ -33,13 +33,9 @@ Then: (this is the only command you need to run if developing on the Jetson itse
 cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
 ../scripts/run_dev.sh ~/Lunabotics-2024
 ```
-It is also worth noting that currently only ZedX is supported by Nvidia so if you are building Zed on Jetson you will need the following:
+It is also worth noting that the docker buildkit doesn't respect nvidia runtime for building which is needed for zed, so if you setup a new jetson you will need to do one of the following (https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/issues/98#issuecomment-1777711989)
 
-```
-colcon build --symlink-install --packages-select-regex zed* --cmake-args -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"
-```
-If you need to rebuild the remote container image, uncomment the sections in devcontainer that reference remote, then run the following command with the devcontainer cli installed:
-
+If you need to rebuild the remote container image, update the x86_64 and aarch64 images, then run the following command with the devcontainer cli installed:
 ```
 docker manifest rm umnrobotics/isaac_ros:latest
 docker manifest create umnrobotics/isaac_ros:latest --amend umnrobotics/isaac_ros:aarch64-humble-zed --amend umnrobotics/isaac_ros:x86_64-humble-zed
