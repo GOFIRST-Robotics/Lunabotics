@@ -20,15 +20,23 @@ class SwerveModule:
     def __init__(self, drive_motor, turning_motor):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
+        # Define service clients here
+        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
     def set_power(self, power: float) -> None:
+        self.power.call_async(
+            MotorCommandSet.Request(type="duty_cycle")
+        )
         pass  # TODO: Implement this method by calling the MotorCommandSet service (type="duty cycle")
 
     def set_angle(self, angle: float) -> None:
+        self.angle.call_async(
+            MotorCommandSet.Request(type="position")
+        )
         pass  # TODO: Implement this method by calling the MotorCommandSet service (type="position")
 
     def get_absolute_angle(self) -> float:
-        pass  # TODO: Implement this method
+        pass  # TODO: Implement this method, save this for later
 
     def set_state(self, power: float, angle: float) -> None:
         self.setPower(power)
@@ -44,8 +52,6 @@ class DrivetrainNode(Node):
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
 
-        # Define service clients here
-        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
@@ -115,7 +121,7 @@ class DrivetrainNode(Node):
         """This service request drives the robot with the specified speeds."""
         self.drive(
             request.forward_power, request.horizontal_power, request.turning_power
-        )  # TODO: You will need to modify the Drive srv (service) type to add a horizontal_power parameter
+        )  # TODO: You will need to modify the Drive srv (service) type to add a horizontal_power parameter DONE
         response.success = 0  # indicates success
         return response
 
