@@ -21,7 +21,7 @@ conveyor_height_topic = "/conveyor/height"  # should be meters, as a displacemen
 
 class ros_check_load(Node):
     def __init__(self):
-        self.height = .5
+        self.conveyor_height = .5
         super().__init__("check_load")
         self.bridge = CvBridge()
         self.pub = self.create_publisher(Bool, "readyDump", 10)

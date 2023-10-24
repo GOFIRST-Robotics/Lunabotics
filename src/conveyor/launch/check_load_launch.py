@@ -1,4 +1,5 @@
 from launch import LaunchDescription
+from launch.substitution import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
@@ -13,7 +14,7 @@ def generate_launch_description():
             ('/camera/depth/image_rect_raw', '/depth/image_rect_raw'),
             ('/depth/image_rect_raw', '/depth/image_rect_raw'),
         ],
-        arguments=['depth_module.profile', '1280x720x30']
+        parameters=[{'depth_module.profile': LaunchConfiguration('848,640,30')}]
     )
     
     check_load = Node(
