@@ -38,6 +38,7 @@ It is also worth noting that currently only ZedX is supported by Nvidia so if yo
 ```
 colcon build --symlink-install --packages-select-regex zed* --cmake-args -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs -DCMAKE_CXX_FLAGS="-Wl,--allow-shlib-undefined"
 ```
+If you need to rebuild the remote container image, uncomment the sections in devcontainer that reference remote, then run the following command with the devcontainer cli installed:
 
 ```
 docker manifest rm umnrobotics/isaac_ros:latest
