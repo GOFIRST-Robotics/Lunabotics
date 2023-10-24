@@ -6,13 +6,17 @@ import cv2
 from cv_bridge import CvBridge
 import math
 
+# TODO: NEED TO UPDATE CONVEYOR SIZE, DISTANCE, DISTANCE THRESHOLD
+# TODO: Should probably update pollrate/ consecutive cycles
+# TODO: make sure hte topic names are all correct
+
 CONVEYORSIZEY = 0.7112  # width of the conveyor in meters
 CONVEYORSIZEX = 0.623  # length of the conveyor in meters
 CONVEYORTOCAM = 0.3  # distance from camera to top of conveyor in meters.
 DISTANCETHRESH = 200  # how small should the distance between top and conveyor be before offload (in meters)?
 POLLRATE = 0.2  # Wait time between each distance check (in seconds)
 CONSECUTIVECYCLES = 4  # Make sure the reading is consistent
-conveyor_height_topic = "/conveyor/height"  # should be meters, if not, convert
+conveyor_height_topic = "/conveyor/height"  # should be meters, as a displacement from the conveyors starting position, if not, convert
 
 
 class ros_check_load(Node):
@@ -23,7 +27,7 @@ class ros_check_load(Node):
         self.pub = self.create_publisher(Bool, "readyDump", 10)
         self.imagePub = self.create_publisher(Image, "imageResize", 10)
         self.prior_checks = []
-        depth_image_topic = "/camera/camera/depth/image_rect_raw"  # Switch to /depth/image_rect_raw when running on robot
+        depth_image_topic = "/depth/image_rect_raw"  # The launch file should remap so the realsense publishes to this topic
         self.getConveyorHeight = self.create_subscription(Float32, conveyor_height_topic, self.setHeight, 10)
         self.oneTimeSub = self.create_subscription(Image, depth_image_topic, self.setParamCallback, 1)
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
@@ -71,7 +75,6 @@ class ros_check_load(Node):
 
             self.imagePub.publish(self.bridge.cv2_to_imgmsg(resized_img, "passthrough"))
 
-            print(denoised_image.mean())
 
             if denoised_image.mean() <= DISTANCETHRESH + self.conveyor_height:
                 self.prior_checks.append(True)
