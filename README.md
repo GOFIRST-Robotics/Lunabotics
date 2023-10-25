@@ -9,8 +9,10 @@ The official NASA Lunabotics 2024 repository for University of Minnesota Robotic
 <details>
 <summary>How to Run Inside Docker Container On Windows/Mac</summary>
 <br>
-Open vscode then press ctrl+shift+p and type "Clone Repository in Container Volume". Select "Dev Containers: Clone Repository in Container Volume" and then choose our Lunabotics-2024 repository. After opening, run the following commands in the terminal:
+Open vscode then press ctrl+shift+p and type "Clone Repository in Container Volume". Select "Dev Containers: Clone Repository in Container Volume" and then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics-2024 repository.
+<br><br>
 
+After opening the container, run the following commands in the terminal:
 ```
 source /opt/ros/humble/setup.bash
 colcon build --symlink-install
