@@ -7,8 +7,9 @@ def generate_launch_description():
     realsense = Node(
         package="realsense2_camera",
         executable="realsense2_camera_node",
-        name="realsense2_camera",
+        name="camera",
         remappings=[
+            ('/camera/realsense2_camera/depth/image_rect_raw', '/depth/image_rect_raw'),
             ('/camera/camera/depth/image_rect_raw', '/depth/image_rect_raw'),
             ('/camera/depth/image_rect_raw', '/depth/image_rect_raw'),
             ('/depth/image_rect_raw', '/depth/image_rect_raw'),
