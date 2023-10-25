@@ -6,7 +6,6 @@
 	path = src/zed-ros2-wrapper
 	url = https://github.com/stereolabs/zed-ros2-wrapper.git
 	branch =  master
-	fetchRecurseSubmodules = true
 [submodule "src/isaac_ros/isaac_ros_common"]
 	path = src/isaac_ros/isaac_ros_common
 	url = https://github.com/GOFIRST-Robotics/isaac_ros_common.git
@@ -15,7 +14,6 @@
 	path = src/isaac_ros/isaac_ros_nvblox
 	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox.git
 	branch = main
-	fetchRecurseSubmodules = true
 [submodule "src/isaac_ros/isaac_ros_apriltag"]
 	path = src/isaac_ros/isaac_ros_apriltag
 	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag.git
