@@ -69,7 +69,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
+    //RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
@@ -145,9 +145,9 @@ public:
 
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100);
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can1/transmit", 100);
     // The name of this topic is determined by ros2socketcan_bridge
-    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
+    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
   }
 
 private:
@@ -183,8 +183,8 @@ private:
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10);
-      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
+      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 1000.0);
+      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0);
       break;
     case 16: // Packet Status 16 (Position)
       position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]);
