@@ -117,13 +117,18 @@ class ConveyorNode(Node):
         return response
     
     # TODO: Create a service wrapper for the method to stop the height adjust pulley
-    def stop_height_callback(self, request, response):
-        """This service request stops the conveyor belt."""
+    def stop_height_adjust_callback(self, request, response):
+        """This service request stops the height adjust pulley."""
         self.stop_height_adjust()
         response.success = 0  # indicates success
         return response
     
-     # TODO: Create a service wrapper for the method to set power (duty cycle) to the height adjust pulley
+    # TODO: Create a service wrapper for the method to set power (duty cycle) to the height adjust pulley
+    def set_height_power_callback(self, request, response):
+        """This service request sets power to the height adjust pulley"""
+        self.set_height_power()
+        response.success = 0 # indicates success
+        return response
 
     # Define timer callback methods here
     # TODO: Create a timer callback method for the 100ms timer that publishes using the 2 publishers
