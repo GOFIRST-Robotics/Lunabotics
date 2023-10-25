@@ -28,7 +28,7 @@ class ros_check_load(Node):
         self.bridge = CvBridge()
         self.pub = self.create_publisher(Bool, "readyDump", 10)
         self.prior_checks = []
-        depth_image_topic = "/depth/image_rect_raw"  # The launch file should remap so the realsense publishes to this topic
+        depth_image_topic = "/conveyor/camera/depth/image_rect_raw"  # The launch file should remap so the realsense publishes to this topic
         self.getConveyorHeight = self.create_subscription(Float32, conveyor_height_topic, self.setHeight, 10)
         self.oneTimeSub = self.create_subscription(Image, depth_image_topic, self.setParamCallback, 10)
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
