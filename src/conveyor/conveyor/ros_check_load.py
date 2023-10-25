@@ -22,14 +22,15 @@ conveyor_height_topic = "/conveyor/height"  # should be meters, as a displacemen
 class ros_check_load(Node):
     def __init__(self):
         self.conveyor_height = .5
+        self.img_height = 640
+        self.img_width = 848
         super().__init__("check_load")
         self.bridge = CvBridge()
         self.pub = self.create_publisher(Bool, "readyDump", 10)
-        self.imagePub = self.create_publisher(Image, "imageResize", 10)
         self.prior_checks = []
         depth_image_topic = "/depth/image_rect_raw"  # The launch file should remap so the realsense publishes to this topic
         self.getConveyorHeight = self.create_subscription(Float32, conveyor_height_topic, self.setHeight, 10)
-        self.oneTimeSub = self.create_subscription(Image, depth_image_topic, self.setParamCallback, 1)
+        self.oneTimeSub = self.create_subscription(Image, depth_image_topic, self.setParamCallback, 10)
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
         self.depth_image = None
@@ -71,12 +72,7 @@ class ros_check_load(Node):
             denoised_image = cv2.GaussianBlur(depth, (5, 5), 0)
             resized_img = denoised_image[center_y - change_y : center_y + change_y, center_x - change_x : center_x + change_x]
 
-            
-
-            self.imagePub.publish(self.bridge.cv2_to_imgmsg(resized_img, "passthrough"))
-
-
-            if denoised_image.mean() <= DISTANCETHRESH + self.conveyor_height:
+            if resized_img.mean() <= DISTANCETHRESH + self.conveyor_height:
                 self.prior_checks.append(True)
             else:
                 self.prior_checks.append(False)
