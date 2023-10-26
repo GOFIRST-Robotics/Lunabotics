@@ -20,23 +20,23 @@ class SwerveModule:
     def __init__(self, drive_motor, turning_motor):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
+
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
     def set_power(self, power: float) -> None:
-        self.power.call_async(
-            MotorCommandSet.Request(type="duty_cycle")
-        )
-        pass  # TODO: Implement this method by calling the MotorCommandSet service (type="duty cycle")
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
 
     def set_angle(self, angle: float) -> None:
-        self.angle.call_async(
-            MotorCommandSet.Request(type="position")
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(
+                type="position",
+                value=angle,  # TODO: This assumes that VESC position control uses degrees (but maybe it uses encoder counts?)
+            )
         )
-        pass  # TODO: Implement this method by calling the MotorCommandSet service (type="position")
 
     def get_absolute_angle(self) -> float:
-        pass  # TODO: Implement this method, save this for later
+        pass  # TODO: Implement this method for reading the absolute encoder (save this for last)
 
     def set_state(self, power: float, angle: float) -> None:
         self.setPower(power)
@@ -52,7 +52,6 @@ class DrivetrainNode(Node):
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
 
-
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
@@ -67,7 +66,7 @@ class DrivetrainNode(Node):
         self.front_right_drive = 7
         self.front_right_turn = 8
 
-        # Create each swerve module using 
+        # Create each swerve module using
         self.back_left = SwerveModule(self.back_left_drive, self.back_left_turn)
         self.front_left = SwerveModule(self.front_left_drive, self.front_left_turn)
         self.back_right = SwerveModule(self.back_right_drive, self.back_right_turn)
@@ -77,10 +76,10 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward power and turning power."""
 
-        # TODO(WIP): This drive() method will need to be completely rewritten for swerve
+        # TODO: (WIP) This drive() method needs to be completely rewritten for swerve
         # Look up swerve drive kinematics equations and write code here to implement them
         # Essentially, we need to take the forward_power, horizontal_power, and turning_power
-        # and compute the what the angles and powers of all 4 swerve modules should be
+        # and compute the what the angles and powers of all 4 swerve modules should be.
 
         # Pod Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
         back_left_pod_vector = [forward_power]
@@ -88,20 +87,20 @@ class DrivetrainNode(Node):
         back_right_pod_vector = [forward_power]
         front_right_pod_vector = [forward_power]
 
-        
-
         # TODO: normalize wheel speeds
         greater_input = max(back_left_pod_vector[0])
         if greater_input > 1.0:
             pass
 
-        # Multiply power by -1 to invert motor direction
-        # TODO: Instead of directly calling the motor services like below, utilize the setPower() and setAngle()
-        # methods of the SwerveModule objects
+        # TODO: Finish the code below
         self.back_left.set_power(back_left_pod_vector)
         self.front_left.set_power(front_left_pod_vector)
         self.back_right.set_power(back_right_pod_vector)
         self.front_right.set_power(front_right_pod_vector)
+        self.back_left.set_angle(_________)
+        self.front_left.set_angle(_________)
+        self.back_right.set_angle(_________)
+        self.front_right.set_angle(_________)
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
@@ -116,9 +115,7 @@ class DrivetrainNode(Node):
 
     def drive_callback(self, request, response):
         """This service request drives the robot with the specified speeds."""
-        self.drive(
-            request.forward_power, request.horizontal_power, request.turning_power
-        )  # TODO: You will need to modify the Drive srv (service) type to add a horizontal_power parameter DONE
+        self.drive(request.forward_power, request.horizontal_power, request.turning_power)
         response.success = 0  # indicates success
         return response
 
