@@ -67,6 +67,7 @@ class DrivetrainNode(Node):
         self.front_right_drive = 7
         self.front_right_turn = 8
 
+        # Create each swerve module using 
         self.back_left = SwerveModule(self.back_left_drive, self.back_left_turn)
         self.front_left = SwerveModule(self.front_left_drive, self.front_left_turn)
         self.back_right = SwerveModule(self.back_right_drive, self.back_right_turn)
@@ -76,35 +77,31 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward power and turning power."""
 
-        # TODO: This drive() method will need to be completely rewritten for swerve
+        # TODO(WIP): This drive() method will need to be completely rewritten for swerve
         # Look up swerve drive kinematics equations and write code here to implement them
         # Essentially, we need to take the forward_power, horizontal_power, and turning_power
         # and compute the what the angles and powers of all 4 swerve modules should be
 
-        left_power = forward_power - turning_power
-        right_power = forward_power + turning_power
+        # Pod Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
+        back_left_pod_vector = [forward_power]
+        front_left_pod_vector = [forward_power]
+        back_right_pod_vector = [forward_power]
+        front_right_pod_vector = [forward_power]
 
-        # Desaturate the wheel speeds if needed
-        greater_input = max(abs(left_power), abs(right_power))
+        
+
+        # TODO: normalize wheel speeds
+        greater_input = max(back_left_pod_vector[0])
         if greater_input > 1.0:
-            left_power /= greater_input
-            right_power /= greater_input
+            pass
 
         # Multiply power by -1 to invert motor direction
         # TODO: Instead of directly calling the motor services like below, utilize the setPower() and setAngle()
         # methods of the SwerveModule objects
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.FRONT_LEFT_DRIVE, value=left_power * -1)
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.BACK_LEFT_DRIVE, value=left_power * -1)
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.FRONT_RIGHT_DRIVE, value=right_power * -1)
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.BACK_RIGHT_DRIVE, value=right_power * -1)
-        )
+        self.back_left.set_power(back_left_pod_vector)
+        self.front_left.set_power(front_left_pod_vector)
+        self.back_right.set_power(back_right_pod_vector)
+        self.front_right.set_power(front_right_pod_vector)
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
