@@ -35,7 +35,7 @@ class ros_check_load(Node):
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
         self.depth_image = None
-        self.lastMessage = int(time.time()*1000.0)
+        # self.lastMessage = int(time.time()*1000.0)
         
 
     def setHeight(self, msg):
@@ -47,14 +47,14 @@ class ros_check_load(Node):
         self.destroy_subscription(self.oneTimeSub)
 
     def depth_image_callback(self, msg):
-        self.lastMessage = int(time.time()*1000.0)
+        # self.lastMessage = int(time.time()*1000.0)
         self.depth_image = self.bridge.imgmsg_to_cv2(msg, msg.encoding)
 
     def publish_distance(self):
         if self.depth_image is None:
             pass
-        if self.lastMessage - int(time.time()*1000.0) > 5000:
-            self.destroy_node()
+        # if self.lastMessage - int(time.time()*1000.0) > 5000:
+        #     self.destroy_node()
         try:
             if self.depth_image is None:
                 self.destroy_subscription(self.subscriber)
@@ -94,8 +94,16 @@ class ros_check_load(Node):
                 else:
                     msg.data = False
                 self.pub.publish(msg)
+        except cv2.error as e:
+            self.get_logger().fatal(f"Something critically wrong with camera: {e}")
+            self.get_logger().fatal("Killing check_load node")
+            self.destroy_node()
+            return
         except Exception as e:
-            self.get_logger().fatal(f"Error: {e}")
+            if e == "NoneType" or e == "ZeroDivisionError":
+                self.get_logger().fatal(f"Error: Realsense not publishing to topic: {e}")
+            else:
+                self.get_logger().fatal(f"Error: {e}")
             return
 
 
