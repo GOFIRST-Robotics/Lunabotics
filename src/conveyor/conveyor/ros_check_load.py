@@ -5,6 +5,7 @@ from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge
 import math
+import time
 
 # TODO: NEED TO UPDATE CONVEYOR SIZE, DISTANCE, DISTANCE THRESHOLD
 # TODO: Should probably update pollrate/ consecutive cycles
@@ -34,6 +35,7 @@ class ros_check_load(Node):
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
         self.depth_image = None
+        self.lastMessage = int(time.time()*1000.0)
         
 
     def setHeight(self, msg):
@@ -45,10 +47,17 @@ class ros_check_load(Node):
         self.destroy_subscription(self.oneTimeSub)
 
     def depth_image_callback(self, msg):
+        self.lastMessage = int(time.time()*1000.0)
         self.depth_image = self.bridge.imgmsg_to_cv2(msg, msg.encoding)
 
     def publish_distance(self):
+        if self.depth_image is None:
+            pass
+        if self.lastMessage - int(time.time()*1000.0) > 5000:
+            self.destroy_node()
         try:
+            if self.depth_image is None:
+                self.destroy_subscription(self.subscriber)
             depth = self.depth_image
 
             # find the degrees of vision occupied by the conveyor belt
@@ -86,16 +95,16 @@ class ros_check_load(Node):
                     msg.data = False
                 self.pub.publish(msg)
         except Exception as e:
-            print(e)
+            self.get_logger().fatal(f"Error: {e}")
             return
 
 
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    print("Initializing the Conveyor subsystem!")
-
+    
     node = ros_check_load()
+    node.get_logger().info("Initializing the Conveyor subsystem!")
     rclpy.spin(node)
 
     node.destroy_node()
