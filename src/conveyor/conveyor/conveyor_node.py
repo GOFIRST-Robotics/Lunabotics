@@ -37,8 +37,8 @@ class ConveyorNode(Node):
         self.timer = self.create_timer(0.1, self.timer_callback)
 
         # Define motor CAN IDs here
-        self.CONVEYOR_BELT_MOTOR = 6
-        self.HEIGHT_ADJUST_MOTOR = 7
+        self.CONVEYOR_BELT_MOTOR = 9
+        self.HEIGHT_ADJUST_MOTOR = 10
 
         # Current state of the conveyor belt
         self.running = False
