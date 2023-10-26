@@ -29,9 +29,6 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS // TODO: Ensure that this is true on the final robot
-const uint32_t NUMBER_OF_MOTORS = 8; // TODO: Update this with the correct number of motors on the final robot
-
 // Define a struct to store motor data
 struct MotorData {
   float dutyCycle;
@@ -153,11 +150,11 @@ public:
 private:
   // Continuously send CAN messages to our motor controllers so they don't timeout
   void timer_callback() {
-    for (uint32_t id = 1; id <= NUMBER_OF_MOTORS; id++) {
-      // If the motor controller has previously received a command, continue to send the most recent command
-      if (current_msg.count(id) == 1) {
-        send_can(std::get<0>(current_msg[id]), std::get<1>(current_msg[id]));
-      }
+    // Loop through everything in the current_msg hashmap
+    for (auto pair : this->current_msg) {
+      uint32_t motorId = pair.first;
+      // If the motor controller has previously received a command, send the most recent command again
+      send_can(std::get<0>(this->current_msg[motorId]), std::get<1>(this->current_msg[motorId]));
     }
   }
 
@@ -166,18 +163,15 @@ private:
     uint32_t motorId = can_msg->id & 0xFF;
     uint32_t statusId = (can_msg->id >> 8) & 0xFF; // Packet Status, not frame ID
 
-    // TODO: This chunk of code below can probably be simplified somehow
-    float dutyCycleNow = 0;
-    float RPM = 0;
-    float current = 0;
-    float position = 0;
-    if (this->can_data.count(motorId) == 1) {
-      // If 'motorId' is found in 'can_data', update the variables with the corresponding values
-      dutyCycleNow = this->can_data[motorId].dutyCycle;
-      RPM = this->can_data[motorId].velocity;
-      current = this->can_data[motorId].current;
-      position = this->can_data[motorId].position;
+    // If 'motorId' is not found in the 'can_data' hashmap, add it.
+    if (this->can_data.count(motorId) == 0) {
+      this->can_data[motorId] = {0, 0, 0, 0, std::chrono::steady_clock::now()};
     }
+
+    float dutyCycleNow = this->can_data[motorId].dutyCycle;
+    float RPM = this->can_data[motorId].velocity;
+    float current = this->can_data[motorId].current;
+    float position = this->can_data[motorId].position;
 
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
