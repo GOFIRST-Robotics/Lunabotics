@@ -31,7 +31,7 @@ class SwerveModule:
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
-                value=angle,  # TODO: This assumes that VESC position control uses degrees (but maybe it uses encoder counts?)
+                value=angle,
             )
         )
 
@@ -81,26 +81,25 @@ class DrivetrainNode(Node):
         # Essentially, we need to take the forward_power, horizontal_power, and turning_power
         # and compute the what the angles and powers of all 4 swerve modules should be.
 
-        # Pod Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
-        back_left_pod_vector = [forward_power]
-        front_left_pod_vector = [forward_power]
-        back_right_pod_vector = [forward_power]
-        front_right_pod_vector = [forward_power]
+        # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)] # TODO: Calculate these
+        back_left_vector = [_______, _______]
+        front_left_vector = [_______, _______]
+        back_right_vector = [_______, _______]
+        front_right_vector = [_______, _______]
 
-        # TODO: normalize wheel speeds
-        greater_input = max(back_left_pod_vector[0])
-        if greater_input > 1.0:
-            pass
+        largest_power = max([back_left_vector[0], front_left_vector[0], back_right_vector[0], front_right_vector[0]])
+        if largest_power > 1.0:
+            pass  # TODO: normalize wheel speeds
 
-        # TODO: Finish the code below
-        self.back_left.set_power(back_left_pod_vector)
-        self.front_left.set_power(front_left_pod_vector)
-        self.back_right.set_power(back_right_pod_vector)
-        self.front_right.set_power(front_right_pod_vector)
-        self.back_left.set_angle(_________)
-        self.front_left.set_angle(_________)
-        self.back_right.set_angle(_________)
-        self.front_right.set_angle(_________)
+        self.back_left.set_power(back_left_vector[0])
+        self.front_left.set_power(front_left_vector[0])
+        self.back_right.set_power(back_right_vector[0])
+        self.front_right.set_power(front_right_vector[0])
+        
+        self.back_left.set_angle(back_left_vector[1])
+        self.front_left.set_angle(front_left_vector[1])
+        self.back_right.set_angle(back_right_vector[1])
+        self.front_right.set_angle(front_right_vector[1])
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
@@ -122,7 +121,7 @@ class DrivetrainNode(Node):
     # Define subscriber callback methods here
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.x, msg.linear.y, msg.angular.z)  # TODO: Check if this is correct
+        self.drive(msg.linear.x, msg.linear.y, msg.angular.z)  # TODO: Double check if this is correct
 
 
 def main(args=None):
