@@ -81,7 +81,7 @@ class MotorControlNode : public rclcpp::Node {
     // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
   }
 
-  // Set the position of the motor in degrees
+  // Set the position of the motor in degrees // TODO: Position control has not been tested yet!
   void vesc_set_position(uint32_t id, int position) {
     int32_t data = position * 1000000;
 
@@ -90,7 +90,7 @@ class MotorControlNode : public rclcpp::Node {
     // RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
   }
 
-  // Set the current draw of the motor in amps
+  // Set the current draw of the motor in amps // TODO: Current control has not been fully tested yet!
   void vesc_set_current(uint32_t id, float current) {
     int32_t data = current * 1000; // Current is measured in amperage
 
@@ -182,11 +182,11 @@ private:
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 1000.0);
+      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); // TODO: Reading current has not been fully tested yet!
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0);
       break;
     case 16: // Packet Status 16 (Position)
-      position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]);
+      position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]); // TODO: Reading position has not been tested yet!
       break;
     }
 
