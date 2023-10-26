@@ -58,7 +58,7 @@ class MotorControlNode : public rclcpp::Node {
     can_msg.data[2] = (data >> 8) & 0xFF;  // Third byte of data
     can_msg.data[3] = data & 0xFF;         // Fourth byte of data
 
-    can_pub->publish(can_msg); // Publish our new CAN message to the ROS 2 topic
+    can_pub->publish(can_msg); // Publish the CAN message to the ROS 2 topic
   }
 
   // Set the percent power of the motor between -1.0 and 1.0
@@ -104,7 +104,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].dutyCycle;
     } else {
-      return -1; // Return -1 if the data is stale
+      return -999; // Return -999 if the data is stale
     }
   }
   // Get the current velocity of the motor in RPM (Rotations Per Minute)
@@ -112,7 +112,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].velocity;
     } else {
-      return -1; // Return -1 if the data is stale
+      return -999; // Return -999 if the data is stale
     }
   }
   // Get the current position of the motor
@@ -120,7 +120,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].position;
     } else {
-      return -1; // Return -1 if the data is stale
+      return -999; // Return -999 if the data is stale
     }
   }
   // Get the current draw of the motor in amps
@@ -128,7 +128,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].current;
     } else {
-      return -1; // Return -1 if the data is stale
+      return -999; // Return -999 if the data is stale
     }
   }
 
@@ -190,7 +190,7 @@ private:
       break;
     }
 
-    // Store the most recent motor data in our hashmap
+    // Store the most recent motor data in the hashmap
     this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
