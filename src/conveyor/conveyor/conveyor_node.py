@@ -74,9 +74,9 @@ class ConveyorNode(Node):
 
     def set_height(self, height: float) -> None:
         """This method sets the height of the conveyor."""
-        self.current_goal_height = height
+        self.current_goal_height = height  # TODO: height parameter will be in meters but we need to convert to degrees to set position to the motor
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=height)
+            MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=self.current_goal_height)
         )
 
     def stop_height_adjust(self) -> None:
@@ -133,8 +133,8 @@ class ConveyorNode(Node):
     # Define timer callback methods here
     def timer_callback(self):
         """ Publishes the current height  """
-        # TODO: Define the height variable here by calling the MotorCommandGet service to get the current position of the height adjust motor
-        # TODO: The value returned by this service will be in either degrees or encoder counts (not sure which one). We need to convert it to meters.
+        height = # TODO: Define the height variable here by calling the MotorCommandGet service to get the current position of the height adjust motor...
+        # TODO: The value returned by the MotorCommandGet service will be in degrees, and we need to convert it to meters displaced from the top.
         
         msg_height = Float32()
         msg_height.data = height  # TODO: the height variable hasn't been defined yet
