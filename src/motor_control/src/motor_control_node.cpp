@@ -69,7 +69,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
-    //RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
+    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
@@ -81,7 +81,7 @@ class MotorControlNode : public rclcpp::Node {
     // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
   }
 
-  // Set the position of the motor in _____ (degrees)
+  // Set the position of the motor in degrees
   void vesc_set_position(uint32_t id, int position) {
     int32_t data = position * 1000000;
 
@@ -178,7 +178,6 @@ private:
       current = this->can_data[motorId].current;
       position = this->can_data[motorId].position;
     }
-
 
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
