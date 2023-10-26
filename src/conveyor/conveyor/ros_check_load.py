@@ -5,7 +5,7 @@ from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge
 import math
-import time
+# import time
 
 # TODO: NEED TO UPDATE CONVEYOR SIZE, DISTANCE, DISTANCE THRESHOLD
 # TODO: Should probably update pollrate/ consecutive cycles
@@ -24,6 +24,7 @@ class ros_check_load(Node):
     def __init__(self):
         self.conveyor_height = .5
         self.img_height = 640
+        self.errorCount = 0
         self.img_width = 848
         super().__init__("check_load")
         self.bridge = CvBridge()
@@ -39,25 +40,31 @@ class ros_check_load(Node):
         
 
     def setHeight(self, msg):
+        """Sets the height of the conveyor belt to a variable."""
         self.conveyor_height = msg.data
 
     def setParamCallback(self, msg):
+        """Sets the image height and width parameters for the camera.
+        One time callback, kills itself after it's done."""
         self.img_height = msg.height
         self.img_width = msg.width
         self.destroy_subscription(self.oneTimeSub)
 
     def depth_image_callback(self, msg):
+        """Callback for the depth image. Sets the depth image to the class variable, as a cv2 image."""
         # self.lastMessage = int(time.time()*1000.0)
         self.depth_image = self.bridge.imgmsg_to_cv2(msg, msg.encoding)
 
     def publish_distance(self):
+        """does the actual math to determine if the conveyor is ready to offload. Publishes a bool to the readyDump topic.
+        Called every POLLRATE seconds.
+        Will kill the node after 5 seconds of not receiving a depth image / throwing consecutive errors."""
         if self.depth_image is None:
             pass
         # if self.lastMessage - int(time.time()*1000.0) > 5000:
         #     self.destroy_node()
         try:
-            if self.depth_image is None:
-                self.destroy_subscription(self.subscriber)
+            """Cropping the image"""
             depth = self.depth_image
 
             # find the degrees of vision occupied by the conveyor belt
@@ -81,6 +88,7 @@ class ros_check_load(Node):
             denoised_image = cv2.GaussianBlur(depth, (5, 5), 0)
             resized_img = denoised_image[center_y - change_y : center_y + change_y, center_x - change_x : center_x + change_x]
 
+            """Analyzing image, posting to topic"""
             if resized_img.mean() <= DISTANCETHRESH + self.conveyor_height:
                 self.prior_checks.append(True)
             else:
@@ -93,17 +101,24 @@ class ros_check_load(Node):
                     msg.data = True
                 else:
                     msg.data = False
+                self.errorCount = 0
                 self.pub.publish(msg)
+
+            """Error Handling"""
         except cv2.error as e:
             self.get_logger().fatal(f"Something critically wrong with camera: {e}")
             self.get_logger().fatal("Killing check_load node")
             self.destroy_node()
             return
         except Exception as e:
+            self.errorCount += 1
             if e == "NoneType" or e == "ZeroDivisionError":
                 self.get_logger().fatal(f"Error: Realsense not publishing to topic: {e}")
             else:
                 self.get_logger().fatal(f"Error: {e}")
+            if(self.errorCount > 5 / POLLRATE):
+                self.get_logger().fatal(f"Killing check_load node. it threw {self.errorCount} consecutive errors")
+                self.destroy_node()
             return
 
 
@@ -112,7 +127,7 @@ def main(args=None):
     rclpy.init(args=args)
     
     node = ros_check_load()
-    node.get_logger().info("Initializing the Conveyor subsystem!")
+    node.get_logger().info("Starting the depth camera for check_load")
     rclpy.spin(node)
 
     node.destroy_node()
