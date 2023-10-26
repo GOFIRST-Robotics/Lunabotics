@@ -104,7 +104,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].dutyCycle;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
   // Get the current velocity of the motor in RPM (Rotations Per Minute)
@@ -112,7 +112,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].velocity;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
   // Get the current position of the motor
@@ -120,7 +120,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].position;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
   // Get the current draw of the motor in amps
@@ -128,7 +128,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].current;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
 
@@ -148,11 +148,6 @@ public:
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can1/transmit", 100);
     // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
-
-    // Initialize the can_data hashmap by adding all of the motors to it
-    for (uint32_t id = 1; id <= NUMBER_OF_MOTORS; id++) {
-      this->can_data[id] = {0, 0, 0, 0, std::chrono::steady_clock::now()};
-    }
   }
 
 private:
@@ -171,10 +166,18 @@ private:
     uint32_t motorId = can_msg->id & 0xFF;
     uint32_t statusId = (can_msg->id >> 8) & 0xFF; // Packet Status, not frame ID
 
-    float dutyCycleNow = this->can_data[motorId].dutyCycle;
-    float RPM = this->can_data[motorId].velocity;
-    float current = this->can_data[motorId].current;
-    float position = this->can_data[motorId].position;
+    // TODO: This chunk of code below can probably be simplified somehow
+    float dutyCycleNow = 0;
+    float RPM = 0;
+    float current = 0;
+    float position = 0;
+    if (this->can_data.count(motorId) == 1) {
+      // If 'motorId' is found in 'can_data', update the variables with the corresponding values
+      dutyCycleNow = this->can_data[motorId].dutyCycle;
+      RPM = this->can_data[motorId].velocity;
+      current = this->can_data[motorId].current;
+      position = this->can_data[motorId].position;
+    }
 
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
