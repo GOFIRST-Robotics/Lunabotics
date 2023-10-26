@@ -29,8 +29,8 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS
-const uint32_t NUMBER_OF_MOTORS = 8;
+// Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS // TODO: Ensure that this is true on the final robot
+const uint32_t NUMBER_OF_MOTORS = 8; // TODO: Update this with the correct number of motors on the final robot
 
 // Define a struct to store motor data
 struct MotorData {
