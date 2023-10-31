@@ -9,10 +9,10 @@ import rclpy
 from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import MotorCommandSet
+from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, Stop, SetHeight
 
-from std_msgs.msg import Bool, Float32
+# from std_msgs.msg import Bool, Float32
 
 
 class ConveyorNode(Node):
@@ -32,7 +32,7 @@ class ConveyorNode(Node):
         self.srv_set_power_Pulley = self.create_service(SetPower, "pulley/setPower", self.set_power_pulley_callback)
         self.publisher_height = self.create_publisher(Float32, "/conveyor/height")
         self.publisher_goal_reached = self.create_publisher(Bool, "/conveyor/goal_reached")
-        
+
         # Define timers here
         self.timer = self.create_timer(0.1, self.timer_callback)
 
@@ -45,10 +45,18 @@ class ConveyorNode(Node):
         # Current goal height
         self.current_goal_height = 0  # relative encoders always initialize to 0
         # Goal Threshold (if abs(self.current_goal_height - ACTUAL VALUE) <= self.goal_threshold then we should publish True to /conveyor/goal_reached)
-        self.goal_threshold = 50
-        # ----------------------------------------------------------------
+        self.goal_threshold = 0.1
         # Current state of the pulley system
         self.pulley_running = False
+        # ----------------------------------------------------------------
+        # Circumference of height adjust motor
+        self.height_adjust_circumference = (
+            0.1  # meters # NOT FIXED: can be changed based on whatever the mechanical ppl want
+        )
+        # Gear ratio
+        self.gear_ratio = 1 / 1  # NOT FIXED: can be changed based on whatever the mechanical ppl want
+        # motor rotate 360 degrees -> self.height_adjust_circumference / self.gear_ratio
+        # ----------------------------------------------------------------
 
     # Define subsystem methods here
     def set_power(self, conveyor_power: float) -> None:
@@ -74,9 +82,10 @@ class ConveyorNode(Node):
 
     def set_height(self, height: float) -> None:
         """This method sets the height of the conveyor."""
-        self.current_goal_height = height  # TODO: height parameter will be in meters but we need to convert to degrees to set position to the motor
+        height_degrees = (self.gear_ratio / height) * 360
+        self.current_goal_height = height  # goal height should be in meters
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=self.current_goal_height)
+            MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=height_degrees)
         )
 
     def stop_height_adjust(self) -> None:
@@ -132,16 +141,16 @@ class ConveyorNode(Node):
 
     # Define timer callback methods here
     def timer_callback(self):
-        """ Publishes the current height  """
-        height = # TODO: Define the height variable here by calling the MotorCommandGet service to get the current position of the height adjust motor...
-        # TODO: The value returned by the MotorCommandGet service will be in degrees, and we need to convert it to meters displaced from the top.
-        
+        """Publishes the current height"""
+        # The value returned by the MotorCommandGet service will be in degrees
+        height = MotorCommandGet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR)
+        height_meters = height / (360 * self.gear_ratio)
         msg_height = Float32()
-        msg_height.data = height  # TODO: the height variable hasn't been defined yet
+        msg_height.data = height_meters
         self.publisher_height.publish(msg_height)
 
         msg_goal_reached = Bool()
-        msg_goal_reached.data = abs(self.current_goal_height - height) <= self.goal_threshold  # TODO: the height variable hasn't been defined yet
+        msg_goal_reached.data = abs(self.current_goal_height - height_meters) <= self.goal_threshold
         self.publisher_goal_reached.publish(msg_goal_reached)
 
 
