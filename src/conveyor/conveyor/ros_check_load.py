@@ -1,4 +1,5 @@
 import rclpy
+from rclpy.executors import Executor
 from rclpy.node import Node
 from std_msgs.msg import Bool, Float32
 from sensor_msgs.msg import Image
@@ -36,7 +37,6 @@ class ros_check_load(Node):
         self.subscriber = self.create_subscription(Image, depth_image_topic, self.depth_image_callback, 10)
         self.timer = self.create_timer(POLLRATE, self.publish_distance)
         self.depth_image = None
-        # self.lastMessage = int(time.time()*1000.0)
         
 
     def setHeight(self, msg):
@@ -52,7 +52,6 @@ class ros_check_load(Node):
 
     def depth_image_callback(self, msg):
         """Callback for the depth image. Sets the depth image to the class variable, as a cv2 image."""
-        # self.lastMessage = int(time.time()*1000.0)
         self.depth_image = self.bridge.imgmsg_to_cv2(msg, msg.encoding)
 
     def publish_distance(self):
@@ -60,66 +59,51 @@ class ros_check_load(Node):
         Called every POLLRATE seconds.
         Will kill the node after 5 seconds of not receiving a depth image / throwing consecutive errors."""
         if self.depth_image is None:
-            pass
-        # if self.lastMessage - int(time.time()*1000.0) > 5000:
-        #     self.destroy_node()
-        try:
-            """Cropping the image"""
-            depth = self.depth_image
-
-            # find the degrees of vision occupied by the conveyor belt
-            perceptionChangeX = (
-                (2 * (math.atan((0.5 * CONVEYORSIZEX) / (self.conveyor_height + CONVEYORTOCAM)))) * (180 / math.pi)
-            )
-            perceptionChangeY = (
-                (2 * (math.atan((0.5 * CONVEYORSIZEY) / (self.conveyor_height + CONVEYORTOCAM)))) * (180 / math.pi)
-            )
-
-            percentFOVx = min(perceptionChangeX / 86, 1)
-            # compare the degrees of vision it would occupy to the FOV of the realsense
-            percentFOVy = min(perceptionChangeY / 57, 1)
-
-            change_x = (
-                int(self.img_width * percentFOVx / 2)
-            )   # get the number of pixels that it's occupying. divide by 2 so it's a +- situation
-            change_y = int((self.img_height * percentFOVy) / 2)
-
-            center_x, center_y = self.img_width // 2, self.img_height // 2
-            denoised_image = cv2.GaussianBlur(depth, (5, 5), 0)
-            resized_img = denoised_image[center_y - change_y : center_y + change_y, center_x - change_x : center_x + change_x]
-
-            """Analyzing image, posting to topic"""
-            if resized_img.mean() <= DISTANCETHRESH + self.conveyor_height:
-                self.prior_checks.append(True)
-            else:
-                self.prior_checks.append(False)
-
-            if len(self.prior_checks) >= CONSECUTIVECYCLES:
-                self.prior_checks.pop(0)
-                msg = Bool()
-                if False not in self.prior_checks:
-                    msg.data = True
-                else:
-                    msg.data = False
-                self.errorCount = 0
-                self.pub.publish(msg)
-
-            """Error Handling"""
-        except cv2.error as e:
-            self.get_logger().fatal(f"Something critically wrong with camera: {e}")
+            self.get_logger().fatal(f"Camera not working")
             self.get_logger().fatal("Killing check_load node")
             self.destroy_node()
             return
-        except Exception as e:
-            self.errorCount += 1
-            if e == "NoneType" or e == "ZeroDivisionError":
-                self.get_logger().fatal(f"Error: Realsense not publishing to topic: {e}")
+        
+        """Cropping the image"""
+        depth = self.depth_image
+
+        # find the degrees of vision occupied by the conveyor belt
+        perceptionChangeX = (
+            (2 * (math.atan((0.5 * CONVEYORSIZEX) / (self.conveyor_height + CONVEYORTOCAM)))) * (180 / math.pi)
+        )
+        perceptionChangeY = (
+            (2 * (math.atan((0.5 * CONVEYORSIZEY) / (self.conveyor_height + CONVEYORTOCAM)))) * (180 / math.pi)
+        )
+
+        percentFOVx = min(perceptionChangeX / 86, 1)
+        # compare the degrees of vision it would occupy to the FOV of the realsense
+        percentFOVy = min(perceptionChangeY / 57, 1)
+
+        change_x = (
+            int(self.img_width * percentFOVx / 2)
+        )   # get the number of pixels that it's occupying. divide by 2 so it's a +- situation
+        change_y = int((self.img_height * percentFOVy) / 2)
+
+        center_x, center_y = self.img_width // 2, self.img_height // 2
+        denoised_image = cv2.GaussianBlur(depth, (5, 5), 0)
+        resized_img = denoised_image[center_y - change_y : center_y + change_y, center_x - change_x : center_x + change_x]
+
+        """Analyzing image, posting to topic"""
+        if resized_img.mean() <= DISTANCETHRESH + self.conveyor_height:
+            self.prior_checks.append(True)
+        else:
+            self.prior_checks.append(False)
+
+        if len(self.prior_checks) >= CONSECUTIVECYCLES:
+            self.prior_checks.pop(0)
+            msg = Bool()
+            if False not in self.prior_checks:
+                msg.data = True
             else:
-                self.get_logger().fatal(f"Error: {e}")
-            if(self.errorCount > 5 / POLLRATE):
-                self.get_logger().fatal(f"Killing check_load node. it threw {self.errorCount} consecutive errors")
-                self.destroy_node()
-            return
+                msg.data = False
+            self.errorCount = 0
+            self.pub.publish(msg)
+            self.depth_image = None
 
 
 def main(args=None):
