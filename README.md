@@ -32,7 +32,7 @@ colcon build --symlink-install --packages-select rovr_control motor_control driv
 First, do the following before running run_dev.sh:
 
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.user.zed.realsense \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
+printf "CONFIG_IMAGE_KEY=ros2_humble.user.zed.realsense.umn \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
 ``` 
 Then run this command:
 
