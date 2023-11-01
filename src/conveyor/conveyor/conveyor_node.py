@@ -4,15 +4,13 @@
 # Last Updated: September 2023
 
 # Import the ROS 2 Python module
-from std_msgs.msg import Float32, Bool
 import rclpy
 from rclpy.node import Node
+from std_msgs.msg import Float32, Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, Stop, SetHeight
-
-# from std_msgs.msg import Bool, Float32
 
 
 class ConveyorNode(Node):
@@ -50,11 +48,9 @@ class ConveyorNode(Node):
         self.pulley_running = False
         # ----------------------------------------------------------------
         # Circumference of height adjust motor
-        self.height_adjust_circumference = (
-            0.1  # meters # NOT FIXED: can be changed based on whatever the mechanical ppl want
-        )
+        self.PULLEY_CIRCUMFERENCE = 0.1  # meters # TODO: Ask mechanical team for this value on the final robot
         # Gear ratio
-        self.gear_ratio = 1 / 1  # NOT FIXED: can be changed based on whatever the mechanical ppl want
+        self.PULLEY_GEAR_RATIO = 1 / 1  # TODO: Ask mechanical team for this value on the final robot
         # motor rotate 360 degrees -> self.height_adjust_circumference / self.gear_ratio
         # ----------------------------------------------------------------
 
@@ -81,9 +77,9 @@ class ConveyorNode(Node):
             self.set_power(conveyor_belt_power)
 
     def set_height(self, height: float) -> None:
-        """This method sets the height of the conveyor."""
-        height_degrees = (self.gear_ratio / height) * 360
+        """This method sets the height (in meters) of the conveyor."""
         self.current_goal_height = height  # goal height should be in meters
+        height_degrees = self.PULLEY_GEAR_RATIO * (height / self.PULLEY_CIRCUMFERENCE) * 360
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=height_degrees)
         )
@@ -141,17 +137,16 @@ class ConveyorNode(Node):
 
     # Define timer callback methods here
     def timer_callback(self):
-        """Publishes the current height"""
+        """Publishes the current height in meters and whether or not the goal height has been reached."""
         # The value returned by the MotorCommandGet service will be in degrees
-        height = MotorCommandGet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR)
-        height_meters = height / (360 * self.gear_ratio)
-        msg_height = Float32()
-        msg_height.data = height_meters
-        self.publisher_height.publish(msg_height)
+        height_degrees = MotorCommandGet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR)
+        height_meters = (height_degrees * self.PULLEY_CIRCUMFERENCE) / (360 * self.PULLEY_GEAR_RATIO)
 
-        msg_goal_reached = Bool()
-        msg_goal_reached.data = abs(self.current_goal_height - height_meters) <= self.goal_threshold
-        self.publisher_goal_reached.publish(msg_goal_reached)
+        height_msg = Float32(data=height_meters)
+        self.publisher_height.publish(height_msg)
+
+        goal_reached_msg = Bool(data=abs(self.current_goal_height - height_meters) <= self.goal_threshold)
+        self.publisher_goal_reached.publish(goal_reached_msg)
 
 
 def main(args=None):
