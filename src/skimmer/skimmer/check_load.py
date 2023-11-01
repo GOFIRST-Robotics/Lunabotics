@@ -6,7 +6,7 @@ import pyrealsense2 as rs
 
 YRESOLUTION = 480 # whatever y componenet (vertical) resolution the camera is
 XRESOLUTION = 640 # same as above, but in the x direction
-DISTANCETHRESH = .25 # how small should the distance between top and conveyor be before offload (in meters)?
+DISTANCETHRESH = .25 # how small should the distance between top and skimmer be before offload (in meters)?
 POLLRATE = 1 # Wait time between each distance check (in seconds)
 CONSECUTIVECYCLES = 4 # Make sure the reading is consistent
 
@@ -56,7 +56,7 @@ class check_load(Node):
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    print("Initializing the Conveyor subsystem!")
+    print("Initializing the Skimmer subsystem!")
 
     node = check_load()
     rclpy.spin(node)

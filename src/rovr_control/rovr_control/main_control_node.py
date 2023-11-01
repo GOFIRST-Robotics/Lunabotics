@@ -44,22 +44,22 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("conveyor_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("conveyor_height_manual_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("skimmer_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("skimmer_height_manual_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
-        self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
-        self.conveyor_height_manual_power = self.get_parameter("conveyor_height_manual_power").value
+        self.skimmer_belt_power = self.get_parameter("skimmer_belt_power").value
+        self.skimmer_height_manual_power = self.get_parameter("skimmer_height_manual_power").value
 
         # Print the ROS Parameters to the terminal below #
         print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
         print("max_drive_power has been set to:", self.max_drive_power)
         print("max_turn_power has been set to:", self.max_turn_power)
-        print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
-        print("conveyor_height_manual_power has been set to:", self.conveyor_height_manual_power)
+        print("skimmer_belt_power has been set to:", self.skimmer_belt_power)
+        print("skimmer_height_manual_power has been set to:", self.skimmer_height_manual_power)
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -68,7 +68,7 @@ class MainControlNode(Node):
         self.back_camera = None
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
-        self.conveyor_goal_reached = True
+        self.skimmer_goal_reached = True
 
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.apriltag_camera_offset = 0.1905  # Measured in Meters
@@ -79,10 +79,10 @@ class MainControlNode(Node):
         self.apriltagYaw = 0.0
 
         # Define service clients here
-        self.cli_conveyor_toggle = self.create_client(SetPower, "conveyor/toggle")
-        self.cli_conveyor_stop = self.create_client(Stop, "conveyor/stop")
-        self.cli_conveyor_setPower = self.create_client(SetPower, "conveyor/setPower")
-        self.cli_conveyor_setHeight = self.create_client(SetHeight, "conveyor/setHeight")
+        self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
+        self.cli_skimmer_stop = self.create_client(Stop, "skimmer/stop")
+        self.cli_skimmer_setPower = self.create_client(SetPower, "skimmer/setPower")
+        self.cli_skimmer_setHeight = self.create_client(SetHeight, "skimmer/setHeight")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -92,13 +92,13 @@ class MainControlNode(Node):
         self.apriltag_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, "apriltag_pose", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.apriltags_subscription = self.create_subscription(TFMessage, "tf", self.apriltags_callback, 10)
-        # TODO: Subscribe to /conveyor/goal_reached
+        # TODO: Subscribe to /skimmer/goal_reached
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor
+        self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-        # TODO: Stop the conveyor pulley system (height adjust) using the new service
+        # TODO: Stop the skimmer pulley system (height adjust) using the new service
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -109,16 +109,16 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously digging!"""
         print("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
-            await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=2000)) # Lower the conveyor into the ground # TODO: Adjust this height
-            # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
+            await self.cli_skimmer_setPower.call_async(SetPower.Request(skimmer_belt_power=self.skimmer_belt_power))
+            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=2000)) # Lower the skimmer into the ground # TODO: Adjust this height
+            # TODO: Wait for the goal height to be reached (wait for a True message on /skimmer/goal_reached)
             # Start driving forward
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
-            # TODO: Drive forward until our conveyor is full OR we reach the end of the arena OR we reach an obstacle
+            # TODO: Drive forward until our skimmer is full OR we reach the end of the arena OR we reach an obstacle
             await self.cli_drivetrain_stop.call_async(Stop.Request())
-            await self.cli_conveyor_stop.call_async(Stop.Request())
-            await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=500)) # Raise the conveyor back up a bit # TODO: Adjust this height
-            # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
+            await self.cli_skimmer_stop.call_async(Stop.Request())
+            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=500)) # Raise the skimmer back up a bit # TODO: Adjust this height
+            # TODO: Wait for the goal height to be reached (wait for a True message on /skimmer/goal_reached)
             print("Autonomous Digging Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
@@ -131,12 +131,12 @@ class MainControlNode(Node):
         try:  # Wrap the autonomous procedure in a try-except
             # TODO: Send the robot to the proper offloading coordinates using SLAM
             await self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-            await self.cli_conveyor_setHeight.call_async(SetHeight.Request(height=0)) # Raise up the conveyor in preparation for dumping # TODO: Adjust this height
-            # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
+            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=0)) # Raise up the skimmer in preparation for dumping # TODO: Adjust this height
+            # TODO: Wait for the goal height to be reached (wait for a True message on /skimmer/goal_reached)
             print("Commence Offloading!")
-            await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
+            await self.cli_skimmer_setPower.call_async(SetPower.Request(skimmer_belt_power=self.skimmer_belt_power))
             await asyncio.sleep(10) # How long to offload for
-            await self.cli_conveyor_stop.call_async(Stop.Request()) # Stop the conveyor belt
+            await self.cli_skimmer_stop.call_async(Stop.Request()) # Stop the skimmer belt
             print("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
@@ -182,12 +182,12 @@ class MainControlNode(Node):
             turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(Twist(linear=Vector3(x=drive_power), angular=Vector3(z=turn_power)))
 
-            # Check if the conveyor button is pressed #
+            # Check if the skimmer button is pressed #
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                self.cli_conveyor_toggle.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
+                self.cli_skimmer_toggle.call_async(SetPower.Request(skimmer_belt_power=self.skimmer_belt_power))
 
-            # TODO: Manually adjust the height of the conveyor with the left and right triggers
-            # Use the conveyor_height_manual_power parameter and the MotorSet service
+            # TODO: Manually adjust the height of the skimmer with the left and right triggers
+            # Use the skimmer_height_manual_power parameter and the MotorSet service
             
         # THE CONTROLS BELOW ALWAYS WORK #
 
@@ -244,7 +244,7 @@ class MainControlNode(Node):
             buttons[index] = msg.buttons[index]
 
 
-# TODO: define a callback function for the /conveyor/goal_reached subscriber that updates  self.conveyor_goal_reached accordingly
+# TODO: define a callback function for the /skimmer/goal_reached subscriber that updates  self.skimmer_goal_reached accordingly
 
 async def spin(executor: SingleThreadedExecutor) -> None:
     """This function is called in the main function to run the executor."""

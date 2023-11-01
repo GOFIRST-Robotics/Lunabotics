@@ -25,15 +25,15 @@ def generate_launch_description():
         executable="drivetrain_node",
         name="drivetrain_node",
     )
-    conveyor = Node(
-        package="conveyor",
-        executable="conveyor_node",
-        name="conveyor_node",
+    skimmer = Node(
+        package="skimmer",
+        executable="skimmer_node",
+        name="skimmer_node",
     )
 
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
     ld.add_action(drivetrain)
-    ld.add_action(conveyor)
+    ld.add_action(skimmer)
 
     return ld

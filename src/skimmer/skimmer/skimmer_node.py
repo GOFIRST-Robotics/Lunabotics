@@ -1,4 +1,4 @@
-# This ROS 2 node contains code for the conveyor subsystem of the robot.
+# This ROS 2 node contains code for the skimmer subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: September 2023
@@ -13,36 +13,36 @@ from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, Stop, SetHeight
 
 
-class ConveyorNode(Node):
+class SkimmerNode(Node):
     def __init__(self):
-        """Initialize the ROS 2 conveyor node."""
-        super().__init__("conveyor")
+        """Initialize the ROS 2 skimmer node."""
+        super().__init__("skimmer")
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
         # Define services (methods callable from the outside) here
-        self.srv_toggle = self.create_service(SetPower, "conveyor/toggle", self.toggle_callback)
-        self.srv_stop = self.create_service(Stop, "conveyor/stop", self.stop_callback)
-        self.srv_setPower = self.create_service(SetPower, "conveyor/setPower", self.set_power_callback)
-        self.srv_setHeight = self.create_service(SetHeight, "conveyor/setHeight", self.set_height_callback)
+        self.srv_toggle = self.create_service(SetPower, "skimmer/toggle", self.toggle_callback)
+        self.srv_stop = self.create_service(Stop, "skimmer/stop", self.stop_callback)
+        self.srv_setPower = self.create_service(SetPower, "skimmer/setPower", self.set_power_callback)
+        self.srv_setHeight = self.create_service(SetHeight, "skimmer/setHeight", self.set_height_callback)
         self.srv_stop_height_adjust = self.create_service(Stop, "pulley/stop", self.stop_height_callback)
         self.srv_set_power_Pulley = self.create_service(SetPower, "pulley/setPower", self.set_power_pulley_callback)
-        self.publisher_height = self.create_publisher(Float32, "/conveyor/height")
-        self.publisher_goal_reached = self.create_publisher(Bool, "/conveyor/goal_reached")
+        self.publisher_height = self.create_publisher(Float32, "/skimmer/height")
+        self.publisher_goal_reached = self.create_publisher(Bool, "/skimmer/goal_reached")
 
         # Define timers here
         self.timer = self.create_timer(0.1, self.timer_callback)
 
         # Define motor CAN IDs here
-        self.CONVEYOR_BELT_MOTOR = 9
+        self.SKIMMER_BELT_MOTOR = 9
         self.HEIGHT_ADJUST_MOTOR = 10
 
-        # Current state of the conveyor belt
+        # Current state of the skimmer belt
         self.running = False
         # Current goal height
         self.current_goal_height = 0  # relative encoders always initialize to 0
-        # Goal Threshold (if abs(self.current_goal_height - ACTUAL VALUE) <= self.goal_threshold then we should publish True to /conveyor/goal_reached)
+        # Goal Threshold (if abs(self.current_goal_height - ACTUAL VALUE) <= self.goal_threshold then we should publish True to /skimmer/goal_reached)
         self.goal_threshold = 0.1
         # Current state of the pulley system
         self.pulley_running = False
@@ -55,29 +55,29 @@ class ConveyorNode(Node):
         # ----------------------------------------------------------------
 
     # Define subsystem methods here
-    def set_power(self, conveyor_power: float) -> None:
-        """This method sets power to the conveyor belt."""
+    def set_power(self, skimmer_power: float) -> None:
+        """This method sets power to the skimmer belt."""
         self.running = True
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=conveyor_power)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.SKIMMER_BELT_MOTOR, value=skimmer_power)
         )
 
     def stop(self) -> None:
-        """This method stops the conveyor belt."""
+        """This method stops the skimmer belt."""
         self.running = False
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.CONVEYOR_BELT_MOTOR, value=0.0)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.SKIMMER_BELT_MOTOR, value=0.0)
         )
 
-    def toggle(self, conveyor_belt_power: float) -> None:
-        """This method toggles the conveyor belt."""
+    def toggle(self, skimmer_belt_power: float) -> None:
+        """This method toggles the skimmer belt."""
         if self.running:
             self.stop()
         else:
-            self.set_power(conveyor_belt_power)
+            self.set_power(skimmer_belt_power)
 
     def set_height(self, height: float) -> None:
-        """This method sets the height (in meters) of the conveyor."""
+        """This method sets the height (in meters) of the skimmer."""
         self.current_goal_height = height  # goal height should be in meters
         height_degrees = self.PULLEY_GEAR_RATIO * (height / self.PULLEY_CIRCUMFERENCE) * 360
         self.cli_motor_set.call_async(
@@ -100,25 +100,25 @@ class ConveyorNode(Node):
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
-        """This service request sets power to the conveyor belt."""
+        """This service request sets power to the skimmer belt."""
         self.set_power(request.power)
         response.success = 0  # indicates success
         return response
 
     def stop_callback(self, request, response):
-        """This service request stops the conveyor belt."""
+        """This service request stops the skimmer belt."""
         self.stop()
         response.success = 0  # indicates success
         return response
 
     def toggle_callback(self, request, response):
-        """This service request toggles the conveyor belt."""
+        """This service request toggles the skimmer belt."""
         self.toggle(request.power)
         response.success = 0  # indicates success
         return response
 
     def set_height_callback(self, request, response):
-        """This service request sets the height of the conveyor."""
+        """This service request sets the height of the skimmer."""
         self.set_height(request.height)
         response.success = 0  # indicates success
         return response
@@ -130,7 +130,7 @@ class ConveyorNode(Node):
         return response
 
     def set_power_pulley_callback(self, request, response):
-        """This service request sets power to the conveyor belt."""
+        """This service request sets power to the skimmer belt."""
         self.set_power_Pulley(request.power)
         response.success = 0  # indicates success
         return response
@@ -153,8 +153,8 @@ def main(args=None):
     """The main function."""
     rclpy.init(args=args)
 
-    node = ConveyorNode()
-    node.get_logger().info("Initializing the Conveyor subsystem!")
+    node = SkimmerNode()
+    node.get_logger().info("Initializing the Skimmer subsystem!")
     rclpy.spin(node)
 
     node.destroy_node()
