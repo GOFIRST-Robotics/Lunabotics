@@ -17,11 +17,6 @@
   <build_depend>geometry_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>tf2_msgs</build_depend>
-  <build_depend>isaac_ros_nvblox</build_depend>
-  <build_depend>zed_wrapper</build_depend>
-  <build_depend>nvblox_rviz_plugin</build_depend>
-  <build_depend>nvblox_examples_bringup</build_depend>
-  <build_depend>nvblox_nav2</build_depend>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
@@ -32,11 +27,6 @@
   <exec_depend>motor_control</exec_depend>
   <exec_depend>joy</exec_depend>
   <exec_depend>rovr_interfaces</exec_depend>
-  <exec_depend>isaac_ros_nvblox</exec_depend>
-  <exec_depend>zed_wrapper</exec_depend>
-  <exec_depend>nvblox_rviz_plugin</exec_depend>
-  <exec_depend>nvblox_examples_bringup</exec_depend>
-  <exec_depend>nvblox_nav2</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

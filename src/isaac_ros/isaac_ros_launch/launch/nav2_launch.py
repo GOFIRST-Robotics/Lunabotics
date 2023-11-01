@@ -32,7 +32,7 @@ from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
-    bringup_dir = get_package_share_directory("rovr_control")
+    bringup_dir = get_package_share_directory("isaac_ros_launch")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
     # Launch Arguments
