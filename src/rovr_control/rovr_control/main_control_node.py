@@ -171,7 +171,7 @@ class MainControlNode(Node):
         # PUT TELEOP CONTROLS BELOW #
 
         if self.state == states["Teleop"]:
-            # Drive the robot using joystick input during Teleop
+            # Drive the robot using joystick input during Teleop # TODO: Fix the below code for swerve drive
             drive_power = msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
             turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(Twist(linear=Vector3(x=drive_power), angular=Vector3(z=turn_power)))
