@@ -78,8 +78,6 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward power and turning power."""
 
-        # TODO: (WIP) This drive() method needs to be completely rewritten for swerve
-        # Look up swerve drive kinematics equations and write code here to implement them
         # Essentially, we need to take the forward_power (y), horizontal_power(x), and turning_power (omega)
         # and compute the what the angles and powers of all 4 swerve modules should be.
 
