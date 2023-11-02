@@ -20,6 +20,7 @@ class SkimmerNode(Node):
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
+        self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(SetPower, "skimmer/toggle", self.toggle_callback)
@@ -28,8 +29,8 @@ class SkimmerNode(Node):
         self.srv_setHeight = self.create_service(SetHeight, "skimmer/setHeight", self.set_height_callback)
         self.srv_stop_height_adjust = self.create_service(Stop, "pulley/stop", self.stop_height_callback)
         self.srv_set_power_Pulley = self.create_service(SetPower, "pulley/setPower", self.set_power_pulley_callback)
-        self.publisher_height = self.create_publisher(Float32, "/skimmer/height")
-        self.publisher_goal_reached = self.create_publisher(Bool, "/skimmer/goal_reached")
+        self.publisher_height = self.create_publisher(Float32, "/skimmer/height", 10)
+        self.publisher_goal_reached = self.create_publisher(Bool, "/skimmer/goal_reached", 10)
 
         # Define timers here
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -139,7 +140,9 @@ class SkimmerNode(Node):
     def timer_callback(self):
         """Publishes the current height in meters and whether or not the goal height has been reached."""
         # The value returned by the MotorCommandGet service will be in degrees
-        height_degrees = MotorCommandGet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR)
+        height_degrees = self.cli_motor_get.call_async(
+            MotorCommandGet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR)
+        )
         height_meters = (height_degrees * self.PULLEY_CIRCUMFERENCE) / (360 * self.PULLEY_GEAR_RATIO)
 
         height_msg = Float32(data=height_meters)

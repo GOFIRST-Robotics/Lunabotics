@@ -101,7 +101,7 @@ class MotorControlNode : public rclcpp::Node {
 
   // Get the current duty cycle of the motor
   float vesc_get_duty_cycle(uint32_t id) {
-    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+    if (this->can_data.count(id) == 1 && std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].dutyCycle;
     } else {
       return -999; // Return -999 if the data is stale
@@ -109,7 +109,7 @@ class MotorControlNode : public rclcpp::Node {
   }
   // Get the current velocity of the motor in RPM (Rotations Per Minute)
   float vesc_get_velocity(uint32_t id) {
-    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+    if (this->can_data.count(id) == 1 && std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].velocity;
     } else {
       return -999; // Return -999 if the data is stale
@@ -117,7 +117,7 @@ class MotorControlNode : public rclcpp::Node {
   }
   // Get the current position of the motor
   float vesc_get_position(uint32_t id) {
-    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+    if (this->can_data.count(id) == 1 && std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].position;
     } else {
       return -999; // Return -999 if the data is stale
@@ -125,7 +125,7 @@ class MotorControlNode : public rclcpp::Node {
   }
   // Get the current draw of the motor in amps
   float vesc_get_current(uint32_t id) {
-    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+    if (this->can_data.count(id) == 1 && std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].current;
     } else {
       return -999; // Return -999 if the data is stale
@@ -229,16 +229,16 @@ private:
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Response> response) {
     if (request->type == "velocity") {
       response->result = vesc_get_velocity(request->can_id);
-      response->success = response->result == -1 ? 0 : 1;
+      response->success = response->result == -999 ? 0 : 1;
     } else if (request->type == "duty_cycle") {
       response->result = vesc_get_duty_cycle(request->can_id);
-      response->success = response->success = response->result == -1 ? 0 : 1;
+      response->success = response->result == -999 ? 0 : 1;
     } else if (request->type == "position") {
       response->result = vesc_get_position(request->can_id);
-      response->success = response->success = response->result == -1 ? 0 : 1;
+      response->success = response->result == -999 ? 0 : 1;
     } else if (request->type == "current") {
       response->result = vesc_get_current(request->can_id);
-      response->success = response->success = response->result == -1 ? 0 : 1;
+      response->success = response->result == -999 ? 0 : 1;
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
       response->success = 1; // indicates failure
