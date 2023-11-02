@@ -3,6 +3,8 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: October 2023
 
+import math 
+
 # Import the ROS 2 module
 import rclpy
 from rclpy.node import Node
@@ -78,18 +80,35 @@ class DrivetrainNode(Node):
 
         # TODO: (WIP) This drive() method needs to be completely rewritten for swerve
         # Look up swerve drive kinematics equations and write code here to implement them
-        # Essentially, we need to take the forward_power, horizontal_power, and turning_power
+        # Essentially, we need to take the forward_power (y), horizontal_power(x), and turning_power (omega)
         # and compute the what the angles and powers of all 4 swerve modules should be.
 
-        # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)] # TODO: Calculate these
-        back_left_vector = [_______, _______]
-        front_left_vector = [_______, _______]
-        back_right_vector = [_______, _______]
-        front_right_vector = [_______, _______]
+        # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)] 
 
+        wheel_base = 1  
+        #half of the wheelbase length, change value later
+        track_width = 1 
+        #half of the trackwidth length, change value later
+
+        #Writing equations to simplify expressions
+        A = horizontal_power - turning_power*wheel_base 
+        B = horizontal_power + turning_power*wheel_base
+        C = forward_power - turning_power*track_width
+        D = forward_power + turning_power*track_width
+
+        #Gives speed and angle for each module
+        back_left_vector = [math.sqrt(A**2 + D**2), math.atan(A,D)*180/math.pi]
+        front_left_vector = [math.sqrt(B**2 + D**2), math.atan2(B,D)*180/math.pi]
+        back_right_vector = [math.sqrt(A**2 + C**2), math.atan2(A,C)*180/math.pi]
+        front_right_vector = [math.sqrt(B**2 + C**2), math.atan2(B,C)*180/math.pi]
+
+        #Normalizing speeds
         largest_power = max([back_left_vector[0], front_left_vector[0], back_right_vector[0], front_right_vector[0]])
         if largest_power > 1.0:
-            pass  # TODO: normalize wheel speeds
+            back_left_vector[0] = back_left_vector[0]/largest_power
+            front_left_vector[0] = front_left_vector[0]/largest_power
+            back_right_vector[0] = back_right_vector[0]/largest_power
+            front_right_vector[0] = front_right_vector[0]/largest_power 
 
         self.back_left.set_power(back_left_vector[0])
         self.front_left.set_power(front_left_vector[0])
