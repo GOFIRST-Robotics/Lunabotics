@@ -10,6 +10,6 @@
             grab_frame_rate: 30 # ZED SDK internal grabbing rate
 
         depth:
-            min_depth: 0.2 # Min: 0.2, Max: 3.0     Was 0.5 from zed2.yaml
-            max_depth: 10.0 # Max: 40.0             Was 5.0 from zed2.yaml
+            min_depth: 0.2 # Min: 0.2, Max: 3.0     
+            max_depth: 20.0 # Max: 40.0            
 
