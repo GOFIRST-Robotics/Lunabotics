@@ -95,27 +95,27 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration("run_rviz")),
     )
     # Nav2
-    # nav2_param_file = os.path.join("config", "nav2_isaac_sim.yaml")
-    # param_substitutions = {
-    #     "global_frame": LaunchConfiguration("global_frame", default="odom")
-    # }
-    # configured_params = RewrittenYaml(
-    #     source_file=nav2_param_file,
-    #     root_key="",
-    #     param_rewrites=param_substitutions,
-    #     convert_types=True,
-    # )
+    nav2_param_file = os.path.join("config", "nav2_isaac_sim.yaml")
+    param_substitutions = {
+        "global_frame": LaunchConfiguration("global_frame", default="odom")
+    }
+    configured_params = RewrittenYaml(
+        source_file=nav2_param_file,
+        root_key="",
+        param_rewrites=param_substitutions,
+        convert_types=True,
+    )
     # nav2 launch
-    # nav2_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(
-    #         os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")
-    #     ),
-    #     launch_arguments={
-    #         "use_sim_time": "False",
-    #         "params_file": configured_params,
-    #         "autostart": "True",
-    #     }.items(),
-    # )
+    nav2_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")
+        ),
+        launch_arguments={
+            "use_sim_time": "False",
+            "params_file": configured_params,
+            "autostart": "True",
+        }.items(),
+    )
 
     return LaunchDescription(
         [
@@ -125,6 +125,6 @@ def generate_launch_description():
             zed_launch,
             nvblox_launch,
             rviz_launch,
-            # nav2_launch,
+            nav2_launch,
         ]
     )
