@@ -78,15 +78,14 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward, horizontal and turning power."""
 
-        # Essentially, we need to take the forward_power (y), horizontal_power(x), and turning_power (omega)
+        # Essentially, we need to take the forward_power (y), horizontal_power(x), and turning_power (z)
         # and compute the what the angles and powers of all 4 swerve modules should be.
 
         # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)] 
 
-        wheel_base = 1  
-        #half of the wheelbase length, change value later
-        track_width = 1 
-        #half of the trackwidth length, change value later
+        #TODO: Get specifc measurements for wheel_base and track_width
+        wheel_base = 1     #half of the wheelbase length, change value later
+        track_width = 1  #half of the trackwidth length, change value later
 
         #Writing equations to simplify expressions
         A = horizontal_power - turning_power*wheel_base 
@@ -138,7 +137,7 @@ class DrivetrainNode(Node):
     # Define subscriber callback methods here
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.x, msg.linear.y, msg.angular.z)  # TODO: Double check if this is correct
+        self.drive(msg.linear.y, msg.linear.x, msg.angular.z)  
 
 
 def main(args=None):
