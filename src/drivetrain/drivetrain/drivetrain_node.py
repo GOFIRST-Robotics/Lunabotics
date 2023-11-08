@@ -19,12 +19,11 @@ from rovr_interfaces.srv import Stop, Drive
 
 # This class represents an individual swerve module
 class SwerveModule:
-    def __init__(self, drive_motor, turning_motor):
+    def __init__(self, drive_motor, turning_motor, motor_set):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
+        self.cli_motor_set = motor_set
 
-        # Define service clients here
-        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
@@ -50,7 +49,9 @@ class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
         super().__init__("drivetrain")
-
+        #Define service clients here
+        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
+        
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
 
@@ -69,10 +70,10 @@ class DrivetrainNode(Node):
         self.front_right_turn = 8
 
         # Create each swerve module using
-        self.back_left = SwerveModule(self.back_left_drive, self.back_left_turn)
-        self.front_left = SwerveModule(self.front_left_drive, self.front_left_turn)
-        self.back_right = SwerveModule(self.back_right_drive, self.back_right_turn)
-        self.front_right = SwerveModule(self.front_right_drive, self.front_right_turn)
+        self.back_left = SwerveModule(self.back_left_drive, self.back_left_turn, self.cli_motor_set)
+        self.front_left = SwerveModule(self.front_left_drive, self.front_left_turn, self.cli_motor_set)
+        self.back_right = SwerveModule(self.back_right_drive, self.back_right_turn, self.cli_motor_set)
+        self.front_right = SwerveModule(self.front_right_drive, self.front_right_turn, self.cli_motor_set)
 
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
@@ -94,7 +95,7 @@ class DrivetrainNode(Node):
         D = forward_power + turning_power*track_width
 
         #Gives speed and angle for each module
-        back_left_vector = [math.sqrt(A**2 + D**2), math.atan(A,D)*180/math.pi]
+        back_left_vector = [math.sqrt(A**2 + D**2), math.atan2(A,D)*180/math.pi]
         front_left_vector = [math.sqrt(B**2 + D**2), math.atan2(B,D)*180/math.pi]
         back_right_vector = [math.sqrt(A**2 + C**2), math.atan2(A,C)*180/math.pi]
         front_right_vector = [math.sqrt(B**2 + C**2), math.atan2(B,C)*180/math.pi]
@@ -107,6 +108,7 @@ class DrivetrainNode(Node):
             back_right_vector[0] = back_right_vector[0]/largest_power
             front_right_vector[0] = front_right_vector[0]/largest_power 
 
+        # TODO: optimize turning
         self.back_left.set_power(back_left_vector[0])
         self.front_left.set_power(front_left_vector[0])
         self.back_right.set_power(back_right_vector[0])
@@ -117,6 +119,7 @@ class DrivetrainNode(Node):
         self.back_right.set_angle(back_right_vector[1])
         self.front_right.set_angle(front_right_vector[1])
 
+        
     def stop(self) -> None:
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0, 0.0)
