@@ -97,35 +97,35 @@ class MotorControlNode : public rclcpp::Node {
   }
 
   // Get the current duty cycle of the motor
-  float vesc_get_duty_cycle(uint32_t id) {
+  std::optional<float> vesc_get_duty_cycle(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].dutyCycle;
     } else {
-      return -999; // Return -999 if the data is stale
+      return std::nullopt; // The data is too stale
     }
   }
   // Get the current velocity of the motor in RPM (Rotations Per Minute)
-  float vesc_get_velocity(uint32_t id) {
+  std::optional<float> vesc_get_velocity(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].velocity;
     } else {
-      return -999; // Return -999 if the data is stale
+      return std::nullopt; // The data is too stale
     }
   }
   // Get the current position of the motor
-  float vesc_get_position(uint32_t id) {
+  std::optional<float> vesc_get_position(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].position;
     } else {
-      return -999; // Return -999 if the data is stale
+      return std::nullopt; // The data is too stale
     }
   }
   // Get the current draw of the motor in amps
-  float vesc_get_current(uint32_t id) {
+  std::optional<float> vesc_get_current(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].current;
     } else {
-      return -999; // Return -999 if the data is stale
+      return std::nullopt; // The data is too stale
     }
   }
 
@@ -232,21 +232,26 @@ private:
   // Callback method for the MotorCommandGet service
   void get_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Request> request,
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Response> response) {
+
+    std::optional<float> data = std::nullopt;
     if (request->type == "velocity") {
-      response->result = vesc_get_velocity(request->can_id);
-      response->success = response->result == -999 ? 0 : 1;
+      data = vesc_get_velocity(request->can_id);
     } else if (request->type == "duty_cycle") {
-      response->result = vesc_get_duty_cycle(request->can_id);
-      response->success = response->success = response->result == -999 ? 0 : 1;
+      data = vesc_get_duty_cycle(request->can_id);
     } else if (request->type == "position") {
-      response->result = vesc_get_position(request->can_id);
-      response->success = response->success = response->result == -999 ? 0 : 1;
+      data = vesc_get_position(request->can_id);
     } else if (request->type == "current") {
-      response->result = vesc_get_current(request->can_id);
-      response->success = response->success = response->result == -999 ? 0 : 1;
+      data = vesc_get_current(request->can_id);
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
+    }
+
+    if (data.has_value()) {
+      response->result = data.value();
+      response->success = 0; // indicates success
+    } else {
       response->success = 1; // indicates failure
+      RCLCPP_ERROR(this->get_logger(), "GET command for CAN ID %u read stale data: %f", request->can_id, data.value());
     }
   }
 
