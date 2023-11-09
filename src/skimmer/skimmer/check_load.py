@@ -56,7 +56,7 @@ class check_load(Node):
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    print("Initializing the Skimmer subsystem!")
+    print("Initializing the check_load node!")
 
     node = check_load()
     rclpy.spin(node)
