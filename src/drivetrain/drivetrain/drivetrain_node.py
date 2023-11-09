@@ -62,42 +62,62 @@ class DrivetrainNode(Node):
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
 
-        # Assigning can_id motor to each swerve module
-        self.back_left_drive = 1
-        self.back_left_turn = 2
-        self.front_left_drive = 3
-        self.front_left_turn = 4
-        self.back_right_drive = 5
-        self.back_right_turn = 6
-        self.front_right_drive = 7
-        self.front_right_turn = 8
+        # Define default values for our ROS parameters below #
+        self.declare_parameter("BACK_LEFT_DRIVE", 1)
+        self.declare_parameter("BACK_LEFT_TURN", 2)
+        self.declare_parameter("FRONT_LEFT_DRIVE", 3)
+        self.declare_parameter("FRONT_LEFT_TURN", 4)
+        self.declare_parameter("BACK_RIGHT_DRIVE", 5)
+        self.declare_parameter("BACK_RIGHT_TURN", 6)
+        self.declare_parameter("FRONT_RIGHT_DRIVE", 7)
+        self.declare_parameter("FRONT_RIGHT_TURN", 8)
+        self.declare_parameter("WHEEL_BASE", 0.5)
+        self.declare_parameter("TRACK_WIDTH", 0.5)
+
+        # Assign the ROS Parameters to member variables below #
+        self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
+        self.BACK_LEFT_TURN = self.get_parameter("BACK_LEFT_TURN").value
+        self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
+        self.FRONT_LEFT_TURN = self.get_parameter("FRONT_LEFT_TURN").value
+        self.BACK_RIGHT_DRIVE = self.get_parameter("BACK_RIGHT_DRIVE").value
+        self.BACK_RIGHT_TURN = self.get_parameter("BACK_RIGHT_TURN").value
+        self.FRONT_RIGHT_DRIVE = self.get_parameter("FRONT_RIGHT_DRIVE").value
+        self.FRONT_RIGHT_TURN = self.get_parameter("FRONT_RIGHT_TURN").value
+        self.WHEEL_BASE = self.get_parameter("WHEEL_BASE").value
+        self.TRACK_WIDTH = self.get_parameter("TRACK_WIDTH").value
+
+        # Print the ROS Parameters to the terminal below #
+        print("BACK_LEFT_DRIVE has been set to:", self.BACK_LEFT_DRIVE)
+        print("BACK_LEFT_TURN has been set to:", self.BACK_LEFT_TURN)
+        print("FRONT_LEFT_DRIVE has been set to:", self.FRONT_LEFT_DRIVE)
+        print("FRONT_LEFT_TURN has been set to:", self.FRONT_LEFT_TURN)
+        print("BACK_RIGHT_DRIVE has been set to:", self.BACK_RIGHT_DRIVE)
+        print("BACK_RIGHT_TURN has been set to:", self.BACK_RIGHT_TURN)
+        print("FRONT_RIGHT_DRIVE has been set to:", self.FRONT_RIGHT_DRIVE)
+        print("FRONT_RIGHT_TURN has been set to:", self.FRONT_RIGHT_TURN)
+        print("WHEEL_BASE has been set to:", self.WHEEL_BASE)
+        print("TRACK_WIDTH has been set to:", self.TRACK_WIDTH)
 
         # Create each swerve module using
-        self.back_left = SwerveModule(self.back_left_drive, self.back_left_turn, self.cli_motor_set)
-        self.front_left = SwerveModule(self.front_left_drive, self.front_left_turn, self.cli_motor_set)
-        self.back_right = SwerveModule(self.back_right_drive, self.back_right_turn, self.cli_motor_set)
-        self.front_right = SwerveModule(self.front_right_drive, self.front_right_turn, self.cli_motor_set)
+        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set)
+        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self.cli_motor_set)
+        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set)
+        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set)
 
     # Define subsystem methods here
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward, horizontal and turning power."""
 
-        # Essentially, we need to take the forward_power (y), horizontal_power(x), and turning_power (z)
-        # and compute the what the angles and powers of all 4 swerve modules should be.
-
         # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
 
-        wheel_base = 1  # Half of the wheelbase length # TODO: change this value when we know the final measurements
-        track_width = 1  # Half of the trackwidth length # TODO: change this value when we know the final measurements
+        # Intermediate equations to simplify future expressions
+        A = horizontal_power - turning_power * self.WHEEL_BASE
+        B = horizontal_power + turning_power * self.WHEEL_BASE
+        C = forward_power - turning_power * self.TRACK_WIDTH
+        D = forward_power + turning_power * self.TRACK_WIDTH
 
-        # Writing equations to simplify expressions
-        A = horizontal_power - turning_power * wheel_base
-        B = horizontal_power + turning_power * wheel_base
-        C = forward_power - turning_power * track_width
-        D = forward_power + turning_power * track_width
-
-        # Gives desired speed and desired angle for each module
-        # Angle has range from 0 to 360 degrees
+        # Gives the desired speed and angle for each module
+        # Note: Angle has range from 0 to 360 degrees
         back_left_vector = [math.sqrt(A**2 + D**2), (math.atan2(A, D) * 180 / math.pi + 180) % 360]
         front_left_vector = [math.sqrt(B**2 + D**2), (math.atan2(B, D) * 180 / math.pi + 180) % 360]
         back_right_vector = [math.sqrt(A**2 + C**2), (math.atan2(A, C) * 180 / math.pi + 180) % 360]
