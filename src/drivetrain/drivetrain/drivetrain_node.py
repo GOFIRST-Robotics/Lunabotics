@@ -3,7 +3,7 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: October 2023
 
-import math 
+import math
 
 # Import the ROS 2 module
 import rclpy
@@ -24,7 +24,6 @@ class SwerveModule:
         self.turning_motor_can_id = turning_motor
         self.cli_motor_set = motor_set
 
-
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
 
@@ -37,7 +36,10 @@ class SwerveModule:
         )
 
     def get_absolute_angle(self) -> float:
-        pass  # TODO: Implement this method for reading the absolute encoder (save this for last)
+        pass  # TODO: Implement this method for reading the absolute encoder (save this for later)
+
+    def reset(self) -> None:
+        pass  # TODO: Implement this method for resetting our relative encoder offset based on the absolute encoder (save this for later)
 
     def set_state(self, power: float, angle: float) -> None:
         self.setPower(power)
@@ -49,9 +51,9 @@ class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
         super().__init__("drivetrain")
-        #Define service clients here
+        # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
-        
+
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
 
@@ -82,44 +84,43 @@ class DrivetrainNode(Node):
         # Essentially, we need to take the forward_power (y), horizontal_power(x), and turning_power (z)
         # and compute the what the angles and powers of all 4 swerve modules should be.
 
-        # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)] 
+        # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
 
-        #TODO: Get specifc measurements for wheel_base and track_width
-        wheel_base = 1     #half of the wheelbase length, change value later
-        track_width = 1  #half of the trackwidth length, change value later
+        wheel_base = 1  # Half of the wheelbase length # TODO: change this value when we know the final measurements
+        track_width = 1  # Half of the trackwidth length # TODO: change this value when we know the final measurements
 
-        #Writing equations to simplify expressions
-        A = horizontal_power - turning_power*wheel_base 
-        B = horizontal_power + turning_power*wheel_base
-        C = forward_power - turning_power*track_width
-        D = forward_power + turning_power*track_width
+        # Writing equations to simplify expressions
+        A = horizontal_power - turning_power * wheel_base
+        B = horizontal_power + turning_power * wheel_base
+        C = forward_power - turning_power * track_width
+        D = forward_power + turning_power * track_width
 
-        #Gives speed and angle for each module
-        back_left_vector = [math.sqrt(A**2 + D**2), math.atan2(A,D)*180/math.pi]
-        front_left_vector = [math.sqrt(B**2 + D**2), math.atan2(B,D)*180/math.pi]
-        back_right_vector = [math.sqrt(A**2 + C**2), math.atan2(A,C)*180/math.pi]
-        front_right_vector = [math.sqrt(B**2 + C**2), math.atan2(B,C)*180/math.pi]
+        # Gives speed and angle for each module
+        back_left_vector = [math.sqrt(A**2 + D**2), math.atan2(A, D) * 180 / math.pi]
+        front_left_vector = [math.sqrt(B**2 + D**2), math.atan2(B, D) * 180 / math.pi]
+        back_right_vector = [math.sqrt(A**2 + C**2), math.atan2(A, C) * 180 / math.pi]
+        front_right_vector = [math.sqrt(B**2 + C**2), math.atan2(B, C) * 180 / math.pi]
 
-        #Normalizing speeds
+        # Normalize wheel speeds if necessary
         largest_power = max([back_left_vector[0], front_left_vector[0], back_right_vector[0], front_right_vector[0]])
         if largest_power > 1.0:
-            back_left_vector[0] = back_left_vector[0]/largest_power
-            front_left_vector[0] = front_left_vector[0]/largest_power
-            back_right_vector[0] = back_right_vector[0]/largest_power
-            front_right_vector[0] = front_right_vector[0]/largest_power 
+            back_left_vector[0] = back_left_vector[0] / largest_power
+            front_left_vector[0] = front_left_vector[0] / largest_power
+            back_right_vector[0] = back_right_vector[0] / largest_power
+            front_right_vector[0] = front_right_vector[0] / largest_power
 
-        # TODO: optimize turning
+        # TODO: optimize turning of the wheels (they should never need to turn more than 90 degrees)
+
         self.back_left.set_power(back_left_vector[0])
         self.front_left.set_power(front_left_vector[0])
         self.back_right.set_power(back_right_vector[0])
         self.front_right.set_power(front_right_vector[0])
-        
+
         self.back_left.set_angle(back_left_vector[1])
         self.front_left.set_angle(front_left_vector[1])
         self.back_right.set_angle(back_right_vector[1])
         self.front_right.set_angle(front_right_vector[1])
 
-        
     def stop(self) -> None:
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0, 0.0)
@@ -140,7 +141,7 @@ class DrivetrainNode(Node):
     # Define subscriber callback methods here
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.y, msg.linear.x, msg.angular.z)  
+        self.drive(msg.linear.y, msg.linear.x, msg.angular.z)
 
 
 def main(args=None):

@@ -107,7 +107,9 @@ class MainControlNode(Node):
             # TODO: Lower the conveyor into the ground
             # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
             # Start driving forward
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0))
+            await self.cli_drivetrain_drive.call_async(
+                Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0)
+            )
             # TODO: Drive forward until our conveyor is full OR we reach the end of the arena OR we reach an obstacle
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_conveyor_stop.call_async(Stop.Request())
@@ -171,11 +173,13 @@ class MainControlNode(Node):
         # PUT TELEOP CONTROLS BELOW #
 
         if self.state == states["Teleop"]:
-            # Drive the robot using joystick input during Teleop 
+            # Drive the robot using joystick input during Teleop
             forward_power = msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
-            horizontal_power = msg.axes[RIGHT_JOYSTICK_HORIZONTAL_AXIS] * self.max_drive_power #Horizontal power
+            horizontal_power = msg.axes[RIGHT_JOYSTICK_HORIZONTAL_AXIS] * self.max_drive_power  # Horizontal power
             turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
-            self.drive_power_publisher.publish(Twist(linear=Vector3(x=horizontal_power, y=forward_power),angular=Vector3(z=turn_power)))
+            self.drive_power_publisher.publish(
+                Twist(linear=Vector3(x=horizontal_power, y=forward_power), angular=Vector3(z=turn_power))
+            )
 
             # Check if the conveyor button is pressed #
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
