@@ -35,7 +35,46 @@ struct MotorData {
   float velocity;
   float current;
   float position;
+  int32_t tachometer;
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
+};
+
+class PIDController {
+private:
+  float p_k;
+  float i_k;
+  float d_k;
+  float gravComp;
+
+  int32_t prevTach;
+  int32_t totalError;
+
+public:
+  PIDController(uint32_t motorId, float p_k, float i_k = 0, float d_k = 0, float gravComp) {
+    this->p_k = p_k;
+    this->i_k = i_k;
+    this->d_k = d_k;
+    this->gravComp = gravComp;
+  }
+
+  void update(int32_t currentTach) {
+    this->history.push_back(currentTach);
+
+    const int MOTOR_STEPS; // How many steps in the tachometer per rotation
+
+    float targetPosition; // Target rotation of the motor in 360 degrees
+
+    float currentPosition = (currentTach / MOTOR_STEPS) * 360; // in 360 degrees
+
+    float error = (targetPosition - currentPosition); // Whats the error
+
+    // this->vesc_set_duty_cycle(motorId, error * p_k); // Puts in the 
+    return (error * p_k)
+  }
+
+  void setTarget(float degree){
+
+  }
 };
 
 class MotorControlNode : public rclcpp::Node {
@@ -139,6 +178,7 @@ public:
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
+    
 
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
@@ -158,6 +198,10 @@ private:
     }
   }
 
+  void pid_callback() {
+
+  }
+
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {
     uint32_t motorId = can_msg->id & 0xFF;
@@ -165,15 +209,14 @@ private:
 
     // If 'motorId' is not found in the 'can_data' hashmap, add it.
     if (this->can_data.count(motorId) == 0) {
-      this->can_data[motorId] = {0, 0, 0, 0, std::chrono::steady_clock::now()};
+      this->can_data[motorId] = {0, 0, 0, 0, 0, std::chrono::steady_clock::now()};
     }
 
     float dutyCycleNow = this->can_data[motorId].dutyCycle;
     float RPM = this->can_data[motorId].velocity;
     float current = this->can_data[motorId].current;
     float position = this->can_data[motorId].position;
-
-    float tachometer = 0;
+    float tachometer = this->can_data[motorId].tachometer;
     
 
     switch (statusId) {
@@ -186,12 +229,12 @@ private:
       position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]); // TODO: Reading position has not been tested yet!
       break;
     case 27: // Packet Status 27 (Tachometer)
-      tachometer = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+      tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       break;
     }
 
     // Store the most recent motor data in the hashmap
-    this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
+    this->can_data[motorId] = {dutyCycleNow, RPM, current, position, tachometer, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
     // Prints everytime on "statusId" equal to 27
@@ -203,6 +246,7 @@ private:
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
   std::map<uint32_t, MotorData> can_data;
+  std::map<uint32_t, PIDController> pid_data;
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
 
