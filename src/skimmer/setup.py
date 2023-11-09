@@ -22,8 +22,8 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-        "skimmer_node = skimmer.skimmer_node:main", 
-        "check_load = skimmer.check_load:main"
+            "skimmer_node = skimmer.skimmer_node:main",
+            "ros_check_load = conveyor.ros_check_load:main",
         ],
     },
 )
