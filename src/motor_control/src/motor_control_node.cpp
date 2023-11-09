@@ -29,8 +29,8 @@ using namespace std::chrono_literals;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS // TODO: Ensure that this is true on the final robot
-const uint32_t NUMBER_OF_MOTORS = 8; // TODO: Update this with the correct number of motors on the final robot
+// Our VESC CAN IDs should be between 1 and NUMBER_OF_MOTORS
+const uint32_t NUMBER_OF_MOTORS = 8;
 
 // Define a struct to store motor data
 struct MotorData {
@@ -65,38 +65,31 @@ class MotorControlNode : public rclcpp::Node {
   void vesc_set_duty_cycle(uint32_t id, float percentPower) {
     // Do not allow setting more than 100% power in either direction
     percentPower = std::clamp(percentPower, (float)(-1), (float)(1));
+
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
+    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower);
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
   void vesc_set_velocity(uint32_t id, int rpm) {
     int32_t data = rpm;
 
-    send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
-    this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
+    send_can(id + 0x00000300, data); // ID must be modified to signify this is an RPM command
+    this->current_msg[id] = std::make_tuple(id + 0x00000300, data);                  // update the hashmap
+    // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print to the terminal
   }
 
-  // Set the position of the motor in degrees // TODO: Position control has not been tested yet!
+  // Set the position of the motor in _____ (degrees? encoder counts?)
   void vesc_set_position(uint32_t id, int position) {
-    int32_t data = position * 1000000;
-
-    send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
-    this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
+    // TODO: Implement this method!
   }
 
-  // Set the current draw of the motor in amps // TODO: Current control has not been fully tested yet!
+  // Set the current draw of the motor in amps
   void vesc_set_current(uint32_t id, float current) {
-    int32_t data = current * 1000; // Current is measured in amperage
-
-    send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
-    this->current_msg[id] = std::make_tuple(id + 0x00000100, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the current of CAN ID: %u to %f amps", id, current); // Print Statement
+    // TODO: Implement this method!
   }
 
   // Get the current duty cycle of the motor
@@ -104,7 +97,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].dutyCycle;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
   // Get the current velocity of the motor in RPM (Rotations Per Minute)
@@ -112,7 +105,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].velocity;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
   // Get the current position of the motor
@@ -120,7 +113,7 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].position;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
   // Get the current draw of the motor in amps
@@ -128,31 +121,27 @@ class MotorControlNode : public rclcpp::Node {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].current;
     } else {
-      return -999; // Return -999 if the data is stale
+      return -1; // Return -1 if the data is stale
     }
   }
 
 public:
   MotorControlNode() : Node("MotorControlNode") {
-    // Initialize services below //
+    // Initialize services here
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
-    // Initialize timers below //
+    // Initialize timers here
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can1/transmit", 100);
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/slcan0/transmit", 100);
     // The name of this topic is determined by ros2socketcan_bridge
-    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
-
-    // Initialize the can_data hashmap by adding all of the motors to it
-    for (uint32_t id = 1; id <= NUMBER_OF_MOTORS; id++) {
-      this->can_data[id] = {0, 0, 0, 0, std::chrono::steady_clock::now()};
-    }
+    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/slcan0/receive", 10,
+                                                              std::bind(&MotorControlNode::CAN_callback, this, _1));
   }
 
 private:
@@ -168,31 +157,20 @@ private:
 
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {
-    uint32_t motorId = can_msg->id & 0xFF;
-    uint32_t statusId = (can_msg->id >> 8) & 0xFF; // Packet Status, not frame ID
+    uint32_t id = can_msg->id & 0xFF;
 
-    float dutyCycleNow = this->can_data[motorId].dutyCycle;
-    float RPM = this->can_data[motorId].velocity;
-    float current = this->can_data[motorId].current;
-    float position = this->can_data[motorId].position;
-
-    switch (statusId) {
-    case 9: // Packet Status 9 (RPM & Current & DutyCycle)
-      RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); // TODO: Reading current has not been fully tested yet!
-      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0);
-      break;
-    case 16: // Packet Status 16 (Position)
-      position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]); // TODO: Reading position has not been tested yet!
-      break;
-    }
+    float RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+    float dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10);
+    float current = -1;  // TODO: calculate the current draw of the motor from the CAN data
+    float position = -1; // TODO: calculate the position of the motor from the CAN data
 
     // Store the most recent motor data in our hashmap
-    this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
+    this->can_data[id] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
-    RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow, current, position);
+    // RCLCPP_INFO(this->get_logger(), "Received status frame from CAN ID %u with the following data:", id);
+    // RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow,
+    // current, position);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
