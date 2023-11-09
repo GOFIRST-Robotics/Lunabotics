@@ -94,12 +94,11 @@ class DrivetrainNode(Node):
         C = forward_power - turning_power*track_width
         D = forward_power + turning_power*track_width
 
-        #Gives desired speed and desired angle for each module
-        #angle has range from 0 to 360 degrees
-        back_left_vector = [math.sqrt(A**2 + D**2), (math.atan2(A,D)*180/math.pi+180)%360]
-        front_left_vector = [math.sqrt(B**2 + D**2), (math.atan2(B,D)*180/math.pi+180)%360]
-        back_right_vector = [math.sqrt(A**2 + C**2), (math.atan2(A,C)*180/math.pi+180)%360]
-        front_right_vector = [math.sqrt(B**2 + C**2), (math.atan2(B,C)*180/math.pi+180)%360]
+        #Gives speed and angle for each module
+        back_left_vector = [math.sqrt(A**2 + D**2), math.atan2(A,D)*180/math.pi]
+        front_left_vector = [math.sqrt(B**2 + D**2), math.atan2(B,D)*180/math.pi]
+        back_right_vector = [math.sqrt(A**2 + C**2), math.atan2(A,C)*180/math.pi]
+        front_right_vector = [math.sqrt(B**2 + C**2), math.atan2(B,C)*180/math.pi]
 
         #Normalizing speeds
         largest_power = max([back_left_vector[0], front_left_vector[0], back_right_vector[0], front_right_vector[0]])
@@ -109,23 +108,7 @@ class DrivetrainNode(Node):
             back_right_vector[0] = back_right_vector[0]/largest_power
             front_right_vector[0] = front_right_vector[0]/largest_power 
 
-        # TODO: optimize steering
-        #some notes: should never have to rotate more than 90 degrees from current angle
-        #have to reverse all modules if reversing one module
-        #have to change angle for all modules if changing angle for one module
-        #not sure if this is 100% correct lol
-        if abs(back_left_vector[1]-current_angle)>90 and abs(back_left_vector[1]-current_angle)<270:
-            back_left_vector[1] = (back_left_vector[1]+180)%360
-            front_left_vector[1] = (front_left_vector[1]+180)%360
-            back_right_vector[1] = (back_right_vector[1]+180)%360
-            front_right_vector[1] = (front_left_vector[1]+180)%360
-
-            #reversing speeds of the modules
-            back_left_vector[0] = back_left_vector[0] * -1
-            front_left_vector[0] = front_left_vector[0] *-1
-            back_right_vector[0] = back_right_vector[0] * -1
-            front_right_vector[0] = front_right_vector[0] * -1
-
+        # TODO: optimize turning
         self.back_left.set_power(back_left_vector[0])
         self.front_left.set_power(front_left_vector[0])
         self.back_right.set_power(back_right_vector[0])
@@ -136,9 +119,6 @@ class DrivetrainNode(Node):
         self.back_right.set_angle(back_right_vector[1])
         self.front_right.set_angle(front_right_vector[1])
 
-        #storing angle from one arbritary module to use in calculations to determine optimal angle
-        #only one is needed since the rest would naturally follow through
-        current_angle = back_left_vector[1] 
         
     def stop(self) -> None:
         """This method stops the drivetrain."""
