@@ -131,6 +131,14 @@ class MotorControlNode : public rclcpp::Node {
 
 public:
   MotorControlNode() : Node("MotorControlNode") {
+    // Define default values for our ROS parameters below #
+    this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can1");
+    this->declare_parameter("CAN_INTERFACE_RECEIVE", "can1");
+
+    // Print the ROS Parameters to the terminal below #
+    RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
+    RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
+
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
@@ -142,9 +150,9 @@ public:
 
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
-    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/can1/transmit", 100);
+    can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
     // The name of this topic is determined by ros2socketcan_bridge
-    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/can1/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
+    can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
   }
 
 private:
