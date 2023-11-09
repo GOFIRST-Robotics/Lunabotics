@@ -42,8 +42,8 @@ class SwerveModule:
         pass  # TODO: Implement this method for resetting our relative encoder offset based on the absolute encoder (save this for later)
 
     def set_state(self, power: float, angle: float) -> None:
-        self.setPower(power)
-        self.setAngle(angle)
+        self.set_angle(angle)
+        self.set_power(power)
 
 
 # This class represents the drivetrain as a whole (4 swerve modules)
@@ -112,15 +112,10 @@ class DrivetrainNode(Node):
 
         # TODO: optimize turning of the wheels (they should never need to turn more than 90 degrees)
 
-        self.back_left.set_power(back_left_vector[0])
-        self.front_left.set_power(front_left_vector[0])
-        self.back_right.set_power(back_right_vector[0])
-        self.front_right.set_power(front_right_vector[0])
-
-        self.back_left.set_angle(back_left_vector[1])
-        self.front_left.set_angle(front_left_vector[1])
-        self.back_right.set_angle(back_right_vector[1])
-        self.front_right.set_angle(front_right_vector[1])
+        self.back_left.set_state(back_left_vector[0], back_left_vector[1])
+        self.front_left.set_state(front_left_vector[0], front_left_vector[1])
+        self.back_right.set_state(back_right_vector[0], back_right_vector[1])
+        self.front_right.set_state(front_right_vector[0], front_right_vector[1])
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
