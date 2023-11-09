@@ -30,11 +30,16 @@ def generate_launch_description():
         package="drivetrain",
         executable="drivetrain_node",
         name="drivetrain_node",
+        parameters=["config/drivetrain_config.yaml"],
+        output="screen",
+        emulate_tty=True,
     )
     conveyor = Node(
         package="conveyor",
         executable="conveyor_node",
         name="conveyor_node",
+        output="screen",
+        emulate_tty=True,
     )
 
     ld.add_action(rovr_control)
