@@ -51,11 +51,12 @@ class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
         super().__init__("drivetrain")
-        # Define service clients here
-        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
+
+        # Define service clients here
+        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
