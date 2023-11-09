@@ -173,9 +173,6 @@ private:
     float current = this->can_data[motorId].current;
     float position = this->can_data[motorId].position;
 
-    float tachometer = 0;
-    
-
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
@@ -185,20 +182,14 @@ private:
     case 16: // Packet Status 16 (Position)
       position = static_cast<float>((can_msg->data[6] << 8) + can_msg->data[7]); // TODO: Reading position has not been tested yet!
       break;
-    case 27: // Packet Status 27 (Tachometer)
-      tachometer = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      break;
     }
 
     // Store the most recent motor data in the hashmap
     this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
-    // Prints everytime on "statusId" equal to 27
-    if (statusId == 27) {
-      RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-      RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f Tachometer: %.2f", RPM, dutyCycleNow, current, position, tachometer);
-    }
+    RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
+    RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow, current, position);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
