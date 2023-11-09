@@ -108,7 +108,7 @@ class MainControlNode(Node):
             # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
             # Start driving forward
             await self.cli_drivetrain_drive.call_async(
-                Drive.Request(forward_power=self.autonomous_driving_power, turning_power=0.0)
+                Drive.Request(forward_power=self.autonomous_driving_power, horizontal_power=0.0, turning_power=0.0)
             )
             # TODO: Drive forward until our conveyor is full OR we reach the end of the arena OR we reach an obstacle
             await self.cli_drivetrain_stop.call_async(Stop.Request())
