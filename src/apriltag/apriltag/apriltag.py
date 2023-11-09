@@ -23,6 +23,8 @@ class Apriltag(Node):
         t.transform.translation.x = float(4)
         self.tf_broadcaster.sendTransform(t)
         
+    """TODO: Make this work with multiple tags, or at least just filter and use the one we want.
+    currently picks whatever /tag_detections indexes as the first tag"""
     def sendTransform(self, msg):
         if len(msg.detections) == 0:
             return
