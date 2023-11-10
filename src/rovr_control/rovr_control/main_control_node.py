@@ -53,10 +53,10 @@ class MainControlNode(Node):
         self.conveyor_belt_power = self.get_parameter("conveyor_belt_power").value
 
         # Print the ROS Parameters to the terminal below #
-        print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
-        print("max_drive_power has been set to:", self.max_drive_power)
-        print("max_turn_power has been set to:", self.max_turn_power)
-        print("conveyor_belt_power has been set to:", self.conveyor_belt_power)
+        self.get_logger().info("autonomous_driving_power has been set to:", self.autonomous_driving_power)
+        self.get_logger().info("max_drive_power has been set to:", self.max_drive_power)
+        self.get_logger().info("max_turn_power has been set to:", self.max_turn_power)
+        self.get_logger().info("conveyor_belt_power has been set to:", self.conveyor_belt_power)
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -101,7 +101,7 @@ class MainControlNode(Node):
 
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
-        print("\nStarting Autonomous Digging Procedure!")
+        self.get_logger().info("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
             # TODO: Lower the conveyor into the ground
@@ -115,28 +115,27 @@ class MainControlNode(Node):
             await self.cli_conveyor_stop.call_async(Stop.Request())
             # TODO: Raise the conveyor back up a bit
             # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
-            print("Autonomous Digging Procedure Complete!\n")
+            self.get_logger().info("Autonomous Digging Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-            print("Autonomous Digging Procedure Terminated\n")
+            self.get_logger().info("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
     async def auto_offload_procedure(self) -> None:
         """This method lays out the procedure for autonomously offloading!"""
-        print("\nStarting Autonomous Offload Procedure!")
+        self.get_logger().info("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             # TODO: Send the robot to the proper offloading coordinates using SLAM
             await self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
             # TODO: Raise up the conveyor in preparation for dumping
             # TODO: Wait for the goal height to be reached (wait for a True message on /conveyor/goal_reached)
-            print("Commence Offloading!")
             await self.cli_conveyor_setPower.call_async(SetPower.Request(conveyor_belt_power=self.conveyor_belt_power))
             await asyncio.sleep(10)  # How long to offload for
             await self.cli_conveyor_stop.call_async(Stop.Request())  # Stop the conveyor belt
-            print("Autonomous Offload Procedure Complete!\n")
+            self.get_logger().info("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-            print("Autonomous Offload Procedure Terminated\n")
+            self.get_logger().info("Autonomous Offload Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
     def apriltags_callback(self, msg: TFMessage) -> None:
@@ -165,7 +164,7 @@ class MainControlNode(Node):
         self.apriltagZ = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
         self.apriltagYaw = entry.transform.rotation.y
-        # print('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
+        self.get_logger().debug('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
 
     def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
@@ -219,7 +218,6 @@ class MainControlNode(Node):
                     # Kill the self.back_camera process
                     os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
                     self.back_camera = None
-                # self.get_logger().info(f'using ip {self.target_ip}')
                 self.front_camera = subprocess.Popen(
                     'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=10.133.232.197 port=5000',
                     shell=True,
@@ -230,7 +228,6 @@ class MainControlNode(Node):
                     # Kill the self.front_camera process
                     os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM)
                     self.front_camera = None
-                # self.get_logger().info(f'using ip {self.target_ip}')
                 self.back_camera = subprocess.Popen(
                     'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=10.133.232.197  port=5000',
                     shell=True,
@@ -251,11 +248,12 @@ async def spin(executor: SingleThreadedExecutor) -> None:
 
 def main(args=None) -> None:
     rclpy.init(args=args)
-    print("Hello from the rovr_control package!")
 
     node = MainControlNode()  # Instantiate the node
     executor = SingleThreadedExecutor()  # Create an executor
     executor.add_node(node)  # Add the node to the executor
+    
+    node.get_logger().info("Hello from the rovr_control package!")
 
     loop = asyncio.get_event_loop()  # Get the event loop
     loop.run_until_complete(spin(executor))  # Run the spin function in the event loop
