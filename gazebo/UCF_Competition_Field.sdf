@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+
+<!--
+  Digital Elevation Model (DEM) heightmap of Earth's moon
+-->
+
+<sdf version="1.9">
+  <world name="UCF_Competition_Field">
+
+    <spherical_coordinates>
+      <surface_model>MOON_SCS</surface_model>
+    </spherical_coordinates>
+
+    <!-- the competition takes place on earth -->
+    <gravity>0 0 -9.807</gravity>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 1000 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <include>
+      <uri>
+        https://fuel.gazebosim.org/1.0/OpenRobotics/models/Moon DEM
+      </uri>
+    </include>
+
+    <include>
+        <uri>
+            https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling Rock 1
+        </uri>
+        <pose>0 0 15 0 0 0</pose>
+    </include>
+
+    <include>
+        <uri>
+            https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling Rock 2
+        </uri>
+        <pose>0 -20 15 0 0 0</pose>
+    </include>
+
+  </world>
+</sdf>
