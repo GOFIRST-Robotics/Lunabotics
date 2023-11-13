@@ -6,6 +6,8 @@
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
+
+# Import ROS 2 formatted message types
 from std_msgs.msg import Float32, Bool
 
 # Import custom ROS 2 interfaces
@@ -31,8 +33,8 @@ class SkimmerNode(Node):
         self.srv_set_power_Pulley = self.create_service(SetPower, "pulley/setPower", self.set_power_pulley_callback)
         
         # Define publishers here
-        self.publisher_height = self.create_publisher(Float32, "/skimmer/height", 10)
-        self.publisher_goal_reached = self.create_publisher(Bool, "/skimmer/goal_reached", 10)
+        self.publisher_height = self.create_publisher(Float32, "skimmer/height", 10)
+        self.publisher_goal_reached = self.create_publisher(Bool, "skimmer/goal_reached", 10)
 
         # Define timers here
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -141,10 +143,12 @@ class SkimmerNode(Node):
     # Define timer callback methods here
     def timer_callback(self):
         """Publishes the current height in meters and whether or not the goal height has been reached."""
-        # The value returned by the MotorCommandGet service will be in degrees
-        height_degrees = self.cli_motor_get.call_async(
-            MotorCommandGet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR)
-        )
+        # This MotorCommandGet service call will return a future object, that will eventually contain the position in degrees
+        future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR))
+        future.add_done_callback(self.done_callback)
+        
+    def done_callback(self, future):
+        height_degrees = future.result().data
         height_meters = (height_degrees * self.PULLEY_CIRCUMFERENCE) / (360 * self.PULLEY_GEAR_RATIO)
 
         height_msg = Float32(data=height_meters)

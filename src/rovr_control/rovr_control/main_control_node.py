@@ -19,7 +19,7 @@ from rovr_interfaces.srv import SetPower, SetHeight
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
 
 # Import Python Modules
-import asyncio  # Allows the creation of asynchronous autonomous procedures!
+import asyncio  # Allows the use of asynchronous methods!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
