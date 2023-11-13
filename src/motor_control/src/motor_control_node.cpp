@@ -66,7 +66,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
@@ -75,7 +75,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
     this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
   }
 
   // Set the position of the motor in degrees // TODO: Position control has not been tested yet!
@@ -84,7 +84,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
     this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
   }
 
   // Set the current draw of the motor in amps // TODO: Current control has not been fully tested yet!
@@ -93,7 +93,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
     this->current_msg[id] = std::make_tuple(id + 0x00000100, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the current of CAN ID: %u to %f amps", id, current); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the current of CAN ID: %u to %f amps", id, current); // Print Statement
   }
 
   // Get the current duty cycle of the motor
@@ -196,8 +196,8 @@ private:
     this->can_data[motorId] = {dutyCycleNow, RPM, current, position, std::chrono::steady_clock::now()};
 
     // Uncomment the lines below to print the received data to the terminal
-    // RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    // RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow, current, position);
+    RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
+    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f", RPM, dutyCycleNow, current, position);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID

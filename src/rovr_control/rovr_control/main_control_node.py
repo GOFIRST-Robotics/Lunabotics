@@ -56,11 +56,11 @@ class MainControlNode(Node):
         self.skimmer_height_manual_power = self.get_parameter("skimmer_height_manual_power").value
 
         # Print the ROS Parameters to the terminal below #
-        print("autonomous_driving_power has been set to:", self.autonomous_driving_power)
-        print("max_drive_power has been set to:", self.max_drive_power)
-        print("max_turn_power has been set to:", self.max_turn_power)
-        print("skimmer_belt_power has been set to:", self.skimmer_belt_power)
-        print("skimmer_height_manual_power has been set to:", self.skimmer_height_manual_power)
+        self.get_logger().info("autonomous_driving_power has been set to:", self.autonomous_driving_power)
+        self.get_logger().info("max_drive_power has been set to:", self.max_drive_power)
+        self.get_logger().info("max_turn_power has been set to:", self.max_turn_power)
+        self.get_logger().info("skimmer_belt_power has been set to:", self.skimmer_belt_power)
+        self.get_logger().info("skimmer_height_manual_power has been set to:", self.skimmer_height_manual_power)
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -111,7 +111,7 @@ class MainControlNode(Node):
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
-        print("\nStarting Autonomous Digging Procedure!")
+        self.get_logger().info("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
             await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=2000))  # Lower the skimmer into the ground # TODO: Adjust this height
@@ -127,29 +127,29 @@ class MainControlNode(Node):
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            print("Autonomous Digging Procedure Complete!\n")
+            self.get_logger().info("Autonomous Digging Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-            print("Autonomous Digging Procedure Terminated\n")
+            self.get_logger().info("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
     # TODO: This autonomous routine has not been tested yet!
     async def auto_offload_procedure(self) -> None:
         """This method lays out the procedure for autonomously offloading!"""
-        print("\nStarting Autonomous Offload Procedure!")
+        self.get_logger().info("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=500))  # Raise up the skimmer in preparation for dumping # TODO: Adjust this height
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            print("Commence Offloading!")
+            self.get_logger().info("Commence Offloading!")
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
             await asyncio.sleep(10)  # How long to offload for
             await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
-            print("Autonomous Offload Procedure Complete!\n")
+            self.get_logger().info("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-            print("Autonomous Offload Procedure Terminated\n")
+            self.get_logger().info("Autonomous Offload Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
     def apriltags_callback(self, msg: TFMessage) -> None:
@@ -178,7 +178,7 @@ class MainControlNode(Node):
         self.apriltagZ = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
         self.apriltagYaw = entry.transform.rotation.y
-        # print('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
+        self.get_logger().debug('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
 
     def skimmer_goal_callback(self, msg: Bool) -> None:
         """Update the member variable accordingly."""
@@ -244,7 +244,6 @@ class MainControlNode(Node):
                     # Kill the self.back_camera process
                     os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
                     self.back_camera = None
-                # self.get_logger().info(f'using ip {self.target_ip}')
                 self.front_camera = subprocess.Popen(
                     'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=10.133.232.197 port=5000',
                     shell=True,
@@ -255,7 +254,6 @@ class MainControlNode(Node):
                     # Kill the self.front_camera process
                     os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM)
                     self.front_camera = None
-                # self.get_logger().info(f'using ip {self.target_ip}')
                 self.back_camera = subprocess.Popen(
                     'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=10.133.232.197  port=5000',
                     shell=True,
@@ -276,11 +274,12 @@ async def spin(executor: SingleThreadedExecutor) -> None:
 
 def main(args=None) -> None:
     rclpy.init(args=args)
-    print("Hello from the rovr_control package!")
 
     node = MainControlNode()  # Instantiate the node
     executor = SingleThreadedExecutor()  # Create an executor
     executor.add_node(node)  # Add the node to the executor
+    
+    node.get_logger().info("Hello from the rovr_control package!")
 
     loop = asyncio.get_event_loop()  # Get the event loop
     loop.run_until_complete(spin(executor))  # Run the spin function in the event loop

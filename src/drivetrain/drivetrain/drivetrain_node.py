@@ -87,16 +87,16 @@ class DrivetrainNode(Node):
         self.TRACK_WIDTH = self.get_parameter("TRACK_WIDTH").value
 
         # Print the ROS Parameters to the terminal below #
-        print("BACK_LEFT_DRIVE has been set to:", self.BACK_LEFT_DRIVE)
-        print("BACK_LEFT_TURN has been set to:", self.BACK_LEFT_TURN)
-        print("FRONT_LEFT_DRIVE has been set to:", self.FRONT_LEFT_DRIVE)
-        print("FRONT_LEFT_TURN has been set to:", self.FRONT_LEFT_TURN)
-        print("BACK_RIGHT_DRIVE has been set to:", self.BACK_RIGHT_DRIVE)
-        print("BACK_RIGHT_TURN has been set to:", self.BACK_RIGHT_TURN)
-        print("FRONT_RIGHT_DRIVE has been set to:", self.FRONT_RIGHT_DRIVE)
-        print("FRONT_RIGHT_TURN has been set to:", self.FRONT_RIGHT_TURN)
-        print("WHEEL_BASE has been set to:", self.WHEEL_BASE)
-        print("TRACK_WIDTH has been set to:", self.TRACK_WIDTH)
+        self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
+        self.get_logger().info("BACK_LEFT_TURN has been set to: " + str(self.BACK_LEFT_TURN))
+        self.get_logger().info("FRONT_LEFT_DRIVE has been set to: " + str(self.FRONT_LEFT_DRIVE))
+        self.get_logger().info("FRONT_LEFT_TURN has been set to: " + str(self.FRONT_LEFT_TURN))
+        self.get_logger().info("BACK_RIGHT_DRIVE has been set to: " + str(self.BACK_RIGHT_DRIVE))
+        self.get_logger().info("BACK_RIGHT_TURN has been set to: " + str(self.BACK_RIGHT_TURN))
+        self.get_logger().info("FRONT_RIGHT_DRIVE has been set to: " + str(self.FRONT_RIGHT_DRIVE))
+        self.get_logger().info("FRONT_RIGHT_TURN has been set to: " + str(self.FRONT_RIGHT_TURN))
+        self.get_logger().info("WHEEL_BASE has been set to: " + str(self.WHEEL_BASE))
+        self.get_logger().info("TRACK_WIDTH has been set to: " + str(self.TRACK_WIDTH))
 
         # Create each swerve module using
         self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set)
