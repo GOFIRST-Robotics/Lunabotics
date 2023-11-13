@@ -1,7 +1,7 @@
 // This node publishes CAN bus messages to our VESC brushless motor controllers.
 // Original Author: Jude Sauve <sauve031@umn.edu> in 2018
 // Maintainer: Anthony Brogni <brogn002@umn.edu>
-// Last Updated: September 2023
+// Last Updated: November 2023
 
 // Import the ROS 2 Library
 #include "rclcpp/rclcpp.hpp"
@@ -247,7 +247,7 @@ private:
     }
 
     if (data.has_value()) {
-      response->result = data.value();
+      response->data = data.value();
       response->success = 0; // indicates success
     } else {
       response->success = 1; // indicates failure
