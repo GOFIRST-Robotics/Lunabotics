@@ -8,7 +8,7 @@ def generate_launch_description():
         package="realsense2_camera",
         executable="realsense2_camera_node",
         name="camera",
-        namespace="conveyor"
+        namespace="skimmer"
         # remappings=[
         #     ('/camera/realsense2_camera/depth/image_rect_raw', '/depth/image_rect_raw'),
         #     ('/camera/camera/depth/image_rect_raw', '/depth/image_rect_raw'),
@@ -18,7 +18,7 @@ def generate_launch_description():
     )
     
     check_load = Node(
-        package="conveyor",
+        package="skimmer",
         executable="ros_check_load",
         name="ros_check_load",
     )
