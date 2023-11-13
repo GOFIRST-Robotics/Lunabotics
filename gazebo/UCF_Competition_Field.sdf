@@ -40,12 +40,35 @@
         </uri>
         <pose>0 0 15 0 0 0</pose>
     </include>
-
     <include>
         <uri>
             https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling Rock 2
         </uri>
         <pose>0 -20 15 0 0 0</pose>
+    </include>
+    <include>
+        <uri>
+            https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling Rock 3
+        </uri>
+        <pose>0 20 15 0 0 0</pose>
+    </include>
+    <include>
+        <uri>
+            https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling Rock 4
+        </uri>
+        <pose>20 0 15 0 0 0</pose>
+    </include>
+    <include>
+        <uri>
+            https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling Rock 5
+        </uri>
+        <pose>-20 0 15 0 0 0</pose>
+    </include>
+    <include>
+        <uri>
+            https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling Rock 6
+        </uri>
+        <pose>20 -20 15 0 0 0</pose>
     </include>
 
   </world>
