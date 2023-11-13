@@ -1,7 +1,7 @@
 # This ROS 2 node contains code for the skimmer subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: September 2023
+# Last Updated: November 2023
 
 # Import the ROS 2 Python module
 import rclpy
