@@ -12,6 +12,7 @@ from rclpy.executors import SingleThreadedExecutor  # This is needed to run mult
 from geometry_msgs.msg import Twist, Vector3, PoseWithCovarianceStamped
 from sensor_msgs.msg import Joy
 from tf2_msgs.msg import TFMessage
+from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetHeight
@@ -86,57 +87,65 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
+        self.cli_pulley_stop = self.create_client(Stop, "pulley/stop")
+        self.cli_pulley_set_power = self.create_client(SetPower, "pulley/setPower")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         self.apriltag_pose_publisher = self.create_publisher(PoseWithCovarianceStamped, "apriltag_pose", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.apriltags_subscription = self.create_subscription(TFMessage, "tf", self.apriltags_callback, 10)
-        # TODO: Subscribe to /skimmer/goal_reached
+        self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer
+        self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-        # TODO: Stop the skimmer pulley system (height adjust) using the new service
+        self.cli_pulley_stop.call_async(Stop.Request())  # Stop the skimmer pulley (height adjust)
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
 
+    # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
         print("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_skimmer_setPower.call_async(SetPower.Request(skimmer_belt_power=self.skimmer_belt_power))
-            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=2000)) # Lower the skimmer into the ground # TODO: Adjust this height
-            # TODO: Wait for the goal height to be reached (wait for a True message on /skimmer/goal_reached)
+            await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
+            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=2000))  # Lower the skimmer into the ground # TODO: Adjust this height
+            # Wait for the goal height to be reached
+            while not self.skimmer_goal_reached:
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             # Start driving forward
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, horizontal_power=0.0, turning_power=0.0))
             # TODO: Drive forward until our skimmer is full OR we reach the end of the arena OR we reach an obstacle
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_skimmer_stop.call_async(Stop.Request())
-            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=500)) # Raise the skimmer back up a bit # TODO: Adjust this height
-            # TODO: Wait for the goal height to be reached (wait for a True message on /skimmer/goal_reached)
+            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=1000))  # Raise the skimmer back up a bit # TODO: Adjust this height
+            # Wait for the goal height to be reached
+            while not self.skimmer_goal_reached:
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             print("Autonomous Digging Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             print("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
+    # TODO: This autonomous routine has not been tested yet!
     async def auto_offload_procedure(self) -> None:
         """This method lays out the procedure for autonomously offloading!"""
         print("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            # TODO: Send the robot to the proper offloading coordinates using SLAM
-            await self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=0)) # Raise up the skimmer in preparation for dumping # TODO: Adjust this height
-            # TODO: Wait for the goal height to be reached (wait for a True message on /skimmer/goal_reached)
+            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=500))  # Raise up the skimmer in preparation for dumping # TODO: Adjust this height
+            # Wait for the goal height to be reached
+            while not self.skimmer_goal_reached:
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             print("Commence Offloading!")
-            await self.cli_skimmer_setPower.call_async(SetPower.Request(skimmer_belt_power=self.skimmer_belt_power))
-            await asyncio.sleep(10) # How long to offload for
-            await self.cli_skimmer_stop.call_async(Stop.Request()) # Stop the skimmer belt
+            await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
+            await asyncio.sleep(10)  # How long to offload for
+            await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             print("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
@@ -171,6 +180,10 @@ class MainControlNode(Node):
         self.apriltagYaw = entry.transform.rotation.y
         # print('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
 
+    def skimmer_goal_callback(self, msg: Bool) -> None:
+        """Update the member variable accordingly."""
+        self.skimmer_goal_reached = msg.data
+
     def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
 
@@ -187,11 +200,18 @@ class MainControlNode(Node):
 
             # Check if the skimmer button is pressed #
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
-                self.cli_skimmer_toggle.call_async(SetPower.Request(skimmer_belt_power=self.skimmer_belt_power))
+                self.cli_skimmer_toggle.call_async(SetPower.Request(power=self.skimmer_belt_power))
 
-            # TODO: Manually adjust the height of the skimmer with the left and right triggers
-            # Use the skimmer_height_manual_power parameter and the MotorSet service
-            
+            # Manually adjust the height of the skimmer with the left and right triggers
+            if msg.buttons[RIGHT_TRIGGER] == 1 and buttons[RIGHT_TRIGGER] == 0:
+                self.cli_pulley_set_power.call_async(SetPower.Request(power=self.skimmer_height_manual_power))
+            elif msg.buttons[RIGHT_TRIGGER] == 0 and buttons[RIGHT_TRIGGER] == 1:
+                self.cli_pulley_stop.call_async(Stop.Request())
+            elif msg.buttons[LEFT_TRIGGER] == 1 and buttons[LEFT_TRIGGER] == 0:
+                self.cli_pulley_set_power.call_async(SetPower.Request(power=-self.skimmer_height_manual_power))
+            elif msg.buttons[LEFT_TRIGGER] == 0 and buttons[LEFT_TRIGGER] == 1:
+                self.cli_pulley_stop.call_async(Stop.Request())
+
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the autonomous digging button is pressed
@@ -246,8 +266,6 @@ class MainControlNode(Node):
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
 
-
-# TODO: define a callback function for the /skimmer/goal_reached subscriber that updates  self.skimmer_goal_reached accordingly
 
 async def spin(executor: SingleThreadedExecutor) -> None:
     """This function is called in the main function to run the executor."""

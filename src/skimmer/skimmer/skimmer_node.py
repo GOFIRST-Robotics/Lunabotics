@@ -29,6 +29,8 @@ class SkimmerNode(Node):
         self.srv_setHeight = self.create_service(SetHeight, "skimmer/setHeight", self.set_height_callback)
         self.srv_stop_height_adjust = self.create_service(Stop, "pulley/stop", self.stop_height_callback)
         self.srv_set_power_Pulley = self.create_service(SetPower, "pulley/setPower", self.set_power_pulley_callback)
+        
+        # Define publishers here
         self.publisher_height = self.create_publisher(Float32, "/skimmer/height", 10)
         self.publisher_goal_reached = self.create_publisher(Bool, "/skimmer/goal_reached", 10)
 
