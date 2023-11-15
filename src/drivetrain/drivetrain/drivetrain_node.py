@@ -19,11 +19,10 @@ from rovr_interfaces.srv import Stop, Drive
 
 # This class represents an individual swerve module
 class SwerveModule:
-    def __init__(self, drive_motor, turning_motor, motor_set, prev_angle):
+    def __init__(self, drive_motor, turning_motor, motor_set):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
         self.cli_motor_set = motor_set
-        self.prev_angle = prev_angle
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
@@ -118,11 +117,11 @@ class DrivetrainNode(Node):
         D = forward_power + turning_power * self.TRACK_WIDTH
 
         # Gives the desired speed and angle for each module
-        # Note: Angle has range from 0 to 360 degrees to make future calculations easier
-        back_left_vector = [math.sqrt(A**2 + D**2), ((math.atan2(A, D) * 180 / math.pi) + 360) % 360]
-        front_left_vector = [math.sqrt(B**2 + D**2), ((math.atan2(B, D) * 180 / math.pi) + 360) % 360]
-        back_right_vector = [math.sqrt(A**2 + C**2), ((math.atan2(A, C) * 180 / math.pi) + 360) % 360]
-        front_right_vector = [math.sqrt(B**2 + C**2), ((math.atan2(B, C) * 180 / math.pi) + 360) % 360]
+        # Note: Angle has range from 0 to 360 degrees
+        back_left_vector = [math.sqrt(A**2 + D**2), (math.atan2(A, D) * 180 / math.pi + 180) % 360]
+        front_left_vector = [math.sqrt(B**2 + D**2), (math.atan2(B, D) * 180 / math.pi + 180) % 360]
+        back_right_vector = [math.sqrt(A**2 + C**2), (math.atan2(A, C) * 180 / math.pi + 180) % 360]
+        front_right_vector = [math.sqrt(B**2 + C**2), (math.atan2(B, C) * 180 / math.pi + 180) % 360]
 
         # Normalize wheel speeds if necessary
         largest_power = max([back_left_vector[0], front_left_vector[0], back_right_vector[0], front_right_vector[0]])
@@ -135,13 +134,9 @@ class DrivetrainNode(Node):
         # TODO: optimize turning of the wheels (they should never need to turn more than 90 degrees)
         # some notes: should never have to rotate more than 90 degrees from current angle
         # have to reverse all modules if reversing one module
-        # have to change angle for all modules if changing angle for one module (make sure this is correct)
+        # have to change angle for all modules if changing angle for one module
         # not sure if this is 100% correct lol
-        #current idea: define a global variable called prev_angle and originally set prev_angle to None. Check if it is set to None
-        #if it is, do something else and set prev_angle to the angle of the swerve moduele(s)
-        #else, then check if the abs() of the difference of prev_angle(s) and the desired angle(s) of the swerve modules is between 90 and 270
-        #then set prev_angle to the angle of the module(s) after calculating the optimal angle
-        if abs(back_left_vector[1]) > 90 and abs(back_left_vector[1]) < 270:  #Find the difference between a module's angle and prev_angle
+        if abs(back_left_vector[1] - current_angle) > 90 and abs(back_left_vector[1] - current_angle) < 270:
             back_left_vector[1] = (back_left_vector[1] + 180) % 360
             front_left_vector[1] = (front_left_vector[1] + 180) % 360
             back_right_vector[1] = (back_right_vector[1] + 180) % 360
@@ -152,13 +147,15 @@ class DrivetrainNode(Node):
             front_left_vector[0] = front_left_vector[0] * -1
             back_right_vector[0] = back_right_vector[0] * -1
             front_right_vector[0] = front_right_vector[0] * -1
-            pass
 
         self.back_left.set_state(back_left_vector[0], back_left_vector[1])
         self.front_left.set_state(front_left_vector[0], front_left_vector[1])
         self.back_right.set_state(back_right_vector[0], back_right_vector[1])
         self.front_right.set_state(front_right_vector[0], front_right_vector[1])
 
+        # storing angle from one arbitrary module to use in calculations to determine optimal angle
+        # only one is needed since the rest would naturally follow through
+        current_angle = back_left_vector[1]
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
