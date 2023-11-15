@@ -41,39 +41,41 @@ struct MotorData {
 
 class PIDController {
 private:
-  float p_k;
-  float i_k;
-  float d_k;
+  const int MOTOR_STEP_COUNT = 0/* Set this constant */; // Steps for one 360 degree rotation
+  
+  float p_k, i_k, d_k;
   float gravComp;
 
-  int32_t prevTach;
-  int32_t totalError;
+  int32_t targetTachometer, prevError, totalError;
 
 public:
-  PIDController(uint32_t motorId, float p_k, float i_k = 0, float d_k = 0, float gravComp) {
+  bool isActive;
+  
+  PIDController(float p_k = 0, float i_k = 0, float d_k = 0, float gravComp = 0) {
     this->p_k = p_k;
     this->i_k = i_k;
     this->d_k = d_k;
     this->gravComp = gravComp;
+
+    this->prevError = 0;
+    this->totalError = 0;
+    this->isActive = false;
   }
 
-  void update(int32_t currentTach) {
-    this->history.push_back(currentTach);
+  float update(int32_t currentTachometer) {
+    float currentError = (this->targetTachometer - currentTachometer); // Whats the error
+    this->totalError += currentError;
 
-    const int MOTOR_STEPS; // How many steps in the tachometer per rotation
+    float PIDResult = (currentError * this->p_k) + (this->totalError * this->i_k) + (currentError - this->prevError) * this->d_k;
 
-    float targetPosition; // Target rotation of the motor in 360 degrees
+    this->prevError = currentError; // Assign the previous error to the current error
 
-    float currentPosition = (currentTach / MOTOR_STEPS) * 360; // in 360 degrees
-
-    float error = (targetPosition - currentPosition); // Whats the error
-
-    // this->vesc_set_duty_cycle(motorId, error * p_k); // Puts in the 
-    return (error * p_k)
+    return PIDResult;
   }
 
-  void setTarget(float degree){
-
+  void setRotation(float degrees) {
+    this->isActive = true;
+    this->targetTachometer = static_cast<int32_t>(degrees * this->MOTOR_STEP_COUNT);
   }
 };
 
@@ -100,6 +102,7 @@ class MotorControlNode : public rclcpp::Node {
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(uint32_t id, float percentPower) {
     // Do not allow setting more than 100% power in either direction
+    this->pid_controllers[id]->isActive = false;
     percentPower = std::clamp(percentPower, (float)(-1), (float)(1));
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 
@@ -110,6 +113,7 @@ class MotorControlNode : public rclcpp::Node {
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
   void vesc_set_velocity(uint32_t id, int rpm) {
+    this->pid_controllers[id]->isActive = false;
     int32_t data = rpm;
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
@@ -119,15 +123,18 @@ class MotorControlNode : public rclcpp::Node {
 
   // Set the position of the motor in degrees // TODO: Position control has not been tested yet!
   void vesc_set_position(uint32_t id, int position) {
-    int32_t data = position * 1000000;
+    this->pid_controllers[id]->setRotation(position);
+    
+    // int32_t data = position * 1000000;
 
-    send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
-    this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
+    // send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
+    // this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
     // RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
   }
 
   // Set the current draw of the motor in amps // TODO: Current control has not been fully tested yet!
   void vesc_set_current(uint32_t id, float current) {
+    this->pid_controllers[id]->isActive = false;
     int32_t data = current * 1000; // Current is measured in amperage
 
     send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
@@ -176,6 +183,10 @@ public:
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
+    this->pid_controllers[4] = new PIDController(0.0001);
+
+    this->vesc_set_position(4, 10);
+
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
     
@@ -198,10 +209,6 @@ private:
     }
   }
 
-  void pid_callback() {
-
-  }
-
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {
     uint32_t motorId = can_msg->id & 0xFF;
@@ -216,7 +223,7 @@ private:
     float RPM = this->can_data[motorId].velocity;
     float current = this->can_data[motorId].current;
     float position = this->can_data[motorId].position;
-    float tachometer = this->can_data[motorId].tachometer;
+    int32_t tachometer = this->can_data[motorId].tachometer;
     
 
     switch (statusId) {
@@ -230,6 +237,14 @@ private:
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+      if (this->pid_controllers[motorId]->isActive) {
+        float PIDResult = this->pid_controllers[motorId]->update(tachometer);
+
+        PIDResult = std::clamp(PIDResult, (float)(-1), (float)(1)); // Constricts the PIDResult to -1 and 1
+
+        int32_t data = PIDResult * 100000; // Convert from percent power to a signed 32-bit integer
+        send_can(motorId + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
+      }
       break;
     }
 
@@ -240,13 +255,13 @@ private:
     // Prints everytime on "statusId" equal to 27
     if (statusId == 27) {
       RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-      RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f Tachometer: %.2f", RPM, dutyCycleNow, current, position, tachometer);
+      RCLCPP_INFO(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2f A Position: %.2f Tachometer: %d", RPM, dutyCycleNow, current, position, tachometer);
     }
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
   std::map<uint32_t, MotorData> can_data;
-  std::map<uint32_t, PIDController> pid_data;
+  std::map<uint32_t, PIDController*> pid_controllers;
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
 
