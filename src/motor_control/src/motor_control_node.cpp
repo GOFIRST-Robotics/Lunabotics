@@ -35,6 +35,7 @@ struct MotorData {
   float velocity;
   float current;
   float position;
+  float tachometer;
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
 };
 
@@ -107,7 +108,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
     this->current_msg[id] = std::make_tuple(id + 0x00000000, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
@@ -117,7 +118,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
     this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
   }
 
   // Set the position of the motor in degrees // TODO: Position control has not been tested yet!
@@ -128,7 +129,7 @@ class MotorControlNode : public rclcpp::Node {
 
     // send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
     // this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
   }
 
   // Set the current draw of the motor in amps // TODO: Current control has not been fully tested yet!
@@ -138,7 +139,7 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
     this->current_msg[id] = std::make_tuple(id + 0x00000100, data); // update the hashmap
-    // RCLCPP_INFO(this->get_logger(), "Setting the current of CAN ID: %u to %f amps", id, current); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the current of CAN ID: %u to %f amps", id, current); // Print Statement
   }
 
   // Get the current duty cycle of the motor
@@ -177,8 +178,8 @@ class MotorControlNode : public rclcpp::Node {
 public:
   MotorControlNode() : Node("MotorControlNode") {
     // Define default values for our ROS parameters below #
-    this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can1");
-    this->declare_parameter("CAN_INTERFACE_RECEIVE", "can1");
+    this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
+    this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -191,8 +192,8 @@ public:
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
     // TODO: The code below is for testing
-    this->pid_controllers[4] = new PIDController(0.0001);
-    this->vesc_set_position(4, 10);
+    this->pid_controllers[8] = new PIDController(0.001);
+    //this->vesc_set_position(8, 90);
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -231,7 +232,6 @@ private:
     float position = this->can_data[motorId].position;
     int32_t tachometer = this->can_data[motorId].tachometer;
     
-
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Current & DutyCycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
