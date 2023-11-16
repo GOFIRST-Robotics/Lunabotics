@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+
+
+<link name="base_tag_1">
+    <parent link="base_link"/>
+    <visual>
+        <origin xyz="0 1 0" rpy="0 0 0"/>
+        <geometry>
+            <box size="0.1 0.1 0.1"/>
+        </geometry>
+        <material name="blue">
+            <color rgba="0 0 1 1"/>
+        </material>
+    </visual>
+</link>
+
+<link name="base_tag_2">
+    <parent link="base_link"/>
+    <visual>
+        <origin xyz="1 0 0" rpy="0 0 0"/>
+        <geometry>
+            <box size="0.1 0.1 0.1"/>
+        </geometry>
+        <material name="red">
+            <color rgba="1 0 0 1"/>
+        </material>
+    </visual>
+</link>
+
+<link name="berm_tag_1">
+    <parent link="base_link"/>
+    <visual>
+        <origin xyz="6.5 1.1 0" rpy="0 0 0"/>
+        <geometry>
+            <box size="0.1 0.1 0.1"/>
+        </geometry>
+        <material name="green">
+            <color rgba="0 1 0 1"/>
+        </material>
+    </visual>
+</link>
+
+<link name="berm_tag_2">
+    <parent link="base_link"/>
+    <visual>
+        <origin xyz="4.5 1.1 0" rpy="0 0 0"/>
+        <geometry>
+            <box size="0.1 0.1 0.1"/>
+        </geometry>
+        <material name="yellow">
+            <color rgba="1 1 0 1"/>
+        </material>
+    </visual>
+</link>
+
+<link name="berm_tag_3">
+    <parent link="base_link"/>
+    <visual>
+        <origin xyz="4.5 .2 0" rpy="0 0 0"/>
+        <geometry>
+            <box size="0.1 0.1 0.1"/>
+        </geometry>
+        <material name="purple">
+            <color rgba="1 0 1 1"/>
+        </material>
+    </visual>
+</link>
+
+<link name="berm_tag_4">
+    <parent link="base_link"/>
+    <visual>
+        <origin xyz="6.5 .2 0" rpy="0 0 0"/>
+        <geometry>
+            <box size="0.1 0.1 0.1"/>
+        </geometry>
+        <material name="white">
+            <color rgba="1 1 1 1"/>
+        </material>
+    </visual>
+</link>
