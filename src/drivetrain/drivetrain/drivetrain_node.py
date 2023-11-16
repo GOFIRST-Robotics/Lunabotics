@@ -29,6 +29,7 @@ class SwerveModule:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
 
     def set_angle(self, angle: float) -> None:
+        # TODO: Make sure that this turns the right direction when angle wrapping (i.e. an angle change from 320 -> 10 should turn positively, but might turn negitively depending on how the motor works)
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
@@ -136,18 +137,31 @@ class DrivetrainNode(Node):
         # some notes: should never have to rotate more than 90 degrees from current angle
         # have to reverse all modules if reversing one module
         # have to change angle for all modules if changing angle for one module
-        # not sure if this is 100% correct lol (make sure this is correct)
+        # not sure if this is 100% correct lol (make sure this is correct) <- not correct, there should be many times where this is not the case
         if abs(back_left_vector[1] - self.back_left.prev_angle) > 90 and abs(back_left_vector[1] - self.back_left.prev_angle) < 270:
             back_left_vector[1] = (back_left_vector[1] + 180) % 360
-            front_left_vector[1] = (front_left_vector[1] + 180) % 360
-            back_right_vector[1] = (back_right_vector[1] + 180) % 360
-            front_right_vector[1] = (front_left_vector[1] + 180) % 360
 
             # reversing speeds of the modules
             back_left_vector[0] = back_left_vector[0] * -1
+
+        if abs(front_left_vector[1] - self.front_left.prev_angle) > 90 and abs(front_left_vector[1] - self.front_left.prev_angle) < 270:
+            front_left_vector[1] = (front_left_vector[1] + 180) % 360
+
+            # reversing speeds of the modules
             front_left_vector[0] = front_left_vector[0] * -1
+
+        if abs(back_right_vector[1] - self.back_right.prev_angle) > 90 and abs(back_right_vector[1] - self.back_right.prev_angle) < 270:
+            back_right_vector[1] = (back_right_vector[1] + 180) % 360
+
+            # reversing speeds of the modules
             back_right_vector[0] = back_right_vector[0] * -1
+
+        if abs(front_right_vector[1] - self.front_right.prev_angle) > 90 and abs(front_right_vector[1] - self.front_right.prev_angle) < 270:
+            front_right_vector[1] = (front_left_vector[1] + 180) % 360
+
+            # reversing speeds of the modules
             front_right_vector[0] = front_right_vector[0] * -1
+
 
         self.back_left.set_state(back_left_vector[0], back_left_vector[1])
         self.front_left.set_state(front_left_vector[0], front_left_vector[1])
