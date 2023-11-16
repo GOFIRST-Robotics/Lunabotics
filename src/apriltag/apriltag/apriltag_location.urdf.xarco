@@ -1,6 +1,17 @@
 <?xml version="1.0"?>
+<!--
+// TODO: get the actual measurements for the tags on the map.
+// Coordinate system is in meters
+// (0,0) is the bottom left corner of the map, (5, 6.8) is the top right
+-->
 
 
+
+<!--
+//Tags in base area
+//This assumes that we are placing 1 tag on each wall, each
+// 1 meter from the bottom left corner of the map
+-->
 <link name="base_tag_1">
     <parent link="base_link"/>
     <visual>
@@ -27,6 +38,13 @@
     </visual>
 </link>
 
+
+
+<!--
+//Tags in berm area
+// Numbers need to be updated, because they are estimates
+// Realistically, overkill to have 4 tags. should simplify to 1 or 2
+-->
 <link name="berm_tag_1">
     <parent link="base_link"/>
     <visual>
