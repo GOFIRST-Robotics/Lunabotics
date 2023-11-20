@@ -79,7 +79,7 @@ git config --global core.autocrlf true
 ## Gazebo Installation
 Install Gazebo Harmonic [here](https://staging.gazebosim.org/docs/harmonic/install_ubuntu).
 
-Instructions for building the ROS bridge can be found [here](https://github.com/gazebosim/ros_gz/tree/humble#from-source).
+Instructions for building the ROS bridge (ros_gz) can be found [here](https://github.com/gazebosim/ros_gz/tree/humble#from-source).
 
 ## Start the Joystick Node with params
 
