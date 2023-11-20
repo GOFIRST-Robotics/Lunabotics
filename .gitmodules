@@ -33,3 +33,7 @@
 [submodule "src/realsense-ros"]
 	path = src/realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
+[submodule "src/ros_gz"]
+	path = src/ros_gz
+	url = https://github.com/gazebosim/ros_gz.git
+	branch = humble
