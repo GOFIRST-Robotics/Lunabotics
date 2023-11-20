@@ -76,6 +76,9 @@ To normalize line endings in git, use the command:
 git config --global core.autocrlf true
 ```
 
+## Gazebo Installation
+Install Gazebo Harmonic [here](https://staging.gazebosim.org/docs/harmonic/install_ubuntu).
+
 ## Start the Joystick Node with params
 
 ```
