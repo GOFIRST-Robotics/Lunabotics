@@ -33,3 +33,8 @@
 [submodule "src/realsense-ros"]
 	path = src/realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
+[submodule "src/ros_gz_moon"]
+	path = src/ros_gz_moon
+	url = https://github.com/GOFIRST-Robotics/ros_gz_moon.git
+	branch = update_fortress
+
