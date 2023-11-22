@@ -41,7 +41,8 @@ struct MotorData {
 
 class PIDController {
 private:
-  const int MOTOR_STEP_COUNT = 0/* Set this constant */; // Steps for one 360 degree rotation
+  const int DEAD_BAND = 1;
+  const int MOTOR_STEP_COUNT = 42; // Steps for one 360 degree rotation
   
   float p_k, i_k, d_k;
   float gravComp;
@@ -66,16 +67,26 @@ public:
     float currentError = (this->targetTachometer - currentTachometer); // Whats the error
     this->totalError += currentError;
 
+    if (abs(currentError) <= DEAD_BAND) {return 0;}
+
+    std::cout << "Target Tachometer: " << targetTachometer << std::endl;
+    std::cout << "Current Tachometer: " << currentTachometer << std::endl;
+    std::cout << "Current Error: " << currentError << std::endl;
+
     float PIDResult = (currentError * this->p_k) + (this->totalError * this->i_k) + (currentError - this->prevError) * this->d_k;
+
+    std::cout << "PID Result: " << PIDResult << std::endl;
 
     this->prevError = currentError; // Assign the previous error to the current error
 
-    return std::clamp(PIDResult, (float)(-1), (float)(1)); // Clamp the PIDResult between -1 and 1
+    PIDResult = std::clamp(PIDResult, (float)(-1), (float)(1)); // Clamp the PIDResult between -1 and 1
+
+    return PIDResult;
   }
 
   void setRotation(float degrees) {
     this->isActive = true;
-    this->targetTachometer = static_cast<int32_t>(degrees * this->MOTOR_STEP_COUNT);
+    this->targetTachometer = static_cast<int32_t>((degrees / 360.0) * this->MOTOR_STEP_COUNT);
   }
 };
 
@@ -126,7 +137,6 @@ class MotorControlNode : public rclcpp::Node {
     this->pid_controllers[id]->setRotation(position);
     
     // int32_t data = position * 1000000;
-
     // send_can(id + 0x00000400, data); // ID must be modified to signify this is a position command
     // this->current_msg[id] = std::make_tuple(id + 0x00000400, data); // update the hashmap
     RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
@@ -192,8 +202,8 @@ public:
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
     // TODO: The code below is for testing
-    this->pid_controllers[8] = new PIDController(0.001);
-    //this->vesc_set_position(8, 90);
+    this->pid_controllers[8] = new PIDController(0.01);
+    this->vesc_set_position(8, 10);
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -245,6 +255,7 @@ private:
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       if (this->pid_controllers[motorId]->isActive) {
         float PIDResult = this->pid_controllers[motorId]->update(tachometer);
+
         int32_t data = PIDResult * 100000; // Convert from percent power to a signed 32-bit integer
         send_can(motorId + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
       }
