@@ -33,7 +33,6 @@ using std::placeholders::_2;
 struct MotorData {
   float dutyCycle;
   float velocity;
-  float current;
   float tachometer;
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
 };
@@ -137,17 +136,7 @@ class MotorControlNode : public rclcpp::Node {
     RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
   }
 
-  // Set the current draw of the motor in amps // TODO: Current control has not been fully tested yet!
-  void vesc_set_current(uint32_t id, float current) {
-    this->pid_controllers[id]->isActive = false;
-    int32_t data = current * 1000; // Current is measured in amperage
-
-    send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
-    this->current_msg[id] = std::make_tuple(id + 0x00000100, data); // update the hashmap
-    RCLCPP_DEBUG(this->get_logger(), "Setting the current of CAN ID: %u to %f amps", id, current); // Print Statement
-  }
-
-  // Get the current duty cycle of the motor
+  // Get the motor controller's current duty cycle command
   std::optional<float> vesc_get_duty_cycle(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
       return this->can_data[id].dutyCycle;
@@ -171,14 +160,6 @@ class MotorControlNode : public rclcpp::Node {
       return std::nullopt; // The data is too stale
     }
   }
-  // Get the current draw of the motor in amps
-  std::optional<float> vesc_get_current(uint32_t id) {
-    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
-      return this->can_data[id].current;
-    } else {
-      return std::nullopt; // The data is too stale
-    }
-  }
 
 public:
   MotorControlNode() : Node("MotorControlNode") {
@@ -196,9 +177,12 @@ public:
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
-    // TODO: The code below is for testing
+    // TODO: The lines below are for testing only (Remove when done)
     this->pid_controllers[8] = new PIDController(0.01);
     this->vesc_set_position(8, 10);
+
+    // TODO: Instantiate x5 PIDControllers here, for the 4 swerve modules and skimmer height adjust
+    // You can probably use the same PIDController object for all 4 swerve modules though
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -228,18 +212,16 @@ private:
 
     // If 'motorId' is not found in the 'can_data' hashmap, add it.
     if (this->can_data.count(motorId) == 0) {
-      this->can_data[motorId] = {0, 0, 0, 0, std::chrono::steady_clock::now()};
+      this->can_data[motorId] = {0, 0, 0, std::chrono::steady_clock::now()};
     }
 
     float dutyCycleNow = this->can_data[motorId].dutyCycle;
     float RPM = this->can_data[motorId].velocity;
-    float current = this->can_data[motorId].current;
     int32_t tachometer = this->can_data[motorId].tachometer;
     
     switch (statusId) {
-    case 9: // Packet Status 9 (RPM & Current & DutyCycle)
+    case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); // TODO: Reading current has not been fully tested yet!
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0);
       break;
     case 27: // Packet Status 27 (Tachometer)
@@ -254,10 +236,10 @@ private:
     }
 
     // Store the most recent motor data in the hashmap
-    this->can_data[motorId] = {dutyCycleNow, RPM, current, tachometer, std::chrono::steady_clock::now()};
+    this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
 
     RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2fAmps Tachometer: %d", RPM, dutyCycleNow, current, tachometer);
+    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
@@ -281,9 +263,6 @@ private:
     } else if (request->type == "position") {
       vesc_set_position(request->can_id, request->value);
       response->success = 1; // indicates success
-    } else if (request->type == "current") {
-      vesc_set_current(request->can_id, request->value);
-      response->success = 1; // indicates success
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
       response->success = 1; // indicates failure
@@ -301,8 +280,6 @@ private:
       data = vesc_get_duty_cycle(request->can_id);
     } else if (request->type == "position") {
       data = vesc_get_position(request->can_id);
-    } else if (request->type == "current") {
-      data = vesc_get_current(request->can_id);
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
     }
