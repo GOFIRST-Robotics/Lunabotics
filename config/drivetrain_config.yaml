@@ -8,5 +8,5 @@ main_control_node:
         BACK_RIGHT_TURN: 6 # CAN ID of the back right turn motor
         FRONT_RIGHT_DRIVE: 7 # CAN ID of the front right drive motor
         FRONT_RIGHT_TURN: 8 # CAN ID of the front right turn motor
-        WHEEL_BASE: 0.5  # HALF of the wheelbase length in meters # TODO: Change this value when we know the final measurement
-        TRACK_WIDTH: 0.5  # HALF of the trackwidth length in meters # TODO: Change this value when we know the final measurement
+        HALF_WHEEL_BASE: 0.7127  # HALF of the wheelbase in meters # TODO: Verify this on the final robot
+        HALF_TRACK_WIDTH: 0.36585  # HALF of the trackwidth in meters # TODO: Verify this on the final robot

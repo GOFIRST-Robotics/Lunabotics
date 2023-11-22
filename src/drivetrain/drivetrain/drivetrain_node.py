@@ -73,8 +73,8 @@ class DrivetrainNode(Node):
         self.declare_parameter("BACK_RIGHT_TURN", 6)
         self.declare_parameter("FRONT_RIGHT_DRIVE", 7)
         self.declare_parameter("FRONT_RIGHT_TURN", 8)
-        self.declare_parameter("WHEEL_BASE", 0.5)
-        self.declare_parameter("TRACK_WIDTH", 0.5)
+        self.declare_parameter("HALF_WHEEL_BASE", 0.5)
+        self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
 
         # Assign the ROS Parameters to member variables below #
         self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
@@ -85,8 +85,8 @@ class DrivetrainNode(Node):
         self.BACK_RIGHT_TURN = self.get_parameter("BACK_RIGHT_TURN").value
         self.FRONT_RIGHT_DRIVE = self.get_parameter("FRONT_RIGHT_DRIVE").value
         self.FRONT_RIGHT_TURN = self.get_parameter("FRONT_RIGHT_TURN").value
-        self.WHEEL_BASE = self.get_parameter("WHEEL_BASE").value
-        self.TRACK_WIDTH = self.get_parameter("TRACK_WIDTH").value
+        self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
+        self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
@@ -97,8 +97,8 @@ class DrivetrainNode(Node):
         self.get_logger().info("BACK_RIGHT_TURN has been set to: " + str(self.BACK_RIGHT_TURN))
         self.get_logger().info("FRONT_RIGHT_DRIVE has been set to: " + str(self.FRONT_RIGHT_DRIVE))
         self.get_logger().info("FRONT_RIGHT_TURN has been set to: " + str(self.FRONT_RIGHT_TURN))
-        self.get_logger().info("WHEEL_BASE has been set to: " + str(self.WHEEL_BASE))
-        self.get_logger().info("TRACK_WIDTH has been set to: " + str(self.TRACK_WIDTH))
+        self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
+        self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
 
         # Create each swerve module using
         self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set)
@@ -113,10 +113,10 @@ class DrivetrainNode(Node):
         # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
 
         # Intermediate equations to simplify future expressions
-        A = horizontal_power - turning_power * self.WHEEL_BASE
-        B = horizontal_power + turning_power * self.WHEEL_BASE
-        C = forward_power - turning_power * self.TRACK_WIDTH
-        D = forward_power + turning_power * self.TRACK_WIDTH
+        A = horizontal_power - turning_power * self.HALF_WHEEL_BASE
+        B = horizontal_power + turning_power * self.HALF_WHEEL_BASE
+        C = forward_power - turning_power * self.HALF_TRACK_WIDTH
+        D = forward_power + turning_power * self.HALF_TRACK_WIDTH
 
         # Gives the desired speed and angle for each module
         # Note: Angle has range from 0 to 360 degrees to make future calculations easier
