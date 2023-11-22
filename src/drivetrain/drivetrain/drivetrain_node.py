@@ -105,8 +105,8 @@ class DrivetrainNode(Node):
         self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set)
 
     # Define subsystem methods here
-    def drive(self, forward_power: float, turning_power: float) -> None:
-        """This method drives the robot with the desired forward power and turning power."""
+    def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
+        """This method drives the robot with the desired forward, horizontal, and turning power."""
 
         # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
 
