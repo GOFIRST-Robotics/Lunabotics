@@ -19,10 +19,11 @@ from rovr_interfaces.srv import Stop, Drive
 
 # This class represents an individual swerve module
 class SwerveModule:
-    def __init__(self, drive_motor, turning_motor, motor_set):
+    def __init__(self, drive_motor, turning_motor, motor_set, steer_motor_ratio):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
         self.cli_motor_set = motor_set
+        self.steering_motor_gear_ratio = steer_motor_ratio
         self.prev_angle = None
 
     def set_power(self, power: float) -> None:
@@ -30,12 +31,7 @@ class SwerveModule:
 
     def set_angle(self, angle: float) -> None:
         # TODO: Make sure that this turns the right direction when angle wrapping (i.e. an angle change from 320 -> 10 should turn positively, but might turn negitively depending on how the motor works)
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                type="position",
-                value=angle,
-            )
-        )
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="position", value=angle * self.steering_motor_gear_ratio))
 
     def get_absolute_angle(self) -> float:
         pass  # TODO: Implement this method for reading the absolute encoder (save this for later)
@@ -75,6 +71,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("FRONT_RIGHT_TURN", 8)
         self.declare_parameter("HALF_WHEEL_BASE", 0.5)
         self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
+        self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 20)
 
         # Assign the ROS Parameters to member variables below #
         self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
@@ -87,6 +84,7 @@ class DrivetrainNode(Node):
         self.FRONT_RIGHT_TURN = self.get_parameter("FRONT_RIGHT_TURN").value
         self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
         self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
+        self.STEERING_MOTOR_GEAR_RATIO = self.get_parameter("STEERING_MOTOR_GEAR_RATIO").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
@@ -99,12 +97,13 @@ class DrivetrainNode(Node):
         self.get_logger().info("FRONT_RIGHT_TURN has been set to: " + str(self.FRONT_RIGHT_TURN))
         self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
+        self.get_logger().info("STEERING_MOTOR_GEAR_RATIO has been set to: " + str(self.STEERING_MOTOR_GEAR_RATIO))
 
         # Create each swerve module using
-        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set)
-        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self.cli_motor_set)
-        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set)
-        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set)
+        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
 
     # Define subsystem methods here
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
@@ -133,35 +132,27 @@ class DrivetrainNode(Node):
             back_right_vector[0] = back_right_vector[0] / largest_power
             front_right_vector[0] = front_right_vector[0] / largest_power
 
-        # TODO: optimize turning of the wheels (they should never need to turn more than 90 degrees)
-        # some notes: should never have to rotate more than 90 degrees from current angle
-        # have to reverse all modules if reversing one module
-        # have to change angle for all modules if changing angle for one module
-        # not sure if this is 100% correct lol (make sure this is correct) <- not correct, there should be many times where this is not the case
+        # TODO: Finish optimizing turning of the wheels (they should never need to turn more than 90 degrees)
+        # Note: no module should ever have to rotate more than 90 degrees from its current angle
         if abs(back_left_vector[1] - self.back_left.prev_angle) > 90 and abs(back_left_vector[1] - self.back_left.prev_angle) < 270:
             back_left_vector[1] = (back_left_vector[1] + 180) % 360
-
-            # reversing speeds of the modules
+            # reverse speed of the module
             back_left_vector[0] = back_left_vector[0] * -1
 
         if abs(front_left_vector[1] - self.front_left.prev_angle) > 90 and abs(front_left_vector[1] - self.front_left.prev_angle) < 270:
             front_left_vector[1] = (front_left_vector[1] + 180) % 360
-
-            # reversing speeds of the modules
+            # reverse speed of the module
             front_left_vector[0] = front_left_vector[0] * -1
 
         if abs(back_right_vector[1] - self.back_right.prev_angle) > 90 and abs(back_right_vector[1] - self.back_right.prev_angle) < 270:
             back_right_vector[1] = (back_right_vector[1] + 180) % 360
-
-            # reversing speeds of the modules
+            # reverse speed of the module
             back_right_vector[0] = back_right_vector[0] * -1
 
         if abs(front_right_vector[1] - self.front_right.prev_angle) > 90 and abs(front_right_vector[1] - self.front_right.prev_angle) < 270:
             front_right_vector[1] = (front_left_vector[1] + 180) % 360
-
-            # reversing speeds of the modules
+            # reverse speed of the module
             front_right_vector[0] = front_right_vector[0] * -1
-
 
         self.back_left.set_state(back_left_vector[0], back_left_vector[1])
         self.front_left.set_state(front_left_vector[0], front_left_vector[1])

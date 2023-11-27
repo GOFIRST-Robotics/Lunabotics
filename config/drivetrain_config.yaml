@@ -10,3 +10,4 @@ main_control_node:
         FRONT_RIGHT_TURN: 8 # CAN ID of the front right turn motor
         HALF_WHEEL_BASE: 0.7127  # HALF of the wheelbase in meters # TODO: Verify this on the final robot
         HALF_TRACK_WIDTH: 0.36585  # HALF of the trackwidth in meters # TODO: Verify this on the final robot
+        STEERING_MOTOR_GEAR_RATIO: 20 # TODO: Ask mechanical what this value will be on the real robot
