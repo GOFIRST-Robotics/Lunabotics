@@ -127,13 +127,13 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
     this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
-    RCLCPP_DEBUG(this->get_logger(), "Setting the RPM of CAN ID: %u to %d", id, rpm); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the velocity of CAN ID: %u to %d RPM", id, rpm); // Print Statement
   }
 
   // Set the position of the motor in degrees
   void vesc_set_position(uint32_t id, int position) {
     this->pid_controllers[id]->setRotation(position);
-    RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d", id, position); // Print Statement
+    RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d degrees", id, position); // Print Statement
   }
 
   // Get the motor controller's current duty cycle command
@@ -238,8 +238,8 @@ private:
     // Store the most recent motor data in the hashmap
     this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
 
-    RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+    RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
+    RCLCPP_INFO(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
