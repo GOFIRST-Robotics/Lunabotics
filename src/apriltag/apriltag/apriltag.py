@@ -16,24 +16,13 @@ class Apriltag(Node):
         super().__init__('apriltag')
         current_dir = os.getcwd()
 
-        # swap comment based on the field.
+        """Change this based on the field."""
         relative_path = "src/apriltag/apriltag/apriltag_location_nasa.urdf.xarco"
         # relative_path = "src/apriltag/apriltag/apriltag_location_ucf.urdf.xarco"
         
         self.file_path = os.path.join(current_dir, relative_path)
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.sendTransform, 10)
-        # self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.sendTransform, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
-        # self.timer = self.create_timer(0.1, self.test)
-        
-    """Delete this after stuff actually works."""
-    def test(self):
-        t = TransformStamped()
-        t.child_frame_id = "odom"
-        t.header.frame_id = 'map'
-        t.header.stamp = self.get_clock().now().to_msg()
-        t.transform.translation.x = float(4)
-        self.tf_broadcaster.sendTransform(t)
         
 
     def printTransforms(self, msg):
@@ -49,12 +38,6 @@ class Apriltag(Node):
         if len(msg.detections) == 0:
             return
         
-        # tag filtering. For now, the tag at (0,0) is id 3, the berm is id 1
-        # Can filter through the tags, but still only uses the first one.
-        # for tag in msg.detections:
-            # if tag.id == 3:
-            #     home = tag
-
 
         tag = msg.detections[0]
         t = TransformStamped()
@@ -62,30 +45,11 @@ class Apriltag(Node):
         t.header.frame_id = "map"
         t.header.stamp = self.get_clock().now().to_msg()
         self.makeTransforms(t, tag)
-        
-        # if home is not None:
-        #     t = TransformStamped()
-        #     t.child_frame_id = "odom"
-        #     t.header.frame_id = "map"
-        #     t.header.stamp = self.get_clock().now().to_msg()
-        #     self.makeTransforms(t, home)
 
-        # if berm is not None:
-        #     m = TransformStamped()
-        #     m.child_frame_id = "map"
-        #     m.header.frame_id = 'other'
-        #     m.header.stamp = self.get_clock().now().to_msg()
-            
-        #     self.makeTransforms(m, berm)
-        # t.transform.translation.x = home.pose.pose.pose.position.x
-        # t.transform.translation.y = home.pose.pose.pose.position.y
-        # t.transform.translation.z = home.pose.pose.pose.position.z
-        # t.transform.rotation.x = home.pose.pose.pose.orientation.x
-        # t.transform.rotation.y = home.pose.pose.pose.orientation.y
-        # t.transform.rotation.z = home.pose.pose.pose.orientation.z
-        # self.tf_broadcaster.sendTransform(t)
-
-
+        # While this is only being used for a start transform.
+        # probably shouldnt kill itself if we want to keep publishing transforms
+        self.destroy_node()
+        rclpy.shutdown()
         
 
     def makeTransforms(self, t, tag):
@@ -97,18 +61,18 @@ class Apriltag(Node):
 
         xyz_elements = link.findall(".//origin[@xyz]")
         xyz_values = [element.attrib["xyz"] for element in xyz_elements]
-        xyz = xyz_values.split(" ")
+        xyz = xyz_values[0].split(" ")
 
         rpy_elements = link.findall(".//origin[@rpy]")
         rpy_values = [element.attrib["rpy"] for element in rpy_elements]
-        rpy = rpy_values.split(" ")
+        rpy = rpy_values[0].split(" ")
 
-        t.transform.translation.x = tag.pose.pose.pose.position.x - xyz[0]
-        t.transform.translation.y = tag.pose.pose.pose.position.z - xyz[1]
-        t.transform.translation.z = tag.pose.pose.pose.position.y - xyz[2]
-        t.transform.rotation.x = tag.pose.pose.pose.orientation.x - rpy[0]
-        t.transform.rotation.y = tag.pose.pose.pose.orientation.y - rpy[1]
-        t.transform.rotation.z = tag.pose.pose.pose.orientation.z - rpy[2]
+        t.transform.translation.x = tag.pose.pose.pose.position.x - float(xyz[0])
+        t.transform.translation.y = tag.pose.pose.pose.position.z - float(xyz[1])
+        t.transform.translation.z = tag.pose.pose.pose.position.y - float(xyz[2])
+        t.transform.rotation.x = tag.pose.pose.pose.orientation.x - float(rpy[0])
+        t.transform.rotation.y = tag.pose.pose.pose.orientation.y - float(rpy[1])
+        t.transform.rotation.z = tag.pose.pose.pose.orientation.z - float(rpy[2])
         self.tf_broadcaster.sendTransform(t)
     
 
