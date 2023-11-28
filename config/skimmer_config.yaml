@@ -1,0 +1,4 @@
+skimmer_node:
+  ros__parameters:
+        SKIMMER_BELT_MOTOR: 9 # CAN ID of the skimmer belt motor
+        HEIGHT_ADJUST_MOTOR: 10 # CAN ID of the skimmer height adjust motor

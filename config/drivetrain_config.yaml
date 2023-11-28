@@ -1,4 +1,4 @@
-main_control_node:
+drivetrain_node:
   ros__parameters:
         BACK_LEFT_DRIVE: 1 # CAN ID of the back left drive motor
         BACK_LEFT_TURN: 2 # CAN ID of the back left turn motor

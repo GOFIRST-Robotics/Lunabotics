@@ -35,6 +35,7 @@ def generate_launch_description():
         package="skimmer",
         executable="skimmer_node",
         name="skimmer_node",
+        parameters=["config/skimmer_config.yaml"],
         output="screen",
         emulate_tty=True,
     )
