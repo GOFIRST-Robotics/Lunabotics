@@ -48,7 +48,6 @@ class Apriltag(Node):
 
         # While this is only being used for a start transform.
         # probably shouldnt kill itself if we want to keep publishing transforms
-        self.getlogger().info("Odomometry set, killing the publisher")
         self.destroy_node()
         return
         
