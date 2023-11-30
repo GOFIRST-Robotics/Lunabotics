@@ -30,11 +30,7 @@ class SwerveModule:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
 
     def set_angle(self, angle: float) -> None:
-        # TODO: Make sure that this turns the right direction when angle wrapping (i.e. an angle change from 320 -> 10 should turn positively, but might turn negitively depending on how the motor works)
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="position", value=angle * self.steering_motor_gear_ratio))
-
-    def get_absolute_angle(self) -> float:
-        pass  # TODO: Implement this method for reading the absolute encoder (save this for later)
 
     def reset(self) -> None:
         pass  # TODO: Implement this method for resetting our relative encoder offset based on the absolute encoder (save this for later)
@@ -132,7 +128,6 @@ class DrivetrainNode(Node):
             back_right_vector[0] = back_right_vector[0] / largest_power
             front_right_vector[0] = front_right_vector[0] / largest_power
 
-        # TODO: Finish optimizing turning of the wheels (they should never need to turn more than 90 degrees)
         # Note: no module should ever have to rotate more than 90 degrees from its current angle
         if abs(back_left_vector[1] - self.back_left.prev_angle) > 90 and abs(back_left_vector[1] - self.back_left.prev_angle) < 270:
             back_left_vector[1] = (back_left_vector[1] + 180) % 360
