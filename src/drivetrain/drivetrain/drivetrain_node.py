@@ -101,12 +101,17 @@ class DrivetrainNode(Node):
         self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
         self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
 
+        #resetting each module
+        self.back_left.reset() 
+        self.front_left.reset()
+        self.back_right.reset()
+        self.front_right.reset()
+
     # Define subsystem methods here
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward, horizontal and turning power."""
 
         # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
-
         # Intermediate equations to simplify future expressions
         A = horizontal_power - turning_power * self.HALF_WHEEL_BASE
         B = horizontal_power + turning_power * self.HALF_WHEEL_BASE
