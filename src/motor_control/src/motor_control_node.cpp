@@ -33,24 +33,26 @@ using std::placeholders::_2;
 struct MotorData {
   float dutyCycle;
   float velocity;
-  float tachometer;
+  int tachometer;
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
 };
 
 class PIDController {
 private:
   const int DEAD_BAND = 1;
-  const int MOTOR_STEP_COUNT = 42; // Steps for one 360 degree rotation
+  int COUNTS_PER_REVOLUTION; // Steps for one 360 degree rotation
   
   float p_k, i_k, d_k;
   float gravComp;
 
-  int32_t targetTachometer, prevError, totalError;
+  int32_t targTach, prevError, totalError;
 
 public:
   bool isActive;
   
-  PIDController(float p_k = 0, float i_k = 0, float d_k = 0, float gravComp = 0) {
+  PIDController(int CountsPerRevolution = 42, float p_k = 0, float i_k = 0, float d_k = 0, float gravComp = 0) {
+    this->COUNTS_PER_REVOLUTION = CountsPerRevolution;
+
     this->p_k = p_k;
     this->i_k = i_k;
     this->d_k = d_k;
@@ -61,30 +63,29 @@ public:
     this->isActive = false;
   }
 
-  float update(int32_t currentTachometer) {
-    float currentError = (this->targetTachometer - currentTachometer); // Whats the error
-    this->totalError += currentError;
+  float update(int32_t currTach) {
+    float currError = (this->targTach - currTach); // Whats the error
+    this->totalError += currError;
 
-    if (abs(currentError) <= DEAD_BAND) {return 0;}
-
-    std::cout << "Target Tachometer: " << targetTachometer << std::endl;
-    std::cout << "Current Tachometer: " << currentTachometer << std::endl;
-    std::cout << "Current Error: " << currentError << std::endl;
-
-    float PIDResult = (currentError * this->p_k) + (this->totalError * this->i_k) + (currentError - this->prevError) * this->d_k;
-
-    std::cout << "PID Result: " << PIDResult << std::endl;
-
-    this->prevError = currentError; // Assign the previous error to the current error
+    if (abs(currError) <= DEAD_BAND) {return 0;}
+    float PIDResult = (currError * this->p_k) + (this->totalError * this->i_k) + (currError - this->prevError) * this->d_k;
+    this->prevError = currError; // Assign the previous error to the current error
 
     PIDResult = std::clamp(PIDResult, (float)(-1), (float)(1)); // Clamp the PIDResult between -1 and 1
+
+    // Uncomment for debug values
+    std::cout << "Target Tachometer: " << targTach << ", Current Tachometer: " << currTach << ", Current Error: " << currError << ", PIDResult: " << PIDResult << std::endl;
 
     return PIDResult;
   }
 
   void setRotation(float degrees) {
     this->isActive = true;
-    this->targetTachometer = static_cast<int32_t>((degrees / 360.0) * this->MOTOR_STEP_COUNT);
+    this->targTach = static_cast<int32_t>((degrees / 360.0) * this->COUNTS_PER_REVOLUTION);
+  }
+
+  int getCountsPerRevolution() {
+    return this->COUNTS_PER_REVOLUTION;
   }
 };
 
@@ -152,10 +153,10 @@ class MotorControlNode : public rclcpp::Node {
       return std::nullopt; // The data is too stale
     }
   }
-  // Get the current position (tachometer reading) of the motor // TODO: make this return the position in degrees
+  // Get the current position (tachometer reading) of the motor 
   std::optional<float> vesc_get_position(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
-      return this->can_data[id].tachometer;
+      return (static_cast<float>(this->can_data[id].tachometer) / static_cast<float>(this->pid_controllers[id]->getCountsPerRevolution())) * 360.0; // TODO: account for different motor encoder counts
     } else {
       return std::nullopt; // The data is too stale
     }
@@ -177,12 +178,12 @@ public:
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
-    // TODO: The lines below are for testing only (Remove when done)
-    this->pid_controllers[8] = new PIDController(0.01);
-    this->vesc_set_position(8, 10);
-
     // TODO: Instantiate x5 PIDControllers here, for the 4 swerve modules and skimmer height adjust
-    // You can probably use the same PIDController object for all 4 swerve modules though
+    // this->pid_controllers[/*Skimmer Motor ID*/] = new PIDController(42, 0.01); // Skimmer
+    // this->pid_controllers[/*Swerve 1 Motor ID*/] = new PIDController(42, 0.01); // Swerve 1
+    // this->pid_controllers[/*Swerve 2 Motor ID*/] = new PIDController(42, 0.01); // Swerve 2
+    // this->pid_controllers[/*Swerve 3 Motor ID*/] = new PIDController(42, 0.01); // Swerve 3
+    // this->pid_controllers[/*Swerve 4 Motor ID*/] = new PIDController(42, 0.01); // Swerve 4
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -201,7 +202,9 @@ private:
     for (auto pair : this->current_msg) {
       uint32_t motorId = pair.first;
       // If the motor controller has previously received a command, send the most recent command again
-      send_can(std::get<0>(this->current_msg[motorId]), std::get<1>(this->current_msg[motorId]));
+      if (this->pid_controllers[motorId]->isActive == false) {
+        send_can(std::get<0>(this->current_msg[motorId]), std::get<1>(this->current_msg[motorId]));
+      }
     }
   }
 
@@ -226,20 +229,24 @@ private:
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+      
+      // Runs the PID controller for this motor if its active
       if (this->pid_controllers[motorId]->isActive) {
         float PIDResult = this->pid_controllers[motorId]->update(tachometer);
 
         int32_t data = PIDResult * 100000; // Convert from percent power to a signed 32-bit integer
         send_can(motorId + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
       }
+
       break;
     }
 
     // Store the most recent motor data in the hashmap
     this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
 
-    RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    RCLCPP_INFO(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+    // Uncomment for debug values
+    //RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
+    //RCLCPP_INFO(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
@@ -254,6 +261,9 @@ private:
   // Callback method for the MotorCommandSet service
   void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request,
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
+    
+    std::cout << (request->type == "position") << std::endl; 
+
     if (request->type == "velocity") {
       vesc_set_velocity(request->can_id, request->value);
       response->success = 1; // indicates success
