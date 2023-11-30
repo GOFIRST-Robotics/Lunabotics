@@ -38,7 +38,6 @@ class Apriltag(Node):
         if len(msg.detections) == 0:
             return
         
-
         tag = msg.detections[0]
         t = TransformStamped()
         t.child_frame_id = "odom"
@@ -56,7 +55,7 @@ class Apriltag(Node):
         id = tag.id
         tree = ET.parse(self.file_path)
         root = tree.getroot()
-        
+
         link = root[id - 1] # assumes tag 1 = home 1, tag 2 = home 2, 3 = berm 1 etc.
 
         xyz_elements = link.findall(".//origin[@xyz]")

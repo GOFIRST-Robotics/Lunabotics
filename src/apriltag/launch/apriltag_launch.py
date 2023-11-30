@@ -10,6 +10,12 @@ from launch_ros.descriptions import ComposableNode
 
 def generate_launch_description():
 
+    tag_reader = Node(
+        package='apriltag',
+        executable='apriltag',
+        name='apriltag',
+    )
+
     apriltag_node = ComposableNode(
         package='isaac_ros_apriltag',
         plugin='nvidia::isaac_ros::apriltag::AprilTagNode',
@@ -96,4 +102,4 @@ def generate_launch_description():
 
 
     # Add nodes and containers to LaunchDescription
-    return launch.LaunchDescription([apriltag_container, rsp_node, zed_node])
+    return launch.LaunchDescription([tag_reader, apriltag_container, rsp_node, zed_node])

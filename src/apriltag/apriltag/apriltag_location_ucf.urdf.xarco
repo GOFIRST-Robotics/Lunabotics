@@ -17,7 +17,7 @@
 <link name="base_tag_1">
     <parent link="base_link"/>
     <visual>
-        <origin xyz="0 1 0" rpy="0 0 0"/>
+        <origin xyz="0 1 0" rpy="0 0 90"/>
         <geometry>
             <box size="0.1 0.1 0.1"/>
         </geometry>
@@ -50,7 +50,7 @@
 <link name="berm_tag_3">
     <parent link="base_link"/>
     <visual>
-        <origin xyz="6.5 1.1 0" rpy="0 0 0"/>
+        <origin xyz="8.9 4.3 0" rpy="0 0 270"/>
         <geometry>
             <box size="0.1 0.1 0.1"/>
         </geometry>
@@ -63,7 +63,7 @@
 <link name="berm_tag_4">
     <parent link="base_link"/>
     <visual>
-        <origin xyz="4.5 1.1 0" rpy="0 0 0"/>
+        <origin xyz="8.9 4.5 0" rpy="0 0 270"/>
         <geometry>
             <box size="0.1 0.1 0.1"/>
         </geometry>
@@ -76,7 +76,7 @@
 <link name="berm_tag_5">
     <parent link="base_link"/>
     <visual>
-        <origin xyz="4.5 .2 0" rpy="0 0 0"/>
+        <origin xyz="8 4.3 0" rpy="0 0 270"/>
         <geometry>
             <box size="0.1 0.1 0.1"/>
         </geometry>
@@ -89,7 +89,7 @@
 <link name="berm_tag_6">
     <parent link="base_link"/>
     <visual>
-        <origin xyz="6.5 .2 0" rpy="0 0 0"/>
+        <origin xyz="8 4.5 0" rpy="0 0 270"/>
         <geometry>
             <box size="0.1 0.1 0.1"/>
         </geometry>
