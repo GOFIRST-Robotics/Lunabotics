@@ -1,28 +1,29 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Int8, Bool
+from std_msgs.msg import Int16, Bool
 import serial
 import struct
+
 
 class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
-        self.frontLeftEncoder = self.create_publisher(Int8, "frontLeftEncoder", 10)
-        self.frontRightEncoder = self.create_publisher(Int8, "frontRightEncoder", 10)
-        self.backLeftEncoder  = self.create_publisher(Int8, "backLeftEncoder", 10)
-        self.backRightEncoder = self.create_publisher(Int8, "backRightEncoder", 10)
-        self.topLimitSwitch = self.create_publisher(Int8, "topLimitSwitch", 10)
-        self.bottomLimitSwitch = self.create_publisher(Int8, "bottomLimitSwitch", 10)
-        self.timer = self.create_timer(0.1, self.read_data)
+        self.frontLeftEncoder = self.create_publisher(Int16, "frontLeftEncoder", 10)
+        self.frontRightEncoder = self.create_publisher(Int16, "frontRightEncoder", 10)
+        self.backLeftEncoder = self.create_publisher(Int16, "backLeftEncoder", 10)
+        self.backRightEncoder = self.create_publisher(Int16, "backRightEncoder", 10)
+        self.topLimitSwitch = self.create_publisher(Int16, "topLimitSwitch", 10)
+        self.bottomLimitSwitch = self.create_publisher(Int16, "bottomLimitSwitch", 10)
+        self.timer = self.create_timer(0.01, self.read_data)
         try:
-            self.arduino = serial.Serial("/dev/name", 9600)
+            self.arduino = serial.Serial("/dev/name", 9600)  # TODO change the name of the arduino
         except Exception as e:
             self.get_logger().fatal(f"Error connecting to serial: {e}")
-        
+
     def read_data(self):
         data = self.arduino.read()
-        decoded = struct.unpack('iiiibb', data)
-        msg = Int8()
+        decoded = struct.unpack("hhhhbb", data)  # Use h for each int because arduino int is 2 bytes
+        msg = Int16()
         msg.data = decoded[0]
         self.frontLeftEncoder.publish(msg)
         msg.data = decoded[1]
@@ -37,10 +38,11 @@ class read_serial(Node):
         msg.data = decoded[5]
         self.bottomLimitSwitch.publish(msg)
 
+
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
-    
+
     node = read_serial()
     node.get_logger().info("Starting serial reader")
     rclpy.spin(node)
