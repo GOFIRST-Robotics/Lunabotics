@@ -7,6 +7,8 @@
   <maintainer email="robotics@umn.edu">umn-robotics</maintainer>
   <license>MIT License</license>
 
+  <exec_depend>isaac_ros_apriltag_interfaces</exec_depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
