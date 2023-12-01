@@ -1,8 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
 
-
-
 # Get the current working directory
 current_dir = os.getcwd()
 

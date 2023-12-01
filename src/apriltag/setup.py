@@ -20,10 +20,10 @@ setup(
     zip_safe=True,
     maintainer='umn-robotics',
     maintainer_email='robotics@umn.edu',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='Package for processing apriltag detections received from ISAAC ROS Apriltag.',
+    license='MIT License',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': ["apriltag = apriltag.apriltag:main"],
+        'console_scripts': ["apriltag_node = apriltag.apriltag_node:main"],
     },
 )

@@ -11,9 +11,9 @@ import os
 ros2 launch isaac_ros_apriltag isaac_ros_apriltag_usb_cam.launch.py
 or nothing here will work"""
 
-class Apriltag(Node):
+class ApriltagNode(Node):
     def __init__(self):
-        super().__init__('apriltag')
+        super().__init__('apriltag_node')
         current_dir = os.getcwd()
 
         """Change this based on the field."""
@@ -79,8 +79,8 @@ def main(args=None):
     """The main function."""
     rclpy.init(args=args)
 
-    node = Apriltag()
-    node.get_logger().info("Initializing the Apriltag subsystem!")
+    node = ApriltagNode()
+    node.get_logger().info("Initializing the Apriltag node!")
     rclpy.spin(node)
 
     node.destroy_node()
