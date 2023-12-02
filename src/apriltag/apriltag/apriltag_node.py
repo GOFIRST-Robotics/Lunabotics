@@ -35,42 +35,78 @@ class ApriltagNode(Node):
     def sendTransform(self, msg):
         if len(msg.detections) == 0:
             return
-
+        
         tag = msg.detections[0]
-        t = TransformStamped()
-        t.child_frame_id = "odom"
-        t.header.frame_id = "map"
-        t.header.stamp = self.get_clock().now().to_msg()
-        self.makeTransforms(t, tag)
+        
+        self.makeTransforms(msg.detections)
 
         # While this is only being used for a start transform.
         # probably shouldnt kill itself if we want to keep publishing transforms
         self.destroy_node()
         return
 
-    def makeTransforms(self, t, tag):
-        id = tag.id
-        tree = ET.parse(self.file_path)
-        root = tree.getroot()
+    def makeTransforms(self, tags):
+        transforms = []
+        for tag in tags:
+            t = TransformStamped()
+            t.child_frame_id = "odom"
+            t.header.frame_id = "map"
+            t.header.stamp = self.get_clock().now().to_msg()
 
-        link = root[id - 1]  # assumes tag 1 = home 1, tag 2 = home 2, 3 = berm 1 etc.
+            id = tag.id
+            tree = ET.parse(self.file_path)
+            root = tree.getroot()
 
-        xyz_elements = link.findall(".//origin[@xyz]")
-        xyz_values = [element.attrib["xyz"] for element in xyz_elements]
-        xyz = xyz_values[0].split(" ")
+            link = root[id - 1] # assumes tag 1 = home 1, tag 2 = home 2, 3 = berm 1 etc.
 
-        rpy_elements = link.findall(".//origin[@rpy]")
-        rpy_values = [element.attrib["rpy"] for element in rpy_elements]
-        rpy = rpy_values[0].split(" ")
+            xyz_elements = link.findall(".//origin[@xyz]")
+            xyz_values = [element.attrib["xyz"] for element in xyz_elements]
+            xyz = xyz_values[0].split(" ")
 
-        t.transform.translation.x = tag.pose.pose.pose.position.x - float(xyz[0])
-        t.transform.translation.y = tag.pose.pose.pose.position.z - float(xyz[1])
-        t.transform.translation.z = tag.pose.pose.pose.position.y - float(xyz[2])
-        t.transform.rotation.x = tag.pose.pose.pose.orientation.x - float(rpy[0])
-        t.transform.rotation.y = tag.pose.pose.pose.orientation.y - float(rpy[1])
-        t.transform.rotation.z = tag.pose.pose.pose.orientation.z - float(rpy[2])
-        self.tf_broadcaster.sendTransform(t)
+            rpy_elements = link.findall(".//origin[@rpy]")
+            rpy_values = [element.attrib["rpy"] for element in rpy_elements]
+            rpy = rpy_values[0].split(" ")
 
+            t.transform.translation.x = tag.pose.pose.pose.position.x - float(xyz[0])
+            t.transform.translation.y = tag.pose.pose.pose.position.z - float(xyz[1])
+            t.transform.translation.z = tag.pose.pose.pose.position.y - float(xyz[2])
+            t.transform.rotation.x = tag.pose.pose.pose.orientation.x - float(rpy[0])
+            t.transform.rotation.y = tag.pose.pose.pose.orientation.y - float(rpy[1])
+            t.transform.rotation.z = tag.pose.pose.pose.orientation.z - float(rpy[2])
+
+            transforms.append(t)
+
+        t = TransformStamped()
+        t.child_frame_id = "odom"
+        t.header.frame_id = "map"
+        t.header.stamp = self.get_clock().now().to_msg()
+        self.tf_broadcaster.sendTransform(self.averageTransforms(transforms, t))
+    
+
+    def averageTransforms(self, transforms, t):
+        x = 0
+        y = 0
+        z = 0
+        qx = 0
+        qy = 0
+        qz = 0
+        qw = 0
+        for transform in transforms:
+            x += transform.transform.translation.x
+            y += transform.transform.translation.y
+            z += transform.transform.translation.z
+            qx += transform.transform.rotation.x
+            qy += transform.transform.rotation.y
+            qz += transform.transform.rotation.z
+            qw += transform.transform.rotation.w
+        t.transform.translation.x = x / len(transforms)
+        t.transform.translation.y = y / len(transforms)
+        t.transform.translation.z = z / len(transforms)
+        t.transform.rotation.x = qx / len(transforms)
+        t.transform.rotation.y = qy / len(transforms)
+        t.transform.rotation.z = qz / len(transforms)
+        t.transform.rotation.w = qw / len(transforms)
+        return t
 
 def main(args=None):
     """The main function."""
