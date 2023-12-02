@@ -41,21 +41,21 @@ class PIDController {
 private:
   const int DEAD_BAND = 1;
   int COUNTS_PER_REVOLUTION; // Steps for one 360 degree rotation
-  
-  float p_k, i_k, d_k;
+
+  float kp, ki, kd;
   float gravComp;
 
   int32_t targTach, prevError, totalError;
 
 public:
   bool isActive;
-  
-  PIDController(int CountsPerRevolution = 42, float p_k = 0, float i_k = 0, float d_k = 0, float gravComp = 0) {
+
+  PIDController(int CountsPerRevolution, float kp, float ki = 0, float kd = 0, float gravComp = 0) {
     this->COUNTS_PER_REVOLUTION = CountsPerRevolution;
 
-    this->p_k = p_k;
-    this->i_k = i_k;
-    this->d_k = d_k;
+    this->kp = kp;
+    this->ki = ki;
+    this->kd = kd;
     this->gravComp = gravComp;
 
     this->prevError = 0;
@@ -67,14 +67,17 @@ public:
     float currError = (this->targTach - currTach); // Whats the error
     this->totalError += currError;
 
-    if (abs(currError) <= DEAD_BAND) {return 0;}
-    float PIDResult = (currError * this->p_k) + (this->totalError * this->i_k) + (currError - this->prevError) * this->d_k;
+    if (abs(currError) <= DEAD_BAND) {
+      return 0;
+    }
+
+    float PIDResult = (currError * this->kp) + (this->totalError * this->ki) + (currError - this->prevError) * this->kd;
     this->prevError = currError; // Assign the previous error to the current error
 
     PIDResult = std::clamp(PIDResult, (float)(-1), (float)(1)); // Clamp the PIDResult between -1 and 1
 
-    // Uncomment for debug values
-    std::cout << "Target Tachometer: " << targTach << ", Current Tachometer: " << currTach << ", Current Error: " << currError << ", PIDResult: " << PIDResult << std::endl;
+    // Uncomment the line below for debug values:
+    // std::cout << "Target Tachometer: " << targTach << ", Current Tachometer: " << currTach << ", Current Error: " << currError << ", PIDResult: " << PIDResult << std::endl;
 
     return PIDResult;
   }
@@ -153,10 +156,10 @@ class MotorControlNode : public rclcpp::Node {
       return std::nullopt; // The data is too stale
     }
   }
-  // Get the current position (tachometer reading) of the motor 
+  // Get the current position (tachometer reading) of the motor
   std::optional<float> vesc_get_position(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
-      return (static_cast<float>(this->can_data[id].tachometer) / static_cast<float>(this->pid_controllers[id]->getCountsPerRevolution())) * 360.0; // TODO: account for different motor encoder counts
+      return (static_cast<float>(this->can_data[id].tachometer) / static_cast<float>(this->pid_controllers[id]->getCountsPerRevolution())) * 360.0;
     } else {
       return std::nullopt; // The data is too stale
     }
@@ -167,10 +170,20 @@ public:
     // Define default values for our ROS parameters below #
     this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
+    this->declare_parameter("BACK_LEFT_TURN", 2);
+    this->declare_parameter("FRONT_LEFT_TURN", 4);
+    this->declare_parameter("BACK_RIGHT_TURN", 6);
+    this->declare_parameter("FRONT_RIGHT_TURN", 8);
+    this->declare_parameter("HEIGHT_ADJUST_MOTOR", 10);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
+    RCLCPP_INFO(this->get_logger(), "BACK_LEFT_TURN parameter set to: %ld", this->get_parameter("BACK_LEFT_TURN").as_int());
+    RCLCPP_INFO(this->get_logger(), "FRONT_LEFT_TURN parameter set to: %ld", this->get_parameter("FRONT_LEFT_TURN").as_int());
+    RCLCPP_INFO(this->get_logger(), "BACK_RIGHT_TURN parameter set to: %ld", this->get_parameter("BACK_RIGHT_TURN").as_int());
+    RCLCPP_INFO(this->get_logger(), "FRONT_RIGHT_TURN parameter set to: %ld", this->get_parameter("FRONT_RIGHT_TURN").as_int());
+    RCLCPP_INFO(this->get_logger(), "HEIGHT_ADJUST_MOTOR parameter set to: %ld", this->get_parameter("HEIGHT_ADJUST_MOTOR").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -178,12 +191,12 @@ public:
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
-    // TODO: Instantiate x5 PIDControllers here, for the 4 swerve modules and skimmer height adjust
-    // this->pid_controllers[/*Skimmer Motor ID*/] = new PIDController(42, 0.01); // Skimmer
-    // this->pid_controllers[/*Swerve 1 Motor ID*/] = new PIDController(42, 0.01); // Swerve 1
-    // this->pid_controllers[/*Swerve 2 Motor ID*/] = new PIDController(42, 0.01); // Swerve 2
-    // this->pid_controllers[/*Swerve 3 Motor ID*/] = new PIDController(42, 0.01); // Swerve 3
-    // this->pid_controllers[/*Swerve 4 Motor ID*/] = new PIDController(42, 0.01); // Swerve 4
+    // Instantiate all of our PIDControllers here
+    this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()] = new PIDController(42, 0.01); // TODO: kp will need to be tuned on the real robot
+    this->pid_controllers[this->get_parameter("FRONT_LEFT_TURN").as_int()] = new PIDController(42, 0.01); // TODO: kp will need to be tuned on the real robot
+    this->pid_controllers[this->get_parameter("BACK_RIGHT_TURN").as_int()] = new PIDController(42, 0.01); // TODO: kp will need to be tuned on the real robot
+    this->pid_controllers[this->get_parameter("FRONT_RIGHT_TURN").as_int()] = new PIDController(42, 0.01); // TODO: kp will need to be tuned on the real robot
+    this->pid_controllers[this->get_parameter("HEIGHT_ADJUST_MOTOR").as_int()] = new PIDController(42, 0.01); // TODO: kp will need to be tuned on the real robot
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -221,7 +234,7 @@ private:
     float dutyCycleNow = this->can_data[motorId].dutyCycle;
     float RPM = this->can_data[motorId].velocity;
     int32_t tachometer = this->can_data[motorId].tachometer;
-    
+
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
@@ -229,7 +242,7 @@ private:
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      
+
       // Runs the PID controller for this motor if its active
       if (this->pid_controllers[motorId]->isActive) {
         float PIDResult = this->pid_controllers[motorId]->update(tachometer);
@@ -244,9 +257,8 @@ private:
     // Store the most recent motor data in the hashmap
     this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
 
-    // Uncomment for debug values
-    //RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    //RCLCPP_INFO(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+    RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
+    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
@@ -261,8 +273,6 @@ private:
   // Callback method for the MotorCommandSet service
   void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request,
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
-    
-    std::cout << (request->type == "position") << std::endl; 
 
     if (request->type == "velocity") {
       vesc_set_velocity(request->can_id, request->value);
