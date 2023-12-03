@@ -21,6 +21,8 @@ class ApriltagNode(Node):
         # relative_path = "src/apriltag/apriltag/apriltag_location_ucf.urdf.xarco"
 
         self.file_path = os.path.join(current_dir, relative_path)
+
+        #TODO: figure out how we distinguish between the tags based on camera used.
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.sendTransform, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
@@ -82,7 +84,8 @@ class ApriltagNode(Node):
         t.header.stamp = self.get_clock().now().to_msg()
         self.tf_broadcaster.sendTransform(self.averageTransforms(transforms, t))
     
-
+    """Averages the transforms of the tags to get a more accurate transform"""
+    # TODO: might be interesting to weigh the transforms based on the distance from the camera
     def averageTransforms(self, transforms, t):
         x = 0
         y = 0
@@ -90,7 +93,6 @@ class ApriltagNode(Node):
         qx = 0
         qy = 0
         qz = 0
-        qw = 0
         for transform in transforms:
             x += transform.transform.translation.x
             y += transform.transform.translation.y
@@ -98,14 +100,12 @@ class ApriltagNode(Node):
             qx += transform.transform.rotation.x
             qy += transform.transform.rotation.y
             qz += transform.transform.rotation.z
-            qw += transform.transform.rotation.w
         t.transform.translation.x = x / len(transforms)
         t.transform.translation.y = y / len(transforms)
         t.transform.translation.z = z / len(transforms)
         t.transform.rotation.x = qx / len(transforms)
         t.transform.rotation.y = qy / len(transforms)
         t.transform.rotation.z = qz / len(transforms)
-        t.transform.rotation.w = qw / len(transforms)
         return t
 
 def main(args=None):
