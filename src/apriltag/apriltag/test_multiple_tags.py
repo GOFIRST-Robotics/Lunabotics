@@ -5,15 +5,15 @@ from tf2_ros import TransformBroadcaster
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
 import xml.etree.ElementTree as ET
 import os
-from rovr_interfaces.srv import Stop
 
 """Make sure to turn on the camera using 
 ros2 launch isaac_ros_apriltag isaac_ros_apriltag_usb_cam.launch.py
 or nothing here will work"""
 
-class ApriltagNode(Node):
+
+class test_multiple_tags(Node):
     def __init__(self):
-        super().__init__("apriltag_node")
+        super().__init__("test_multiple_tags")
         current_dir = os.getcwd()
 
         """Change this based on the field."""
@@ -21,44 +21,20 @@ class ApriltagNode(Node):
         # relative_path = "src/apriltag/apriltag/apriltag_location_ucf.urdf.xarco"
 
         self.file_path = os.path.join(current_dir, relative_path)
-        self.averagedTag = None
+
         #TODO: figure out how we distinguish between the tags based on camera used.
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.sendTransform, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        self.create_service(Stop, "apriltag_node", self.reset_callback)
-
-    def reset_callback(self, request, response):
-        self.get_logger().info("Resetting the odom")
-        return self.postTransform(self.averagedTag)
-        
-
-    def postTransform(self, tag):
-        if tag is not None:
-            self.tf_broadcaster.sendTransform(tag)
-            return 1
-        return 0
-
-
-    def printTransforms(self, msg):
-        if len(msg.detections) == 0:
-            return
-        home = msg.detections[0]
-        print(home.pose.pose.pose.position.x)
-        print(home.pose.pose.pose.position.y)
-        print(home.pose.pose.pose.position.z)
 
     def sendTransform(self, msg):
         if len(msg.detections) == 0:
             return
         
-        tag = msg.detections[0]
-        
         self.makeTransforms(msg.detections)
 
         # While this is only being used for a start transform.
         # probably shouldnt kill itself if we want to keep publishing transforms
-        self.destroy_node()
         return
 
     def makeTransforms(self, tags):
@@ -92,12 +68,11 @@ class ApriltagNode(Node):
 
             transforms.append(t)
 
-        self.averagedTag = TransformStamped()
-        self.averagedTag.child_frame_id = "odom"
-        self.averagedTag.header.frame_id = "map"
-        self.averagedTag.header.stamp = self.get_clock().now().to_msg()
-        self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
-        # self.tf_broadcaster.sendTransform(self.averageTransforms(transforms, t))
+        t = TransformStamped()
+        t.child_frame_id = "odom"
+        t.header.frame_id = "map"
+        t.header.stamp = self.get_clock().now().to_msg()
+        self.tf_broadcaster.sendTransform(self.averageTransforms(transforms, t))
     
     """Averages the transforms of the tags to get a more accurate transform"""
     # TODO: might be interesting to weigh the transforms based on the distance from the camera
@@ -121,13 +96,16 @@ class ApriltagNode(Node):
         t.transform.rotation.x = qx / len(transforms)
         t.transform.rotation.y = qy / len(transforms)
         t.transform.rotation.z = qz / len(transforms)
+
+
+        print(t.transform.translation.x, t.transform.translation.y, t.transform.translation.z)
         return t
 
 def main(args=None):
     """The main function."""
     rclpy.init(args=args)
 
-    node = ApriltagNode()
+    node = test_multiple_tags()
     node.get_logger().info("Initializing the Apriltag node!")
     rclpy.spin(node)
 

@@ -24,6 +24,6 @@ setup(
     license='MIT License',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': ["apriltag_node = apriltag.apriltag_node:main"],
+        'console_scripts': ["apriltag_node = apriltag.apriltag_node:main", "test_multiple_tags = apriltag.test_multiple_tags:main"],
     },
 )
