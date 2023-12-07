@@ -3,6 +3,7 @@ from rclpy.node import Node
 from std_msgs.msg import Int16, Bool
 import serial
 import struct
+import time
 
 
 class read_serial(Node):
@@ -16,6 +17,8 @@ class read_serial(Node):
         self.bottomLimitSwitch = self.create_publisher(Int16, "bottomLimitSwitch", 10)
         try:
             self.arduino = serial.Serial("/dev/name", 9600)  # TODO change the name of the arduino
+            time.sleep(1)  # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
+            self.arduino.read_all()
         except Exception as e:
             self.get_logger().fatal(f"Error connecting to serial: {e}")
             self.destroy_node()
@@ -27,7 +30,8 @@ class read_serial(Node):
                 self.destroy_node()
                 return
             data = self.arduino.read(10)  # Pause until 10 bytes are read
-            decoded = struct.unpack("hhhhbb", data)  # Use h for each int because arduino int is 2 bytes
+            decoded = struct.unpack("??hhhh", data)  # Use h for each int because arduino int is 2 bytes
+
             msg = Int16()
             msg.data = decoded[0]
             self.frontLeftEncoder.publish(msg)
