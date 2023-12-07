@@ -14,29 +14,34 @@ class read_serial(Node):
         self.backRightEncoder = self.create_publisher(Int16, "backRightEncoder", 10)
         self.topLimitSwitch = self.create_publisher(Int16, "topLimitSwitch", 10)
         self.bottomLimitSwitch = self.create_publisher(Int16, "bottomLimitSwitch", 10)
-        self.timer = self.create_timer(0.01, self.read_data)
         try:
             self.arduino = serial.Serial("/dev/name", 9600)  # TODO change the name of the arduino
         except Exception as e:
             self.get_logger().fatal(f"Error connecting to serial: {e}")
+            self.destroy_node()
+            return
 
-    def read_data(self):
-        data = self.arduino.read()
-        decoded = struct.unpack("hhhhbb", data)  # Use h for each int because arduino int is 2 bytes
-        msg = Int16()
-        msg.data = decoded[0]
-        self.frontLeftEncoder.publish(msg)
-        msg.data = decoded[1]
-        self.frontRightEncoder.publish(msg)
-        msg.data = decoded[2]
-        self.backLeftEncoder.publish(msg)
-        msg.data = decoded[3]
-        self.backRightEncoder.publish(msg)
-        msg = Bool()
-        msg.data = decoded[4]
-        self.topLimitSwitch.publish(msg)
-        msg.data = decoded[5]
-        self.bottomLimitSwitch.publish(msg)
+        while True:
+            if self.arduino is None:
+                self.get_logger().fatal("Killing read_serial node")
+                self.destroy_node()
+                return
+            data = self.arduino.read(10)  # Pause until 10 bytes are read
+            decoded = struct.unpack("hhhhbb", data)  # Use h for each int because arduino int is 2 bytes
+            msg = Int16()
+            msg.data = decoded[0]
+            self.frontLeftEncoder.publish(msg)
+            msg.data = decoded[1]
+            self.frontRightEncoder.publish(msg)
+            msg.data = decoded[2]
+            self.backLeftEncoder.publish(msg)
+            msg.data = decoded[3]
+            self.backRightEncoder.publish(msg)
+            msg = Bool()
+            msg.data = decoded[4]
+            self.topLimitSwitch.publish(msg)
+            msg.data = decoded[5]
+            self.bottomLimitSwitch.publish(msg)
 
 
 def main(args=None):
