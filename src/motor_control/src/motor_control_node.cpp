@@ -45,7 +45,9 @@ private:
   float kp, ki, kd;
   float gravComp;
 
-  int32_t targTach, prevError, totalError;
+  int32_t targTach, prevTargTach, totalError;
+
+  std::optional<int32_t> prevError;
 
 public:
   bool isActive;
@@ -58,33 +60,39 @@ public:
     this->kd = kd;
     this->gravComp = gravComp;
 
-    this->prevError = 0;
     this->totalError = 0;
     this->isActive = false;
+    this->prevError = std::nullopt;
   }
 
   float update(int32_t currTach) {
     float currError = (this->targTach - currTach); // Whats the error
+    if (abs(currError) <= DEAD_BAND) { return 0; } // If the error is inside the band, return 0
+  
     this->totalError += currError;
-
-    if (abs(currError) <= DEAD_BAND) {
-      return 0;
-    }
-
-    float PIDResult = (currError * this->kp) + (this->totalError * this->ki) + (currError - this->prevError) * this->kd;
-    this->prevError = currError; // Assign the previous error to the current error
+  
+    float PIDResult = (currError * this->kp) + (this->totalError * this->ki) + (this->prevError.has_value() ? currError - this->prevError.value() : 0) * this->kd;
 
     PIDResult = std::clamp(PIDResult, (float)(-1), (float)(1)); // Clamp the PIDResult between -1 and 1
 
     // Uncomment the line below for debug values:
-    // std::cout << "Target Tachometer: " << targTach << ", Current Tachometer: " << currTach << ", Current Error: " << currError << ", PIDResult: " << PIDResult << std::endl;
+    // std::cout << "Target Tachometer: " << targTach << ", Current Tachometer: " << currTach << ", Current Error: " << currError << ", PIDResult: " << PIDResult << ", Total Error: " << totalError << ", D: " << (this->prevError.has_value() ? currError - this->prevError.value() : 0) << std::endl;
+    
+    this->prevError = currError; // Assign the previous error to the current error
 
     return PIDResult;
   }
 
   void setRotation(float degrees) {
+    this->prevTargTach = this->targTach;
+
     this->isActive = true;
     this->targTach = static_cast<int32_t>((degrees / 360.0) * this->COUNTS_PER_REVOLUTION);
+    
+    if (this->prevTargTach != this->targTach) {
+      this->totalError = 0;
+      this->prevError = std::nullopt;
+    }
   }
 
   int getCountsPerRevolution() {
@@ -93,6 +101,7 @@ public:
 };
 
 class MotorControlNode : public rclcpp::Node {
+
   // Generic method for sending data over the CAN bus
   void send_can(uint32_t id, int32_t data) const {
     can_msgs::msg::Frame can_msg; // Construct a new CAN message
