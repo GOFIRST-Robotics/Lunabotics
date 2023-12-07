@@ -5,7 +5,7 @@ from tf2_ros import TransformBroadcaster
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
 import xml.etree.ElementTree as ET
 import os
-from rovr_interfaces.srv import Stop
+from rovr_interfaces.srv import ResetOdom
 
 """Make sure to turn on the camera using 
 ros2 launch isaac_ros_apriltag isaac_ros_apriltag_usb_cam.launch.py
@@ -26,18 +26,34 @@ class ApriltagNode(Node):
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.sendTransform, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        self.create_service(Stop, "apriltag_node", self.reset_callback)
+        self.create_service(ResetOdom, "apriltag_node", self.reset_callback)
 
+    """Service callback"""
     def reset_callback(self, request, response):
         self.get_logger().info("Resetting the odom")
-        return self.postTransform(self.averagedTag)
-        
 
+        """Run until success"""
+        response.success = False
+        
+        success = False
+        while not success:
+            print(self.postTransform(self.averagedTag))
+            if bool(self.postTransform(self.averagedTag)):
+                response.success = True
+                return response
+        
+        
+        """Run once, return success/ fail"""
+        # response.success = bool(self.postTransform(self.averagedTag))
+        
+        return response
+        
+    """Publishes the tag if it exists"""
     def postTransform(self, tag):
         if tag is not None:
             self.tf_broadcaster.sendTransform(tag)
-            return 1
-        return 0
+            return True
+        return False
 
 
     def printTransforms(self, msg):
@@ -52,13 +68,11 @@ class ApriltagNode(Node):
         if len(msg.detections) == 0:
             return
         
-        tag = msg.detections[0]
-        
         self.makeTransforms(msg.detections)
 
         # While this is only being used for a start transform.
         # probably shouldnt kill itself if we want to keep publishing transforms
-        self.destroy_node()
+        # self.destroy_node()
         return
 
     def makeTransforms(self, tags):
