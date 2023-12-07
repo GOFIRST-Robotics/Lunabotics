@@ -45,7 +45,7 @@ private:
   float kp, ki, kd;
   float gravComp;
 
-  int32_t targTach, prevTargTach, totalError;
+  int32_t targTach, totalError;
 
   std::optional<int32_t> prevError;
 
@@ -84,15 +84,10 @@ public:
   }
 
   void setRotation(float degrees) {
-    this->prevTargTach = this->targTach;
-
     this->isActive = true;
     this->targTach = static_cast<int32_t>((degrees / 360.0) * this->COUNTS_PER_REVOLUTION);
-    
-    if (this->prevTargTach != this->targTach) {
-      this->totalError = 0;
-      this->prevError = std::nullopt;
-    }
+    this->totalError = 0;
+    this->prevError = std::nullopt;
   }
 
   int getCountsPerRevolution() {
@@ -101,7 +96,6 @@ public:
 };
 
 class MotorControlNode : public rclcpp::Node {
-
   // Generic method for sending data over the CAN bus
   void send_can(uint32_t id, int32_t data) const {
     can_msgs::msg::Frame can_msg; // Construct a new CAN message
