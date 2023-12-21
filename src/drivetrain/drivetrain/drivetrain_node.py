@@ -24,16 +24,17 @@ class SwerveModule:
         self.turning_motor_can_id = turning_motor
         self.cli_motor_set = motor_set
         self.steering_motor_gear_ratio = steer_motor_ratio
+        self.encoder_offset = 0
         self.prev_angle = None
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
 
     def set_angle(self, angle: float) -> None:
-        self.cli_motor_set.call_async(MotorCommandSet.Request(type="position", value=angle * self.steering_motor_gear_ratio))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="position", value=(angle-self.encoder_offset)*self.steering_motor_gear_ratio))
 
     def reset(self) -> None:
-        pass  # TODO: Implement this method for resetting our relative encoder offset based on the absolute encoder (save this for later)
+        self.encoder_offset = _____ # TODO: Implement this method for setting the offset based on the absolute encoder
 
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
