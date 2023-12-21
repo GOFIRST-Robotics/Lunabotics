@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Int16, Bool
+from rovr_interfaces.msg import LimitSwitches, AbsoluteEncoders
+
 import serial
 import struct
 import time
@@ -9,14 +10,12 @@ import time
 class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
-        self.frontLeftEncoder = self.create_publisher(Int16, "frontLeftEncoder", 10)
-        self.frontRightEncoder = self.create_publisher(Int16, "frontRightEncoder", 10)
-        self.backLeftEncoder = self.create_publisher(Int16, "backLeftEncoder", 10)
-        self.backRightEncoder = self.create_publisher(Int16, "backRightEncoder", 10)
-        self.topLimitSwitch = self.create_publisher(Int16, "topLimitSwitch", 10)
-        self.bottomLimitSwitch = self.create_publisher(Int16, "bottomLimitSwitch", 10)
+        
+        self.limitSwitchesPub = self.create_publisher(LimitSwitches, "limitSwitches", 10)
+        self.absoluteEncodersPub = self.create_publisher(AbsoluteEncoders, "absoluteEncoders", 10)
+        
         try:
-            self.arduino = serial.Serial("/dev/name", 9600)  # TODO change the name of the arduino
+            self.arduino = serial.Serial("/dev/Arduino_Uno", 9600)  # TODO: Make this a static serial port on the Jetson!
             time.sleep(1)  # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
             self.arduino.read_all()
         except Exception as e:
@@ -32,20 +31,17 @@ class read_serial(Node):
             data = self.arduino.read(10)  # Pause until 10 bytes are read
             decoded = struct.unpack("??hhhh", data)  # Use h for each int because arduino int is 2 bytes
 
-            msg = Int16()
-            msg.data = decoded[0]
-            self.frontLeftEncoder.publish(msg)
-            msg.data = decoded[1]
-            self.frontRightEncoder.publish(msg)
-            msg.data = decoded[2]
-            self.backLeftEncoder.publish(msg)
-            msg.data = decoded[3]
-            self.backRightEncoder.publish(msg)
-            msg = Bool()
-            msg.data = decoded[4]
-            self.topLimitSwitch.publish(msg)
-            msg.data = decoded[5]
-            self.bottomLimitSwitch.publish(msg)
+            msg = AbsoluteEncoders()
+            msg.front_left_encoder = decoded[0]
+            msg.front_right_encoder = decoded[1]
+            msg.back_left_encoder = decoded[2]
+            msg.back_right_encoder = decoded[3]
+            self.absoluteEncodersPub.publish(msg)
+
+            msg = LimitSwitches()
+            msg.top_limit_switch = decoded[4]
+            msg.bottom_limit_switch = decoded[5]
+            self.limitSwitchesPub.publish(msg)
 
 
 def main(args=None):
