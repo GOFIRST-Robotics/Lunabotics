@@ -13,8 +13,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import MotorCommandSet
-from rovr_interfaces.srv import Stop, Drive
+from rovr_interfaces.srv import Stop, Drive, MotorCommandSet
+from rovr_interfaces.msg import AbsoluteEncoders
 
 
 # This class represents an individual swerve module
@@ -25,16 +25,17 @@ class SwerveModule:
         self.cli_motor_set = motor_set
         self.steering_motor_gear_ratio = steer_motor_ratio
         self.encoder_offset = 0
+        self.current_absolute_angle = 0
         self.prev_angle = None
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
 
     def set_angle(self, angle: float) -> None:
-        self.cli_motor_set.call_async(MotorCommandSet.Request(type="position", value=(angle-self.encoder_offset)*self.steering_motor_gear_ratio))
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="position", value=(angle - self.encoder_offset) * self.steering_motor_gear_ratio))
 
-    def reset(self) -> None:
-        self.encoder_offset = _____ # TODO: Implement this method for setting the offset based on the absolute encoder
+    def reset(self, current_relative_angle) -> None:
+        self.encoder_offset = self.current_absolute_angle - current_relative_angle
 
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
@@ -49,6 +50,7 @@ class DrivetrainNode(Node):
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
+        self.absolute_encoders_sub = self.create_subscription(AbsoluteEncoders, "absoluteEncoders", self.absolute_encoders_callback, 10)
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
@@ -102,11 +104,12 @@ class DrivetrainNode(Node):
         self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
         self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
 
-        #resetting each module
-        self.back_left.reset() 
-        self.front_left.reset()
-        self.back_right.reset()
-        self.front_right.reset()
+        # Reset each swerve module at the start of the program
+        # TODO: I don't think calling this here will work because the absoluteEncoders topic hasn't been published to yet?
+        self.back_left.reset(0) 
+        self.front_left.reset(0)
+        self.back_right.reset(0)
+        self.front_right.reset(0)
 
     # Define subsystem methods here
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
@@ -171,6 +174,7 @@ class DrivetrainNode(Node):
         self.drive(0.0, 0.0, 0.0)
 
     # Define service callback methods here
+
     def stop_callback(self, request, response):
         """This service request stops the drivetrain."""
         self.stop()
@@ -184,9 +188,17 @@ class DrivetrainNode(Node):
         return response
 
     # Define subscriber callback methods here
+
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
         self.drive(msg.linear.y, msg.linear.x, msg.angular.z)
+        
+    def absolute_encoders_callback(self, msg: AbsoluteEncoders) -> None:
+        """This method is called whenever a message is received on the absoluteEncoders topic."""
+        self.back_left.current_absolute_angle = msg.back_left
+        self.front_left.current_absolute_angle = msg.front_left
+        self.back_right.current_absolute_angle = msg.back_right
+        self.front_right.current_absolute_angle = msg.front_right
 
 
 def main(args=None):
