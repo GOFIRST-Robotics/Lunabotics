@@ -26,6 +26,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetHeight.srv"
   "srv/Drive.srv"
   "srv/ResetOdom.srv"
+  "msg/AbsoluteEncoders.msg"
+  "msg/LimitSwitches.msg"
 )
 ament_export_dependencies(rosidl_default_runtime)
 
