@@ -10,10 +10,10 @@ import time
 class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
-        
+
         self.limitSwitchesPub = self.create_publisher(LimitSwitches, "limitSwitches", 10)
         self.absoluteEncodersPub = self.create_publisher(AbsoluteEncoders, "absoluteEncoders", 10)
-        
+
         try:
             self.arduino = serial.Serial("/dev/Arduino_Uno", 9600)  # TODO: Make this a static serial port on the Jetson!
             time.sleep(1)  # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
@@ -31,17 +31,17 @@ class read_serial(Node):
             data = self.arduino.read(10)  # Pause until 10 bytes are read
             decoded = struct.unpack("??hhhh", data)  # Use h for each int because arduino int is 2 bytes
 
-            msg = AbsoluteEncoders()
-            msg.front_left_encoder = decoded[0]
-            msg.front_right_encoder = decoded[1]
-            msg.back_left_encoder = decoded[2]
-            msg.back_right_encoder = decoded[3]
-            self.absoluteEncodersPub.publish(msg)
-
             msg = LimitSwitches()
-            msg.top_limit_switch = decoded[4]
-            msg.bottom_limit_switch = decoded[5]
+            msg.top_limit_switch = decoded[0]
+            msg.bottom_limit_switch = decoded[1]
             self.limitSwitchesPub.publish(msg)
+
+            msg = AbsoluteEncoders()
+            msg.front_left_encoder = decoded[2]
+            msg.front_right_encoder = decoded[3]
+            msg.back_left_encoder = decoded[4]
+            msg.back_right_encoder = decoded[5]
+            self.absoluteEncodersPub.publish(msg)
 
 
 def main(args=None):
