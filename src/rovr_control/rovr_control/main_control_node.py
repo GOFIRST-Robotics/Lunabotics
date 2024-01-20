@@ -16,7 +16,7 @@ from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetHeight
-from rovr_interfaces.srv import Stop, Drive, MotorCommandGet
+from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, ResetOdom
 
 # Import Python Modules
 import asyncio  # Allows the use of asynchronous methods!
@@ -73,6 +73,7 @@ class MainControlNode(Node):
 
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.apriltag_camera_offset = 0.1905  # Measured in Meters
+        self.create_timer(0.1, self.publish_odom_callback)
 
         # These variables store the most recent Apriltag pose
         self.apriltagX = 0.0
@@ -89,6 +90,7 @@ class MainControlNode(Node):
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
         self.cli_pulley_stop = self.create_client(Stop, "pulley/stop")
         self.cli_pulley_set_power = self.create_client(SetPower, "pulley/setPower")
+        self.cli_set_apriltag_odometry = self.create_client(ResetOdom, "apriltag/apriltag_node")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -96,6 +98,10 @@ class MainControlNode(Node):
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.apriltags_subscription = self.create_subscription(TFMessage, "tf", self.apriltags_callback, 10)
         self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
+
+    def publish_odom_callback(self) -> None:
+        """This method publishes the odometry of the robot."""
+        self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
