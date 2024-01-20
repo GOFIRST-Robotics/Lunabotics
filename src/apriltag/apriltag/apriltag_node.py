@@ -23,7 +23,7 @@ class ApriltagNode(Node):
         self.file_path = os.path.join(current_dir, relative_path)
         self.averagedTag = None
         #TODO: figure out how we distinguish between the tags based on camera used.
-        self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.sendTransform, 10)
+        self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
         self.create_service(ResetOdom, "apriltag_node", self.reset_callback)
@@ -31,20 +31,9 @@ class ApriltagNode(Node):
     """Service callback"""
     def reset_callback(self, request, response):
         self.get_logger().info("Resetting the odom")
-
-        """Run until success"""
-        response.success = False
-        
-        success = False
-        while not success:
-            print(self.postTransform(self.averagedTag))
-            if bool(self.postTransform(self.averagedTag)):
-                response.success = True
-                return response
-        
         
         """Run once, return success/ fail"""
-        # response.success = bool(self.postTransform(self.averagedTag))
+        response.success = bool(self.postTransform(self.averagedTag))
         
         return response
         
@@ -64,18 +53,11 @@ class ApriltagNode(Node):
         print(home.pose.pose.pose.position.y)
         print(home.pose.pose.pose.position.z)
 
-    def sendTransform(self, msg):
+    def tagDetectionSub(self, msg):
         if len(msg.detections) == 0:
             return
         
-        self.makeTransforms(msg.detections)
-
-        # While this is only being used for a start transform.
-        # probably shouldnt kill itself if we want to keep publishing transforms
-        # self.destroy_node()
-        return
-
-    def makeTransforms(self, tags):
+        tags = msg.detections
         transforms = []
         for tag in tags:
             t = TransformStamped()
@@ -111,7 +93,7 @@ class ApriltagNode(Node):
         self.averagedTag.header.frame_id = "map"
         self.averagedTag.header.stamp = self.get_clock().now().to_msg()
         self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
-        # self.tf_broadcaster.sendTransform(self.averageTransforms(transforms, t))
+        # self.tf_broadcaster.tagDetectionSub(self.averageTransforms(transforms, t))
     
     """Averages the transforms of the tags to get a more accurate transform"""
     # TODO: might be interesting to weigh the transforms based on the distance from the camera
