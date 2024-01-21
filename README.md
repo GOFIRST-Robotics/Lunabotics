@@ -60,17 +60,6 @@ Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "n
 
 Run `rm -r build install log` to clean your workspace.
 
-<details>
-<summary>Sonarlint Configuration (Optional)</summary>
-<br>
-  
-To configure Sonarlint for C++ linting, run the following command:
-```
-colcon build --symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=1
-```
-Then, point Sonarlint to the `compile_commands.json` file that is created in your `build` directory.
-</details>
-
 To normalize line endings in git, use the command:
 ```
 git config --global core.autocrlf true

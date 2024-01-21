@@ -33,7 +33,6 @@
 				"ms-python.black-formatter",
 				"charliermarsh.ruff",
 				"wayou.vscode-todo-highlight",
-				"SonarSource.sonarlint-vscode",
 				"ms-azuretools.vscode-docker",
 				"nonanonno.vscode-ros2"
 			],
@@ -52,7 +51,7 @@
 					"--line-length",
 					"120"
 				],
-				"ruff.args": [
+				"ruff.lint.args": [
 					"--ignore=E501" // Ignore line too long
 				],
 				"[c++]": {
