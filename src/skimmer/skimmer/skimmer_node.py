@@ -13,6 +13,7 @@ from std_msgs.msg import Float32, Bool
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, Stop, SetHeight
+from rovr_interfaces.msg import LimitSwitches
 
 
 class SkimmerNode(Node):
@@ -35,6 +36,9 @@ class SkimmerNode(Node):
         # Define publishers here
         self.publisher_height = self.create_publisher(Float32, "skimmer/height", 10)
         self.publisher_goal_reached = self.create_publisher(Bool, "skimmer/goal_reached", 10)
+        
+        # Define subscribers here
+        self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
         # Define timers here
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -50,21 +54,26 @@ class SkimmerNode(Node):
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("SKIMMER_BELT_MOTOR has been set to: " + str(self.SKIMMER_BELT_MOTOR))
         self.get_logger().info("HEIGHT_ADJUST_MOTOR has been set to: " + str(self.HEIGHT_ADJUST_MOTOR))
+        
+        self.height_encoder_offset = 0  # measured in degrees
 
         # Current state of the skimmer belt
         self.running = False
         # Current goal height
-        self.current_goal_height = 0  # relative encoders always initialize to 0
+        self.current_goal_height = 0
+        # Current position of the height adjust motor in degrees
+        self.current_height_degrees = 0 # relative encoders always initialize to 0
         # Goal Threshold (if abs(self.current_goal_height - ACTUAL VALUE) <= self.goal_threshold then we should publish True to /skimmer/goal_reached)
         self.goal_threshold = 0.1
         # Current state of the pulley system
         self.pulley_running = False
         # ----------------------------------------------------------------
-        # Circumference of height adjust motor
-        self.PULLEY_CIRCUMFERENCE = 0.1  # meters # TODO: Ask mechanical team for this value on the final robot
-        # Gear ratio
+        # Circumference of the height adjust motor
+        self.PULLEY_CIRCUMFERENCE = 0.1  # measured in meters # TODO: Ask mechanical team for this value on the final robot
+        # Gear ratio of the height adjust motor
         self.PULLEY_GEAR_RATIO = 1 / 1  # TODO: Ask mechanical team for this value on the final robot
-        # motor rotate 360 degrees -> self.height_adjust_circumference / self.gear_ratio
+        # Maximum value of the height adjust motor encoder (bottom of the lift system)
+        self.MAX_ENCODER_VALUE = 36000  # measured in degrees # TODO: Determine this value on the final robot
         # ----------------------------------------------------------------
 
     # Define subsystem methods here
@@ -94,7 +103,7 @@ class SkimmerNode(Node):
         self.current_goal_height = height  # goal height should be in meters
         height_degrees = self.PULLEY_GEAR_RATIO * (height / self.PULLEY_CIRCUMFERENCE) * 360
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=height_degrees)
+            MotorCommandSet.Request(type="position", can_id=self.HEIGHT_ADJUST_MOTOR, value=height_degrees + self.height_encoder_offset)
         )
 
     def stop_height_adjust(self) -> None:
@@ -156,15 +165,22 @@ class SkimmerNode(Node):
         future.add_done_callback(self.done_callback)
         
     def done_callback(self, future):
-        height_degrees = future.result().data
-        height_meters = (height_degrees * self.PULLEY_CIRCUMFERENCE) / (360 * self.PULLEY_GEAR_RATIO)
+        self.current_height_degrees = future.result().data
+        height_meters = (self.current_height_degrees * self.PULLEY_CIRCUMFERENCE) / (360 * self.PULLEY_GEAR_RATIO)
 
         height_msg = Float32(data=height_meters)
         self.publisher_height.publish(height_msg)
 
         goal_reached_msg = Bool(data=abs(self.current_goal_height - height_meters) <= self.goal_threshold)
         self.publisher_goal_reached.publish(goal_reached_msg)
-
+        
+    # Define subscriber callback methods here
+    def limit_switch_callback(self, limit_switches_msg):
+        """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
+        if limit_switches_msg.top_limit_switch: # If the top limit switch is pressed, adjust the encoder offset
+            self.height_encoder_offset = self.current_height_degrees
+        elif limit_switches_msg.bottom_limit_switch: # If the bottom limit switch is pressed, adjust the encoder offset
+            self.height_encoder_offset = self.current_height_degrees - self.MAX_ENCODER_VALUE
 
 def main(args=None):
     """The main function."""
