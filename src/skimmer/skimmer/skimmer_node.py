@@ -32,6 +32,7 @@ class SkimmerNode(Node):
         self.srv_setHeight = self.create_service(SetHeight, "skimmer/setHeight", self.set_height_callback)
         self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
+        self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
         
         # Define publishers here
         self.publisher_height = self.create_publisher(Float32, "skimmer/height", 10)
@@ -67,6 +68,8 @@ class SkimmerNode(Node):
         self.goal_threshold = 0.1
         # Current state of the lift system
         self.lift_running = False
+        
+        # CONSTANTS DEFINED BELOW #
         # ----------------------------------------------------------------
         # Circumference of the pulley used by the lift system
         self.PULLEY_CIRCUMFERENCE = 0.1  # TODO: Ask mechanical team for this value on the final robot (measured in meters)
@@ -119,6 +122,10 @@ class SkimmerNode(Node):
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.SKIMMER_LIFT_MOTOR, value=power)
         )
+        
+    def zero_lift(self) -> None:
+        """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
+        self.lift_set_power(-0.15)  # TODO: Is this direction correct?
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -154,6 +161,12 @@ class SkimmerNode(Node):
     def lift_set_power_callback(self, request, response):
         """This service request sets power to the skimmer belt."""
         self.lift_set_power(request.power)
+        response.success = 0  # indicates success
+        return response
+    
+    def zero_lift_callback(self, request, response):
+        """This service request zeros the lift system."""
+        self.zero_lift()
         response.success = 0  # indicates success
         return response
 
