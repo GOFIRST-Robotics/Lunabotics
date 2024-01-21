@@ -69,11 +69,11 @@ class SkimmerNode(Node):
         self.lift_running = False
         # ----------------------------------------------------------------
         # Circumference of the height adjust motor
-        self.PULLEY_CIRCUMFERENCE = 0.1  # measured in meters # TODO: Ask mechanical team for this value on the final robot
+        self.PULLEY_CIRCUMFERENCE = 0.1  # TODO: Ask mechanical team for this value on the final robot (measured in meters)
         # Gear ratio of the height adjust motor
-        self.LIFT_GEAR_RATIO = 1 / 1  # TODO: Ask mechanical team for this value on the final robot
+        self.LIFT_GEAR_RATIO = 1 / 1  # TODO: Ask mechanical team for this value on the final robot (gear ratio)
         # Maximum value of the height adjust motor encoder (bottom of the lift system)
-        self.MAX_ENCODER_VALUE = 36000  # measured in degrees # TODO: Determine this value on the final robot
+        self.MAX_ENCODER_VALUE = 36000  # TODO: Determine this value on the final robot (measured in degrees)
         # ----------------------------------------------------------------
 
     # Define subsystem methods here
