@@ -30,7 +30,7 @@ class SkimmerNode(Node):
         self.srv_stop = self.create_service(Stop, "skimmer/stop", self.stop_callback)
         self.srv_setPower = self.create_service(SetPower, "skimmer/setPower", self.set_power_callback)
         self.srv_setHeight = self.create_service(SetHeight, "skimmer/setHeight", self.set_height_callback)
-        self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_height_callback)
+        self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
         
         # Define publishers here
@@ -61,18 +61,18 @@ class SkimmerNode(Node):
         self.running = False
         # Current goal height
         self.current_goal_height = 0
-        # Current position of the height adjust motor in degrees
+        # Current position of the lift motor in degrees
         self.current_height_degrees = 0 # relative encoders always initialize to 0
         # Goal Threshold (if abs(self.current_goal_height - ACTUAL VALUE) <= self.goal_threshold then we should publish True to /skimmer/goal_reached)
         self.goal_threshold = 0.1
         # Current state of the lift system
         self.lift_running = False
         # ----------------------------------------------------------------
-        # Circumference of the height adjust motor
+        # Circumference of the pulley used by the lift system
         self.PULLEY_CIRCUMFERENCE = 0.1  # TODO: Ask mechanical team for this value on the final robot (measured in meters)
-        # Gear ratio of the height adjust motor
+        # Gear ratio of the lift motor
         self.LIFT_GEAR_RATIO = 1 / 1  # TODO: Ask mechanical team for this value on the final robot (gear ratio)
-        # Maximum value of the height adjust motor encoder (bottom of the lift system)
+        # Maximum value of the lift motor encoder (bottom of the lift system) in degrees
         self.MAX_ENCODER_VALUE = 36000  # TODO: Determine this value on the final robot (measured in degrees)
         # ----------------------------------------------------------------
 
@@ -145,7 +145,7 @@ class SkimmerNode(Node):
         response.success = 0  # indicates success
         return response
 
-    def stop_height_callback(self, request, response):
+    def stop_lift_callback(self, request, response):
         """This service request stops the lift system."""
         self.stop_lift()
         response.success = 0  # indicates success
@@ -178,10 +178,10 @@ class SkimmerNode(Node):
     def limit_switch_callback(self, limit_switches_msg):
         """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
         if limit_switches_msg.top_limit_switch: # If the top limit switch is pressed
-            self.stop() # Stop the height adjust motor
+            self.stop_lift() # Stop the lift system
             self.height_encoder_offset = self.current_height_degrees
         elif limit_switches_msg.bottom_limit_switch: # If the bottom limit switch is pressed
-            self.stop() # Stop the height adjust motor
+            self.stop_lift() # Stop the lift system
             self.height_encoder_offset = self.current_height_degrees - self.MAX_ENCODER_VALUE
 
 def main(args=None):

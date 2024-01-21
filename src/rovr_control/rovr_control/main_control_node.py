@@ -101,7 +101,7 @@ class MainControlNode(Node):
         """This method stops all subsystems on the robot."""
         self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-        self.cli_lift_stop.call_async(Stop.Request())  # Stop the skimmer lift (height adjust)
+        self.cli_lift_stop.call_async(Stop.Request())  # Stop the skimmer lift
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
