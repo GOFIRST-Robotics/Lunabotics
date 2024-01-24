@@ -73,7 +73,7 @@ class MainControlNode(Node):
 
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.apriltag_camera_offset = 0.1905  # Measured in Meters
-        self.create_timer(0.1, self.publish_odom_callback)
+        self.apriltag_timer = self.create_timer(1, self.publish_odom_callback)
 
         # These variables store the most recent Apriltag pose
         self.apriltagX = 0.0
@@ -101,7 +101,18 @@ class MainControlNode(Node):
 
     def publish_odom_callback(self) -> None:
         """This method publishes the odometry of the robot."""
-        self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
+        # self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
+        future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
+        # self.get_logger().info("Publishing Apriltag Odometry")
+        future.add_done_callback(self.future_odom_callback)
+
+    def future_odom_callback(self, future) -> None:
+        self.get_logger().info("Apriltag Odometry Published")
+        if future.result().success:
+            self.get_logger().info("Apriltag Odometry Published")
+            self.apriltag_timer.cancel()
+        else:
+            self.get_logger().info("Failed to Publish Apriltag Odometry")
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -184,7 +195,7 @@ class MainControlNode(Node):
         self.apriltagZ = entry.transform.translation.z
         # Yaw Angle error to the tag's orientation (measured in radians)
         self.apriltagYaw = entry.transform.rotation.y
-        self.get_logger().debug('x:', self.apriltagX, 'z:', self.apriltagZ, 'yaw:', self.apriltagYaw)
+        self.get_logger().debug('x: ' + str(self.apriltagX) + ' z:' + str(self.apriltagZ) + ' yaw: ' + str(self.apriltagYaw))
 
     def skimmer_goal_callback(self, msg: Bool) -> None:
         """Update the member variable accordingly."""
