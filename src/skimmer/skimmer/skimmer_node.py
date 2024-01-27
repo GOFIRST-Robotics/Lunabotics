@@ -193,13 +193,13 @@ class SkimmerNode(Node):
         if limit_switches_msg.top_limit_switch: # If the top limit switch is pressed
             self.stop_lift() # Stop the lift system
             self.height_encoder_offset = self.current_height_degrees
-            print("Current height in degrees: " + self.current_height_degrees)
-            print("New height encoder offset: " + self.height_encoder_offset)
+            print("Current height in degrees: " + str(self.current_height_degrees))
+            print("New height encoder offset: " + str(self.height_encoder_offset))
         elif limit_switches_msg.bottom_limit_switch: # If the bottom limit switch is pressed
             self.stop_lift() # Stop the lift system
             self.height_encoder_offset = self.current_height_degrees - self.MAX_ENCODER_VALUE
-            print("Current height in degrees: " + self.current_height_degrees)
-            print("New height encoder offset: " + self.height_encoder_offset)
+            print("Current height in degrees: " + str(self.current_height_degrees))
+            print("New height encoder offset: " + str(self.height_encoder_offset))
 
 def main(args=None):
     """The main function."""
