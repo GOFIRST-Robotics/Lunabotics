@@ -73,7 +73,7 @@ class MainControlNode(Node):
 
         # This is a hard-coded physical constant (how far off-center the apriltag camera is)
         self.apriltag_camera_offset = 0.1905  # Measured in Meters
-        self.apriltag_timer = self.create_timer(1, self.publish_odom_callback)
+        self.apriltag_timer = self.create_timer(.1, self.publish_odom_callback)
 
         # These variables store the most recent Apriltag pose
         self.apriltagX = 0.0
@@ -90,7 +90,7 @@ class MainControlNode(Node):
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
         self.cli_pulley_stop = self.create_client(Stop, "pulley/stop")
         self.cli_pulley_set_power = self.create_client(SetPower, "pulley/setPower")
-        self.cli_set_apriltag_odometry = self.create_client(ResetOdom, "apriltag/apriltag_node")
+        self.cli_set_apriltag_odometry = self.create_client(ResetOdom, "resetOdom")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -101,18 +101,13 @@ class MainControlNode(Node):
 
     def publish_odom_callback(self) -> None:
         """This method publishes the odometry of the robot."""
-        # self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
         future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
-        # self.get_logger().info("Publishing Apriltag Odometry")
         future.add_done_callback(self.future_odom_callback)
 
     def future_odom_callback(self, future) -> None:
-        self.get_logger().info("Apriltag Odometry Published")
         if future.result().success:
             self.get_logger().info("Apriltag Odometry Published")
             self.apriltag_timer.cancel()
-        else:
-            self.get_logger().info("Failed to Publish Apriltag Odometry")
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""

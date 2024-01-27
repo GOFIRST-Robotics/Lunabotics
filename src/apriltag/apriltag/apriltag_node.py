@@ -22,24 +22,23 @@ class ApriltagNode(Node):
 
         self.file_path = os.path.join(current_dir, relative_path)
         self.averagedTag = None
-        #TODO: figure out how we distinguish between the tags based on camera used.
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        self.create_service(ResetOdom, "apriltag_node", self.reset_callback)
+        self.create_service(ResetOdom, "resetOdom", self.reset_callback)
 
     """Service callback"""
     def reset_callback(self, request, response):
-        self.get_logger().info("Resetting the odom")
-        
         """Run once, return success/ fail"""
         response.success = bool(self.postTransform(self.averagedTag))
-        
         return response
+        
         
     """Publishes the tag if it exists"""
     def postTransform(self, tag):
-        if tag is not None:
+        if tag and (self.get_clock().now().to_msg().sec == self.averagedTag.header.stamp.sec):
+            # self.get_logger().info(str(self.averagedTag.header.stamp.sec - self.get_clock().now().to_msg().sec))
+            self.get_logger().info(str("Resetting the odom"))
             self.tf_broadcaster.sendTransform(tag)
             return True
         return False
@@ -96,7 +95,7 @@ class ApriltagNode(Node):
         # self.tf_broadcaster.tagDetectionSub(self.averageTransforms(transforms, t))
     
     """Averages the transforms of the tags to get a more accurate transform"""
-    # TODO: might be interesting to weigh the transforms based on the distance from the camera
+    # TODO: Consider using an EKF instead of just averaging
     def averageTransforms(self, transforms, t):
         x = 0
         y = 0
