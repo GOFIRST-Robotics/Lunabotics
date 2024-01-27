@@ -11,6 +11,7 @@ from rovr_interfaces.srv import ResetOdom
 ros2 launch isaac_ros_apriltag isaac_ros_apriltag_usb_cam.launch.py
 or nothing here will work"""
 
+
 class ApriltagNode(Node):
     def __init__(self):
         super().__init__("apriltag_node")
@@ -28,13 +29,14 @@ class ApriltagNode(Node):
         self.create_service(ResetOdom, "resetOdom", self.reset_callback)
 
     """Service callback"""
+
     def reset_callback(self, request, response):
         """Run once, return success/ fail"""
         response.success = bool(self.postTransform(self.averagedTag))
         return response
-        
-        
+
     """Publishes the tag if it exists"""
+
     def postTransform(self, tag):
         if tag and (self.get_clock().now().to_msg().sec == self.averagedTag.header.stamp.sec):
             # self.get_logger().info(str(self.averagedTag.header.stamp.sec - self.get_clock().now().to_msg().sec))
@@ -42,7 +44,6 @@ class ApriltagNode(Node):
             self.tf_broadcaster.sendTransform(tag)
             return True
         return False
-
 
     def printTransforms(self, msg):
         if len(msg.detections) == 0:
@@ -55,7 +56,7 @@ class ApriltagNode(Node):
     def tagDetectionSub(self, msg):
         if len(msg.detections) == 0:
             return
-        
+
         tags = msg.detections
         transforms = []
         for tag in tags:
@@ -68,7 +69,7 @@ class ApriltagNode(Node):
             tree = ET.parse(self.file_path)
             root = tree.getroot()
 
-            link = root[id - 1] # assumes tag 1 = home 1, tag 2 = home 2, 3 = berm 1 etc.
+            link = root[id - 1]  # assumes tag 1 = home 1, tag 2 = home 2, 3 = berm 1 etc.
 
             xyz_elements = link.findall(".//origin[@xyz]")
             xyz_values = [element.attrib["xyz"] for element in xyz_elements]
@@ -93,8 +94,9 @@ class ApriltagNode(Node):
         self.averagedTag.header.stamp = self.get_clock().now().to_msg()
         self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
         # self.tf_broadcaster.tagDetectionSub(self.averageTransforms(transforms, t))
-    
+
     """Averages the transforms of the tags to get a more accurate transform"""
+
     # TODO: Consider using an EKF instead of just averaging
     def averageTransforms(self, transforms, t):
         x = 0
@@ -117,6 +119,7 @@ class ApriltagNode(Node):
         t.transform.rotation.y = qy / len(transforms)
         t.transform.rotation.z = qz / len(transforms)
         return t
+
 
 def main(args=None):
     """The main function."""
