@@ -25,7 +25,7 @@ class SwerveModule:
         self.cli_motor_set = motor_set
         self.steering_motor_gear_ratio = steer_motor_ratio
         self.encoder_offset = 0
-        self.current_absolute_angle = 0
+        self.current_absolute_angle = None
         self.prev_angle = None
 
     def set_power(self, power: float) -> None:
@@ -35,7 +35,7 @@ class SwerveModule:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="position", value=(angle - self.encoder_offset) * self.steering_motor_gear_ratio))
 
     def reset(self, current_relative_angle) -> None:
-        self.encoder_offset = self.current_absolute_angle - current_relative_angle
+        self.encoder_offset = self.current_absolute_angle - current_relative_angle 
 
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
@@ -58,6 +58,8 @@ class DrivetrainNode(Node):
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
+
+        self.absolute_angle_timer = self.create_timer(0.05, self.absolute_angle_reset)
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("BACK_LEFT_DRIVE", 1)
@@ -106,10 +108,14 @@ class DrivetrainNode(Node):
 
         # Reset each swerve module at the start of the program
         # TODO: I don't think calling this here will work because the absoluteEncoders topic hasn't been published to yet?
-        self.back_left.reset(0) 
-        self.front_left.reset(0)
-        self.back_right.reset(0)
-        self.front_right.reset(0)
+
+    def absolute_angle_reset(self, current_absolute_angle):
+        if current_absolute_angle is not None:
+            self.back_left.reset(0) 
+            self.front_left.reset(0)
+            self.back_right.reset(0)
+            self.front_right.reset(0)
+            self.absolute_angle_timer.cancel()
 
     # Define subsystem methods here
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
