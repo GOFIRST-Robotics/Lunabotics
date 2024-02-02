@@ -106,9 +106,6 @@ class DrivetrainNode(Node):
         self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
         self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
 
-        # Reset each swerve module at the start of the program
-        # TODO: I don't think calling this here will work because the absoluteEncoders topic hasn't been published to yet?
-
     def absolute_angle_reset(self):
         if self.front_left.current_absolute_angle is not None:
             self.back_left.reset(0) 
