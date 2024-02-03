@@ -36,6 +36,7 @@ class SwerveModule:
 
     def reset(self, current_relative_angle) -> None:
         self.encoder_offset = self.current_absolute_angle - current_relative_angle 
+        print("Absolute Encoder angle offset set to: " + self.encoder_offset)
 
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
@@ -108,6 +109,7 @@ class DrivetrainNode(Node):
 
     def absolute_angle_reset(self):
         if self.front_left.current_absolute_angle is not None:
+            print("Absolute Encoder angles reset")
             self.back_left.reset(0) 
             self.front_left.reset(0)
             self.back_right.reset(0)
@@ -198,10 +200,10 @@ class DrivetrainNode(Node):
         
     def absolute_encoders_callback(self, msg: AbsoluteEncoders) -> None:
         """This method is called whenever a message is received on the absoluteEncoders topic."""
-        self.back_left.current_absolute_angle = msg.back_left
-        self.front_left.current_absolute_angle = msg.front_left
-        self.back_right.current_absolute_angle = msg.back_right
-        self.front_right.current_absolute_angle = msg.front_right
+        self.back_left.current_absolute_angle = msg.back_left_encoder
+        self.front_left.current_absolute_angle = msg.front_left_encoder
+        self.back_right.current_absolute_angle = msg.back_right_encoder
+        self.front_right.current_absolute_angle = msg.front_right_encoder
 
 
 def main(args=None):
