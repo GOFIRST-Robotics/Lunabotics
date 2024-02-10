@@ -2,15 +2,14 @@
 <!--
  THIS IS THE TOP UCF FIELD
  Coordinate system is in meters
- (0,0) is the bottom left corner of the map, (5, 6.8) is the top right
+ (0,0) is the bottom right corner of the map, (4.57, 8.14) is the top left.
 -->
 
 
 <root>
     <!--
-Tags in base area
-This assumes that we are placing 1 tag on each wall, each
-1 meter from the bottom left corner of the map
+Tags in the starting zone.
+This assumes that we are placing 2 tags on the wall.
 -->
     <link name="base_tag_1">
         <parent link="base_link"/>
@@ -41,9 +40,7 @@ This assumes that we are placing 1 tag on each wall, each
 
 
     <!--
-Tags in berm area
-Numbers need to be updated, because they are estimates
-Realistically, overkill to have 4 tags. should simplify to 1 or 2
+Tags in the berm area.
 Goes Top left, Top right, Bottom left, Bottom right from tags 3-6
 -->
     <link name="berm_tag_3">
