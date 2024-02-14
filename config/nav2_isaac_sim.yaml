@@ -82,7 +82,7 @@ controller_server:
     use_sim_time: false
     controller_frequency: 10.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.5
+    min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
     progress_checker_plugin: "progress_checker"
@@ -201,7 +201,7 @@ local_costmap:
       width: 10
       height: 10
       resolution: 0.05
-      robot_radius: 0.4
+      robot_radius: 0.4  # TODO: Adjust this based on the size of our robot
       plugins: ["nvblox_base_layer"]
       nvblox_base_layer:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
@@ -228,7 +228,7 @@ global_costmap:
       rolling_window: True
       width: 200
       height: 200
-      robot_radius: 0.4
+      robot_radius: 0.4  # TODO: Adjust this based on the size of our robot
       resolution: 0.1
       origin_x: -100.0
       origin_y: -100.0
@@ -277,7 +277,7 @@ smoother_server:
       do_refinement: True
       refinement_num: 5
       w_data: 0.2
-      w_smooth: 0.3
+      w_smooth: 0.8
 
 behavior_server:
   ros__parameters:
