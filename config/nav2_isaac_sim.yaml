@@ -123,20 +123,20 @@ controller_server:
       # Primary controller params (DWBLocalPlanner)
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
-      min_vel_x: -2.0
-      min_vel_y: -2.0
-      max_vel_x: 2.0
-      max_vel_y: 2.0
-      max_vel_theta: 1.0
-      min_speed_xy: -2.0
-      max_speed_xy: 2.0
-      min_speed_theta: -1.0
-      acc_lim_x: 1.0
-      acc_lim_y: 1.0
-      acc_lim_theta: 1.0
-      decel_lim_x: -1.0
-      decel_lim_y: -1.0
-      decel_lim_theta: -1.0
+      min_vel_x: -2.0  # TODO: adjust this with the robot's speed in m/s
+      min_vel_y: -2.0  # TODO: adjust this with the robot's speed in m/s
+      max_vel_x: 2.0  # TODO: adjust this with the robot's speed in m/s
+      max_vel_y: 2.0  # TODO: adjust this with the robot's speed in m/s
+      max_vel_theta: 1.0  # TODO: adjust this with the robot's speed in m/s
+      min_speed_xy: -2.0  # TODO: adjust this with the robot's speed in m/s
+      max_speed_xy: 2.0  # TODO: adjust this with the robot's speed in m/s
+      min_speed_theta: -1.0  # TODO: adjust this with the robot's speed in m/s
+      acc_lim_x: 1.0  # TODO: adjust this with the robot's accel in m/s^2
+      acc_lim_y: 1.0  # TODO: adjust this with the robot's accel in m/s^2
+      acc_lim_theta: 1.0  # TODO: adjust this with the robot's accel in m/s^2
+      decel_lim_x: -1.0  # TODO: adjust this with the robot's accel in m/s^2
+      decel_lim_y: -1.0  # TODO: adjust this with the robot's accel in m/s^2
+      decel_lim_theta: -1.0  # TODO: adjust this with the robot's accel in m/s^2
       vx_samples: 30
       vy_samples: 30
       vtheta_samples: 20
