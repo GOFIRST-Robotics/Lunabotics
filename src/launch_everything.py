@@ -1,10 +1,5 @@
 import os
 
-
-## No launch file found for drivetrain
-## No launch file found for point_processing
-
-
 from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 
@@ -17,15 +12,18 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import (
     DeclareLaunchArgument,
-    ExecuteProcess,
     IncludeLaunchDescription,
 )
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from nav2_common.launch import RewrittenYaml
 
+# TODO: This looks like a great start! But you should not have multiple generate_launch_description() functions,
+# so please merge all of these into a single generate_launch_description() function that returns a LaunchDescription
+# object containing all of the nodes we want to launch.
 
+# TODO: Please also launch the rovr_control -> read_serial node in addition to all the nodes below
 
 ## Launch for motor_control node
 
@@ -249,6 +247,8 @@ def generate_launch_description():
 def generate_launch_description():
     ld = LaunchDescription()
 
+    # TODO: We actually don't need to launch the joystick node, because we will be running this
+    # node on the driverstation laptop, and not on the robot itself.
     joystick_node = Node(
         package="joy",
         executable="joy_node",
