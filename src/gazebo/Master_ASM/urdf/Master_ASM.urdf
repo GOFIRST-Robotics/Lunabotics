@@ -36,13 +36,15 @@
     </visual>
     <collision>
       <origin
-        xyz="0 0 -0.4"
+        xyz="0 0 -0.2"
         rpy="0 0 0" />
       <geometry>
-        <box size="0.73 1.4 0.7" />
+        <box size="0.73 1.4 0.6" />
       </geometry>
     </collision>
   </link>
+
+
   <link
     name="swerve1_Link">
     <inertial>
@@ -64,8 +66,9 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://Master_ASM/meshes/swerve1_Link.STL" />
+        <!-- <mesh
+          filename="package://Master_ASM/meshes/swerve1_Link.STL" /> -->
+        <box size="0.1 0.2 0.1" />
       </geometry>
       <material
         name="">
@@ -85,7 +88,7 @@
   </link>
   <joint
     name="swerve1_joint"
-    type="continuous">
+    type="fixed"> <!-- continuous -->
     <origin
       xyz="-0.34701 0.55026 -0.59563"
       rpy="1.5708 0 0" />
@@ -94,7 +97,7 @@
     <child
       link="swerve1_Link" />
     <axis
-      xyz="0 0 1" />
+      xyz="0 1 0" />
   </joint>
   <link
     name="wheel1_Link">
@@ -114,7 +117,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
@@ -126,28 +129,28 @@
           rgba="0.79216 0.81961 0.93333 1" />
       </material>
     </visual>
-    <!-- <collision>
+    <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://Master_ASM/meshes/wheel1_Link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
   <joint
     name="wheel1_joint"
     type="continuous">
     <origin
-      xyz="0.071447 0.038959 0.1082"
+      xyz="0 0 0"
       rpy="1.5708 0.34561 1.5708" />
     <parent
       link="swerve1_Link" />
     <child
       link="wheel1_Link" />
     <axis
-      xyz="0 0 1" />
+      xyz="0 0 -1" />
   </joint>
   <link
     name="swerve2_Link">
@@ -170,8 +173,9 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://Master_ASM/meshes/swerve2_Link.STL" />
+        <!-- <mesh
+          filename="package://Master_ASM/meshes/swerve2_Link.STL" /> -->
+        <box size="0.1 0.2 0.1" />
       </geometry>
       <material
         name="">
@@ -191,7 +195,7 @@
   </link>
   <joint
     name="swerve2_joint"
-    type="continuous">
+    type="fixed"> <!-- continuous -->
     <origin
       xyz="0.34701 -0.55026 -0.59563"
       rpy="1.5708 0 3.1416" />
@@ -220,7 +224,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
@@ -232,21 +236,21 @@
           rgba="0.79216 0.81961 0.93333 1" />
       </material>
     </visual>
-    <!-- <collision>
+    <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://Master_ASM/meshes/wheel2_Link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
   <joint
     name="wheel2_joint"
     type="continuous">
     <origin
-      xyz="0.071447 0.038959 0.1082"
+      xyz="0 0 0"
       rpy="1.5708 0.34561 1.5708" />
     <parent
       link="swerve2_Link" />
@@ -276,8 +280,9 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://Master_ASM/meshes/swerve3_Link.STL" />
+        <!-- <mesh
+          filename="package://Master_ASM/meshes/swerve3_Link.STL" /> -->
+        <box size="0.1 0.2 0.1" />
       </geometry>
       <material
         name="">
@@ -297,7 +302,7 @@
   </link>
   <joint
     name="swerve3_joint"
-    type="continuous">
+    type="fixed"> <!-- continuous -->
     <origin
       xyz="0.34701 0.55014 -0.59563"
       rpy="1.5708 0 3.1416" />
@@ -306,7 +311,7 @@
     <child
       link="swerve3_Link" />
     <axis
-      xyz="0 0 1" />
+      xyz="0 1 0" />
   </joint>
   <link
     name="wheel3_Link">
@@ -326,7 +331,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
@@ -338,21 +343,21 @@
           rgba="0.79216 0.81961 0.93333 1" />
       </material>
     </visual>
-    <!-- <collision>
+    <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://Master_ASM/meshes/wheel3_Link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
   <joint
     name="wheel3_joint"
     type="continuous">
     <origin
-      xyz="0.071447 0.038959 0.1082"
+      xyz="0 0 0"
       rpy="1.5708 0.34561 1.5708" />
     <parent
       link="swerve3_Link" />
@@ -382,8 +387,9 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <mesh
-          filename="package://Master_ASM/meshes/swerve4_Link.STL" />
+        <!-- <mesh
+          filename="package://Master_ASM/meshes/swerve4_Link.STL" /> -->
+        <box size="0.1 0.2 0.1" />
       </geometry>
       <material
         name="">
@@ -403,23 +409,26 @@
   </link>
   <joint
     name="swerve4_joint"
-    type="continuous">
+    type="fixed"> <!-- continuous -->
     <origin
       xyz="-0.34701 -0.55014 -0.59563"
-      rpy="1.5708 0 0" />
+      rpy="1.5708 0 0" /> <!-- 1.5708 -->
     <parent
       link="base_link" />
     <child
       link="swerve4_Link" />
     <axis
-      xyz="0 0 1" />
+      xyz="0 1 0" />
   </joint>
   <link
     name="wheel4_Link">
     <inertial>
+      <!-- <origin
+        xyz="2.9097E-09 -0.2 -0.00055956"
+        rpy="0 0 0" /> -->
       <origin
         xyz="2.9097E-09 -0.115 -0.00055956"
-        rpy="0 0 0" />
+        rpy="0 0 0" /> <!-- orignal -->
       <mass
         value="1.1372" />
       <inertia
@@ -432,7 +441,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
@@ -444,27 +453,48 @@
           rgba="0.79216 0.81961 0.93333 1" />
       </material>
     </visual>
-    <!-- <collision>
+    <collision>
       <origin
-        xyz="0 0 0"
+        xyz="0 0.115 0"
         rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://Master_ASM/meshes/wheel4_Link.STL" />
       </geometry>
-    </collision> -->
+    </collision>
   </link>
   <joint
     name="wheel4_joint"
     type="continuous">
     <origin
-      xyz="0.071447 0.038959 0.1082"
+      xyz="0 0 0"
       rpy="1.5708 0.34561 1.5708" />
+    <!-- <origin
+      xyz="0.071447 0.038959 0.1082"
+      rpy="1.5708 0.34561 1.5708" /> -->
     <parent
       link="swerve4_Link" />
     <child
       link="wheel4_Link" />
     <axis
-      xyz="0 0 1" />
+      xyz="0 0 -1" />
   </joint>
+
+  <gazebo>
+  <plugin
+        filename="ignition-gazebo-mecanum-drive-system"
+        name="ignition::gazebo::systems::MecanumDrive">
+        <front_left_joint>wheel1_joint</front_left_joint>
+        <front_right_joint>wheel2_joint</front_right_joint>
+        <back_left_joint>wheel4_joint</back_left_joint>
+        <back_right_joint>wheel3_joint</back_right_joint>
+        <wheel_separation>0.73</wheel_separation>
+        <wheelbase>1</wheelbase>
+        <wheel_radius>0.115</wheel_radius>
+        <min_acceleration>-5</min_acceleration>
+        <max_acceleration>5</max_acceleration>
+      </plugin>
+      </gazebo>
+
+
 </robot>
