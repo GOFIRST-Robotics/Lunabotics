@@ -19,14 +19,6 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from nav2_common.launch import RewrittenYaml
 
-# TODO: This looks like a great start! But you should not have multiple generate_launch_description() functions,
-# so please merge all of these into a single generate_launch_description() function that returns a LaunchDescription
-# object containing all of the nodes we want to launch.
-
-# TODO: Please also launch the rovr_control -> read_serial node in addition to all the nodes below
-
-## Launch for motor_control node
-
 def generate_launch_description():
     ld = LaunchDescription()
 
@@ -37,17 +29,15 @@ def generate_launch_description():
         output="screen",
         emulate_tty=True,
     )
-    
-    ld.add_action(motor_control)
 
-    return ld
-
-
-
-
-## Launch for apriltag node
-
-def generate_launch_description():
+    ## New node, might be cause of errors
+    read_serial = Node(
+        package="read_serial",
+        executable="read_serial",
+        name="read_serial_node",
+        output="screen",
+        emulate_tty=True,
+    )
 
     tag_reader = Node(
         package='apriltag',
@@ -128,6 +118,7 @@ def generate_launch_description():
         }]
     )
 
+
     # ZED node using manual composition
     zed_node = Node(
         package='zed_wrapper',
@@ -138,12 +129,8 @@ def generate_launch_description():
             config_camera,  # Camera related parameters
         ]
     )
+    
 
-
-    # Add nodes and containers to LaunchDescription
-    return launch.LaunchDescription([tag_reader, apriltag_container, rsp_node, zed_node])
-
-def generate_launch_description():
     bringup_dir = get_package_share_directory("isaac_ros_launch")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
@@ -229,31 +216,6 @@ def generate_launch_description():
         }.items(),
     )
 
-    return LaunchDescription(
-        [
-            run_rviz_arg,
-            from_bag_arg,
-            shared_container,
-            zed_launch,
-            nvblox_launch,
-            rviz_launch,
-            nav2_launch,
-        ]
-    )
-
-
-
-    ##Launch node for rovr_control
-def generate_launch_description():
-    ld = LaunchDescription()
-
-    # TODO: We actually don't need to launch the joystick node, because we will be running this
-    # node on the driverstation laptop, and not on the robot itself.
-    joystick_node = Node(
-        package="joy",
-        executable="joy_node",
-        parameters=["config/joy_node.yaml"],
-    )
 
     rovr_control = Node(
         package="rovr_control",
@@ -290,18 +252,6 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    ld.add_action(rovr_control)
-    ld.add_action(motor_control)
-    ld.add_action(joystick_node)
-    ld.add_action(drivetrain)
-    ld.add_action(skimmer)
-
-    return ld
-
-
-    ##Launch node for skimmer
-def generate_launch_description():
-    ld = LaunchDescription()
     realsense = Node(
         package="realsense2_camera",
         executable="realsense2_camera_node",
@@ -315,13 +265,36 @@ def generate_launch_description():
         # ]
     )
     
+    joystick_node = Node(
+        package="joy",
+        executable="joy_node",
+        parameters=["config/joy_node.yaml"],
+    )
+    
     check_load = Node(
         package="skimmer",
         executable="ros_check_load",
         name="ros_check_load",
     )
-    
+
+    ld.add_action(motor_control)
+    ld.add_action(read_serial)
+    ld.add_action(tag_reader)
+    ld.add_action(apriltag_container)
+    ld.add_action(rsp_node)
+    ld.add_action(zed_node)
+    ld.add_action(rovr_control)
+    ld.add_action(motor_control)
+    ld.add_action(joystick_node)
+    ld.add_action(drivetrain)
+    ld.add_action(skimmer)
     ld.add_action(realsense)
     ld.add_action(check_load)
-
+    ld.add_action(run_rviz_arg)
+    ld.add_action(from_bag_arg)
+    ld.add_action(shared_container)
+    ld.add_action(zed_launch)
+    ld.add_action(nvblox_launch)
+    ld.add_action(rviz_launch)
+    ld.add_action(nav2_launch)
     return ld
