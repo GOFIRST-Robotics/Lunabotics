@@ -22,16 +22,17 @@ simulation = True
 
 # This class represents an individual swerve module
 class SwerveModule:
-    def __init__(self, drive_motor, turning_motor, motor_set, steer_motor_ratio):
+    def __init__(self, drive_motor, turning_motor, drivetrain):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
-        self.cli_motor_set = motor_set
-        self.steering_motor_gear_ratio = steer_motor_ratio
+        self.cli_motor_set = drivetrain.cli_motor_set
+        self.steering_motor_gear_ratio = drivetrain.STEERING_MOTOR_GEAR_RATIO
         self.encoder_offset = 0
         self.current_absolute_angle = None
         self.prev_angle = 0 
         self.gazebo_wheel = None
         self.gazebo_swerve = None
+        self.simulation = drivetrain.GAZEBO_SIMULATION
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
@@ -46,7 +47,7 @@ class SwerveModule:
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
         self.set_power(power)
-        if simulation:
+        if self.simulation:
             self.publish_gazebo(power, angle)
 
     def set_gazebo_pubs(self, wheel, swerve):
@@ -67,12 +68,40 @@ class DrivetrainNode(Node):
         """Initialize the ROS 2 drivetrain node."""
         super().__init__("drivetrain")
 
+        # Define default values for our ROS parameters below #
+        self.declare_parameter("BACK_LEFT_DRIVE", 1)
+        self.declare_parameter("BACK_LEFT_TURN", 2)
+        self.declare_parameter("FRONT_LEFT_DRIVE", 3)
+        self.declare_parameter("FRONT_LEFT_TURN", 4)
+        self.declare_parameter("BACK_RIGHT_DRIVE", 5)
+        self.declare_parameter("BACK_RIGHT_TURN", 6)
+        self.declare_parameter("FRONT_RIGHT_DRIVE", 7)
+        self.declare_parameter("FRONT_RIGHT_TURN", 8)
+        self.declare_parameter("HALF_WHEEL_BASE", 0.5)
+        self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
+        self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 20)
+        self.declare_parameter("GAZEBO_SIMULATION", True)
+
+        # Assign the ROS Parameters to member variables below #
+        self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
+        self.BACK_LEFT_TURN = self.get_parameter("BACK_LEFT_TURN").value
+        self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
+        self.FRONT_LEFT_TURN = self.get_parameter("FRONT_LEFT_TURN").value
+        self.BACK_RIGHT_DRIVE = self.get_parameter("BACK_RIGHT_DRIVE").value
+        self.BACK_RIGHT_TURN = self.get_parameter("BACK_RIGHT_TURN").value
+        self.FRONT_RIGHT_DRIVE = self.get_parameter("FRONT_RIGHT_DRIVE").value
+        self.FRONT_RIGHT_TURN = self.get_parameter("FRONT_RIGHT_TURN").value
+        self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
+        self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
+        self.STEERING_MOTOR_GEAR_RATIO = self.get_parameter("STEERING_MOTOR_GEAR_RATIO").value
+        self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
+
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
         self.absolute_encoders_sub = self.create_subscription(AbsoluteEncoders, "absoluteEncoders", self.absolute_encoders_callback, 10)
 
         # self.gazebo_wheel1_pub, self.gazebo_wheel2_pub, self.gazebo_wheel3_pub, self.gazebo_wheel4_pub, self.gazebo_swerve1_pub, self.gazebo_swerve2_pub, self.gazebo_swerve3_pub, self.gazebo_swerve4_pub = None
-        if (simulation): #either pass a parameter into init or just change when not simulating
+        if (self.GAZEBO_SIMULATION): #either pass a parameter into init or just change when not simulating
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
             self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
             self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
@@ -91,32 +120,6 @@ class DrivetrainNode(Node):
 
         self.absolute_angle_timer = self.create_timer(0.05, self.absolute_angle_reset)
 
-        # Define default values for our ROS parameters below #
-        self.declare_parameter("BACK_LEFT_DRIVE", 1)
-        self.declare_parameter("BACK_LEFT_TURN", 2)
-        self.declare_parameter("FRONT_LEFT_DRIVE", 3)
-        self.declare_parameter("FRONT_LEFT_TURN", 4)
-        self.declare_parameter("BACK_RIGHT_DRIVE", 5)
-        self.declare_parameter("BACK_RIGHT_TURN", 6)
-        self.declare_parameter("FRONT_RIGHT_DRIVE", 7)
-        self.declare_parameter("FRONT_RIGHT_TURN", 8)
-        self.declare_parameter("HALF_WHEEL_BASE", 0.5)
-        self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
-        self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 20)
-
-        # Assign the ROS Parameters to member variables below #
-        self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
-        self.BACK_LEFT_TURN = self.get_parameter("BACK_LEFT_TURN").value
-        self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
-        self.FRONT_LEFT_TURN = self.get_parameter("FRONT_LEFT_TURN").value
-        self.BACK_RIGHT_DRIVE = self.get_parameter("BACK_RIGHT_DRIVE").value
-        self.BACK_RIGHT_TURN = self.get_parameter("BACK_RIGHT_TURN").value
-        self.FRONT_RIGHT_DRIVE = self.get_parameter("FRONT_RIGHT_DRIVE").value
-        self.FRONT_RIGHT_TURN = self.get_parameter("FRONT_RIGHT_TURN").value
-        self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
-        self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
-        self.STEERING_MOTOR_GEAR_RATIO = self.get_parameter("STEERING_MOTOR_GEAR_RATIO").value
-
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
         self.get_logger().info("BACK_LEFT_TURN has been set to: " + str(self.BACK_LEFT_TURN))
@@ -129,14 +132,15 @@ class DrivetrainNode(Node):
         self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
         self.get_logger().info("STEERING_MOTOR_GEAR_RATIO has been set to: " + str(self.STEERING_MOTOR_GEAR_RATIO))
+        self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
 
         # Create each swerve module using
-        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
-        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
-        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
-        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self)
+        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self)
+        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self)
+        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self)
 
-        if simulation:
+        if self.GAZEBO_SIMULATION:
             self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
             self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
             self.back_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
