@@ -17,8 +17,6 @@ from std_msgs.msg import Float64
 from rovr_interfaces.srv import Stop, Drive, MotorCommandSet
 from rovr_interfaces.msg import AbsoluteEncoders
 
-simulation = True
-
 
 # This class represents an individual swerve module
 class SwerveModule:
