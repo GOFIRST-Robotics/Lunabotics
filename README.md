@@ -88,9 +88,11 @@ git config --global core.autocrlf true
 ```
 
 ## Gazebo Installation
-Install Gazebo Harmonic [here](https://staging.gazebosim.org/docs/harmonic/install_ubuntu).
+Install Gazebo Fortress by running `sudo apt-get install ros-humble-ros-gz`
+More info [here](https://gazebosim.org/docs/garden/ros_installation). Remember we are using ROS2 verison humble.
 
 Instructions for building the ROS bridge (ros_gz) can be found [here](https://github.com/gazebosim/ros_gz/tree/humble#from-source).
+Information about ROS types -> gazebo types is [here](https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_bridge/README.md)
 
 ## Start the Joystick Node with params
 
