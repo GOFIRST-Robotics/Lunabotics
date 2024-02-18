@@ -1,7 +1,0 @@
-no swerve link stls
-no axis def for joints
-wheels joint offset, rotating around edge
-    From looking at it saw was rotating around middle of an edge
-    needed to shift the point down to the center of the wheel
-    done by changing origin point of the wheel, with trial and error found move y by 0.115 (ish)
-    Also needed to change where attaches to parent (origin of the joint)
