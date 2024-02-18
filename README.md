@@ -29,12 +29,17 @@ colcon build --symlink-install --packages-up-to rovr_control motor_control ros2s
 <details>
 <summary>How to Run Inside ISAAC ROS Container On Linux/Jetson</summary>
 <br>
-First, do the following before running run_dev.sh:
+1a.) First, do the following before running run_dev.sh:
 
 ```
 printf "CONFIG_IMAGE_KEY=ros2_humble.user.zed.zed_modules.realsense.umn  \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
 ``` 
-Then run this command:
+1b.) Optionally, to use Gazebo in the ISAAC ROS container, do this instead:
+
+```
+printf "CONFIG_IMAGE_KEY=ros2_humble.user.zed.zed_modules.realsense.gazebo.umn  \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
+``` 
+2.) Then run this command:
 
 ```
 cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
