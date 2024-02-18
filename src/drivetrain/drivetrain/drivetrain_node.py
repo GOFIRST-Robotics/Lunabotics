@@ -27,10 +27,10 @@ class SwerveModule:
         self.steering_motor_gear_ratio = drivetrain.STEERING_MOTOR_GEAR_RATIO
         self.encoder_offset = 0
         self.current_absolute_angle = None
-        self.prev_angle = 0 
         self.gazebo_wheel = None
         self.gazebo_swerve = None
         self.simulation = drivetrain.GAZEBO_SIMULATION
+        self.prev_angle = 0
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
@@ -41,6 +41,7 @@ class SwerveModule:
     def reset(self, current_relative_angle) -> None:
         self.encoder_offset = self.current_absolute_angle - current_relative_angle 
         print("Absolute Encoder angle offset set to: " + self.encoder_offset)
+        self.set_angle(0)  # Rotate the module to the 0 degree position
 
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
