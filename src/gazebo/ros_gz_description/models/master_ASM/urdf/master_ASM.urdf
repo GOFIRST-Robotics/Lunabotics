@@ -111,7 +111,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel1_Link.STL" />
+          filename="../meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
@@ -207,7 +207,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel2_Link.STL" />
+          filename="../meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
@@ -260,8 +260,6 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <!-- <mesh
-          filename="package://Master_ASM/meshes/swerve3_Link.STL" /> -->
         <box size="0.1 0.2 0.1" />
       </geometry>
       <material
@@ -273,7 +271,7 @@
   </link>
   <joint
     name="swerve3_joint"
-    type="continuous"> <!-- continuous -->
+    type="continuous">
     <origin
       xyz="0.34701 0.55014 -0.59563"
       rpy="1.5708 0 3.1416" />
@@ -283,7 +281,6 @@
       link="swerve3_Link" />
     <axis
       xyz="0 1 0" />
-    <!-- <limit lower="6.28" upper="6.28" effort="30" velocity="1.0" /> -->
   </joint>
   <link
     name="wheel3_Link">
@@ -307,7 +304,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel3_Link.STL" />
+          filename="../meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
@@ -320,8 +317,6 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <!-- <mesh
-          filename="package://Master_ASM/meshes/wheel3_Link.STL" /> -->
         <cylinder radius="0.115" length="0.2"/> 
       </geometry>
     </collision>
@@ -360,8 +355,6 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <!-- <mesh
-          filename="package://Master_ASM/meshes/swerve4_Link.STL" /> -->
         <box size="0.1 0.2 0.1" />
       </geometry>
       <material
@@ -373,27 +366,23 @@
   </link>
   <joint
     name="swerve4_joint"
-     type="continuous"> <!-- continuous -->
+     type="continuous"> 
     <origin
       xyz="-0.34701 -0.55014 -0.59563"
-      rpy="1.5708 0 0" /> <!-- 1.5708 -->
+      rpy="1.5708 0 0" /> 
     <parent
       link="base_link" />
     <child
       link="swerve4_Link" />
     <axis
       xyz="0 1 0" />
-    <!-- <limit lower="6.28" upper="6.28" effort="30" velocity="1.0" /> -->
   </joint>
   <link
     name="wheel4_Link">
     <inertial>
-      <!-- <origin
-        xyz="2.9097E-09 -0.2 -0.00055956"
-        rpy="0 0 0" /> -->
       <origin
         xyz="2.9097E-09 -0.115 -0.00055956"
-        rpy="0 0 0" /> <!-- orignal -->
+        rpy="0 0 0" /> 
       <mass
         value="1.1372" />
       <inertia
@@ -410,7 +399,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel4_Link.STL" />
+          filename="../meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
@@ -423,8 +412,6 @@
         xyz="0 0 0"
         rpy="0 0 0" />
       <geometry>
-        <!-- <mesh
-          filename="package://Master_ASM/meshes/wheel4_Link.STL" /> -->
         <cylinder radius="0.115" length="0.2"/> 
       </geometry>
     </collision>
@@ -435,9 +422,6 @@
     <origin
       xyz="0 0 0"
       rpy="1.5708 0.34561 1.5708" />
-    <!-- <origin
-      xyz="0.071447 0.038959 0.1082"
-      rpy="1.5708 0.34561 1.5708" /> -->
     <parent
       link="swerve4_Link" />
     <child
@@ -445,22 +429,6 @@
     <axis
       xyz="0 0 -1" />
   </joint>
-
-  <!-- <gazebo>
-  <plugin
-        filename="MecanumDrive"
-        name="ros_gz_example_gazebo::MecanumDrive">
-        <front_left_joint>wheel1_joint</front_left_joint>
-        <front_right_joint>wheel2_joint</front_right_joint>
-        <back_left_joint>wheel4_joint</back_left_joint>
-        <back_right_joint>wheel3_joint</back_right_joint>
-        <wheel_separation>0.7</wheel_separation>
-        <wheelbase>0.8</wheelbase>
-        <wheel_radius>0.115</wheel_radius>
-        <min_acceleration>-5</min_acceleration>
-        <max_acceleration>5</max_acceleration>
-      </plugin>
-      </gazebo> -->
 
   <gazebo>
   <plugin
@@ -498,19 +466,15 @@
       </plugin>
       </gazebo>
 
-
   <!-- model/Master_ASM/joint/{jointName}/cmd_vel -->
   <!--  ignition::msgs::Double -->
-
+  <!-- model/Master_ASM/joint/{jointName}/0//cmd_pos -->
 
   <gazebo>
   <plugin
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>swerve1_joint</joint_name>
-        <!-- <p_gain>2</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>0.01</d_gain> -->
         <use_velocity_commands>true</use_velocity_commands>
         <cmd_max>10</cmd_max>
         <cmd_min>-10</cmd_min>
@@ -522,9 +486,6 @@
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>swerve2_joint</joint_name>
-        <!-- <p_gain>2</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>0.01</d_gain> -->
         <use_velocity_commands>true</use_velocity_commands>
         <cmd_max>10</cmd_max>
         <cmd_min>-10</cmd_min>
@@ -536,9 +497,6 @@
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>swerve3_joint</joint_name>
-        <!-- <p_gain>2</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>0.01</d_gain> -->
         <use_velocity_commands>true</use_velocity_commands>
         <cmd_max>10</cmd_max>
         <cmd_min>-10</cmd_min>
@@ -550,16 +508,10 @@
         filename="ignition-gazebo-joint-position-controller-system"
         name="ignition::gazebo::systems::JointPositionController">
         <joint_name>swerve4_joint</joint_name>
-        <!-- <p_gain>2</p_gain>
-        <i_gain>0.1</i_gain>
-        <d_gain>0.01</d_gain> -->
         <use_velocity_commands>true</use_velocity_commands>
         <cmd_max>10</cmd_max>
         <cmd_min>-10</cmd_min>
       </plugin>
-      </gazebo>
-
-
-      
+      </gazebo>      
 
 </robot>
