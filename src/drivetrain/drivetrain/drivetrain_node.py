@@ -17,10 +17,12 @@ from std_msgs.msg import Float64
 from rovr_interfaces.srv import Stop, Drive, MotorCommandSet
 from rovr_interfaces.msg import AbsoluteEncoders
 
+simulation = True
+
 
 # This class represents an individual swerve module
 class SwerveModule:
-    def __init__(self, drive_motor, turning_motor, motor_set, steer_motor_ratio, wheel = None, swerve = None):
+    def __init__(self, drive_motor, turning_motor, motor_set, steer_motor_ratio):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
         self.cli_motor_set = motor_set
@@ -28,8 +30,8 @@ class SwerveModule:
         self.encoder_offset = 0
         self.current_absolute_angle = None
         self.prev_angle = 0 
-        self.gazebo_wheel = wheel
-        self.gazebo_swerve = swerve
+        self.gazebo_wheel = None
+        self.gazebo_swerve = None
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
@@ -44,13 +46,18 @@ class SwerveModule:
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
         self.set_power(power)
-        self.publish_gazebo(power, angle)
+        if simulation:
+            self.publish_gazebo(power, angle)
+
+    def set_gazebo_pubs(self, wheel, swerve):
+        self.gazebo_wheel = wheel
+        self.gazebo_swerve = swerve
 
     def publish_gazebo(self, power: float, angle: float) -> None:
-        if (self.gazebo_swerve != None and self.gazebo_wheel != None):
-            rad = angle * 3.14 / 180
-            self.gazebo_wheel.publish(Float64(data = power))
-            self.gazebo_swerve.publish(Float64(data = rad))
+        rad = angle * 3.14 / 180
+        speed = power * 5
+        self.gazebo_wheel.publish(Float64(data = speed))
+        self.gazebo_swerve.publish(Float64(data = rad))
 
 
 
@@ -65,7 +72,7 @@ class DrivetrainNode(Node):
         self.absolute_encoders_sub = self.create_subscription(AbsoluteEncoders, "absoluteEncoders", self.absolute_encoders_callback, 10)
 
         # self.gazebo_wheel1_pub, self.gazebo_wheel2_pub, self.gazebo_wheel3_pub, self.gazebo_wheel4_pub, self.gazebo_swerve1_pub, self.gazebo_swerve2_pub, self.gazebo_swerve3_pub, self.gazebo_swerve4_pub = None
-        if (True): #either pass a parameter into init or just change when not simulating
+        if (simulation): #either pass a parameter into init or just change when not simulating
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
             self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
             self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
@@ -124,10 +131,16 @@ class DrivetrainNode(Node):
         self.get_logger().info("STEERING_MOTOR_GEAR_RATIO has been set to: " + str(self.STEERING_MOTOR_GEAR_RATIO))
 
         # Create each swerve module using
-        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO, self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
-        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO, self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
-        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO, self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
-        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO, self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
+        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+
+        if simulation:
+            self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
+            self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
+            self.back_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
+            self.front_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
 
     def absolute_angle_reset(self):
         if self.front_left.current_absolute_angle is not None:
