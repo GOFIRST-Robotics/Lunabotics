@@ -37,9 +37,9 @@ def generate_launch_description():
     
     # URDF/xacro file to be loaded by the Robot State Publisher node
     xacro_path = os.path.join(
-        'config',
+        get_package_share_directory('zed_wrapper'),
         'urdf',
-        'robot_descr.urdf.xarco'
+        'zed_descr.urdf.xacro'
     )
 
     # Option to attach the nodes to a shared component container for speed ups through intra process communication.
@@ -71,17 +71,10 @@ def generate_launch_description():
                     'xacro', ' ', xacro_path, ' ',
                     'camera_name:=', 'zed2i', ' ',
                     'camera_model:=', 'zed2i', ' ',
+                    'base_frame:=', 'base_link', ' ',
                 ])
         }]
     )
-    # robot_base_node = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-    #     name='zed2i_camera_base_link',
-    #     output='screen',
-    #     arguments=['1.5', '0', '0', '0', '0', '0', 'zed2i_camera_link','base_link']
-    # )
-
     load_composable_nodes = LoadComposableNodes(
         target_container=component_container_name_arg,
         composable_node_descriptions=[
@@ -102,5 +95,5 @@ def generate_launch_description():
     return LaunchDescription([
         rsp_node, 
         zed2_container, 
-        load_composable_nodes,
+        load_composable_nodes
         ])
