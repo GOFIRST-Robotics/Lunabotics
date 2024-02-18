@@ -100,8 +100,7 @@ class DrivetrainNode(Node):
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
         self.absolute_encoders_sub = self.create_subscription(AbsoluteEncoders, "absoluteEncoders", self.absolute_encoders_callback, 10)
 
-        # self.gazebo_wheel1_pub, self.gazebo_wheel2_pub, self.gazebo_wheel3_pub, self.gazebo_wheel4_pub, self.gazebo_swerve1_pub, self.gazebo_swerve2_pub, self.gazebo_swerve3_pub, self.gazebo_swerve4_pub = None
-        if (self.GAZEBO_SIMULATION): #either pass a parameter into init or just change when not simulating
+        if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
             self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
             self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
