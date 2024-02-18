@@ -1,7 +1,7 @@
 # This ROS 2 node contains code for the swerve drivetrain subsystem of the robot.
-# Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
+# Original Author: Akshat Arinav <arina004@umn.edu> in Fall 2023
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: October 2023
+# Last Updated: February 2024 by Anthony Brogni
 
 import math
 
@@ -36,7 +36,7 @@ class SwerveModule:
 
     def reset(self, current_relative_angle) -> None:
         self.encoder_offset = self.current_absolute_angle - current_relative_angle 
-        print("Absolute Encoder angle offset set to: " + self.encoder_offset)
+        print("Absolute Encoder angle offset set to:", self.encoder_offset)
         self.set_angle(0)  # Rotate the module to the 0 degree position
 
     def set_state(self, power: float, angle: float) -> None:
@@ -75,6 +75,10 @@ class DrivetrainNode(Node):
         self.declare_parameter("HALF_WHEEL_BASE", 0.5)
         self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
         self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 20)
+        self.declare_parameter("FRONT_LEFT_MAGNET_OFFSET", 0)
+        self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 0)
+        self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 0)
+        self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 0)
 
         # Assign the ROS Parameters to member variables below #
         self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
@@ -88,6 +92,10 @@ class DrivetrainNode(Node):
         self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
         self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
         self.STEERING_MOTOR_GEAR_RATIO = self.get_parameter("STEERING_MOTOR_GEAR_RATIO").value
+        self.FRONT_LEFT_MAGNET_OFFSET = self.get_parameter("FRONT_LEFT_MAGNET_OFFSET").value
+        self.FRONT_RIGHT_MAGNET_OFFSET = self.get_parameter("FRONT_RIGHT_MAGNET_OFFSET").value
+        self.BACK_LEFT_MAGNET_OFFSET = self.get_parameter("BACK_LEFT_MAGNET_OFFSET").value
+        self.BACK_RIGHT_MAGNET_OFFSET = self.get_parameter("BACK_RIGHT_MAGNET_OFFSET").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
@@ -101,6 +109,10 @@ class DrivetrainNode(Node):
         self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
         self.get_logger().info("STEERING_MOTOR_GEAR_RATIO has been set to: " + str(self.STEERING_MOTOR_GEAR_RATIO))
+        self.get_logger().info("FRONT_LEFT_MAGNET_OFFSET has been set to: " + str(self.FRONT_LEFT_MAGNET_OFFSET))
+        self.get_logger().info("FRONT_RIGHT_MAGNET_OFFSET has been set to: " + str(self.FRONT_RIGHT_MAGNET_OFFSET))
+        self.get_logger().info("BACK_LEFT_MAGNET_OFFSET has been set to: " + str(self.BACK_LEFT_MAGNET_OFFSET))
+        self.get_logger().info("BACK_RIGHT_MAGNET_OFFSET has been set to: " + str(self.BACK_RIGHT_MAGNET_OFFSET))
 
         # Create each swerve module using
         self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
@@ -109,6 +121,7 @@ class DrivetrainNode(Node):
         self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
 
     def absolute_angle_reset(self):
+        # self.front_left was chosen arbitrarily
         if self.front_left.current_absolute_angle is not None:
             print("Absolute Encoder angles reset")
             self.back_left.reset(0) 
@@ -201,10 +214,10 @@ class DrivetrainNode(Node):
         
     def absolute_encoders_callback(self, msg: AbsoluteEncoders) -> None:
         """This method is called whenever a message is received on the absoluteEncoders topic."""
-        self.back_left.current_absolute_angle = msg.back_left_encoder
-        self.front_left.current_absolute_angle = msg.front_left_encoder
-        self.back_right.current_absolute_angle = msg.back_right_encoder
-        self.front_right.current_absolute_angle = msg.front_right_encoder
+        self.back_left.current_absolute_angle = (360 * msg.back_left_encoder / 1023) - self.BACK_LEFT_MAGNET_OFFSET
+        self.front_left.current_absolute_angle = (360 * msg.front_left_encoder / 1023) - self.FRONT_LEFT_MAGNET_OFFSET
+        self.back_right.current_absolute_angle = (360 * msg.back_right_encoder / 1023) - self.BACK_RIGHT_MAGNET_OFFSET
+        self.front_right.current_absolute_angle = (360 * msg.front_right_encoder / 1023) - self.FRONT_RIGHT_MAGNET_OFFSET
 
 
 def main(args=None):
