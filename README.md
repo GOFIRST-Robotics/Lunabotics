@@ -88,11 +88,14 @@ git config --global core.autocrlf true
 ```
 
 ## Gazebo Installation
-Install Gazebo Fortress by running `sudo apt-get install ros-humble-ros-gz`
-More info [here](https://gazebosim.org/docs/garden/ros_installation). Remember we are using ROS2 verison humble.
-
-Instructions for building the ROS bridge (ros_gz) can be found [here](https://github.com/gazebosim/ros_gz/tree/humble#from-source).
-Information about ROS types -> gazebo types is [here](https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_bridge/README.md)
+```bash
+colcon build --symlink-install --packages-up-to ros_gz_launch drivetrain
+source install/setup.bash
+ros2 launch ros_gz_launch master_ASM.launch.py
+ros2 run drivetrain drivetrain_node
+ros2 run teleop_twist_keyboard teleop_twist_keyboard # This may not be availiable if not
+#sudo apt-get install ros-humble-teleop-twist-keyboard 
+```
 
 ## Start the Joystick Node with params
 
