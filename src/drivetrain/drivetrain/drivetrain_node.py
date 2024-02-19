@@ -11,6 +11,7 @@ from rclpy.node import Node
 
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Float64
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import Stop, Drive, MotorCommandSet
@@ -19,14 +20,17 @@ from rovr_interfaces.msg import AbsoluteEncoders
 
 # This class represents an individual swerve module
 class SwerveModule:
-    def __init__(self, drive_motor, turning_motor, motor_set, steer_motor_ratio):
+    def __init__(self, drive_motor, turning_motor, drivetrain):
         self.drive_motor_can_id = drive_motor
         self.turning_motor_can_id = turning_motor
-        self.cli_motor_set = motor_set
-        self.steering_motor_gear_ratio = steer_motor_ratio
+        self.cli_motor_set = drivetrain.cli_motor_set
+        self.steering_motor_gear_ratio = drivetrain.STEERING_MOTOR_GEAR_RATIO
         self.encoder_offset = 0
         self.current_absolute_angle = None
-        self.prev_angle = 0
+        self.gazebo_wheel = None
+        self.gazebo_swerve = None
+        self.simulation = drivetrain.GAZEBO_SIMULATION
+        self.prev_angle = 0.0
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
@@ -42,6 +46,19 @@ class SwerveModule:
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
         self.set_power(power)
+        if self.simulation:
+            self.publish_gazebo(power, angle)
+
+    def set_gazebo_pubs(self, wheel, swerve):
+        self.gazebo_wheel = wheel
+        self.gazebo_swerve = swerve
+
+    def publish_gazebo(self, power: float, angle: float) -> None:
+        rad = angle * 3.14 / 180
+        speed = power * 5
+        self.gazebo_wheel.publish(Float64(data = speed))
+        self.gazebo_swerve.publish(Float64(data = rad))
+
 
 
 # This class represents the drivetrain as a whole (4 swerve modules)
@@ -49,19 +66,6 @@ class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
         super().__init__("drivetrain")
-
-        # Define publishers and subscribers here
-        self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
-        self.absolute_encoders_sub = self.create_subscription(AbsoluteEncoders, "absoluteEncoders", self.absolute_encoders_callback, 10)
-
-        # Define service clients here
-        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
-
-        # Define services (methods callable from the outside) here
-        self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
-        self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
-
-        self.absolute_angle_timer = self.create_timer(0.05, self.absolute_angle_reset)
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("BACK_LEFT_DRIVE", 1)
@@ -79,6 +83,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 0)
         self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 0)
         self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 0)
+        self.declare_parameter("GAZEBO_SIMULATION", False)
 
         # Assign the ROS Parameters to member variables below #
         self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
@@ -96,6 +101,31 @@ class DrivetrainNode(Node):
         self.FRONT_RIGHT_MAGNET_OFFSET = self.get_parameter("FRONT_RIGHT_MAGNET_OFFSET").value
         self.BACK_LEFT_MAGNET_OFFSET = self.get_parameter("BACK_LEFT_MAGNET_OFFSET").value
         self.BACK_RIGHT_MAGNET_OFFSET = self.get_parameter("BACK_RIGHT_MAGNET_OFFSET").value
+        self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
+
+        # Define publishers and subscribers here
+        self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
+        self.absolute_encoders_sub = self.create_subscription(AbsoluteEncoders, "absoluteEncoders", self.absolute_encoders_callback, 10)
+
+        if self.GAZEBO_SIMULATION:
+            self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
+            self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
+            self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
+            self.gazebo_wheel4_pub = self.create_publisher(Float64, "wheel4/cmd_vel", 10)
+            self.gazebo_swerve1_pub = self.create_publisher(Float64, "swerve1/cmd_pos", 10)
+            self.gazebo_swerve2_pub = self.create_publisher(Float64, "swerve2/cmd_pos", 10)
+            self.gazebo_swerve3_pub = self.create_publisher(Float64, "swerve3/cmd_pos", 10)
+            self.gazebo_swerve4_pub = self.create_publisher(Float64, "swerve4/cmd_pos", 10)         
+
+        # Define service clients here
+        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
+
+        # Define services (methods callable from the outside) here
+        self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
+        self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
+
+        # Define timers here
+        self.absolute_angle_timer = self.create_timer(0.05, self.absolute_angle_reset)
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
@@ -113,12 +143,19 @@ class DrivetrainNode(Node):
         self.get_logger().info("FRONT_RIGHT_MAGNET_OFFSET has been set to: " + str(self.FRONT_RIGHT_MAGNET_OFFSET))
         self.get_logger().info("BACK_LEFT_MAGNET_OFFSET has been set to: " + str(self.BACK_LEFT_MAGNET_OFFSET))
         self.get_logger().info("BACK_RIGHT_MAGNET_OFFSET has been set to: " + str(self.BACK_RIGHT_MAGNET_OFFSET))
+        self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
 
         # Create each swerve module using
-        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
-        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
-        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
-        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self.cli_motor_set, self.STEERING_MOTOR_GEAR_RATIO)
+        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self)
+        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self)
+        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self)
+        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self)
+
+        if self.GAZEBO_SIMULATION:
+            self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
+            self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
+            self.back_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
+            self.front_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
 
     def absolute_angle_reset(self):
         # self.front_left was chosen arbitrarily

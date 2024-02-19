@@ -29,12 +29,17 @@ colcon build --symlink-install --packages-up-to rovr_control motor_control ros2s
 <details>
 <summary>How to Run Inside ISAAC ROS Container On Linux/Jetson</summary>
 <br>
-First, do the following before running run_dev.sh:
+1a.) First, do the following before running run_dev.sh:
 
 ```
 printf "CONFIG_IMAGE_KEY=ros2_humble.user.zed.zed_modules.realsense.umn \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
 ``` 
-Then run this command:
+1b.) Optionally, to use Gazebo in the ISAAC ROS container, do this instead:
+
+```
+printf "CONFIG_IMAGE_KEY=ros2_humble.user.zed.zed_modules.realsense.gazebo.umn  \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config
+``` 
+2.) Then run this command:
 
 ```
 cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
@@ -81,6 +86,33 @@ To normalize line endings in git, use the command:
 ```
 git config --global core.autocrlf true
 ```
+
+## Gazebo Installation
+Install Gazebo Fortress by running `sudo apt-get install ros-humble-ros-gz`
+More info [here](https://gazebosim.org/docs/garden/ros_installation). Remember we are using ROS2 verison humble.
+
+Instructions for building the ROS bridge (ros_gz) can be found [here](https://github.com/gazebosim/ros_gz/tree/humble#from-source).
+Information about ROS types -> gazebo types is [here](https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_bridge/README.md)
+
+To run the Gazebo simulation:
+```
+colcon build --symlink-install --packages-up-to ros_gz_launch
+source install/setup.bash
+ros2 launch ros_gz_launch master_ASM.launch.py
+```
+
+Then to control the robot, you will need to either run:
+```
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+to control the robot with your keyboard.
+
+Or:
+```
+ros2 run joy joy_node
+ros2 run rovr_control main_control_node
+```
+to control the robot using a gamepad and the button bindings assigned in the main_control_node.
 
 ## Start the Joystick Node with params
 
