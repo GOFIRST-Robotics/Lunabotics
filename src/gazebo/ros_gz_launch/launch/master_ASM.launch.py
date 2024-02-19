@@ -82,11 +82,21 @@ def generate_launch_description():
         output='screen'
     )
 
+    drivetrain = Node(
+        package="drivetrain",
+        executable="drivetrain_node",
+        name="drivetrain_node",
+        parameters=["config/drivetrain_config.yaml", "config/motor_control.yaml",
+                    {"GAZEBO_SIMULATION": True}],
+        output="screen",
+        emulate_tty=True,
+    )
+
     return LaunchDescription([
         gz_sim,
-        # DeclareLaunchArgument('rviz', default_value='true',
-        #                       description='Open RViz.'),
-        bridge#,
+        # DeclareLaunchArgument('rviz', default_value='true', description='Open RViz.'),
+        bridge,
+        drivetrain
         # robot_state_publisher,
         # rviz
     ])

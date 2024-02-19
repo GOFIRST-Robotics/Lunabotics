@@ -30,7 +30,7 @@ class SwerveModule:
         self.gazebo_wheel = None
         self.gazebo_swerve = None
         self.simulation = drivetrain.GAZEBO_SIMULATION
-        self.prev_angle = 0
+        self.prev_angle = 0.0
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", value=power))
@@ -83,7 +83,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 0)
         self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 0)
         self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 0)
-        self.declare_parameter("GAZEBO_SIMULATION", True)
+        self.declare_parameter("GAZEBO_SIMULATION", False)
 
         # Assign the ROS Parameters to member variables below #
         self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
