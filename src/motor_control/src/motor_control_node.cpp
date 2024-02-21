@@ -247,7 +247,7 @@ private:
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
 
       // Runs the PID controller for this motor if its active
-      if (this->pid_controllers[motorId]->isActive) {
+      if (this->pid_controllers[motorId] && this->pid_controllers[motorId]->isActive) {
         float PIDResult = this->pid_controllers[motorId]->update(tachometer);
 
         int32_t data = PIDResult * 100000; // Convert from percent power to a signed 32-bit integer
