@@ -60,7 +60,7 @@ private:
   int COUNTS_PER_REVOLUTION; // How many encoder counts for one 360 degree rotation
 
   bool continuous; // Does the input range wrap around (e.g. absolute encoder)
-  int minimumInput, maximumInput; // For continuous input, what is the range?
+  int minimumTachInput, maximumTachInput; // For continuous input, what is the range?
 
   float kp, ki, kd;
   float gravComp; // Gravity compensation constant (if needed)
@@ -90,7 +90,7 @@ public:
     // Calculate the current error
     float currError;
     if (this->continuous) {
-      double errorBound = (this->maximumInput - this->minimumInput) / 2.0;
+      double errorBound = (this->maximumTachInput - this->minimumTachInput) / 2.0;
       currError = inputModulus(this->targTach - currTach, -errorBound, errorBound);
     } else {
       currError = (this->targTach - currTach);
@@ -127,10 +127,10 @@ public:
   }
 
   // Methods for continuous input
-  void enableContinuousInput(int min, int max) {
+  void enableContinuousInput(int minDegrees, int maxDegrees) {
     this->continuous = true;
-    this->minimumInput = min;
-    this->maximumInput = max;
+    this->minimumTachInput = static_cast<int32_t>((minDegrees / 360.0) * this->COUNTS_PER_REVOLUTION);
+    this->maximumTachInput = static_cast<int32_t>((maxDegrees / 360.0) * this->COUNTS_PER_REVOLUTION);
   }
   void disableContinuousInput() {
     this->continuous = false;
