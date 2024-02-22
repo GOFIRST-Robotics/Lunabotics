@@ -32,7 +32,7 @@ using std::placeholders::_2;
 // Calculates the modulus of an input value within a given range.
 // If the input is above the maximum input, it wraps around to the minimum input.
 // If the input is below the minimum input, it wraps around to the maximum input.
-static double inputModulus(double input, double minimumInput, double maximumInput) {
+double inputModulus(double input, double minimumInput, double maximumInput) {
   double modulus = maximumInput - minimumInput;
 
   // Wrap input if it's above the maximum input
