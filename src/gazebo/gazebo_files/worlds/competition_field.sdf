@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
-<world name="test_world">
+<world name="competition_field">
 
     <plugin
       filename="ignition-gazebo-physics-system"
@@ -20,14 +20,12 @@
       name="ignition::gazebo::systems::UserCommands">
     </plugin>
 
-
     <include>
       <uri>package://ros_gz_description/models/sun</uri>
-      <static>true</static>
     </include>
     
     <include>
-      <uri>package://ros_gz_description/models/test_field</uri>
+      <uri>package://ros_gz_description/models/competition_field</uri>
       <static>true</static>
     </include>
 
@@ -35,24 +33,6 @@
       <uri>package://ros_gz_description/models/master_ASM</uri>
       <pose>0 0 1 0 0 0</pose>
     </include>
-
-    <!-- doesnt work in gazebo harmonic -->
-    <!-- <population name="obs_population1">
-      <model name="obs1">
-        <include>
-          <static>true</static>
-          <uri>package://ros_gz_description/models/obstacle</uri>
-        </include>
-      </model>
-      <pose>3.27 1.1425 0 0 0 0</pose> Upper portion of field
-      <box>
-        <size>6.34 2.37 0.1</size> Size of obstacle zone minus a small bit
-      </box>
-      <model_count>5</model_count>
-      <distribution>
-        <type>random</type>
-      </distribution>
-    </population> -->
 
   </world>
 </sdf>
