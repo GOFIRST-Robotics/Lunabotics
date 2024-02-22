@@ -32,7 +32,7 @@ using std::placeholders::_2;
 // Calculates the modulus of an input value within a given range.
 // If the input is above the maximum input, it wraps around to the minimum input.
 // If the input is below the minimum input, it wraps around to the maximum input.
-public static double inputModulus(double input, double minimumInput, double maximumInput) {
+static double inputModulus(double input, double minimumInput, double maximumInput) {
   double modulus = maximumInput - minimumInput;
 
   // Wrap input if it's above the maximum input
@@ -90,7 +90,7 @@ public:
     // Calculate the current error
     float currError;
     if (this->continuous) {
-      double errorBound = (this->maximumInput - this->m_minimumInput) / 2.0;
+      double errorBound = (this->maximumInput - this->minimumInput) / 2.0;
       currError = inputModulus(this->targTach - currTach, -errorBound, errorBound);
     } else {
       currError = (this->targTach - currTach);
@@ -247,10 +247,10 @@ public:
     this->pid_controllers[this->get_parameter("SKIMMER_LIFT_MOTOR").as_int()] = new PIDController(42, 0.01); // TODO: kp will need to be tuned on the real robot
 
     // Enable continuous input for the swerve module PID controllers
-    this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()].enableContinuousInput(0, 360);
-    this->pid_controllers[this->get_parameter("FRONT_LEFT_TURN").as_int()].enableContinuousInput(0, 360);
-    this->pid_controllers[this->get_parameter("BACK_RIGHT_TURN").as_int()].enableContinuousInput(0, 360);
-    this->pid_controllers[this->get_parameter("FRONT_RIGHT_TURN").as_int()].enableContinuousInput(0, 360);
+    this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()]->enableContinuousInput(0, 360);
+    this->pid_controllers[this->get_parameter("FRONT_LEFT_TURN").as_int()]->enableContinuousInput(0, 360);
+    this->pid_controllers[this->get_parameter("BACK_RIGHT_TURN").as_int()]->enableContinuousInput(0, 360);
+    this->pid_controllers[this->get_parameter("FRONT_RIGHT_TURN").as_int()]->enableContinuousInput(0, 360);
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
