@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<sdf version='1.7'>
+  <model name='test_field'>
+    <pose>0 0 0 0 0 0</pose>
+      <link name='field'>
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>meshes/test_field.dae</uri>
+              <!-- <scale>0.1 0.1 0.1</scale> -->
+            </mesh>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>meshes/test_field.dae</uri>
+              <!-- <scale>0.1 0.1 0.1</scale> -->
+            </mesh>
+          </geometry>
+        </visual>
+      </link>
+  </model>
+</sdf>
