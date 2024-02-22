@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<sdf version='1.7'>
+  <model name='obstacle'>
+    <pose>0 0 0 0 -0 0</pose>
+      <link name='obstacle'>
+        <inertial>
+          <mass>100</mass>
+        </inertial>
+        <collision name='peg_collision'>
+          <geometry>
+            <mesh>
+              <uri>model://obstacle/meshes/model.dae</uri>
+              <scale>0.1 0.1 0.1</scale>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode>
+                <min_depth>0.001</min_depth>
+                <maxVel>0.0</maxVel>
+              </ode>
+            </contact>
+            <friction>
+              <torsional>
+                <ode>
+                  <mu1>1.5</mu1>
+                  <mu2>1.5</mu2>
+                </ode>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='obstacle_vis'>
+          <geometry>
+            <mesh>
+              <uri>model://obstacle/meshes/model.dae</uri>
+              <scale>0.1 0.1 0.1</scale>
+            </mesh>
+          </geometry>
+        </visual>
+        <pose>0 0 0 0 0 0</pose>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+  </model>
+</sdf>
