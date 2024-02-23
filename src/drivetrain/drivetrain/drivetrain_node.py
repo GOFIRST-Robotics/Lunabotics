@@ -164,9 +164,9 @@ class DrivetrainNode(Node):
         self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self)
 
         if self.GAZEBO_SIMULATION:
-            self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
-            self.front_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
-            self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
+            self.front_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
+            self.front_right.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
+            self.back_left.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
             self.back_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
 
     def absolute_angle_reset(self):
@@ -219,7 +219,7 @@ class DrivetrainNode(Node):
             # reverse speed of the module
             front_left_vector[0] = front_left_vector[0] * -1
         if abs(front_right_vector[1] - self.front_right.prev_angle) > 90 and abs(front_right_vector[1] - self.front_right.prev_angle) < 270:
-            front_right_vector[1] = (front_left_vector[1] + 180) % 360
+            front_right_vector[1] = (front_right_vector[1] + 180) % 360
             # reverse speed of the module
             front_right_vector[0] = front_right_vector[0] * -1
         if abs(back_left_vector[1] - self.back_left.prev_angle) > 90 and abs(back_left_vector[1] - self.back_left.prev_angle) < 270:
