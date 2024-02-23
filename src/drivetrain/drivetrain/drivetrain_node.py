@@ -171,6 +171,14 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward, horizontal and turning power."""
 
+        # Do not change the angle of the modules if the robot is being told to stop
+        if abs(forward_power) < 0.05 and abs(horizontal_power) < 0.05 and abs(turning_power) < 0.05:
+            self.front_left.set_state(0.0, self.front_left.prev_angle)
+            self.back_left.set_state(0.0, self.back_left.prev_angle)
+            self.back_right.set_state(0.0, self.back_right.prev_angle)
+            self.front_right.set_state(0.0, self.front_right.prev_angle)
+            return
+
         # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
         # Intermediate equations to simplify future expressions
         A = horizontal_power - turning_power * self.HALF_WHEEL_BASE
