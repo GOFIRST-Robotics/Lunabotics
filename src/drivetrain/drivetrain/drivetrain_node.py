@@ -75,14 +75,14 @@ class DrivetrainNode(Node):
         super().__init__("drivetrain")
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter("FRONT_LEFT_DRIVE", 10)
+        self.declare_parameter("FRONT_LEFT_DRIVE", 3)
         self.declare_parameter("FRONT_LEFT_TURN", 4)
-        self.declare_parameter("FRONT_RIGHT_DRIVE", 9)
-        self.declare_parameter("FRONT_RIGHT_TURN", 3)
-        self.declare_parameter("BACK_LEFT_DRIVE", 7)
-        self.declare_parameter("BACK_LEFT_TURN", 6)
-        self.declare_parameter("BACK_RIGHT_DRIVE", 8)
-        self.declare_parameter("BACK_RIGHT_TURN", 4)
+        self.declare_parameter("FRONT_RIGHT_DRIVE", 7)
+        self.declare_parameter("FRONT_RIGHT_TURN", 8)
+        self.declare_parameter("BACK_LEFT_DRIVE", 1)
+        self.declare_parameter("BACK_LEFT_TURN", 2)
+        self.declare_parameter("BACK_RIGHT_DRIVE", 5)
+        self.declare_parameter("BACK_RIGHT_TURN", 6)
         self.declare_parameter("HALF_WHEEL_BASE", 0.5)
         self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
         self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 40)
@@ -165,9 +165,9 @@ class DrivetrainNode(Node):
 
         if self.GAZEBO_SIMULATION:
             self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
-            self.front_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
+            self.front_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
             self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
-            self.back_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
+            self.back_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
 
     def absolute_angle_reset(self):
         # self.front_left was chosen arbitrarily
@@ -175,7 +175,7 @@ class DrivetrainNode(Node):
             print("Absolute Encoder angles reset")
             self.front_left.reset(0)
             self.front_right.reset(0)
-            self.back_left.reset(0)
+            self.back_left.reset(0) 
             self.back_right.reset(0)
             self.absolute_angle_timer.cancel()
 
@@ -186,9 +186,9 @@ class DrivetrainNode(Node):
         # Do not change the angle of the modules if the robot is being told to stop
         if abs(forward_power) < 0.05 and abs(horizontal_power) < 0.05 and abs(turning_power) < 0.05:
             self.front_left.set_state(0.0, self.front_left.prev_angle)
+            self.front_right.set_state(0.0, self.front_right.prev_angle)
             self.back_left.set_state(0.0, self.back_left.prev_angle)
             self.back_right.set_state(0.0, self.back_right.prev_angle)
-            self.front_right.set_state(0.0, self.front_right.prev_angle)
             return
 
         # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
@@ -206,9 +206,7 @@ class DrivetrainNode(Node):
         back_right_vector = [math.sqrt(A**2 + C**2), ((math.atan2(A, C) * 180 / math.pi) + 360) % 360]
 
         # Normalize wheel speeds if necessary
-        largest_power = max(
-            [abs(front_left_vector[0]), abs(front_right_vector[0]), abs(back_left_vector[0]), abs(back_right_vector[0])]
-        )
+        largest_power = max([front_left_vector[0], front_right_vector[0], back_left_vector[0], back_right_vector[0]])
         if largest_power > 1.0:
             front_left_vector[0] = front_left_vector[0] / largest_power
             front_right_vector[0] = front_right_vector[0] / largest_power
@@ -216,31 +214,19 @@ class DrivetrainNode(Node):
             back_right_vector[0] = back_right_vector[0] / largest_power
 
         # Note: no module should ever have to rotate more than 90 degrees from its current angle
-        if (
-            abs(front_left_vector[1] - self.front_left.prev_angle) > 90
-            and abs(front_left_vector[1] - self.front_left.prev_angle) < 270
-        ):
+        if abs(front_left_vector[1] - self.front_left.prev_angle) > 90 and abs(front_left_vector[1] - self.front_left.prev_angle) < 270:
             front_left_vector[1] = (front_left_vector[1] + 180) % 360
             # reverse speed of the module
             front_left_vector[0] = front_left_vector[0] * -1
-        if (
-            abs(front_right_vector[1] - self.front_right.prev_angle) > 90
-            and abs(front_right_vector[1] - self.front_right.prev_angle) < 270
-        ):
-            front_right_vector[1] = (front_right_vector[1] + 180) % 360
+        if abs(front_right_vector[1] - self.front_right.prev_angle) > 90 and abs(front_right_vector[1] - self.front_right.prev_angle) < 270:
+            front_right_vector[1] = (front_left_vector[1] + 180) % 360
             # reverse speed of the module
             front_right_vector[0] = front_right_vector[0] * -1
-        if (
-            abs(back_left_vector[1] - self.back_left.prev_angle) > 90
-            and abs(back_left_vector[1] - self.back_left.prev_angle) < 270
-        ):
+        if abs(back_left_vector[1] - self.back_left.prev_angle) > 90 and abs(back_left_vector[1] - self.back_left.prev_angle) < 270:
             back_left_vector[1] = (back_left_vector[1] + 180) % 360
             # reverse speed of the module
             back_left_vector[0] = back_left_vector[0] * -1
-        if (
-            abs(back_right_vector[1] - self.back_right.prev_angle) > 90
-            and abs(back_right_vector[1] - self.back_right.prev_angle) < 270
-        ):
+        if abs(back_right_vector[1] - self.back_right.prev_angle) > 90 and abs(back_right_vector[1] - self.back_right.prev_angle) < 270:
             back_right_vector[1] = (back_right_vector[1] + 180) % 360
             # reverse speed of the module
             back_right_vector[0] = back_right_vector[0] * -1
@@ -282,14 +268,10 @@ class DrivetrainNode(Node):
 
     def absolute_encoders_callback(self, msg: AbsoluteEncoders) -> None:
         """This method is called whenever a message is received on the absoluteEncoders topic."""
-        front_left_adjusted = (msg.front_left_encoder - self.FRONT_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        front_right_adjusted = (msg.front_right_encoder - self.FRONT_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        back_left_adjusted = (msg.back_left_encoder - self.BACK_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        back_right_adjusted = (msg.back_right_encoder - self.BACK_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        self.front_left.current_absolute_angle = 360 * front_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
-        self.front_right.current_absolute_angle = 360 * front_right_adjusted / self.ABSOLUTE_ENCODER_COUNTS
-        self.back_left.current_absolute_angle = 360 * back_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
-        self.back_right.current_absolute_angle = 360 * back_right_adjusted / self.ABSOLUTE_ENCODER_COUNTS
+        self.front_left.current_absolute_angle = (360 * msg.front_left_encoder / 1023) - self.FRONT_LEFT_MAGNET_OFFSET
+        self.front_right.current_absolute_angle = (360 * msg.front_right_encoder / 1023) - self.FRONT_RIGHT_MAGNET_OFFSET
+        self.back_left.current_absolute_angle = (360 * msg.back_left_encoder / 1023) - self.BACK_LEFT_MAGNET_OFFSET
+        self.back_right.current_absolute_angle = (360 * msg.back_right_encoder / 1023) - self.BACK_RIGHT_MAGNET_OFFSET
 
 
 def main(args=None):
