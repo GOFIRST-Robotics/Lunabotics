@@ -206,7 +206,7 @@ class DrivetrainNode(Node):
         back_right_vector = [math.sqrt(A**2 + C**2), ((math.atan2(A, C) * 180 / math.pi) + 360) % 360]
 
         # Normalize wheel speeds if necessary
-        largest_power = max([front_left_vector[0], front_right_vector[0], back_left_vector[0], back_right_vector[0]])
+        largest_power = max([abs(front_left_vector[0]), abs(front_right_vector[0]), abs(back_left_vector[0]), abs(back_right_vector[0])])
         if largest_power > 1.0:
             front_left_vector[0] = front_left_vector[0] / largest_power
             front_right_vector[0] = front_right_vector[0] / largest_power
