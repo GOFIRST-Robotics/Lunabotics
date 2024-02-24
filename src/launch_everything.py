@@ -29,6 +29,15 @@ def generate_launch_description():
         output="screen",
         emulate_tty=True,
     )
+    
+    ## New node, might be cause of errors
+    ros2socketcan_bridge = Node(
+        package="ros2socketcan_bridge",
+        executable="ros2socketcan",
+        name="ros2socketcan",
+        output="screen",
+        emulate_tty=True,
+    )
 
     ## New node, might be cause of errors
     read_serial = Node(
