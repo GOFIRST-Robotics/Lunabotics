@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<sdf  version='1.7'>
+    <model name="heightmap">
+      <static>true</static>
+      <!-- Heightmap must be a square with size 2^n (or 2^n + 1)-->
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <heightmap>
+              <uri>materials/terrain.png</uri>
+              <size>513 513 10</size>
+              <pos>0 0 0</pos>
+            </heightmap>
+          </geometry>
+        </collision>
+        <visual name="visual_abcedf">
+          <geometry>
+            <heightmap>
+              <uri>materials/terrain.png</uri>
+              <size>513 513 10</size>
+              <pos>0 0 0</pos>
+            </heightmap>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+</sdf>
