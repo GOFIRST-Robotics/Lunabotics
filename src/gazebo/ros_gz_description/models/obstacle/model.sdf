@@ -9,7 +9,7 @@
         <collision name='peg_collision'>
           <geometry>
             <mesh>
-              <uri>model://obstacle/meshes/model.dae</uri>
+              <uri>meshes/model.dae</uri>
               <scale>0.1 0.1 0.1</scale>
             </mesh>
           </geometry>
@@ -35,7 +35,7 @@
         <visual name='obstacle_vis'>
           <geometry>
             <mesh>
-              <uri>model://obstacle/meshes/model.dae</uri>
+              <uri>meshes/model.dae</uri>
               <scale>0.1 0.1 0.1</scale>
             </mesh>
           </geometry>
