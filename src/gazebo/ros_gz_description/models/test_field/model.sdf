@@ -6,7 +6,7 @@
         <collision name="collision">
           <geometry>
             <mesh>
-              <uri>meshes/test_field.dae</uri>
+              <uri>meshes/basic_collision.stl</uri>
               <!-- <scale>0.1 0.1 0.1</scale> -->
             </mesh>
           </geometry>
@@ -14,7 +14,7 @@
         <visual name="visual">
           <geometry>
             <mesh>
-              <uri>meshes/test_field.dae</uri>
+              <uri>meshes/competition_field.dae</uri>
               <!-- <scale>0.1 0.1 0.1</scale> -->
             </mesh>
           </geometry>
