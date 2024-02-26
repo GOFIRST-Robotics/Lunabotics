@@ -2,7 +2,7 @@
 <sdf version="1.8">
 <world name="NASA_field">
 
-    <plugin
+    <!-- <plugin
       filename="ignition-gazebo-physics-system"
       name="ignition::gazebo::systems::Physics">
     </plugin>
@@ -18,10 +18,10 @@
     <plugin
       filename="ignition-gazebo-user-commands-system"
       name="ignition::gazebo::systems::UserCommands">
-    </plugin>
+    </plugin> -->
 
 
-    <include>
+    <!-- <include>
       <uri>package://ros_gz_description/models/sun</uri>
       <static>true</static>
     </include>
@@ -29,12 +29,52 @@
     <include>
       <uri>package://ros_gz_description/models/test_field</uri>
       <static>true</static>
+    </include> -->
+
+
+    <include>
+      <uri>package://ros_gz_description/models/heightmap</uri>
+      <static>true</static>
+    </include>
+
+    <!-- <include>
+      <uri>package://ros_gz_description/models/obstacle</uri>
+    </include> -->
+
+    <!-- <include>
+      <uri>package://ros_gz_description/models/master_ASM</uri>
+      <pose>0 0 1 0 0 0</pose>
     </include>
 
     <include>
-      <uri>package://robot_description/models/master_ASM</uri>
-      <pose>-1.8 -1.5 1 0 0.52359878 0</pose>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling%20Rock%201</uri>
+      <pose>-2 3 1 0 0 0</pose>
     </include>
+
+    <include>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling%20Rock%202</uri>
+      <pose>-2 2 1 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling%20Rock%203</uri>
+      <pose>-2 1 1 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling%20Rock%204</uri>
+      <pose>-2 -1 1 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling%20Rock%205</uri>
+      <pose>-2 -2 1 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Falling%20Rock%206</uri>
+      <pose>-2 -3 1 0 0 0</pose>
+    </include> -->
 
     <!-- doesnt work in gazebo harmonic -->
     <!-- <population name="obs_population1">

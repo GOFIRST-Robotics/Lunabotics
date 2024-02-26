@@ -30,9 +30,9 @@ def generate_launch_description():
     # Configure ROS nodes for launch
 
     # Setup project paths
-    pkg_project_bringup = get_package_share_directory('ros_gz_launch')
+    # pkg_project_bringup = get_package_share_directory('ros_gz_launch')
     pkg_project_gazebo = get_package_share_directory('gazebo_files')
-    pkg_project_description = get_package_share_directory('ros_gz_description')
+    # pkg_project_description = get_package_share_directory('ros_gz_description')
     pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     # Load the SDF file from "description" package
@@ -72,31 +72,31 @@ def generate_launch_description():
     # )
 
     # Bridge ROS topics and Gazebo messages for establishing communication
-    bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        parameters=[{
-            'config_file': os.path.join(pkg_project_bringup, 'config', 'ros_gz_bridge.yaml'),
-            'qos_overrides./tf_static.publisher.durability': 'transient_local',
-        }],
-        output='screen'
-    )
+    # bridge = Node(
+    #     package='ros_gz_bridge',
+    #     executable='parameter_bridge',
+    #     parameters=[{
+    #         'config_file': os.path.join(pkg_project_bringup, 'config', 'ros_gz_bridge.yaml'),
+    #         'qos_overrides./tf_static.publisher.durability': 'transient_local',
+    #     }],
+    #     output='screen'
+    # )
 
-    drivetrain = Node(
-        package="drivetrain",
-        executable="drivetrain_node",
-        name="drivetrain_node",
-        parameters=["config/drivetrain_config.yaml", "config/motor_control.yaml",
-                    {"GAZEBO_SIMULATION": True}],
-        output="screen",
-        emulate_tty=True,
-    )
+    # drivetrain = Node(
+    #     package="drivetrain",
+    #     executable="drivetrain_node",
+    #     name="drivetrain_node",
+    #     parameters=["config/drivetrain_config.yaml", "config/motor_control.yaml",
+    #                 {"GAZEBO_SIMULATION": True}],
+    #     output="screen",
+    #     emulate_tty=True,
+    # )
 
     return LaunchDescription([
-        gz_sim,
+        gz_sim#,
         # DeclareLaunchArgument('rviz', default_value='true', description='Open RViz.'),
-        bridge,
-        drivetrain
+        # bridge#,
+        # drivetrain
         # robot_state_publisher,
         # rviz
     ])
