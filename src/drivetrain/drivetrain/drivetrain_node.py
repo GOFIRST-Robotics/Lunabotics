@@ -58,10 +58,12 @@ class SwerveModule:
         self.gazebo_swerve = swerve
 
     def publish_gazebo(self, power: float, angle: float) -> None:
-        # Convert from counterclockwise -> clockwise
         angle = (360 - angle) % 360
-        # Convert from degrees to radians
         rad = angle * math.pi / 180
+        # rad = 6.28 - rad
+        speed = power * 5
+        self.gazebo_wheel.publish(Float64(data = speed))
+        self.gazebo_swerve.publish(Float64(data = rad))
 
         speed = power * 5
         self.gazebo_wheel.publish(Float64(data=speed))
@@ -164,10 +166,10 @@ class DrivetrainNode(Node):
         self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self)
 
         if self.GAZEBO_SIMULATION:
-            self.front_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
-            self.front_right.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
-            self.back_left.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
-            self.back_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
+            self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
+            self.front_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
+            self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
+            self.back_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
 
     def absolute_angle_reset(self):
         # self.front_left was chosen arbitrarily
