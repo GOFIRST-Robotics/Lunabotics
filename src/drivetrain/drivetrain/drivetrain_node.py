@@ -58,9 +58,13 @@ class SwerveModule:
         self.gazebo_swerve = swerve
 
     def publish_gazebo(self, power: float, angle: float) -> None:
+        #gazebo offset?
+        # angle -= 90
+        # Convert from counterclockwise -> clockwise
         angle = (360 - angle) % 360
+        # Convert from degrees to radians
         rad = angle * math.pi / 180
-        # rad = 6.28 - rad
+
         speed = power * 5
         self.gazebo_wheel.publish(Float64(data = speed))
         self.gazebo_swerve.publish(Float64(data = rad))
@@ -184,6 +188,9 @@ class DrivetrainNode(Node):
     # Define subsystem methods here
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward, horizontal and turning power."""
+
+        #flip turning direction
+        turning_power *= -1
 
         # Do not change the angle of the modules if the robot is being told to stop
         if abs(forward_power) < 0.05 and abs(horizontal_power) < 0.05 and abs(turning_power) < 0.05:
