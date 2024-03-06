@@ -230,6 +230,10 @@ gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H264, payload
 (Change the /dev/video device to add more webcams, and the port number to stream multiple webcams at once)
 </details>
 
+## Set static serial ports on the Jetson
+
+Follow [these](https://msadowski.github.io/linux-static-port/) instructions.
+
 ## Jetson External HDD Commands
 
 ```
