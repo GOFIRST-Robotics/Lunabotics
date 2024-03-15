@@ -9,10 +9,10 @@
     # esdf settings
     compute_esdf: true
     esdf_update_rate_hz: 10.0
-    esdf_2d: true
+    esdf_2d: false
     publish_esdf_distance_slice: true
     esdf_slice_height: 0.4
-    esdf_2d_min_height: 0.025
+    esdf_2d_min_height: -1.0
     esdf_2d_max_height: 0.7
     # mesh settings
     compute_mesh: true
