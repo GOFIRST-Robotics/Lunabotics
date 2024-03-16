@@ -41,6 +41,11 @@
     slice_visualization_attachment_frame_id: "base_link"
     slice_visualization_side_length: 10.0
 
+    # Used for crater detection.
+    # one is the floor, two is hole level
+    esdf_slice_height_one: -0.2
+    esdf_slice_height_two: -0.6
+
     static_mapper:
       # mapper
       do_depth_preprocessing: false
