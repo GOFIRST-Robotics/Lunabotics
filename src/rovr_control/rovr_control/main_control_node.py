@@ -174,6 +174,7 @@ class MainControlNode(Node):
                 self.get_logger().error("Failed to reach the dig location!")
                 self.end_autonomous()  # Return to Teleop mode
             self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure())  # Start the auto dig process
+            # TODO: This autonomous_digging_process will set the state to teleop when done but we don't want that
             while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.nav2.goToPose(_____)  # Navigate to the berm zone # TODO: Enter the correct pose here for dumping into the berm zone
@@ -183,6 +184,7 @@ class MainControlNode(Node):
                 self.get_logger().error("Failed to reach the berm zone!")
                 self.end_autonomous()  # Return to Teleop mode
             self.autonomous_offload_process = asyncio.ensure_future(self.auto_offload_procedure())  # Start the auto offload process
+            # TODO: This autonomous_offload_process will set the state to teleop when done but we don't want that
             while not self.autonomous_offload_process.done():  # Wait for the offload process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Completed an Autonomous Cycle!\n")
