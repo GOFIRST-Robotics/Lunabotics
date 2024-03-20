@@ -37,34 +37,59 @@ class combine_esdf(Node):
     def above_ground_callback(self, msg):
         if (len(msg.data) == 0):
             return
+        # print(msg.origin, msg.height, msg.width)
         if (self.below_ground_costmap_one is None):
             self.publisher_.publish(msg)
-        
+            return
         self.above_ground_costmap = np.array(msg.data)
         self.above_ground_costmap = self.above_ground_costmap.reshape(msg.height, msg.width)
 
-        # Find valus on the cost map that are NOT 1000
-        condition = self.below_ground_costmap_one == 1000
+        # Set any null values in the costmap to an inaccessible area (before inverting)
+        condition = self.below_ground_costmap_one > 2
         # self.above_ground_costmap[condition]
         self.below_ground_costmap_one[condition] = 2
 
-        inverse_costmap = np.full(self.below_ground_costmap_one.shape, 2) - self.below_ground_costmap_one
+        inverse_below_ground_costmap = np.full(self.below_ground_costmap_one.shape, 2) - self.below_ground_costmap_one
 
-        # print(self.above_ground_costmap.shape)
-        # print(np.average(inverse_costmap), np.average(self.above_ground_costmap))
-        # print(np.amax(inverse_costmap), np.amin(inverse_costmap))
-        # print(np.amax(self.above_ground_costmap), np.amin(self.above_ground_costmap))
+        # pad the below ground costmap, to give it the same dimensions as the above ground costmap
+        # Set 
+        width_diff = self.above_ground_costmap.shape[0] - inverse_below_ground_costmap.shape[0]
+        height_diff = self.above_ground_costmap.shape[1] - inverse_below_ground_costmap.shape[1]
+        # print(width_diff, height_diff)
         
+        max_width = max(self.above_ground_costmap.shape[0], inverse_below_ground_costmap.shape[0])
+        max_height = max(self.above_ground_costmap.shape[1], inverse_below_ground_costmap.shape[1])
+        inverse_below_ground_costmap = np.pad(inverse_below_ground_costmap, ((max_width - inverse_below_ground_costmap.shape[0], 0), (max_height - inverse_below_ground_costmap.shape[1], 0)), 'constant', constant_values=(2))
+        self.above_ground_costmap = np.pad(self.above_ground_costmap, ((max_width - self.above_ground_costmap.shape[0], 0), (max_height - self.above_ground_costmap.shape[1], 0)), 'constant', constant_values=(2))
+
+
+        # if (width_diff > 0 and height_diff > 0):
+        #     inverse_below_ground_costmap = np.pad(inverse_below_ground_costmap, ((height_diff, 0), (width_diff, 0)), 'constant', constant_values=(0))
+        # elif (width_diff < 0 and height_diff < 0):
+        #     self.above_ground_costmap = np.pad(self.above_ground_costmap, ((-height_diff, 0), (-width_diff, 0)), 'constant', constant_values=(0))
+
+        # Create a message to publish the combined costmap
         message = DistanceMapSlice()
-        message = msg
-        message.data = np.maximum(inverse_costmap, self.above_ground_costmap).flatten().tolist()
-        message.height = msg.height
-        message.width = msg.width
+        message = msg # should be largely identical to the original message.
+        if self.above_ground_costmap.shape == inverse_below_ground_costmap.shape:
+            # print("it worked")
+            inverse_below_ground_costmap = inverse_below_ground_costmap * 1000
+
+            message.data = np.maximum(inverse_below_ground_costmap, self.above_ground_costmap).flatten().tolist()
+            print("worked")
+            # print(self.above_ground_costmap.shape, self.below_ground_costmap_one.shape)
+        # Combine the costmaps, taking the larger 
+        # message.data = np.maximum(inverse_costmap, self.above_ground_costmap).flatten().tolist()
+        
         self.publisher_.publish(message)
 
+
+    # Easily replicable for more below ground costmaps. Stack the costmaps into a 3D array
+    # Probably useful to move the inversion logic to this function if this is the case.
     def below_ground_callback(self, msg):
         if (len(msg.data) == 0):
             return
+        # print(msg.origin, msg.height, msg.width)
         self.below_ground_costmap_one = np.array(msg.data)
         self.below_ground_costmap_one = self.below_ground_costmap_one.reshape(msg.height, msg.width)
 
