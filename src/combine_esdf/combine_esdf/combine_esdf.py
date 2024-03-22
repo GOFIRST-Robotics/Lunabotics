@@ -90,22 +90,50 @@ class combine_esdf(Node):
 
 
     def above_ground_pointcloud_callback(self, msg):
-        if (len(msg.data) == 0):
+        if (len(msg.data) == 0 or self.below_ground_pointcloud is None):
             return
-        uint8_cloud = np.frombuffer(msg.data, dtype=np.uint8)
-        float_values = uint8_cloud.view(dtype=np.float32)
-        slice_indices = np.arange(3, len(float_values), 4)
-        float_values[slice_indices] = 2 - float_values[slice_indices]
+        
+        above_ground_cloud = np.frombuffer(msg.data, dtype=np.uint8)
+        above_ground_float_values = above_ground_cloud.view(dtype=np.float32)
+        below_ground_cloud = self.below_ground_pointcloud.view(dtype=np.float32)
+
+        slice_indices = np.arange(0, len(above_ground_float_values), 4)
+        slice_indices_below = np.arange(0, len(below_ground_cloud), 4)
+        # Compare the coordinates:
+        x_above_ground = above_ground_float_values[slice_indices]
+        y_above_ground = above_ground_float_values[slice_indices + 1]
+        data_above_ground = above_ground_float_values[slice_indices + 3]
+        above_coords = np.array([x_above_ground, y_above_ground]).T
+
+        x_below_ground = below_ground_cloud[slice_indices_below]
+        y_below_ground = below_ground_cloud[slice_indices_below + 1]
+        data_below_ground = below_ground_cloud[slice_indices_below + 3]
+
+        
+        data_below_ground[data_below_ground != 0] = 2  # Add 1 to non-zero points
+        data_below_ground = (2 - data_below_ground)  # Invert the esdf
+        
+
+        below_coords = np.array([x_below_ground, y_below_ground]).T # Merge the x and y coordinates into a 2D array -> [x, y]
+
+        data_indices = np.where(np.all(above_coords[:,None] == below_coords[None, :], axis=-1)) # Coordinates where each point in the above ground cloud matches a point in the below ground cloud
+
+        data_above_ground[data_indices[0]] = np.minimum(data_above_ground[data_indices[0]], data_below_ground[data_indices[1]])
+        above_ground_float_values[np.arange(3, len(above_ground_float_values), 4)] = data_above_ground
+        
+        
+        
+        # above_ground_float_values[data_indices[0]] = np.maximum(above_ground_float_values[data_indices[0]], below_ground_cloud[data_indices[1]])
+
         message = msg
-        message.data = np.frombuffer(float_values.tobytes(), dtype=np.uint8).tolist()
+        message.data = np.frombuffer(above_ground_float_values.tobytes(), dtype=np.uint8).tolist()
         self.pointcloud_publisher.publish(message)
+
 
     def below_ground_pointcloud_callback(self, msg):
         if (len(msg.data) == 0):
             return
-        self.below_ground_pointcloud = np.array(msg.data)
-
-
+        self.below_ground_pointcloud = np.frombuffer(msg.data, dtype=np.uint8)
 
 def main(args=None):
     rclpy.init(args=args)
