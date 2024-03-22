@@ -119,7 +119,7 @@ class combine_esdf(Node):
         data_indices = np.where(np.all(above_coords[:,None] == below_coords[None, :], axis=-1)) # Coordinates where each point in the above ground cloud matches a point in the below ground cloud
 
         data_above_ground[data_indices[0]] = np.minimum(data_above_ground[data_indices[0]], data_below_ground[data_indices[1]])
-        above_ground_float_values[np.arange(3, len(above_ground_float_values), 4)] = data_above_ground
+        above_ground_float_values[slice_indices+3] = data_above_ground
         
         
         
