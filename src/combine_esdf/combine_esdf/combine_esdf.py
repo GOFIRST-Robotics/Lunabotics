@@ -53,8 +53,7 @@ class combine_esdf(Node):
         if (self.below_ground_costmap_one is None):
             self.publisher_.publish(msg)
             return
-        self.above_ground_costmap = np.array(msg.data)
-        self.above_ground_costmap = self.above_ground_costmap.reshape(msg.height, msg.width)
+        self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
         # Set any null values in the costmap to an inaccessible area (before inverting)
         condition = self.below_ground_costmap_one > 2
         # self.above_ground_costmap[condition]
@@ -81,20 +80,15 @@ class combine_esdf(Node):
     # Probably useful to move the inversion logic to this function if this is the case.
     def below_ground_callback(self, msg):
         if (len(msg.data) == 0):
-            return
-        
-        self.below_ground_costmap_one = np.array(msg.data)
-        self.below_ground_costmap_one = self.below_ground_costmap_one.reshape(msg.height, msg.width)
-
-
+            return   
+        self.below_ground_costmap_one = np.array(msg.data).reshape(msg.height, msg.width)
 
 
     def above_ground_pointcloud_callback(self, msg):
         if (len(msg.data) == 0 or self.below_ground_pointcloud is None):
             return
-        
-        above_ground_cloud = np.frombuffer(msg.data, dtype=np.uint8)
-        above_ground_float_values = above_ground_cloud.view(dtype=np.float32)
+
+        above_ground_float_values = np.frombuffer(msg.data, dtype=np.uint8).view(dtype=np.float32)
         below_ground_cloud = self.below_ground_pointcloud.view(dtype=np.float32)
 
         slice_indices = np.arange(0, len(above_ground_float_values), 4)
