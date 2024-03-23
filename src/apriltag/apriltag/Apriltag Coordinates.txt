@@ -19,9 +19,9 @@ Near base tag1 0, 3.57
 Near base tag2 0, 3.3541
 
 Kennedy Space Center Field:
-TODO: These may need to be updated if official measurements are released
+TODO: These coordinates may need to be updated if official measurements are released.
 
-contact email: ksc-robotic-mining-competition@mail.nasa.gov.
+contact email: ksc-robotic-mining-competition@mail.nasa.gov
 
 Meters to cm
 .495
