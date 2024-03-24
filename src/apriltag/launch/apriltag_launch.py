@@ -19,7 +19,7 @@ def generate_launch_description():
     apriltag_node = ComposableNode(
         package="isaac_ros_apriltag",
         plugin="nvidia::isaac_ros::apriltag::AprilTagNode",
-        name="apriltag",
+        name="isaac_ros_apriltag",
         namespace="",
         remappings=[("image", "zed_node/left/image_rect_color_rgb"), ("camera_info", "zed_node/left/camera_info")],
     )
