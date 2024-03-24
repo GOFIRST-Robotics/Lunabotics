@@ -529,7 +529,7 @@
   </gazebo>
 
   <!-- model/Master_ASM/joint/{jointName}/cmd_vel -->
-  <!--  ignition::msgs::Double -->
+  <!--  ignition::msgs::Double, topic name and type for plugins -->
   <!-- model/Master_ASM/joint/{jointName}/0//cmd_pos -->
 
   <gazebo>
