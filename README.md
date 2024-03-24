@@ -37,11 +37,12 @@ printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.user.zed.umn \n" > ~/Lunabotics-2
 1b.) To use Gazebo in the ISAAC ROS container, do this instead:
 
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.user.zed.umn.gazebo  \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
+printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.user.zed.umn.gazebo \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
 ``` 
 2.) To make it so zed modules won't rerun everytime you start the container, do this:
+
 ```
-printf "-v /usr/local/zed/resources:/usr/local/zed/resources \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
+echo "-v /usr/local/zed/resources:/usr/local/zed/resources" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
 ```
 3.) Then run this command:
 
