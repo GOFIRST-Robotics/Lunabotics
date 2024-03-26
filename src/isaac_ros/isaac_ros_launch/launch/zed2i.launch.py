@@ -77,13 +77,6 @@ def generate_launch_description():
             }
         ],
     )
-    # robot_base_node = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-    #     name='zed2i_camera_base_link',
-    #     output='screen',
-    #     arguments=['1.5', '0', '0', '0', '0', '0', 'zed2i_camera_link','base_link']
-    # )
 
     load_composable_nodes = LoadComposableNodes(
         target_container=component_container_name_arg,
