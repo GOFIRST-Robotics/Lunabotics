@@ -7,7 +7,10 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor  # This is needed to run multiple callbacks in a single thread
-from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult  # Provides a “navigation as a library” capability
+from nav2_simple_commander.robot_navigator import (
+    BasicNavigator,
+    TaskResult,
+)  # Provides a “navigation as a library” capability
 
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist, Vector3, PoseStamped
@@ -47,6 +50,7 @@ class MainControlNode(Node):
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_lift_manual_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -54,6 +58,7 @@ class MainControlNode(Node):
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.skimmer_belt_power = self.get_parameter("skimmer_belt_power").value
         self.skimmer_lift_manual_power = self.get_parameter("skimmer_lift_manual_power").value
+        self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
@@ -61,6 +66,7 @@ class MainControlNode(Node):
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
         self.get_logger().info("skimmer_belt_power has been set to: " + str(self.skimmer_belt_power))
         self.get_logger().info("skimmer_lift_manual_power has been set to: " + str(self.skimmer_lift_manual_power))
+        self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -71,6 +77,21 @@ class MainControlNode(Node):
         self.autonomous_offload_process = None
         self.autonomous_cycle_process = None
         self.skimmer_goal_reached = True
+
+        # Define berm zone locations
+        self.autonomous_berm_location = PoseStamped()
+        if self.autonomous_field_type == "top":
+            self.autonomous_berm_location.pose.position.x = 6.84
+            self.autonomous_berm_location.pose.position.y = 3.57
+            self.autonomous_berm_location.pose.orientation.z = 0.0
+        elif self.autonomous_field_type == "bottom":
+            self.autonomous_berm_location.pose.position.x = 6.84
+            self.autonomous_berm_location.pose.position.y = 1.0
+            self.autonomous_berm_location.pose.orientation.z = 0.0
+        elif self.autonomous_field_type == "nasa":
+            self.autonomous_berm_location.pose.position.x = 1.3
+            self.autonomous_berm_location.pose.position.y = 0.6
+            self.autonomous_berm_location.pose.orientation.z = 0.0
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.publish_odom_callback)
@@ -90,7 +111,9 @@ class MainControlNode(Node):
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
-        self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
+        self.skimmer_goal_subscription = self.create_subscription(
+            Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
+        )
 
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
         # self.nav2 .setInitialPose(initial_pose)  # TODO: Is this line needed or no?
@@ -123,16 +146,22 @@ class MainControlNode(Node):
         self.get_logger().info("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=2000))  # Lower the skimmer into the ground # TODO: Adjust this height
+            await self.cli_skimmer_setHeight.call_async(
+                SetHeight.Request(height=2000)
+            )  # Lower the skimmer into the ground # TODO: Adjust this height
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             # Start driving forward
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=self.autonomous_driving_power, horizontal_power=0.0, turning_power=0.0))
+            await self.cli_drivetrain_drive.call_async(
+                Drive.Request(forward_power=self.autonomous_driving_power, horizontal_power=0.0, turning_power=0.0)
+            )
             # TODO: Drive forward until our skimmer is full OR we reach the end of the arena OR we reach an obstacle
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_skimmer_stop.call_async(Stop.Request())
-            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=1000))  # Raise the skimmer back up a bit # TODO: Adjust this height
+            await self.cli_skimmer_setHeight.call_async(
+                SetHeight.Request(height=1000)
+            )  # Raise the skimmer back up a bit # TODO: Adjust this height
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
@@ -147,7 +176,9 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously offloading!"""
         self.get_logger().info("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_skimmer_setHeight.call_async(SetHeight.Request(height=500))  # Raise up the skimmer in preparation for dumping # TODO: Adjust this height
+            await self.cli_skimmer_setHeight.call_async(
+                SetHeight.Request(height=500)
+            )  # Raise up the skimmer in preparation for dumping # TODO: Adjust this height
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
@@ -173,17 +204,23 @@ class MainControlNode(Node):
             if self.nav2.getResult() == TaskResult.FAILED:
                 self.get_logger().error("Failed to reach the dig location!")
                 self.end_autonomous()  # Return to Teleop mode
-            self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure())  # Start the auto dig process
+            self.autonomous_digging_process = asyncio.ensure_future(
+                self.auto_dig_procedure()
+            )  # Start the auto dig process
+
             # TODO: This autonomous_digging_process will set the state to teleop when done but we don't want that
             while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            self.nav2.goToPose(_____)  # Navigate to the berm zone # TODO: Enter the correct pose here for dumping into the berm zone
+            self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
             while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             if self.nav2.getResult() == TaskResult.FAILED:
                 self.get_logger().error("Failed to reach the berm zone!")
                 self.end_autonomous()  # Return to Teleop mode
-            self.autonomous_offload_process = asyncio.ensure_future(self.auto_offload_procedure())  # Start the auto offload process
+            self.autonomous_offload_process = asyncio.ensure_future(
+                self.auto_offload_procedure()
+            )  # Start the auto offload process
+
             # TODO: This autonomous_offload_process will set the state to teleop when done but we don't want that
             while not self.autonomous_offload_process.done():  # Wait for the offload process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
@@ -232,7 +269,9 @@ class MainControlNode(Node):
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
-                self.autonomous_digging_process = asyncio.ensure_future(self.Autonomous_Dig_procedure())  # Start the auto dig process
+                self.autonomous_digging_process = asyncio.ensure_future(
+                    self.Autonomous_Dig_procedure()
+                )  # Start the auto dig process
             elif self.state == states["Autonomous"]:
                 self.autonomous_digging_process.cancel()  # Terminate the auto dig process
                 self.autonomous_digging_process = None
@@ -242,7 +281,9 @@ class MainControlNode(Node):
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
-                self.autonomous_offload_process = asyncio.ensure_future(self.Autonomous_Offload_procedure())  # Start the auto dig process
+                self.autonomous_offload_process = asyncio.ensure_future(
+                    self.Autonomous_Offload_procedure()
+                )  # Start the auto dig process
             elif self.state == states["Autonomous"]:
                 self.autonomous_offload_process.cancel()  # Terminate the auto offload process
                 self.autonomous_offload_process = None
@@ -252,7 +293,10 @@ class MainControlNode(Node):
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
-                self.autonomous_cycle_process = asyncio.ensure_future(self.auto_cycle_procedure())  # Start the autonomous cycle!
+
+                self.autonomous_cycle_process = asyncio.ensure_future(
+                    self.auto_cycle_procedure()
+                )  # Start the autonomous cycle!
             elif self.state == states["Autonomous"]:
                 self.autonomous_cycle_process.cancel()  # Terminate the autonomous cycle process
                 self.autonomous_cycle_process = None
