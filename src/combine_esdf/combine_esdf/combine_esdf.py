@@ -15,17 +15,17 @@ class combine_esdf(Node):
         self.costmap_publisher = self.create_publisher(DistanceMapSlice, '/combined_esdf', 10)
         self.pointcloud_publisher = self.create_publisher(PointCloud2, '/combined_esdf_pointcloud', 10)
 
-        # self.above_ground_subscriber = self.create_subscription(
-        #     DistanceMapSlice,
-        #     '/nvblox_node/static_map_slice',
-        #     self.above_ground_callback,
-        #     10)
+        self.above_ground_subscriber = self.create_subscription(
+            DistanceMapSlice,
+            '/nvblox_node/static_map_slice',
+            self.above_ground_callback,
+            10)
         
-        # self.below_ground_subscriber = self.create_subscription(
-        #     DistanceMapSlice,
-        #     '/nvblox_node/static_map_slice2',
-        #     self.below_ground_callback,
-        #     10)
+        self.below_ground_subscriber = self.create_subscription(
+            DistanceMapSlice,
+            '/nvblox_node/static_map_slice2',
+            self.below_ground_callback,
+            10)
         
         self.above_ground_pointcloud_subscriber = self.create_subscription(
             PointCloud2,
@@ -42,6 +42,8 @@ class combine_esdf(Node):
         # Could eventually add more below ground costmaps here
         self.above_ground_costmap = None
         self.below_ground_costmap_one = None
+        self.below_origin = None
+
 
         self.above_ground_pointcloud = None
         self.below_ground_pointcloud = None
@@ -51,29 +53,39 @@ class combine_esdf(Node):
         if (len(msg.data) == 0):
             return
         if (self.below_ground_costmap_one is None):
-            self.publisher_.publish(msg)
+            self.costmap_publisher.publish(msg)
             return
         self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
-        # Set any null values in the costmap to an inaccessible area (before inverting)
-        condition = self.below_ground_costmap_one > 2
-        # self.above_ground_costmap[condition]
+        # print(self.above_ground_costmap.shape, msg.origin, msg.resolution)
+        
+        
+        # self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
+        # # Set any null values in the costmap to an inaccessible area (before inverting)
+        condition = self.below_ground_costmap_one == 0
         self.below_ground_costmap_one[condition] = 2
 
-        inverse_below_ground_costmap = np.full(self.below_ground_costmap_one.shape, 2) - self.below_ground_costmap_one
+        origin = [msg.origin.x, msg.origin.y]
 
-        # pad the below ground costmap, to give it the same dimensions as the above ground costmap        
-        max_width = max(self.above_ground_costmap.shape[0], inverse_below_ground_costmap.shape[0])
-        max_height = max(self.above_ground_costmap.shape[1], inverse_below_ground_costmap.shape[1])
-        inverse_below_ground_costmap = np.pad(inverse_below_ground_costmap, ((max_width - inverse_below_ground_costmap.shape[0], 0), (max_height - inverse_below_ground_costmap.shape[1], 0)), 'constant', constant_values=(2))
-        self.above_ground_costmap = np.pad(self.above_ground_costmap, ((max_width - self.above_ground_costmap.shape[0], 0), (max_height - self.above_ground_costmap.shape[1], 0)), 'constant', constant_values=(2))
+        # self.above_ground_costmap[]
+        if (self.above_ground_costmap.shape[0] > self.below_ground_costmap_one.shape[0] and self.above_ground_costmap.shape[1] > self.below_ground_costmap_one.shape[1]):
+            try:
+                offset_x1 = abs(int((origin[0] - self.below_origin[0]) / msg.resolution))
+                offset_y1 = abs(int((origin[1] - self.below_origin[1]) / msg.resolution))
+                offset_x2 = self.above_ground_costmap.shape[0] - ((self.above_ground_costmap.shape[0] - self.below_ground_costmap_one.shape[0]) - offset_x1)
+                offset_y2 = self.above_ground_costmap.shape[1] - ((self.above_ground_costmap.shape[1] - self.below_ground_costmap_one.shape[1]) - offset_y1)
+                print(offset_x1, offset_x2, self.above_ground_costmap.shape, self.below_ground_costmap_one.shape)
 
-        # Create a message to publish the combined costmap
-        message = DistanceMapSlice()
-        message = msg # should be largely identical to the original message.
-        if self.above_ground_costmap.shape == inverse_below_ground_costmap.shape:
-            inverse_below_ground_costmap = inverse_below_ground_costmap * 1000
-            message.data = np.maximum(inverse_below_ground_costmap, self.above_ground_costmap).flatten().tolist()
-            self.costmap_publisher.publish(message)
+                self.above_ground_costmap[offset_x1:offset_x2, offset_y1:offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:offset_x2, offset_y1:offset_y2]), self.below_ground_costmap_one)
+                msg.data = self.above_ground_costmap.flatten().tolist()
+                self.costmap_publisher.publish(msg)
+                print("worked")
+            except:
+                print("did not work")
+        else:
+            print("did not work")
+        if (self.above_ground_costmap.size < self.below_ground_costmap_one.size):
+            print("shit")
+
 
 
     # Easily replicable for more below ground costmaps. Stack the costmaps into a 3D array
@@ -82,12 +94,15 @@ class combine_esdf(Node):
         if (len(msg.data) == 0):
             return   
         self.below_ground_costmap_one = np.array(msg.data).reshape(msg.height, msg.width)
+        self.below_origin = [msg.origin.x, msg.origin.y]
 
 
+
+
+    # POINTCLOUD COMBINING LOGIC
     def above_ground_pointcloud_callback(self, msg):
         if (len(msg.data) == 0 or self.below_ground_pointcloud is None):
             return
-
         above_ground_float_values = np.frombuffer(msg.data, dtype=np.uint8).view(dtype=np.float32)
         below_ground_cloud = self.below_ground_pointcloud.view(dtype=np.float32)
 
@@ -133,7 +148,38 @@ def main(args=None):
     rclpy.init(args=args)
     # print("hello world")
     node = combine_esdf()
+    node.get_logger().info("Combine ESDF node started")
     rclpy.spin(node)
 
     node.destroy_node()
     rclpy.shutdown()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # print(np.average(self.below_ground_costmap_one), np.amin(self.below_ground_costmap_one), np.amax(self.below_ground_costmap_one))
+        # inverse_below_ground_costmap = np.full(self.below_ground_costmap_one.shape, 2) - self.below_ground_costmap_one
+
+        # # pad the below ground costmap, to give it the same dimensions as the above ground costmap        
+        # max_width = max(self.above_ground_costmap.shape[0], inverse_below_ground_costmap.shape[0])
+        # max_height = max(self.above_ground_costmap.shape[1], inverse_below_ground_costmap.shape[1])
+        # inverse_below_ground_costmap = np.pad(inverse_below_ground_costmap, ((max_width - inverse_below_ground_costmap.shape[0], 0), (max_height - inverse_below_ground_costmap.shape[1], 0)), 'constant', constant_values=(2))
+        # self.above_ground_costmap = np.pad(self.above_ground_costmap, ((max_width - self.above_ground_costmap.shape[0], 0), (max_height - self.above_ground_costmap.shape[1], 0)), 'constant', constant_values=(2))
+
+        # # Create a message to publish the combined costmap
+        # message = DistanceMapSlice()
+        # message = msg # should be largely identical to the original message.
+        # if self.above_ground_costmap.shape == inverse_below_ground_costmap.shape:
+        #     inverse_below_ground_costmap = inverse_below_ground_costmap * 1000
+        #     message.data = np.maximum(inverse_below_ground_costmap, self.above_ground_costmap).flatten().tolist()
+        #     self.costmap_publisher.publish(message)
