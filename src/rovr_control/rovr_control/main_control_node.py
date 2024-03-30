@@ -166,7 +166,9 @@ class MainControlNode(Node):
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Autonomous Digging Procedure Complete!\n")
-            self.end_autonomous()  # Return to Teleop mode
+            
+            if (self.autonomous_cycle_process == None):
+                self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().info("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
@@ -187,7 +189,8 @@ class MainControlNode(Node):
             await asyncio.sleep(10)  # How long to offload for # TODO: Use the RealSense check_load node instead?
             await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
-            self.end_autonomous()  # Return to Teleop mode
+            if (self.autonomous_cycle_process == None):
+                self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().info("Autonomous Offload Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
@@ -207,10 +210,9 @@ class MainControlNode(Node):
             self.autonomous_digging_process = asyncio.ensure_future(
                 self.auto_dig_procedure()
             )  # Start the auto dig process
-
-            # TODO: This autonomous_digging_process will set the state to teleop when done but we don't want that
             while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+                
             self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
             while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
@@ -220,8 +222,6 @@ class MainControlNode(Node):
             self.autonomous_offload_process = asyncio.ensure_future(
                 self.auto_offload_procedure()
             )  # Start the auto offload process
-
-            # TODO: This autonomous_offload_process will set the state to teleop when done but we don't want that
             while not self.autonomous_offload_process.done():  # Wait for the offload process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Completed an Autonomous Cycle!\n")
