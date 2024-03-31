@@ -82,7 +82,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("BACK_RIGHT_TURN", 6)
         self.declare_parameter("HALF_WHEEL_BASE", 0.5)
         self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
-        self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 20)
+        self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 40)
         self.declare_parameter("FRONT_LEFT_MAGNET_OFFSET", 0)
         self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 0)
         self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 0)
