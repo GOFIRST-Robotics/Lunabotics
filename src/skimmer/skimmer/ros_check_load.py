@@ -18,7 +18,7 @@ SKIMMERTOCAM = 0.3  # distance from camera to top of skimmer in meters.
 DISTANCETHRESH = 200  # how small should the distance between top and skimmer be before offload (in meters)?
 POLLRATE = 0.2  # Wait time between each distance check (in seconds)
 CONSECUTIVECYCLES = 4  # Make sure the reading is consistent
-skimmer_height_topic = "/skimmer/height"  # should be meters, as a displacement from the skimmers starting position, if not, convert
+skimmer_height_topic = "/skimmer/height"  # should be meters (displacement from the skimmer starting position)
 
 
 class ros_check_load(Node):
@@ -67,11 +67,11 @@ class ros_check_load(Node):
         depth = self.depth_image
 
         # find the degrees of vision occupied by the skimmer belt
-        perceptionChangeX = (
-            (2 * (math.atan((0.5 * SKIMMERSIZEX) / (self.skimmer_height + SKIMMERTOCAM)))) * (180 / math.pi)
+        perceptionChangeX = (2 * (math.atan((0.5 * SKIMMERSIZEX) / (self.skimmer_height + SKIMMERTOCAM)))) * (
+            180 / math.pi
         )
-        perceptionChangeY = (
-            (2 * (math.atan((0.5 * SKIMMERSIZEY) / (self.skimmer_height + SKIMMERTOCAM)))) * (180 / math.pi)
+        perceptionChangeY = (2 * (math.atan((0.5 * SKIMMERSIZEY) / (self.skimmer_height + SKIMMERTOCAM)))) * (
+            180 / math.pi
         )
 
         percentFOVx = min(perceptionChangeX / 86, 1)
