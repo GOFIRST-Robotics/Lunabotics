@@ -45,7 +45,6 @@ class SwerveModule:
     def reset(self, current_relative_angle) -> None:
         self.encoder_offset = self.current_absolute_angle - current_relative_angle
         print("Absolute Encoder angle offset set to:", self.encoder_offset)
-        self.set_angle(0)  # Rotate the module to the 0 degree position
 
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
