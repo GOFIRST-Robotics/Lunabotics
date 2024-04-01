@@ -90,6 +90,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 944)
         self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 314)
         self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 1015)
+        self.declare_parameter("ABSOLUTE_ENCODER_COUNTS", 1023)
         self.declare_parameter("GAZEBO_SIMULATION", False)
 
         # Assign the ROS Parameters to member variables below #
@@ -108,6 +109,7 @@ class DrivetrainNode(Node):
         self.FRONT_RIGHT_MAGNET_OFFSET = self.get_parameter("FRONT_RIGHT_MAGNET_OFFSET").value
         self.BACK_LEFT_MAGNET_OFFSET = self.get_parameter("BACK_LEFT_MAGNET_OFFSET").value
         self.BACK_RIGHT_MAGNET_OFFSET = self.get_parameter("BACK_RIGHT_MAGNET_OFFSET").value
+        self.ABSOLUTE_ENCODER_COUNTS = self.get_parameter("ABSOLUTE_ENCODER_COUNTS").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
 
         # Define publishers and subscribers here
@@ -152,6 +154,7 @@ class DrivetrainNode(Node):
         self.get_logger().info("FRONT_RIGHT_MAGNET_OFFSET has been set to: " + str(self.FRONT_RIGHT_MAGNET_OFFSET))
         self.get_logger().info("BACK_LEFT_MAGNET_OFFSET has been set to: " + str(self.BACK_LEFT_MAGNET_OFFSET))
         self.get_logger().info("BACK_RIGHT_MAGNET_OFFSET has been set to: " + str(self.BACK_RIGHT_MAGNET_OFFSET))
+        self.get_logger().info("ABSOLUTE_ENCODER_COUNTS has been set to: " + str(self.ABSOLUTE_ENCODER_COUNTS))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
 
         # Create each swerve module using
@@ -282,14 +285,14 @@ class DrivetrainNode(Node):
 
     def absolute_encoders_callback(self, msg: AbsoluteEncoders) -> None:
         """This method is called whenever a message is received on the absoluteEncoders topic."""
-        front_left_adjusted = (msg.front_left_encoder - self.FRONT_LEFT_MAGNET_OFFSET) % 1023
-        front_right_adjusted = (msg.front_left_encoder - self.FRONT_RIGHT_MAGNET_OFFSET) % 1023
-        back_left_adjusted = (msg.front_left_encoder - self.BACK_LEFT_MAGNET_OFFSET) % 1023
-        back_right_adjusted = (msg.front_left_encoder - self.BACK_RIGHT_MAGNET_OFFSET) % 1023
-        self.front_left.current_absolute_angle = 360 * front_left_adjusted / 1023.0
-        self.front_right.current_absolute_angle = 360 * front_right_adjusted / 1023.0
-        self.back_left.current_absolute_angle = 360 * back_left_adjusted / 1023.0
-        self.back_right.current_absolute_angle = 360 * back_right_adjusted / 1023.0
+        front_left_adjusted = (msg.front_left_encoder - self.FRONT_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
+        front_right_adjusted = (msg.front_left_encoder - self.FRONT_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
+        back_left_adjusted = (msg.front_left_encoder - self.BACK_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
+        back_right_adjusted = (msg.front_left_encoder - self.BACK_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
+        self.front_left.current_absolute_angle = 360 * front_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
+        self.front_right.current_absolute_angle = 360 * front_right_adjusted / self.ABSOLUTE_ENCODER_COUNTS
+        self.back_left.current_absolute_angle = 360 * back_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
+        self.back_right.current_absolute_angle = 360 * back_right_adjusted / self.ABSOLUTE_ENCODER_COUNTS
 
 
 def main(args=None):
