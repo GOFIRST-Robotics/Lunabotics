@@ -48,6 +48,9 @@ class combine_esdf(Node):
         self.above_ground_pointcloud = None
         self.below_ground_pointcloud = None
 
+    def sigmoid(self, x):
+        return 2 / (1 + np.exp((x*-10) + 10))
+
 
     def above_ground_callback(self, msg):
         if (len(msg.data) == 0):
