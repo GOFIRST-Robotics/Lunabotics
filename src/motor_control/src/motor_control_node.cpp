@@ -56,8 +56,9 @@ struct MotorData {
 
 class PIDController {
 private:
-  int DEAD_BAND = 20;
   int COUNTS_PER_REVOLUTION; // How many encoder counts for one 360 degree rotation
+  int DEAD_BAND; // How close to the target position is close enough
+  float MAX_POWER; // Cap the power output to the motor (this should be between 0 and 1)
 
   bool continuous; // Does the input range wrap around (e.g. absolute encoder)
   int minimumTachInput, maximumTachInput; // For continuous input, what is the range?
@@ -72,8 +73,10 @@ private:
 public:
   bool isActive;
 
-  PIDController(int CountsPerRevolution, float kp, float ki = 0, float kd = 0, float gravComp = 0) {
+  PIDController(int CountsPerRevolution, float kp, float ki, float kd, float gravComp, int deadband, float maxPower) {
     this->COUNTS_PER_REVOLUTION = CountsPerRevolution;
+    this->DEAD_BAND = deadband;
+    this->MAX_POWER = maxPower;
 
     this->kp = kp;
     this->ki = ki;
@@ -105,7 +108,7 @@ public:
   
     float PIDResult = (currError * this->kp) + (this->totalError * this->ki) + (this->prevError.has_value() ? currError - this->prevError.value() : 0) * this->kd;
 
-    PIDResult = std::clamp(PIDResult, (float)(-1), (float)(1)); // Clamp the PIDResult between -1 and 1
+    PIDResult = std::clamp(PIDResult, (float)(-this->MAX_POWER), (float)(this->MAX_POWER)); // Clamp the PIDResult to the maximum power
 
     // Uncomment the line below for debug values:
     // std::cout << "Target Tachometer: " << targTach << ", Current Tachometer: " << currTach << ", Current Error: " << currError << ", PIDResult: " << PIDResult << ", Total Error: " << totalError << ", D: " << (this->prevError.has_value() ? currError - this->prevError.value() : 0) << std::endl;
@@ -248,11 +251,11 @@ public:
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
     // Instantiate all of our PIDControllers here
-    this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()] = new PIDController(42, 0.002); // TODO: kp will need to be tuned on the real robot
-    this->pid_controllers[this->get_parameter("FRONT_LEFT_TURN").as_int()] = new PIDController(42, 0.002); // TODO: kp will need to be tuned on the real robot
-    this->pid_controllers[this->get_parameter("BACK_RIGHT_TURN").as_int()] = new PIDController(42, 0.002); // TODO: kp will need to be tuned on the real robot
-    this->pid_controllers[this->get_parameter("FRONT_RIGHT_TURN").as_int()] = new PIDController(42, 0.002); // TODO: kp will need to be tuned on the real robot
-    this->pid_controllers[this->get_parameter("SKIMMER_LIFT_MOTOR").as_int()] = new PIDController(42, 0.002); // TODO: kp will need to be tuned on the real robot
+    this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()] = new PIDController(42, 0.002, 0.0, 0.0, 0.0, 20, 0.8);
+    this->pid_controllers[this->get_parameter("FRONT_LEFT_TURN").as_int()] = new PIDController(42, 0.002, 0.0, 0.0, 0.0, 20, 0.8);
+    this->pid_controllers[this->get_parameter("BACK_RIGHT_TURN").as_int()] = new PIDController(42, 0.002, 0.0, 0.0, 0.0, 20, 0.8);
+    this->pid_controllers[this->get_parameter("FRONT_RIGHT_TURN").as_int()] = new PIDController(42, 0.002, 0.0, 0.0, 0.0, 20, 0.8);
+    this->pid_controllers[this->get_parameter("SKIMMER_LIFT_MOTOR").as_int()] = new PIDController(42, 0.002, 0.0, 0.0, 0.0, 20, 0.8);
 
     // Enable continuous input for the swerve module PID controllers
     this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()]->enableContinuousInput(0, 360 * this->get_parameter("STEERING_MOTOR_GEAR_RATIO").as_int());
