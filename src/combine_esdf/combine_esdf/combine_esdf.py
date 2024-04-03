@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
 
+from PIL import Image
+
 from nvblox_msgs.msg import DistanceMapSlice
 from sensor_msgs.msg import PointCloud2, PointField
 
@@ -64,28 +66,42 @@ class combine_esdf(Node):
         
         # self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
         # # Set any null values in the costmap to an inaccessible area (before inverting)
-        condition = self.below_ground_costmap_one == 0
-        self.below_ground_costmap_one[condition] = 2
+        
+        # condition2 = self.below_ground_costmap_one == 0
+        # self.below_ground_costmap_one[condition2] = 1000
+        condition = self.below_ground_costmap_one != 1000
+        self.below_ground_costmap_one[condition] = 0
 
         origin = [msg.origin.x, msg.origin.y]
+
+        print(origin, self.below_origin)
 
         # self.above_ground_costmap[]
         if (self.above_ground_costmap.shape[0] > self.below_ground_costmap_one.shape[0] and self.above_ground_costmap.shape[1] > self.below_ground_costmap_one.shape[1]):
             try:
                 offset_x1 = abs(int((origin[0] - self.below_origin[0]) / msg.resolution))
                 offset_y1 = abs(int((origin[1] - self.below_origin[1]) / msg.resolution))
-                offset_x2 = self.above_ground_costmap.shape[0] - ((self.above_ground_costmap.shape[0] - self.below_ground_costmap_one.shape[0]) - offset_x1)
-                offset_y2 = self.above_ground_costmap.shape[1] - ((self.above_ground_costmap.shape[1] - self.below_ground_costmap_one.shape[1]) - offset_y1)
-                print(offset_x1, offset_x2, self.above_ground_costmap.shape, self.below_ground_costmap_one.shape)
+                offset_x2 = ((self.above_ground_costmap.shape[0] - self.below_ground_costmap_one.shape[0]) - offset_x1)
+                offset_y2 = ((self.above_ground_costmap.shape[1] - self.below_ground_costmap_one.shape[1]) - offset_y1)
+                # print(offset_x1, offset_x2, self.above_ground_costmap.shape, self.below_ground_costmap_one.shape)
+                # print(offset_x1, offset_x2, offset_y1, offset_y2)
+                # self.above_ground_costmap[offset_x2:-offset_x1, offset_y2:-offset_y1] = 1000
+                self.above_ground_costmap[offset_x2:-offset_x1, offset_y2:-offset_y1] = self.below_ground_costmap_one # np.minimum((self.above_ground_costmap[offset_x2:-offset_x1, offset_y2:-offset_y1]), self.below_ground_costmap_one)
+                print(self.above_ground_costmap.dtype)
 
-                self.above_ground_costmap[offset_x1:offset_x2, offset_y1:offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:offset_x2, offset_y1:offset_y2]), self.below_ground_costmap_one)
+                # image2 = Image.fromarray(self.below_ground_costmap_one.astype('uint8'))
+                # image2.save("numpy_matrix_image2.png")
+
+                # image = Image.fromarray(self.above_ground_costmap.astype('uint8'))
+                # image.save("numpy_matrix_image.png")
+                #
                 msg.data = self.above_ground_costmap.flatten().tolist()
                 self.costmap_publisher.publish(msg)
                 print("worked")
             except:
                 print("did not work")
         else:
-            print("did not work")
+            pass
         if (self.above_ground_costmap.size < self.below_ground_costmap_one.size):
             print("shit")
 
@@ -122,7 +138,7 @@ class combine_esdf(Node):
         data_below_ground = below_ground_cloud[slice_indices_below + 3]
 
         
-        data_below_ground[data_below_ground != 0] = 2  # Add 1 to non-zero points
+        data_below_ground[data_below_ground == 1000] = 0  # Add 1 to non-zero points
         data_below_ground = (2 - data_below_ground)  # Invert the esdf
         
 
