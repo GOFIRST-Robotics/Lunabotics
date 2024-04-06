@@ -288,7 +288,7 @@ class DrivetrainNode(Node):
         front_left_adjusted = (msg.front_left_encoder - self.FRONT_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
         front_right_adjusted = (msg.front_right_encoder - self.FRONT_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
         back_left_adjusted = (msg.back_left_encoder - self.BACK_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        back_right_adjusted = (msg.back_left_encoder - self.BACK_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
+        back_right_adjusted = (msg.back_right_encoder - self.BACK_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
         self.front_left.current_absolute_angle = 360 * front_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
         self.front_right.current_absolute_angle = 360 * front_right_adjusted / self.ABSOLUTE_ENCODER_COUNTS
         self.back_left.current_absolute_angle = 360 * back_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
