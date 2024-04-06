@@ -93,21 +93,6 @@ class MainControlNode(Node):
             self.autonomous_berm_location.pose.position.y = 0.6
             self.autonomous_berm_location.pose.orientation.z = 0.0
 
-        #Software TODO : Determine Alogorithm for dig location
-        def Optimal_Dig_Location(self) -> None:  
-            costmap = self.nav2.getGlobalCostmap()
-            #Compute dig location
-            
-            x_location = 0
-            y_location = 0
-            z_location = 0
-            
-            self.dig_location = PoseStamped()
-            self.autonomous_dig_location.pose.position.x = x_location
-            self.autonomous_dig_location.pose.position.y = y_location
-            self.autonomous_dig_location.pose.orientation.z = z_location
-
-
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.publish_odom_callback)
 
@@ -133,6 +118,22 @@ class MainControlNode(Node):
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
         # self.nav2 .setInitialPose(initial_pose)  # TODO: Is this line needed or no?
         self.nav2.waitUntilNav2Active()  # Wait for the nav2 stack to become active
+
+    def optimal_dig_location(self) -> PoseStamped:  
+        """This method gets the starting dig location and orientation of the robot."""
+        dig_location = PoseStamped()
+        
+        #TODO: Determine Alogorithm for dig location
+        #https://navigation.ros.org/commander_api/index.html
+        costmap = self.nav2.getGlobalCostmap()
+        
+        #Compute dig location and orientation
+        dig_location.pose.position.x = 0
+        dig_location.pose.position.y = 0
+        dig_location.pose.orientation.z = 0.0
+        
+        
+        return dig_location
 
     def publish_odom_callback(self) -> None:
         """This method publishes the odometry of the robot."""
@@ -216,7 +217,7 @@ class MainControlNode(Node):
         self.get_logger().info("\nStarting an Autonomous Cycle!")
         try:  # Wrap the autonomous procedure in a try-except
             ## Navigate to the dig_location, run the dig procedure, then navigate to the berm zone and run the offload procedure ##
-            self.nav2.goToPose(self.dig_location)  # Navigate to the dig location
+            self.nav2.goToPose(self.optimal_dig_location())  # Navigate to the dig location
             while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             if self.nav2.getResult() == TaskResult.FAILED:
