@@ -13,6 +13,7 @@
   <test_depend>python3-pytest</test_depend>
 
   <exec_depend>isaac_ros_nvblox</exec_depend>
+  <exec_depend>isaac_ros_apriltag</exec_depend>
   <exec_depend>zed_wrapper</exec_depend>
   <exec_depend>nvblox_rviz_plugin</exec_depend>
   <exec_depend>nvblox_examples_bringup</exec_depend>
