@@ -23,7 +23,7 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0"
+        xyz="0 0 -0.32175"
         rpy="0 0 0" />
       <geometry>
         <box size="0.7317 1.4254 0.6435" />
