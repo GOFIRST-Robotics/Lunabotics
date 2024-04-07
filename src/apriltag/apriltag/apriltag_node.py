@@ -42,19 +42,10 @@ class ApriltagNode(Node):
 
     def postTransform(self, tag):
         if tag and (self.get_clock().now().to_msg().sec == self.averagedTag.header.stamp.sec):
-            # self.get_logger().info(str(self.averagedTag.header.stamp.sec - self.get_clock().now().to_msg().sec))
             self.get_logger().info(str("Resetting the odom"))
             self.tf_broadcaster.sendTransform(tag)
             return True
         return False
-
-    def printTransforms(self, msg):
-        if len(msg.detections) == 0:
-            return
-        home = msg.detections[0]
-        print(home.pose.pose.pose.position.x)
-        print(home.pose.pose.pose.position.y)
-        print(home.pose.pose.pose.position.z)
 
     def tagDetectionSub(self, msg):
         if len(msg.detections) == 0:
@@ -96,7 +87,6 @@ class ApriltagNode(Node):
         self.averagedTag.header.frame_id = "map"
         self.averagedTag.header.stamp = self.get_clock().now().to_msg()
         self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
-        # self.tf_broadcaster.tagDetectionSub(self.averageTransforms(transforms, t))
 
     # TODO: Consider using an EKF instead of just averaging
     def averageTransforms(self, transforms, t):
