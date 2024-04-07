@@ -38,7 +38,7 @@ class SwerveModule:
     def set_angle(self, angle: float) -> None:
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
-                can_id=self.turning_motor_can_id, type="position", value=(angle - self.encoder_offset) * self.steering_motor_gear_ratio
+                can_id=self.turning_motor_can_id, type="position", value=(angle + self.encoder_offset) * self.steering_motor_gear_ratio
             )
         )
 
