@@ -1,11 +1,13 @@
-from geometry_msgs.msg import TransformStamped
+import os
 import rclpy
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
-from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
-import xml.etree.ElementTree as ET
-import os
+
 from rovr_interfaces.srv import ResetOdom
+from geometry_msgs.msg import TransformStamped
+from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
+
+import xml.etree.ElementTree as ET
 
 """Make sure to turn on the camera using 
 ros2 launch isaac_ros_apriltag isaac_ros_apriltag_usb_cam.launch.py
@@ -96,10 +98,9 @@ class ApriltagNode(Node):
         self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
         # self.tf_broadcaster.tagDetectionSub(self.averageTransforms(transforms, t))
 
-    """Averages the transforms of the tags to get a more accurate transform"""
-
     # TODO: Consider using an EKF instead of just averaging
     def averageTransforms(self, transforms, t):
+        """Averages the transforms of the tags to get a more accurate transform"""
         x = 0
         y = 0
         z = 0
