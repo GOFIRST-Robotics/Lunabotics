@@ -35,8 +35,8 @@ class read_serial(Node):
             msg.top_limit_switch = decoded[0]
             msg.bottom_limit_switch = decoded[1]
             self.limitSwitchesPub.publish(msg)
-            
-            #motor 90 degree switch, old was decoded[2-5] in order
+
+            # motor 90 degree switch, old version was decoded[2-5] in order
             msg = AbsoluteEncoders()
             msg.front_left_encoder = decoded[4]
             msg.front_right_encoder = decoded[2]
