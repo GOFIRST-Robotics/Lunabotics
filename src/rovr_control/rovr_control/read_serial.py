@@ -36,7 +36,7 @@ class read_serial(Node):
             msg.bottom_limit_switch = decoded[1]
             self.limitSwitchesPub.publish(msg)
 
-            # motor 90 degree switch, old version was decoded[2-5] in order
+            # NOTE: swerve module 90 degree switch, the old version was decoded[2-5] in order
             msg = AbsoluteEncoders()
             msg.front_left_encoder = decoded[4]
             msg.front_right_encoder = decoded[2]
