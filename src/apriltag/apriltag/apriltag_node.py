@@ -1,8 +1,8 @@
 import os
 import rclpy
 from rclpy.node import Node
-from tf2_ros import TransformBroadcaster
 
+from zed_interfaces.srv import SetPose
 from rovr_interfaces.srv import ResetOdom
 from geometry_msgs.msg import TransformStamped
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
@@ -27,9 +27,10 @@ class ApriltagNode(Node):
         self.file_path = os.path.join(current_dir, relative_path)
         self.averagedTag = None
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
-        self.tf_broadcaster = TransformBroadcaster(self)
 
         self.create_service(ResetOdom, "resetOdom", self.reset_callback)
+
+        self.cli_set_zed_pose = self.create_client(SetPose, "/zed2i/zed_node/set_pose")
 
     """Service callback"""
 
@@ -41,9 +42,12 @@ class ApriltagNode(Node):
     """Publishes the tag if it exists"""
 
     def postTransform(self, tag):
-        if tag and (self.get_clock().now().to_msg().sec == self.averagedTag.header.stamp.sec):
+        if tag and (self.get_clock().now().to_msg().sec == tag.header.stamp.sec):
             self.get_logger().info(str("Resetting the odom"))
-            self.tf_broadcaster.sendTransform(tag)
+            req = SetPose.Request()
+            req.pos = [tag.transform.translation.x, tag.transform.translation.y, tag.transform.translation.z]
+            req.orient = [tag.transform.rotation.x, tag.transform.rotation.y, tag.transform.rotation.z]
+            self.cli_set_zed_pose.call_async(req)
             return True
         return False
 
