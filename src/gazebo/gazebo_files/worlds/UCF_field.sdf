@@ -1,31 +1,13 @@
 <?xml version="1.0" ?>
 <sdf version="1.8">
-<world name="competition_field">
-
-    <plugin
-      filename="ignition-gazebo-physics-system"
-      name="ignition::gazebo::systems::Physics">
-    </plugin>
-    <plugin
-      filename="ignition-gazebo-sensors-system"
-      name="ignition::gazebo::systems::Sensors">
-      <render_engine>ogre2</render_engine>
-    </plugin>
-    <plugin
-      filename="ignition-gazebo-scene-broadcaster-system"
-      name="ignition::gazebo::systems::SceneBroadcaster">
-    </plugin>
-    <plugin
-      filename="ignition-gazebo-user-commands-system"
-      name="ignition::gazebo::systems::UserCommands">
-    </plugin>
+<world name="UCF_field">
 
     <include>
       <uri>package://ros_gz_description/models/sun</uri>
     </include>
     
     <include>
-      <uri>package://ros_gz_description/models/competition_field</uri>
+      <uri>package://ros_gz_description/models/UCF_field</uri>
       <static>true</static>
     </include>
 
