@@ -1,8 +1,7 @@
 import rclpy
 from rclpy.node import Node
 
-from PIL import Image
-
+from scipy.ndimage import gaussian_filter
 from nvblox_msgs.msg import DistanceMapSlice
 from sensor_msgs.msg import PointCloud2, PointField
 
@@ -41,7 +40,7 @@ class combine_esdf(Node):
             self.below_ground_pointcloud_callback,
             10)
         
-        self.timer = self.create_timer(0.1, self.timer_callback)
+    
 
         # Could eventually add more below ground costmaps here
         self.above_ground_costmap = None
@@ -51,19 +50,12 @@ class combine_esdf(Node):
 
         self.above_ground_pointcloud = None
         self.below_ground_pointcloud = None
-        self.boolean = False
-
-
-    def timer_callback(self):
-        self.boolean = True
 
     def sigmoid(self, x):
-        return 2 / (1 + np.exp((x*-10) + 10))
+        return (2 / (1 + np.exp((x*-10) + 3)))
 
 
     def above_ground_callback(self, msg):
-        if (not self.boolean):
-            return
         if (self.below_ground_costmap is None):
             return
         below_origin = self.below_origin
@@ -74,14 +66,9 @@ class combine_esdf(Node):
             self.costmap_publisher.publish(msg)
             return
         self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
-        # print(self.above_ground_costmap.shape, msg.origin, msg.resolution)
         
         
-        # self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
-        # # Set any null values in the costmap to an inaccessible area (before inverting)
         
-        condition2 = below_ground_costmap_one <=2
-        below_ground_costmap_one[condition2] = 0
         
         # condition = below_ground_costmap_one != 1000
         # below_ground_costmap_one[condition] = 0
@@ -93,46 +80,40 @@ class combine_esdf(Node):
         # self.above_ground_costmap[]
         if (self.above_ground_costmap.shape[0] > below_ground_costmap_one.shape[0] and self.above_ground_costmap.shape[1] > below_ground_costmap_one.shape[1]):
             try:
-                
-                # CHANGE THE COLOR OF THE 0,0 PIXELS SO WE CAN DETERMINE THE LOCATION OF ORIGIN
-                
+                print("worked")
                 offset_x1 = abs(int((origin[1] - below_origin[1]) / msg.resolution))
                 offset_y1 = abs(int((origin[0] - below_origin[0]) / msg.resolution))
                 offset_x2 = ((self.above_ground_costmap.shape[0] - below_ground_costmap_one.shape[0]) - offset_x1)
                 offset_y2 = ((self.above_ground_costmap.shape[1] - below_ground_costmap_one.shape[1]) - offset_y1)
-                # print(offset_x1, offset_x2, self.above_ground_costmap.shape, below_ground_costmap_one.shape)
-                # print(offset_x1, offset_x2, offset_y1, offset_y2)
                 
-                # print(np.average(below_ground_costmap_one), np.amin(below_ground_costmap_one), np.amax(below_ground_costmap_one))
-                
-                # below_ground_costmap_one = np.flip(below_ground_costmap_one, axis=1)
-                # self.above_ground_costmap[offset_x2:-offset_x1, offset_y1:-offset_y2] = 1000
-            
-                self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2]), below_ground_costmap_one)
-                self.above_ground_costmap[np.where(self.above_ground_costmap == 0)] = 1000
-                
-                # self.above_ground_costmap = np.flip(self.above_ground_costmap, axis=1)
-                self.above_ground_costmap[0:offset_x2, 0:5] = 0
-                self.above_ground_costmap[0:10, 0:offset_y1] = 0
-                self.above_ground_costmap[-offset_x1:-1, -10:] = 0
-                self.above_ground_costmap[-10:, -offset_y2:-1] = 0
-                image2 = Image.fromarray(below_ground_costmap_one.astype('uint8'))
-                image2.save("numpy_matrix_image2.png")
 
-                image = Image.fromarray(self.above_ground_costmap.astype('uint8'))
-                image.save("numpy_matrix_image.png")
-                
+                # To invert or not to invert, that is the question.
+                # Comment this next chunk out if the lower esdf is only showing the hole as red, not the terrain.
+                # below_ground_costmap_one[below_ground_costmap_one == 1000] = 0
+                # below_ground_costmap_one = np.full(below_ground_costmap_one.shape, 2) - below_ground_costmap_one
+                # below_ground_costmap_one = 2 - self.sigmoid(below_ground_costmap_one)
+
+
+                # if you don't want to invert, uncomment this:
+                condition2 = below_ground_costmap_one <=2
+                below_ground_costmap_one[condition2] = 0
+
+
+                # Actually combine the costmaps.
+                self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2]), below_ground_costmap_one)
+        
+                # Blur the costmap, so that the hole is less abrupt        
+                self.above_ground_costmap = gaussian_filter(self.above_ground_costmap, sigma=5)
+
+
                 msg.data = self.above_ground_costmap.flatten().tolist()
                 self.costmap_publisher.publish(msg)
-                print("worked")
             except:
                 print("did not work")
         else:
             pass
         if (self.above_ground_costmap.size < below_ground_costmap_one.size):
             print("shit")
-        self.boolean = False
-        print("called")
 
 
     # Easily replicable for more below ground costmaps. Stack the costmaps into a 3D array
@@ -147,6 +128,7 @@ class combine_esdf(Node):
 
 
     # POINTCLOUD COMBINING LOGIC
+    # Performance is garbage, inadvisable to run during comps
     def above_ground_pointcloud_callback(self, msg):
         if (len(msg.data) == 0 or self.below_ground_pointcloud is None):
             return
@@ -166,8 +148,8 @@ class combine_esdf(Node):
         data_below_ground = below_ground_cloud[slice_indices_below + 3]
 
         
-        data_below_ground[data_below_ground == 1000] = 0  # Add 1 to non-zero points
-        data_below_ground = (2 - data_below_ground)  # Invert the esdf
+        data_below_ground[data_below_ground <=2] = 0  # Add 1 to non-zero points
+        # data_below_ground = (2 - data_below_ground)  # Invert the esdf
         
 
         below_coords = np.array([x_below_ground, y_below_ground]).T # Merge the x and y coordinates into a 2D array -> [x, y]
@@ -211,7 +193,14 @@ def main(args=None):
 
 
 
-
+# print(offset_x1, offset_x2, self.above_ground_costmap.shape, below_ground_costmap_one.shape)
+                # print(offset_x1, offset_x2, offset_y1, offset_y2)
+                
+                # print(np.average(below_ground_costmap_one), np.amin(below_ground_costmap_one), np.amax(below_ground_costmap_one))
+                
+                # below_ground_costmap_one = np.flip(below_ground_costmap_one, axis=1)
+                # self.above_ground_costmap[offset_x2:-offset_x1, offset_y1:-offset_y2] = 1000
+            
 
 
     # print(np.average(below_ground_costmap_one), np.amin(below_ground_costmap_one), np.amax(below_ground_costmap_one))
@@ -230,3 +219,18 @@ def main(args=None):
         #     inverse_below_ground_costmap = inverse_below_ground_costmap * 1000
         #     message.data = np.maximum(inverse_below_ground_costmap, self.above_ground_costmap).flatten().tolist()
         #     self.costmap_publisher.publish(message)
+
+
+
+         # self.above_ground_costmap[np.where(self.above_ground_costmap == 0)] = 1000
+                
+                # self.above_ground_costmap = np.flip(self.above_ground_costmap, axis=1)
+                # self.above_ground_costmap[0:offset_x2, 0:5] = 0
+                # self.above_ground_costmap[0:10, 0:offset_y1] = 0
+                # self.above_ground_costmap[-offset_x1:-1, -10:] = 0
+                # self.above_ground_costmap[-10:, -offset_y2:-1] = 0
+                # image2 = Image.fromarray(below_ground_costmap_one.astype('uint8'))
+                # image2.save("numpy_matrix_image2.png")
+
+                # image = Image.fromarray(self.above_ground_costmap.astype('uint8'))
+                # image.save("numpy_matrix_image.png")
