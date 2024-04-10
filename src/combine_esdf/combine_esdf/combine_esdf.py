@@ -21,13 +21,13 @@ class combine_esdf(Node):
             DistanceMapSlice,
             '/nvblox_node/static_map_slice',
             self.above_ground_callback,
-            10)
+            1)
         
         self.below_ground_subscriber = self.create_subscription(
             DistanceMapSlice,
             '/nvblox_node/static_map_slice2',
             self.below_ground_callback,
-            10)
+            1)
         
         self.above_ground_pointcloud_subscriber = self.create_subscription(
             PointCloud2,
@@ -40,24 +40,37 @@ class combine_esdf(Node):
             '/nvblox_node/static_esdf_pointcloud2',
             self.below_ground_pointcloud_callback,
             10)
+        
+        self.timer = self.create_timer(0.1, self.timer_callback)
 
         # Could eventually add more below ground costmaps here
         self.above_ground_costmap = None
-        self.below_ground_costmap_one = None
+        self.below_ground_costmap = None
         self.below_origin = None
 
 
         self.above_ground_pointcloud = None
         self.below_ground_pointcloud = None
+        self.boolean = False
+
+
+    def timer_callback(self):
+        self.boolean = True
 
     def sigmoid(self, x):
         return 2 / (1 + np.exp((x*-10) + 10))
 
 
     def above_ground_callback(self, msg):
+        if (not self.boolean):
+            return
+        if (self.below_ground_costmap is None):
+            return
+        below_origin = self.below_origin
+        below_ground_costmap_one = np.copy(self.below_ground_costmap)
         if (len(msg.data) == 0):
             return
-        if (self.below_ground_costmap_one is None):
+        if (below_ground_costmap_one is None):
             self.costmap_publisher.publish(msg)
             return
         self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
@@ -67,34 +80,48 @@ class combine_esdf(Node):
         # self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
         # # Set any null values in the costmap to an inaccessible area (before inverting)
         
-        # condition2 = self.below_ground_costmap_one == 0
-        # self.below_ground_costmap_one[condition2] = 1000
-        condition = self.below_ground_costmap_one != 1000
-        self.below_ground_costmap_one[condition] = 0
+        condition2 = below_ground_costmap_one <=2
+        below_ground_costmap_one[condition2] = 0
+        
+        # condition = below_ground_costmap_one != 1000
+        # below_ground_costmap_one[condition] = 0
 
         origin = [msg.origin.x, msg.origin.y]
 
-        print(origin, self.below_origin)
+        # print(origin, self.below_origin)
 
         # self.above_ground_costmap[]
-        if (self.above_ground_costmap.shape[0] > self.below_ground_costmap_one.shape[0] and self.above_ground_costmap.shape[1] > self.below_ground_costmap_one.shape[1]):
+        if (self.above_ground_costmap.shape[0] > below_ground_costmap_one.shape[0] and self.above_ground_costmap.shape[1] > below_ground_costmap_one.shape[1]):
             try:
-                offset_x1 = abs(int((origin[0] - self.below_origin[0]) / msg.resolution))
-                offset_y1 = abs(int((origin[1] - self.below_origin[1]) / msg.resolution))
-                offset_x2 = ((self.above_ground_costmap.shape[0] - self.below_ground_costmap_one.shape[0]) - offset_x1)
-                offset_y2 = ((self.above_ground_costmap.shape[1] - self.below_ground_costmap_one.shape[1]) - offset_y1)
-                # print(offset_x1, offset_x2, self.above_ground_costmap.shape, self.below_ground_costmap_one.shape)
+                
+                # CHANGE THE COLOR OF THE 0,0 PIXELS SO WE CAN DETERMINE THE LOCATION OF ORIGIN
+                
+                offset_x1 = abs(int((origin[1] - below_origin[1]) / msg.resolution))
+                offset_y1 = abs(int((origin[0] - below_origin[0]) / msg.resolution))
+                offset_x2 = ((self.above_ground_costmap.shape[0] - below_ground_costmap_one.shape[0]) - offset_x1)
+                offset_y2 = ((self.above_ground_costmap.shape[1] - below_ground_costmap_one.shape[1]) - offset_y1)
+                # print(offset_x1, offset_x2, self.above_ground_costmap.shape, below_ground_costmap_one.shape)
                 # print(offset_x1, offset_x2, offset_y1, offset_y2)
-                # self.above_ground_costmap[offset_x2:-offset_x1, offset_y2:-offset_y1] = 1000
-                self.above_ground_costmap[offset_x2:-offset_x1, offset_y2:-offset_y1] = self.below_ground_costmap_one # np.minimum((self.above_ground_costmap[offset_x2:-offset_x1, offset_y2:-offset_y1]), self.below_ground_costmap_one)
-                print(self.above_ground_costmap.dtype)
+                
+                # print(np.average(below_ground_costmap_one), np.amin(below_ground_costmap_one), np.amax(below_ground_costmap_one))
+                
+                # below_ground_costmap_one = np.flip(below_ground_costmap_one, axis=1)
+                # self.above_ground_costmap[offset_x2:-offset_x1, offset_y1:-offset_y2] = 1000
+            
+                self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2]), below_ground_costmap_one)
+                self.above_ground_costmap[np.where(self.above_ground_costmap == 0)] = 1000
+                
+                # self.above_ground_costmap = np.flip(self.above_ground_costmap, axis=1)
+                self.above_ground_costmap[0:offset_x2, 0:5] = 0
+                self.above_ground_costmap[0:10, 0:offset_y1] = 0
+                self.above_ground_costmap[-offset_x1:-1, -10:] = 0
+                self.above_ground_costmap[-10:, -offset_y2:-1] = 0
+                image2 = Image.fromarray(below_ground_costmap_one.astype('uint8'))
+                image2.save("numpy_matrix_image2.png")
 
-                # image2 = Image.fromarray(self.below_ground_costmap_one.astype('uint8'))
-                # image2.save("numpy_matrix_image2.png")
-
-                # image = Image.fromarray(self.above_ground_costmap.astype('uint8'))
-                # image.save("numpy_matrix_image.png")
-                #
+                image = Image.fromarray(self.above_ground_costmap.astype('uint8'))
+                image.save("numpy_matrix_image.png")
+                
                 msg.data = self.above_ground_costmap.flatten().tolist()
                 self.costmap_publisher.publish(msg)
                 print("worked")
@@ -102,9 +129,10 @@ class combine_esdf(Node):
                 print("did not work")
         else:
             pass
-        if (self.above_ground_costmap.size < self.below_ground_costmap_one.size):
+        if (self.above_ground_costmap.size < below_ground_costmap_one.size):
             print("shit")
-
+        self.boolean = False
+        print("called")
 
 
     # Easily replicable for more below ground costmaps. Stack the costmaps into a 3D array
@@ -112,9 +140,9 @@ class combine_esdf(Node):
     def below_ground_callback(self, msg):
         if (len(msg.data) == 0):
             return   
-        self.below_ground_costmap_one = np.array(msg.data).reshape(msg.height, msg.width)
+        self.below_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
         self.below_origin = [msg.origin.x, msg.origin.y]
-
+        # print(msg.resolution)
 
 
 
@@ -186,8 +214,8 @@ def main(args=None):
 
 
 
-    # print(np.average(self.below_ground_costmap_one), np.amin(self.below_ground_costmap_one), np.amax(self.below_ground_costmap_one))
-        # inverse_below_ground_costmap = np.full(self.below_ground_costmap_one.shape, 2) - self.below_ground_costmap_one
+    # print(np.average(below_ground_costmap_one), np.amin(below_ground_costmap_one), np.amax(below_ground_costmap_one))
+        # inverse_below_ground_costmap = np.full(below_ground_costmap_one.shape, 2) - below_ground_costmap_one
 
         # # pad the below ground costmap, to give it the same dimensions as the above ground costmap        
         # max_width = max(self.above_ground_costmap.shape[0], inverse_below_ground_costmap.shape[0])
