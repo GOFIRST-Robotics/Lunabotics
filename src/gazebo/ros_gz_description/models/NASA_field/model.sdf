@@ -35,43 +35,43 @@
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00000</uri>
         <pose relative_to='bottom_right'>-6.87 1 0.4 1.57 0 -1.57</pose>
-        <name>AprilTag_1_Bottom</name>
+        <name>AprilTag_1</name>
       </include> 
 
       
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00001</uri>
         <pose relative_to='bottom_right'>-6.87 1.2159 0.4 1.57 0 -1.57</pose>
-        <name>AprilTag_2_Bottom</name>
+        <name>AprilTag_2</name>
       </include>
 
       <!--
       Tags in the berm area.
       Goes Top left, Top right, Bottom left, Bottom right from tags 3-6
       -->
-      <!-- <include>
+      <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00002</uri>
-        <pose relative_to='bottom_right'>-7.59 1.45 0.4 1.57 0 -1.57</pose>
-        <name>AprilTag_3_Bottom</name>
+        <pose relative_to='bottom_right'>-2.4 1 0.4 1.57 0 -1.57</pose>
+        <name>AprilTag_3</name>
       </include>
       
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00003</uri>
-        <pose relative_to='bottom_bottom_right'>-6.09 1.45 0.4 1.57 0 -1.57</pose>
-        <name>AprilTag_4_Bottom</name>
+        <pose relative_to='bottom_right'>-0.2 1 0.4 1.57 0 -1.57</pose>
+        <name>AprilTag_4</name>
       </include>
 
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00004</uri>
-        <pose relative_to='bottom_bottom_right'>-7.59 0.55 0.4 1.57 0 -1.57</pose>
-        <name>AprilTag_5_Bottom</name>
+        <pose relative_to='bottom_right'>-2.4 0.1 0.4 1.57 0 -1.57</pose>
+        <name>AprilTag_5</name>
       </include>
 
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00005</uri>
-        <pose relative_to='bottom_bottom_right'>-6.09 0.55 0.4 1.57 0 -1.57</pose>
-        <name>AprilTag_6_Bottom</name>
-      </include> -->
+        <pose relative_to='bottom_right'>-0.2 0.1 0.4 1.57 0 -1.57</pose>
+        <name>AprilTag_6</name>
+      </include>
 
   </model>
 </sdf>
