@@ -13,10 +13,10 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='alex',
+    maintainer='Alex Berg',
     maintainer_email='aaberg333@gmail.com',
     description='Combines 2 esdf maps into a single esdf map',
-    license='TODO: License declaration',
+    license='MIT License',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
