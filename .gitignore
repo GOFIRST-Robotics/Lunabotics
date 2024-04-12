@@ -56,4 +56,3 @@ qtcreator-*
 CATKIN_IGNORE
 
 .fake
-ssh/*
