@@ -14,7 +14,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import Stop, Drive, MotorCommandSet
+from rovr_interfaces.srv import Stop, Drive, MotorCommandSet, MotorCommandGet
 from rovr_interfaces.msg import AbsoluteEncoders
 
 
@@ -31,6 +31,7 @@ class SwerveModule:
         self.gazebo_swerve = None
         self.simulation = drivetrain.GAZEBO_SIMULATION
         self.prev_angle = 0.0
+        self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(can_id=self.drive_motor_can_id, type="duty_cycle", value=power))
@@ -173,10 +174,19 @@ class DrivetrainNode(Node):
         # self.front_left was chosen arbitrarily
         if self.front_left.current_absolute_angle is not None:
             print("Absolute Encoder angles reset")
-            self.front_left.reset(_____)
-            self.front_right.reset(_____)
-            self.back_left.reset(_____)
-            self.back_right.reset(_____)
+
+            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN))
+            future.add_done_callback(lambda future: self.front_left.reset(future.result().value))
+
+            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN))
+            future.add_done_callback(lambda future: self.front_right.reset(future.result().value))
+
+            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN))
+            future.add_done_callback(lambda future: self.back_left.reset(future.result().value))
+
+            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN))
+            future.add_done_callback(lambda future: self.back_right.reset(future.result().value))
+            
             self.absolute_angle_timer.cancel()
 
     # Define subsystem methods here
