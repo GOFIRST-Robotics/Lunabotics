@@ -105,4 +105,10 @@ def generate_launch_description():
         ]
     )
 
-    return LaunchDescription([nvblox_container, group_action])
+    combine_esdf = Node(
+        package="combine_esdf",
+        executable="combine_esdf",
+        name="combine_esdf",
+    )
+
+    return LaunchDescription([nvblox_container, group_action, combine_esdf])
