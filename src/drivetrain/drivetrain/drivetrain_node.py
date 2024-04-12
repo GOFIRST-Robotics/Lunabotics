@@ -173,10 +173,10 @@ class DrivetrainNode(Node):
         # self.front_left was chosen arbitrarily
         if self.front_left.current_absolute_angle is not None:
             print("Absolute Encoder angles reset")
-            self.front_left.reset(0)
-            self.front_right.reset(0)
-            self.back_left.reset(0)
-            self.back_right.reset(0)
+            self.front_left.reset(_____)
+            self.front_right.reset(_____)
+            self.back_left.reset(_____)
+            self.back_right.reset(_____)
             self.absolute_angle_timer.cancel()
 
     # Define subsystem methods here
