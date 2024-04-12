@@ -13,35 +13,40 @@ class combine_esdf(Node):
 
     def __init__(self):
         super().__init__('combine_esdf')
-        self.costmap_publisher = self.create_publisher(DistanceMapSlice, '/combined_esdf', 10)
-        self.pointcloud_publisher = self.create_publisher(PointCloud2, '/combined_esdf_pointcloud', 10)
 
-        self.above_ground_subscriber = self.create_subscription(
-            DistanceMapSlice,
-            '/nvblox_node/static_map_slice',
-            self.above_ground_callback,
-            1)
-        
-        self.below_ground_subscriber = self.create_subscription(
-            DistanceMapSlice,
-            '/nvblox_node/static_map_slice2',
-            self.below_ground_callback,
-            1)
-        
+        self.declare_parameter('combine_pointcloud', True)
+        self.declare_parameter('invert_below_ground', False)
+        self.declare_parameter('combine_costmap', True)
 
-        # TODO: I'd like to put these in an if loop based on a config file parameter
-        # so the point clouds dont HAVE to be computed.
-        self.above_ground_pointcloud_subscriber = self.create_subscription(
-            PointCloud2,
-            '/nvblox_node/static_esdf_pointcloud',
-            self.above_ground_pointcloud_callback,
-            10)
+        if self.get_parameter('combine_costmap').value:
+            self.costmap_publisher = self.create_publisher(DistanceMapSlice, '/combined_esdf', 10)
+            self.get_logger().info("Costmap combining enabled")
+            self.above_ground_subscriber = self.create_subscription(
+                DistanceMapSlice,
+                '/nvblox_node/static_map_slice',
+                self.above_ground_callback,
+                1)
+            
+            self.below_ground_subscriber = self.create_subscription(
+                DistanceMapSlice,
+                '/nvblox_node/static_map_slice2',
+                self.below_ground_callback,
+                1)
         
-        self.below_ground_pointcloud_subscriber = self.create_subscription(
-            PointCloud2,
-            '/nvblox_node/static_esdf_pointcloud2',
-            self.below_ground_pointcloud_callback,
-            10)
+        if self.get_parameter('combine_pointcloud').value:
+            self.get_logger().info("Pointcloud combining enabled")
+            self.pointcloud_publisher = self.create_publisher(PointCloud2, '/combined_esdf_pointcloud', 10)
+            self.above_ground_pointcloud_subscriber = self.create_subscription(
+                PointCloud2,
+                '/nvblox_node/static_esdf_pointcloud',
+                self.above_ground_pointcloud_callback,
+                10)
+            
+            self.below_ground_pointcloud_subscriber = self.create_subscription(
+                PointCloud2,
+                '/nvblox_node/static_esdf_pointcloud2',
+                self.below_ground_pointcloud_callback,
+                10)
         
     
 
@@ -72,7 +77,7 @@ class combine_esdf(Node):
             return # if the underground map DNE, publish unaltered above ground map.
         
         self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
-        origin = [msg.origin.x, msg.origin.y]
+        origin = (msg.origin.x, msg.origin.y)
 
         try:
             # Calculating the points that align between the two costmaps. The x and y are flipped intentionally.
@@ -84,16 +89,15 @@ class combine_esdf(Node):
             offset_y2 = ((self.above_ground_costmap.shape[1] - self.below_ground_costmap.shape[1]) - offset_y1)
             
             # To invert or not to invert, that is the question. 
-            # Comment this next chunk out if the lower esdf is only showing the hole as red, not the terrain.
-            # this actually doesn't work yet, so leave it commented.
-            # self.below_ground_costmap[self.below_ground_costmap == 1000] = 0
-            # self.below_ground_costmap = np.full(self.below_ground_costmap.shape, 2) - self.below_ground_costmap
-            # self.below_ground_costmap = 2 - self.sigmoid(self.below_ground_costmap)
-
-            # if you don't want to invert, uncomment this:
-            # This is just extremifying so all belowground values = 0
-            condition2 = self.below_ground_costmap <= 2
-            self.below_ground_costmap[condition2] = 0
+            if self.get_parameter('invert_below_ground').value:
+                # Invert the below ground costmap. This is because the below ground costmap is inverted.
+                self.below_ground_costmap[self.below_ground_costmap == 1000] = 0
+                self.below_ground_costmap = np.full(self.below_ground_costmap.shape, 2) - self.below_ground_costmap
+                self.below_ground_costmap = 2 - self.sigmoid(self.below_ground_costmap)
+            else:
+                # if you don't want to invert, use this
+                condition2 = self.below_ground_costmap <= 2
+                self.below_ground_costmap[condition2] = 0
 
             # Actually combine the costmaps. Slice based on the offsets defined above.
             # As a reminder, 0 is dangerous, 2 is safe, 1000 is unmapped.
@@ -116,7 +120,7 @@ class combine_esdf(Node):
         if (len(msg.data) == 0):
             return   
         self.below_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
-        self.below_origin = [msg.origin.x, msg.origin.y]
+        self.below_origin = (msg.origin.x, msg.origin.y)
 
 
 
