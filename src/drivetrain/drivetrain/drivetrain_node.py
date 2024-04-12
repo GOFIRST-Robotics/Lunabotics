@@ -31,7 +31,6 @@ class SwerveModule:
         self.gazebo_swerve = None
         self.simulation = drivetrain.GAZEBO_SIMULATION
         self.prev_angle = 0.0
-        self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
     def set_power(self, power: float) -> None:
         self.cli_motor_set.call_async(MotorCommandSet.Request(can_id=self.drive_motor_can_id, type="duty_cycle", value=power))
@@ -131,6 +130,7 @@ class DrivetrainNode(Node):
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
+        self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
