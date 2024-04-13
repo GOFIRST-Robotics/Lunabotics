@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'combine_esdf = combine_esdf.combine_esdf:main',
-            'test_combine_esdf = combine_esdf.test:main'
+            'test_combine_esdf = combine_esdf.test:main',
+            'test_auto = combine_esdf.testing_auto:main'
         ],
     },
 )
