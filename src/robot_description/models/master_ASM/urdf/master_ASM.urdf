@@ -26,7 +26,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/base_link.STL" />
+          filename="package://robot_description/models/master_ASM/meshes/base_link.STL" />
       </geometry>
       <material
         name="">
@@ -53,7 +53,7 @@
   <link name="camera_link">
     <visual>
       <geometry>
-        <mesh filename="../meshes/zed2i.stl" />
+        <mesh filename="package://robot_description/models/master_ASM/meshes/zed2i.stl" />
       </geometry>
       <material name="zed2i_mat">
         <color rgba="0.25 0.25 0.25 0.99"/>
@@ -61,7 +61,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="../meshes/zed2i.stl" />
+        <mesh filename="package://robot_description/models/master_ASM/meshes/zed2i.stl" />
       </geometry>
     </collision>
   </link>
@@ -161,7 +161,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel_Link.STL" />
+          filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
@@ -257,7 +257,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel_Link.STL" />
+          filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
@@ -354,7 +354,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel_Link.STL" />
+          filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
@@ -449,7 +449,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="../meshes/wheel_Link.STL" />
+          filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
       </geometry>
       <material
         name="">
