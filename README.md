@@ -194,45 +194,23 @@ sudo grep 'mycmd' /var/log/syslog
 <details>
 <summary>Useful Gstreamer Commands</summary>
 <br>
-Start Gstreamer AV1 Encoding (On Nvidia Jetson AGX Orin): 
+To start gstreamer client make sure to add the deepstream layer to the docker layers 
 
-```
-gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=127.0.0.1 port=5000
-```
+To start the gstreamer client run the following commands:
 
-Start Gstreamer AV1 Decoding (On Nvidia Jetson AGX Orin): 
-
-```
-gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=15/1" ! queue ! nvv4l2decoder ! nv3dsink
+```bash
+colcon build --symlink-install --packages-up-to gstreamer
+source install/setup.bash
+rqt --force-discover
 ```
 
-Start Gstreamer AV1 Decoding (On Ubuntu Laptop w/ Docker runtime need nvcr login): 
+To start the gstreamer server run the following commands:
 
+```bash
+colcon build --symlink-install --packages-up-to gstreamer
+source install/setup.bash
+ros2 launch gstreamer server_node.launch.py
 ```
-xhost +
-docker run -it --rm --net=host --gpus all -e DISPLAY=$DISPLAY --device /dev/snd -v /tmp/.X11-unix/:/tmp/.X11-unix nvcr.io/nvidia/deepstream:6.3-triton-multiarch 
-gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=15/1" ! queue ! nvv4l2decoder ! nveglglessink
-```
-
-Start Gstreamer H.264 Encoding (On Nvidia Jetson Orin Nano): 
-
-```
-gst-launch-1.0 v4l2src device=/dev/video0 ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw,format=I420" ! x264enc bitrate=300 tune=zerolatency speed-preset=ultrafast ! "video/x-h264,stream-format=byte-stream" ! h264parse ! rtph264pay ! udpsink host=127.0.0.1 port=5000
-```
-
-Start Gstreamer H.264 Decoding (On Nvidia Jetson Orin Nano): 
-
-```
-gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph264depay ! h264parse ! avdec_h264 ! nvvidconv ! xvimagesink
-```
-
-Start Gstreamer H.264 Decoding (On Ubuntu Laptop): 
-
-```
-gst-launch-1.0 udpsrc port=5000 ! application/x-rtp, encoding-name=H264, payload=96 ! rtph264depay ! h264parse ! nvh264dec ! videoflip method=vertical-flip ! xvimagesink sync=false
-```
-
-(Change the /dev/video device to add more webcams, and the port number to stream multiple webcams at once)
 </details>
 
 ## Set static serial ports on the Jetson
