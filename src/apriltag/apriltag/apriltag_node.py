@@ -19,17 +19,33 @@ class ApriltagNode(Node):
         super().__init__("apriltag_node")
         current_dir = os.getcwd()
 
-        """Change this based on the field."""
+        # TODO: Eventually use a ROS parameter for choosing this (same one as autonomy logic)
         # relative_path = "src/apriltag/apriltag/apriltag_location_nasa.urdf.xarco"
         relative_path = "src/apriltag/apriltag/apriltag_location_ucf_top.urdf.xarco"
         # relative_path = "src/apriltag/apriltag/apriltag_location_ucf_bot.urdf.xarco"
 
         self.file_path = os.path.join(current_dir, relative_path)
+
         self.averagedTag = None
+
+        self.map_transform = TransformStamped()
+        self.map_transform.child_frame_id = "odom"
+        self.map_transform.header.frame_id = "map"
+        self.map_transform.transform.translation.x = 0.0
+        self.map_transform.transform.translation.y = 0.0
+        self.map_transform.transform.translation.z = 0.0
+        self.map_transform.transform.rotation.x = 0.0
+        self.map_transform.transform.rotation.y = 0.0
+        self.map_transform.transform.rotation.z = 0.0
+        self.map_transform.transform.rotation.w = 1.0
+
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
         self.create_service(ResetOdom, "resetOdom", self.reset_callback)
+
+        # Create a timer to broadcast the map -> odom transform
+        self.timer = self.create_timer(0.1, self.broadcast_transform)
 
     """Service callback"""
 
@@ -41,9 +57,9 @@ class ApriltagNode(Node):
     """Publishes the tag if it exists"""
 
     def postTransform(self, tag):
-        if tag and (self.get_clock().now().to_msg().sec == self.averagedTag.header.stamp.sec):
-            self.get_logger().info(str("Resetting the odom"))
-            self.tf_broadcaster.sendTransform(tag)
+        if tag and (self.get_clock().now().to_msg().sec == tag.header.stamp.sec):
+            self.get_logger().info(str("Resetting the map -> odom TF"))
+            self.map_transform = tag
             return True
         return False
 
@@ -111,6 +127,11 @@ class ApriltagNode(Node):
         t.transform.rotation.y = qy / len(transforms)
         t.transform.rotation.z = qz / len(transforms)
         return t
+
+    def broadcast_transform(self):
+        """Broadcasts the map -> odom transform"""
+        self.map_transform.header.stamp = self.get_clock().now().to_msg()
+        self.tf_broadcaster.sendTransform(self.map_transform)
 
 
 def main(args=None):
