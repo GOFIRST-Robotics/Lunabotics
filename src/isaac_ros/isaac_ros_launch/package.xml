@@ -18,6 +18,8 @@
   <exec_depend>nvblox_rviz_plugin</exec_depend>
   <exec_depend>nvblox_examples_bringup</exec_depend>
   <exec_depend>nvblox_nav2</exec_depend>
+  <exec_depend>combine_esdf</exec_depend>
+  <exec_depend>robot_description</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
