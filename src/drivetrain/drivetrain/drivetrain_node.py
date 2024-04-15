@@ -175,17 +175,17 @@ class DrivetrainNode(Node):
         if self.front_left.current_absolute_angle is not None:
             print("Absolute Encoder angles reset")
 
-            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN))
-            future.add_done_callback(lambda future: self.front_left.reset(future.result().value))
+            front_left_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN))
+            front_left_future.add_done_callback(lambda future: self.front_left.reset(future.result().value))
 
-            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN))
-            future.add_done_callback(lambda future: self.front_right.reset(future.result().value))
+            front_right_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN))
+            front_right_future.add_done_callback(lambda future: self.front_right.reset(future.result().value))
 
-            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN))
-            future.add_done_callback(lambda future: self.back_left.reset(future.result().value))
+            back_left_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN))
+            back_left_future.add_done_callback(lambda future: self.back_left.reset(future.result().value))
 
-            future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN))
-            future.add_done_callback(lambda future: self.back_right.reset(future.result().value))
+            back_right_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN))
+            back_right_future.add_done_callback(lambda future: self.back_right.reset(future.result().value))
             
             self.absolute_angle_timer.cancel()
 
