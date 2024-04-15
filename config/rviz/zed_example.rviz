@@ -6,14 +6,12 @@ Panels:
       Expanded:
         - /Status1
         - /TF1
-        - /TF1/Status1
         - /TF1/Frames1
         - /TF1/Tree1
         - /Nvblox1
         - /Sensors1
         - /Plan1
         - /RobotModel1
-        - /RobotModel1/Status1
       Splitter Ratio: 0.5896806120872498
     Tree Height: 793
   - Class: rviz_common/Selection
@@ -373,7 +371,7 @@ Visualization Manager:
         Value: /robot_description
       Enabled: true
       Links:
-        All Links Enabled: true
+        All Links Enabled: false
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -387,42 +385,42 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         swerve2_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         swerve3_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         swerve4_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         wheel1_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         wheel2_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         wheel3_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         wheel4_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
+          Value: false
         zed2i_camera_center:
           Alpha: 1
           Show Axes: false
