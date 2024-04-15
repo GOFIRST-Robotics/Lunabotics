@@ -97,9 +97,9 @@ Stephen Brawner (brawner@gmail.com)
     <child link="zed2i_right_camera_optical_frame"/>
   </joint>
   <joint name="camera_joint" type="fixed">
-    <parent link="base_link"/>
-    <child link="zed2i_camera_link"/>
-    <origin rpy="0 2.5 3.14" xyz="0.343 0.009 -0.1254"/>
+    <child link="base_link"/>
+    <parent link="zed2i_camera_link"/>
+    <origin rpy="0 -0.52359878 0" xyz="-0.343 -0.009 -0.1254"/>
   </joint>
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
