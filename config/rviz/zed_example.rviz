@@ -44,7 +44,7 @@ Visualization Manager:
         zed2i_camera_center:
           Value: false
         zed2i_camera_link:
-          Value: false
+          Value: true
         zed2i_imu_link:
           Value: false
         zed2i_left_camera_frame:
