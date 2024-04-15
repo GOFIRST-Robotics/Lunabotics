@@ -26,7 +26,7 @@ endif()
 
 # Convert xarco to urdf on BUILD this is pretty bad but it works
 add_custom_target(ConvertXacro ALL
-  COMMAND xacro ${CMAKE_CURRENT_SOURCE_DIR}/models/master_ASM/urdf/master_ASM.urdf.xarco > ${CMAKE_CURRENT_SOURCE_DIR}/models/master_ASM/urdf/master_ASM.urdf
+  COMMAND xacro ${CMAKE_CURRENT_SOURCE_DIR}/models/master_ASM/urdf/master_ASM.urdf.xacro > ${CMAKE_CURRENT_SOURCE_DIR}/models/master_ASM/urdf/master_ASM.urdf
 )
 
 # Install project launch files

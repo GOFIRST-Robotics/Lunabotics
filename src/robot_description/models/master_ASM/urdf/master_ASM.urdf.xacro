@@ -56,7 +56,7 @@ Stephen Brawner (brawner@gmail.com)
 
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
-      <pose> 0 0 0 3.14159 0 0 </pose>
+      <pose> 0 0 0 0 0 0 </pose>
       <!-- <visualize>true</visualize> -->
       <update_rate>30</update_rate>
       <camera>

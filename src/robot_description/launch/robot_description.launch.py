@@ -11,7 +11,7 @@ def generate_launch_description():
     pkg_project_description = get_package_share_directory("robot_description")
     # Load the SDF file from "description" package
     xacro_path = os.path.join(
-        pkg_project_description, "models", "master_ASM", "urdf", "master_ASM.urdf.xarco"
+        pkg_project_description, "models", "master_ASM", "urdf", "master_ASM.urdf.xacro"
     )
 
     robot_state_publisher = Node(

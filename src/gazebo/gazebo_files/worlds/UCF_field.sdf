@@ -31,7 +31,7 @@
 
     <include>
       <uri>package://robot_description/models/master_ASM</uri>
-      <pose>3 1 1 0 0 0</pose>
+      <pose>3 1 1 0 0.52359878 0</pose>
     </include>
 
     <include>
