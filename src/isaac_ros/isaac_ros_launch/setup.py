@@ -23,6 +23,8 @@ setup(
     description="Package for ISAAC_ROS launch files",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [],
+        "console_scripts": [
+            "odom_tf_publisher = isaac_ros_launch.odom_tf_publisher:main",
+        ],
     },
 )
