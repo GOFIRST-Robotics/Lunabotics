@@ -1,5 +1,5 @@
 import os
-from rclpy.node import Node
+from rclpy.node import Node, Client
 from ament_index_python import get_package_share_directory
 from python_qt_binding import loadUi
 from python_qt_binding.QtCore import Slot
@@ -57,7 +57,7 @@ class ClientWidget(QWidget):
                 ),  # SIOCGIFADDR
             )[20:24]
             )
-    def wait_cli(self,cli,req):
+    def wait_cli(self,cli:Client,req):
         future = cli.call_async(req)
         start_time = self.node.get_clock().now().nanoseconds
         while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:

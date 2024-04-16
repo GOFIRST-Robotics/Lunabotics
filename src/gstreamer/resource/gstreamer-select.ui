@@ -69,7 +69,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QComboBox" name="network_interface_dropdown">
+      <widget class="QComboBox" name="network_dropdown">
        <property name="toolTip">
         <string>Choose network interface</string>
        </property>

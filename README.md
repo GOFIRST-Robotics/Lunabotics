@@ -32,12 +32,12 @@ colcon build --symlink-install --packages-up-to rovr_control motor_control ros2s
 1a.) First, do the following before running run_dev.sh:
 
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.user.zed.umn \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
+printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.gstreamer.user.zed.umn \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
 ``` 
 1b.) To use Gazebo in the ISAAC ROS container, do this instead:
 
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.user.zed.umn.gazebo \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
+printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.gstreamer.user.zed.umn.gazebo \n" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
 ``` 
 2.) To make it so zed modules won't rerun every time you start the container, do this:
 
@@ -209,7 +209,7 @@ To start the gstreamer server run the following commands:
 ```bash
 colcon build --symlink-install --packages-up-to gstreamer
 source install/setup.bash
-ros2 launch gstreamer server_node.launch.py
+ros2 run gstreamer server_node
 ```
 </details>
 
