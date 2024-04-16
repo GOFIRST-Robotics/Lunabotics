@@ -49,8 +49,8 @@ Stephen Brawner (brawner@gmail.com)
   <xacro:zed_camera name="zed2i" model="zed2i">
   </xacro:zed_camera>
   <joint name="camera_joint" type="fixed">
-    <child link="base_link" />
-    <parent link="zed2i_camera_link" />
+    <child link="base_link"/>
+    <parent link="zed2i_camera_link"/>
     <origin xyz="-0.343 -0.009 -0.1254" rpy="0 -0.52359878 0" />
   </joint>
 
