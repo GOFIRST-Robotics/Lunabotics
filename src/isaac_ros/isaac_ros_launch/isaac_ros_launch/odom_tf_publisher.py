@@ -38,25 +38,25 @@ class TFPublisher(Node):
         self.odom_tf_publisher.publish(tf_message)
 
     def camera_info_callback(self, msg):
-        if self.most_recent_color_image and msg.header.frame_id == "Master_ASM/base_link/camera":
-            msg.header.frame_id = "camera_link"
+        if self.most_recent_color_image and msg.header.frame_id == "Master_ASM/zed2i_camera_link/camera":
+            msg.header.frame_id = "zed2i_camera_link"
             msg.header.stamp = self.get_clock().now().to_msg()  # Set ROS time as the timestamp
             self.most_recent_color_image.header.stamp = msg.header.stamp
             self.color_camera_info_publisher.publish(msg)
             self.color_image_publisher.publish(self.most_recent_color_image)
-        elif self.most_recent_depth_image and msg.header.frame_id == "Master_ASM/base_link/depthcamera":
-            msg.header.frame_id = "camera_link"
+        elif self.most_recent_depth_image and msg.header.frame_id == "Master_ASM/zed2i_camera_link/depthcamera":
+            msg.header.frame_id = "zed2i_camera_link"
             msg.header.stamp = self.get_clock().now().to_msg()  # Set ROS time as the timestamp
             self.most_recent_depth_image.header.stamp = msg.header.stamp
             self.depth_camera_info_publisher.publish(msg)
             self.depth_image_publisher.publish(self.most_recent_depth_image)
 
     def color_image_callback(self, msg):
-        msg.header.frame_id = "camera_link"
+        msg.header.frame_id = "zed2i_camera_link"
         self.most_recent_color_image = msg
 
     def depth_image_callback(self, msg):
-        msg.header.frame_id = "camera_link"
+        msg.header.frame_id = "zed2i_camera_link"
         self.most_recent_depth_image = msg
 
 
