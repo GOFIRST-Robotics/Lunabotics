@@ -19,12 +19,16 @@ class ApriltagNode(Node):
         super().__init__("apriltag_node")
         current_dir = os.getcwd()
 
-        # TODO: Eventually use a ROS parameter for choosing this (same one as autonomy logic)
-        # relative_path = "src/apriltag/apriltag/apriltag_location_nasa.urdf.xarco"
-        relative_path = "src/apriltag/apriltag/apriltag_location_ucf_top.urdf.xarco"
-        # relative_path = "src/apriltag/apriltag/apriltag_location_ucf_bot.urdf.xarco"
-
+        self.declare_parameter('autonomous_field_type', 'top') # The type of field ("top", "bottom", "nasa")
+        field_type = self.get_parameter('autonomous_field_type').value
+        paths = {
+            "top": "src/apriltag/apriltag/apriltag_location_ucf_top.urdf.xarco",
+            "bottom": "src/apriltag/apriltag/apriltag_location_ucf_bot.urdf.xarco",
+            "nasa": "src/apriltag/apriltag/apriltag_location_nasa.urdf.xarco"
+        }
+        relative_path = paths[field_type]
         self.file_path = os.path.join(current_dir, relative_path)
+
 
         self.averagedTag = None
 
@@ -47,15 +51,13 @@ class ApriltagNode(Node):
         # Create a timer to broadcast the map -> odom transform
         self.timer = self.create_timer(0.1, self.broadcast_transform)
 
-    """Service callback"""
-
+    # Service callback definition
     def reset_callback(self, request, response):
         """Run once, return success/ fail"""
         response.success = bool(self.postTransform(self.averagedTag))
         return response
 
-    """Publishes the tag if it exists"""
-
+    # Publish transform if the tag is detected
     def postTransform(self, tag):
         if tag and (self.get_clock().now().to_msg().sec == tag.header.stamp.sec):
             self.get_logger().info(str("Resetting the map -> odom TF"))
@@ -106,7 +108,7 @@ class ApriltagNode(Node):
 
     # TODO: Consider using an EKF instead of just averaging
     def averageTransforms(self, transforms, t):
-        """Averages the transforms of the tags to get a more accurate transform"""
+        # Computes the average of a list of transforms
         x = 0
         y = 0
         z = 0
@@ -135,7 +137,6 @@ class ApriltagNode(Node):
 
 
 def main(args=None):
-    """The main function."""
     rclpy.init(args=args)
 
     node = ApriltagNode()
