@@ -216,7 +216,7 @@ class MotorControlNode : public rclcpp::Node {
   // Get the current position (tachometer reading) of the motor
   std::optional<float> vesc_get_position(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
-      return static_cast<float>(this->can_data[id].tachometer);
+      return (static_cast<float>(this->can_data[id].tachometer) / static_cast<float>(this->pid_controllers[id]->getCountsPerRevolution())) * 360.0;
     } else {
       return std::nullopt; // The data is too stale
     }
