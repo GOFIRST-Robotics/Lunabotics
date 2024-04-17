@@ -79,39 +79,43 @@ class combine_esdf(Node):
         self.above_ground_costmap = np.array(msg.data).reshape(msg.height, msg.width)
         origin = (msg.origin.x, msg.origin.y)
 
-        try:
-            # Calculating the points that align between the two costmaps. The x and y are flipped intentionally.
-            # All it does is find the difference between the origins of the 2 maps in both directions,
-            # convert that difference to matrix indices by dividing by resolution, and then saving that value.
-            offset_x1 = abs(int((origin[1] - self.below_origin[1]) / msg.resolution))
-            offset_y1 = abs(int((origin[0] - self.below_origin[0]) / msg.resolution))
-            offset_x2 = ((self.above_ground_costmap.shape[0] - self.below_ground_costmap.shape[0]) - offset_x1)
-            offset_y2 = ((self.above_ground_costmap.shape[1] - self.below_ground_costmap.shape[1]) - offset_y1)
-            
-            # To invert or not to invert, that is the question. 
-            if self.get_parameter('invert_below_ground').value:
-                # Invert the below ground costmap. This is because the below ground costmap is inverted.
-                self.below_ground_costmap[self.below_ground_costmap == 1000] = 0
-                self.below_ground_costmap = np.full(self.below_ground_costmap.shape, 2) - self.below_ground_costmap
-                self.below_ground_costmap = 2 - self.sigmoid(self.below_ground_costmap)
-            else:
-                # if you don't want to invert, use this
-                condition2 = self.below_ground_costmap <= 2
-                self.below_ground_costmap[condition2] = 0
-
-            # Actually combine the costmaps. Slice based on the offsets defined above.
-            # As a reminder, 0 is dangerous, 2 is safe, 1000 is unmapped.
-            self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2]), self.below_ground_costmap)
-    
-            # Blur the costmap, so that the hole is less abrupt        
-            self.above_ground_costmap = gaussian_filter(self.above_ground_costmap, sigma=5)
-
-            # Convert the costmap to a message and publish it.
-            msg.data = self.above_ground_costmap.flatten().tolist()
+        if (self.below_ground_costmap.shape[0] > self.above_ground_costmap.shape[0]) or (self.below_ground_costmap.shape[1] > self.above_ground_costmap.shape[1]):
             self.costmap_publisher.publish(msg)
-        except:
-            # In an ideal world, I'd fix this, but it rarely throws errors and works with the try except.
-            pass
+            return
+        
+        # Calculating the points that align between the two costmaps. The x and y are flipped intentionally.
+        # All it does is find the difference between the origins of the 2 maps in both directions,
+        # convert that difference to matrix indices by dividing by resolution, and then saving that value.
+        offset_x1 = abs(int((origin[1] - self.below_origin[1]) / msg.resolution))
+        offset_y1 = abs(int((origin[0] - self.below_origin[0]) / msg.resolution))
+        offset_x2 = ((self.above_ground_costmap.shape[0] - self.below_ground_costmap.shape[0]) - offset_x1)
+        offset_y2 = ((self.above_ground_costmap.shape[1] - self.below_ground_costmap.shape[1]) - offset_y1)
+        
+        # To invert or not to invert, that is the question. 
+        if self.get_parameter('invert_below_ground').value:
+            # Invert the below ground costmap. This is because the below ground costmap is inverted.
+            self.below_ground_costmap[self.below_ground_costmap == 1000] = 0
+            self.below_ground_costmap = np.full(self.below_ground_costmap.shape, 2) - self.below_ground_costmap
+            self.below_ground_costmap = 2 - self.sigmoid(self.below_ground_costmap)
+        else:
+            # if you don't want to invert, use this
+            condition2 = self.below_ground_costmap <= 2
+            self.below_ground_costmap[condition2] = 0
+
+        # Actually combine the costmaps. Slice based on the offsets defined above.
+        # As a reminder, 0 is dangerous, 2 is safe, 1000 is unmapped.
+        if (self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2].shape != self.below_ground_costmap.shape):
+            self.costmap_publisher.publish(msg)
+            return
+        self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2]), self.below_ground_costmap)
+
+        # Blur the costmap, so that the hole is less abrupt        
+        self.above_ground_costmap = gaussian_filter(self.above_ground_costmap, sigma=5)
+
+        # Convert the costmap to a message and publish it.
+        msg.data = self.above_ground_costmap.flatten().tolist()
+        self.costmap_publisher.publish(msg)
+        
 
     # Below ground costmap callback; sets the variables for below ground costmap and origin.
     # Easily replicable for more below ground costmaps. Stack the costmaps into a 3D array
