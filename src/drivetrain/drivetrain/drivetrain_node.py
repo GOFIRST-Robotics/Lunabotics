@@ -43,7 +43,7 @@ class SwerveModule:
         )
 
     def reset(self, current_relative_angle) -> None:
-        self.encoder_offset = self.current_absolute_angle - current_relative_angle
+        self.encoder_offset = (self.current_absolute_angle - current_relative_angle)  %  360
         print("Absolute Encoder angle offset set to:", self.encoder_offset)
         self.set_angle(0)  # Rotate the module to the 0 degree position
 
@@ -175,17 +175,21 @@ class DrivetrainNode(Node):
         if self.front_left.current_absolute_angle is not None:
             print("Absolute Encoder angles reset")
 
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
             front_left_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN))
-            front_left_future.add_done_callback(lambda future: self.front_left.reset(future.result().data))
+            front_left_future.add_done_callback(lambda future: self.front_left.reset((future.result().data / self.STEERING_MOTOR_GEAR_RATIO) % 360))
 
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
             front_right_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN))
-            front_right_future.add_done_callback(lambda future: self.front_right.reset(future.result().data))
+            front_right_future.add_done_callback(lambda future: self.front_right.reset((future.result().data / self.STEERING_MOTOR_GEAR_RATIO) % 360))
 
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
             back_left_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN))
-            back_left_future.add_done_callback(lambda future: self.back_left.reset(future.result().data))
+            back_left_future.add_done_callback(lambda future: self.back_left.reset((future.result().data / self.STEERING_MOTOR_GEAR_RATIO) % 360))
 
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
             back_right_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN))
-            back_right_future.add_done_callback(lambda future: self.back_right.reset(future.result().data))
+            back_right_future.add_done_callback(lambda future: self.back_right.reset((future.result().data / self.STEERING_MOTOR_GEAR_RATIO) % 360))
             
             self.absolute_angle_timer.cancel()
 
@@ -193,8 +197,8 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward, horizontal and turning power."""
 
-        # flip turning direction
-        turning_power *= -1  # TODO: Will this be wrong on the real robot?
+        # reverse turning direction
+        turning_power *= -1
 
         # Do not change the angle of the modules if the robot is being told to stop
         if abs(forward_power) < 0.05 and abs(horizontal_power) < 0.05 and abs(turning_power) < 0.05:
