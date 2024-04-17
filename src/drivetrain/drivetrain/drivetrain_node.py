@@ -90,7 +90,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 333)
         self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 519)
         self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 949)
-        self.declare_parameter("ABSOLUTE_ENCODER_COUNTS", 1023)
+        self.declare_parameter("ABSOLUTE_ENCODER_COUNTS", 1024)
         self.declare_parameter("GAZEBO_SIMULATION", False)
 
         # Assign the ROS Parameters to member variables below #
