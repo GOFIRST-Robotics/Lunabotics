@@ -26,7 +26,7 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, Command
+from launch.substitutions import LaunchConfiguration
 from nav2_common.launch import RewrittenYaml
 
 
@@ -101,10 +101,10 @@ def generate_launch_description():
         }.items(),
     )
 
-    odom_tf_publisher = Node(
+    frame_id_renamer = Node(
         package="isaac_ros_launch",
-        executable="odom_tf_publisher",
-        name="odom_tf_publisher",
+        executable="frame_id_renamer",
+        name="frame_id_renamer",
     )
 
     return LaunchDescription(
@@ -114,7 +114,7 @@ def generate_launch_description():
             nvblox_launch,
             rviz_launch,
             nav2_launch,
-            odom_tf_publisher,
+            frame_id_renamer,
             robot_state_publisher
         ]
     )
