@@ -17,6 +17,9 @@ class combine_esdf(Node):
         self.declare_parameter('combine_pointcloud', True)
         self.declare_parameter('invert_below_ground', False)
         self.declare_parameter('combine_costmap', True)
+        self.declare_parameter('above_ground_denoise_level', 0.5)
+
+        self.above_ground_denoise_level = self.get_parameter('above_ground_denoise_level').value
 
         if self.get_parameter('combine_costmap').value:
             self.costmap_publisher = self.create_publisher(DistanceMapSlice, '/combined_esdf', 10)
@@ -101,7 +104,8 @@ class combine_esdf(Node):
             # if you don't want to invert, use this
             condition2 = self.below_ground_costmap <= 2
             self.below_ground_costmap[condition2] = 0
-
+            # Filter danger out from the regular terrain
+            self.above_ground_costmap[self.above_ground_costmap >= self.above_ground_denoise_level] = 2 # TODO: yet another value to play with when we get a good recording
         # Actually combine the costmaps. Slice based on the offsets defined above.
         # As a reminder, 0 is dangerous, 2 is safe, 1000 is unmapped.
         if (self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2].shape != self.below_ground_costmap.shape):
@@ -109,8 +113,8 @@ class combine_esdf(Node):
             return
         self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2] = np.minimum((self.above_ground_costmap[offset_x1:-offset_x2, offset_y1:-offset_y2]), self.below_ground_costmap)
 
-        # Blur the costmap, so that the hole is less abrupt        
-        self.above_ground_costmap = gaussian_filter(self.above_ground_costmap, sigma=5)
+        # The blur is breaking things somehow. It isnt necessary though as long as we can fix the nav2 critics       
+        # self.above_ground_costmap = np.minimum(self.above_ground_costmap, gaussian_filter(self.above_ground_costmap, sigma=1))
 
         # Convert the costmap to a message and publish it.
         msg.data = self.above_ground_costmap.flatten().tolist()
@@ -162,8 +166,8 @@ class combine_esdf(Node):
 
         # Find the indices where the above ground and below ground pointclouds overlap
         # I honestly don't know how this works, but it does.
-        data_indices = np.where(np.all(above_coords[:,None] == below_coords[None, :], axis=-1))
-
+        data_indices = np.where(np.all(np.round(above_coords[:,None], 3) == np.round(below_coords[None, :], 3), axis=-1))
+        
         # Combine the intensity values where the coordinates overlap.
         # Again, not 100% sure how this works, but it does. Don't touch it.
         data_above_ground[data_indices[0]] = np.minimum(data_above_ground[data_indices[0]], data_below_ground[data_indices[1]])
