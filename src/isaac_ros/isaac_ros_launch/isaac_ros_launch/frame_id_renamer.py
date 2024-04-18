@@ -18,18 +18,18 @@ class FrameIDRenamer(Node):
 
     def camera_info_callback(self, msg):
         if msg.header.frame_id == "Master_ASM/zed2i_camera_link/camera":
-            msg.header.frame_id = "zed2i_camera_link"
+            msg.header.frame_id = "zed2i_left_camera_optical_frame"
             self.color_camera_info_publisher.publish(msg)
         elif msg.header.frame_id == "Master_ASM/zed2i_camera_link/depthcamera":
-            msg.header.frame_id = "zed2i_camera_link"
+            msg.header.frame_id = "zed2i_left_camera_optical_frame"
             self.depth_camera_info_publisher.publish(msg)
 
     def color_image_callback(self, msg):
-        msg.header.frame_id = "zed2i_camera_link"
+        msg.header.frame_id = "zed2i_left_camera_optical_frame"
         self.color_image_publisher.publish(msg)
 
     def depth_image_callback(self, msg):
-        msg.header.frame_id = "zed2i_camera_link"
+        msg.header.frame_id = "zed2i_left_camera_optical_frame"
         self.depth_image_publisher.publish(msg)
 
 
