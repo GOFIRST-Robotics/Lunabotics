@@ -9,33 +9,35 @@ from nav2_simple_commander.robot_navigator import (
 
 from tf2_msgs.msg import TFMessage
 
-  # Provides a “navigation as a library” capability
+# Provides a “navigation as a library” capability
 
+#https://navigation.ros.org/commander_api/index.html
 class test_auto(Node):
     def __init__(self):
         super().__init__('test_auto')
         print("he")
-        self.robot_location = None
-        self.t = True
+        # self.robot_location = None
+        # self.t = True
         self.nav2 = BasicNavigator()
         # self.nav2.waitUntilNav2Active()
-        self.robot_location_subscriber = self.create_subscription(
-            TFMessage,
-            '/tf',
-            self.robot_location_callback,
-            10)
+        # self.robot_location_subscriber = self.create_subscription(
+        #     TFMessage,
+        #     '/tf',
+        #     self.robot_location_callback,
+        #     10)
+        self.optimal_dig_location()
 
-    def filter_transforms_by_frame_id(self, transforms, frame_id):
-        return [t for t in transforms if t.header.frame_id == frame_id]
+    # def filter_transforms_by_frame_id(self, transforms, frame_id):
+    #     return [t for t in transforms if t.header.frame_id == frame_id]
 
-    def robot_location_callback(self, msg):
-        if self.t:
-            # self.robot_location = self.filter_transforms_by_frame_id(msg.transforms, "base_link")
-            self.robot_location = msg.transforms
-            print(self.robot_location)
-            self.optimal_dig_location()
-            self.t = False
-            return
+    # def robot_location_callback(self, msg):
+    #     if self.t:
+    #         # self.robot_location = self.filter_transforms_by_frame_id(msg.transforms, "base_link")
+    #         self.robot_location = msg.transforms
+    #         print(self.robot_location)
+    #         self.optimal_dig_location()
+    #         self.t = False
+    #         return
         
 
     def optimal_dig_location(self):
@@ -56,14 +58,20 @@ class test_auto(Node):
         
         
         costmap = self.nav2.getGlobalCostmap()
-        format = costmap.metadata
-        res = format.resolution
-        data = np.array(costmap.data).reshape((format.size_x, format.size_y))
+        # costmap.data = []
+        
+        f = open("costmapInfo.txt", "a")
+        f.write(str(costmap))
+        f.close()
+        
+        # format = costmap.metadata
+        # res = format.resolution
+        # data = np.array(costmap.data).reshape((format.size_x, format.size_y))
 
-        if data is None or data.size == 0:
-            return
+        # if data is None or data.size == 0:
+        #     return
         # this is almost definitely wrong. need to figure out where apriltag reset puts the origin.
-        origin = (format.origin.position.x, format.origin.position.y)
+        # origin = (format.origin.position.x, format.origin.position.y)
         # offset_x = int((dig[0] - origin[0]) / format.resolution)
         # offset_y = int((dig[1] - origin[1]) / format.resolution)
 
@@ -79,10 +87,10 @@ class test_auto(Node):
 
         # x = self.nav2.getOriginY(costmap)
         # print(format.origin.position.x, format.origin.position.y)
-        image = Image.fromarray(data.astype('uint8'))
+        # image = Image.fromarray(data.astype('uint8'))
 
         # Save the image
-        image.save('matrix_image.png')
+        # image.save('matrix_image.png')
 
 
 
