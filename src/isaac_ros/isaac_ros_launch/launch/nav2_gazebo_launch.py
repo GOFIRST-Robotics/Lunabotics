@@ -18,6 +18,7 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -100,13 +101,10 @@ def generate_launch_description():
         }.items(),
     )
 
-    return LaunchDescription(
-        [
-            run_rviz_arg,
-            # shared_container, # TODO: Working on adding Nvblox support
-            # nvblox_launch, # TODO: Working on adding Nvblox support
-            rviz_launch,
-            nav2_launch,
-            robot_state_publisher,
-        ]
+    frame_id_renamer = Node(
+        package="isaac_ros_launch",
+        executable="frame_id_renamer",
+        name="frame_id_renamer",
     )
+
+    return LaunchDescription([run_rviz_arg, rviz_launch, nav2_launch, frame_id_renamer, robot_state_publisher])

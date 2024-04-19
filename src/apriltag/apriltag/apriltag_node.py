@@ -92,8 +92,8 @@ class ApriltagNode(Node):
             rpy = rpy_values[0].split(" ")
 
             t.transform.translation.x = tag.pose.pose.pose.position.x - float(xyz[0])
-            t.transform.translation.y = tag.pose.pose.pose.position.z - float(xyz[1])
-            t.transform.translation.z = tag.pose.pose.pose.position.y - float(xyz[2])
+            t.transform.translation.y = tag.pose.pose.pose.position.y - float(xyz[1])
+            t.transform.translation.z = tag.pose.pose.pose.position.z - float(xyz[2])
             t.transform.rotation.x = tag.pose.pose.pose.orientation.x - float(rpy[0])
             t.transform.rotation.y = tag.pose.pose.pose.orientation.y - float(rpy[1])
             t.transform.rotation.z = tag.pose.pose.pose.orientation.z - float(rpy[2])

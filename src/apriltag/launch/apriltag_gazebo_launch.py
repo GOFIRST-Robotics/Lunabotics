@@ -17,19 +17,8 @@ def generate_launch_description():
         plugin="nvidia::isaac_ros::apriltag::AprilTagNode",
         name="isaac_ros_apriltag",
         namespace="",
-        remappings=[("image", "camera")],
-    )
-
-    image_format_converter_node_left = ComposableNode(
-        package="isaac_ros_image_proc",
-        plugin="nvidia::isaac_ros::image_proc::ImageFormatConverterNode",
-        name="image_format_node_left",
-        parameters=[
-            {
-                "encoding_desired": "rgb8",
-            }
-        ],
-        remappings=[("image", "camera")],
+        remappings=[('image', 'color_camera_image'),
+                    ('camera_info', 'color_camera_info')],
     )
 
     apriltag_container = ComposableNodeContainer(
@@ -37,7 +26,7 @@ def generate_launch_description():
         name="apriltag_container",
         namespace="",
         executable="component_container_mt",
-        composable_node_descriptions=[apriltag_node, image_format_converter_node_left],
+        composable_node_descriptions=[apriltag_node],
         output="screen",
     )
 
