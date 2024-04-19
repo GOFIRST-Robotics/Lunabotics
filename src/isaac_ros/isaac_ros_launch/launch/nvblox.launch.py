@@ -78,13 +78,11 @@ def generate_launch_description():
             SetParametersFromFile(simulation_config, condition=setup_for_isaac_sim),
             SetParameter(name="global_frame", value=LaunchConfiguration("global_frame", default="odom")),
             # Remappings for realsense data
-            SetRemap(
-                src=["depth/image"], dst=["/camera/realsense_splitter_node/output/depth"], condition=setup_for_realsense
-            ),
+            SetRemap(src=["depth/image"], dst=["/camera/realsense_splitter_node/output/depth"], condition=setup_for_realsense),
             SetRemap(src=["depth/camera_info"], dst=["/camera/depth/camera_info"], condition=setup_for_realsense),
             SetRemap(src=["color/image"], dst=["/camera/color/image_raw"], condition=setup_for_realsense),
             SetRemap(src=["color/camera_info"], dst=["/camera/color/camera_info"], condition=setup_for_realsense),
-            # Remappings for zed
+            # Remappings for zed data
             SetRemap(src=["depth/image"], dst=["/zed2i/zed_node/depth/depth_registered"], condition=setup_for_zed),
             SetRemap(src=["depth/camera_info"], dst=["/zed2i/zed_node/depth/camera_info"], condition=setup_for_zed),
             SetRemap(src=["color/image"], dst=["/zed2i/zed_node/rgb/image_rect_color"], condition=setup_for_zed),
@@ -92,13 +90,9 @@ def generate_launch_description():
             SetRemap(src=["pose"], dst=["/zed2i/zed_node/pose"], condition=setup_for_zed),
             # Remappings for isaac sim data
             SetRemap(src=["depth/image"], dst=["/front/stereo_camera/left/depth"], condition=setup_for_isaac_sim),
-            SetRemap(
-                src=["depth/camera_info"], dst=["/front/stereo_camera/left/camera_info"], condition=setup_for_isaac_sim
-            ),
+            SetRemap(src=["depth/camera_info"], dst=["/front/stereo_camera/left/camera_info"], condition=setup_for_isaac_sim),
             SetRemap(src=["color/image"], dst=["/front/stereo_camera/left/rgb"], condition=setup_for_isaac_sim),
-            SetRemap(
-                src=["color/camera_info"], dst=["/front/stereo_camera/left/camera_info"], condition=setup_for_isaac_sim
-            ),
+            SetRemap(src=["color/camera_info"], dst=["/front/stereo_camera/left/camera_info"], condition=setup_for_isaac_sim),
             SetRemap(src=["pointcloud"], dst=["/point_cloud"], condition=setup_for_isaac_sim),
             # Include the node container
             load_composable_nodes,
