@@ -19,6 +19,10 @@
       filename="ignition-gazebo-user-commands-system"
       name="ignition::gazebo::systems::UserCommands">
     </plugin>
+    <plugin
+        filename="ignition-gazebo-imu-system"
+        name="ignition::gazebo::systems::Imu">
+    </plugin>
 
     <include>
       <uri>package://ros_gz_description/models/sun</uri>
@@ -33,6 +37,16 @@
     <include>
       <uri>package://robot_description/models/master_ASM</uri>
       <pose>-1.8 -1.5 1 0 0.52359878 0</pose>
+      <!-- Global odometer -->
+      <plugin
+      filename="ignition-gazebo-odometry-publisher-system"
+      name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <odom_topic>/odom</odom_topic>
+        <tf_topic>/tf</tf_topic>
+        <odom_frame>odom</odom_frame>
+        <robot_base_frame>zed2i_camera_link</robot_base_frame>
+      </plugin>
     </include>
 
   </world>
