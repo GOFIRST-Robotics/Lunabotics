@@ -85,9 +85,9 @@ class DrivetrainNode(Node):
         self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
         self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 40)
         self.declare_parameter("FRONT_LEFT_MAGNET_OFFSET", 828)
-        self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 346)
-        self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 329)
-        self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 394)
+        self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 355)
+        self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 332)
+        self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 388)
         self.declare_parameter("ABSOLUTE_ENCODER_COUNTS", 1024)
         self.declare_parameter("GAZEBO_SIMULATION", False)
 
