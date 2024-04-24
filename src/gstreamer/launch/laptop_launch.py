@@ -21,6 +21,3 @@ def generate_launch_description():
     ld.add_action(GStreamer_node)
 
     return ld
-
-
-# TODO: Move this file into the GStreamer package
