@@ -16,7 +16,10 @@ class GstreamerClient:
         queue = Gst.ElementFactory.make("queue", "queue")
         self.pipeline.add(queue)
 
-        sink = Gst.ElementFactory.make("nveglglessink", "sink")
+        vid_conv = Gst.ElementFactory.make("nvvideoconvert", "vid_conv")
+        self.pipeline.add(vid_conv)
+
+        sink = Gst.ElementFactory.make("ximagesink", "sink")
         self.pipeline.add(sink)
 
         self.pipeline.add(source)
@@ -30,7 +33,8 @@ class GstreamerClient:
         self.pipeline.add(decoder)
         queue.link(decoder)
 
-        decoder.link(sink)
+        decoder.link(vid_conv)
+        vid_conv.link(sink)
 
     def init_h265(self, source, queue):
         # gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! queue ! nvv4l2decoder ! nveglglessink
