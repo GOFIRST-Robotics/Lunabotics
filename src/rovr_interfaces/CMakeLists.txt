@@ -26,6 +26,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetHeight.srv"
   "srv/Drive.srv"
   "srv/ResetOdom.srv"
+  "srv/SetClientIp.srv"
+  "srv/SetActiveCamera.srv"
+  "srv/SetEncoding.srv"
   "msg/AbsoluteEncoders.msg"
   "msg/LimitSwitches.msg"
 )
