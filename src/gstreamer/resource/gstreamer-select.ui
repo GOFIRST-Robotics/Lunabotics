@@ -60,7 +60,7 @@
      <item>
       <widget class="QPushButton" name="encoding_push_button">
        <property name="text">
-        <string>PushButton</string>
+        <string>Set Encoding</string>
        </property>
       </widget>
      </item>
