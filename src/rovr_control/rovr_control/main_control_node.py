@@ -9,7 +9,7 @@ from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor  # This is needed to run multiple callbacks in a single thread
 
 # Import ROS 2 formatted message types
-from geometry_msgs.msg import Twist, Vector3
+from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
 
@@ -22,6 +22,9 @@ import asyncio  # Allows the use of asynchronous methods!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
+
+# Provides a “navigation as a library” capability
+from nav2_simple_commander.robot_navigator import BasicNavigator 
 
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
@@ -89,6 +92,8 @@ class MainControlNode(Node):
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
+
+        self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
     def publish_odom_callback(self) -> None:
         """This method publishes the odometry of the robot."""
