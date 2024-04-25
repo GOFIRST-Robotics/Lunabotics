@@ -46,6 +46,8 @@
         <tf_topic>/tf</tf_topic>
         <odom_frame>odom</odom_frame>
         <robot_base_frame>zed2i_camera_link</robot_base_frame>
+        <xyz_offset>1.8 1.5 -1</xyz_offset> <!-- This offset should be the negative pose (-pose) of the robot in the world -->
+        <rpy_offset>0 0 0</rpy_offset> <!-- This offset should be the negative orientation (-orientation) of the robot in the world -->
       </plugin>
     </include>
 
