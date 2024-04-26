@@ -22,6 +22,7 @@ import asyncio  # Allows the use of asynchronous methods!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
+import time # For time.sleep()
 
 # Provides a “navigation as a library” capability
 from nav2_simple_commander.robot_navigator import BasicNavigator 
@@ -103,6 +104,16 @@ class MainControlNode(Node):
     def future_odom_callback(self, future) -> None:
         if future.result().success:
             self.get_logger().info("Apriltag Odometry Published")
+            # TODO: The stuff below should be removed when done testing
+            time.sleep(1)
+            goal_pose = PoseStamped()
+            goal_pose.header.frame_id = 'map'
+            goal_pose.header.stamp = self.nav2.get_clock().now().to_msg()
+            goal_pose.pose.position.x = 0.0
+            goal_pose.pose.position.y = 0.0
+            goal_pose.pose.orientation.w = 1.0
+            self.nav2.goToPose(goal_pose)
+            # TODO: The stuff above should be removed when done testing
             self.apriltag_timer.cancel()
 
     def stop_all_subsystems(self) -> None:

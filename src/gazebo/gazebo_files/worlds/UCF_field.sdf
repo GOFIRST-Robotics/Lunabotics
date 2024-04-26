@@ -35,7 +35,7 @@
 
     <include>
       <uri>package://robot_description/models/master_ASM</uri>
-      <pose>3 1.10795 1 0 0.52359878 0</pose>
+      <pose>3 1.10795 1 0 0 0</pose> <!-- TODO: we are not actually mounting the ZED parallel to the ground -->
       <!-- Global odometer -->
       <plugin
       filename="ignition-gazebo-odometry-publisher-system"
@@ -45,8 +45,6 @@
         <tf_topic>/tf</tf_topic>
         <odom_frame>odom</odom_frame>
         <robot_base_frame>zed2i_camera_link</robot_base_frame>
-        <xyz_offset>-3 -1.10795 -1</xyz_offset> <!-- This offset should be the negative pose (-pose) of the robot in the world -->
-        <rpy_offset>0 0 0</rpy_offset> <!-- This offset should be the negative orientation (-orientation) of the robot in the world -->
       </plugin>
     </include>
 

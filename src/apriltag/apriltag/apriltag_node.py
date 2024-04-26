@@ -1,7 +1,9 @@
 import os
 import rclpy
 from rclpy.node import Node
-from tf2_ros import TransformBroadcaster
+from tf2_ros import TransformBroadcaster, TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 
 from rovr_interfaces.srv import ResetOdom
 from geometry_msgs.msg import TransformStamped
@@ -30,7 +32,6 @@ class ApriltagNode(Node):
         relative_path = paths[field_type]
         self.file_path = os.path.join(current_dir, relative_path)
 
-
         self.averagedTag = None
 
         self.map_transform = TransformStamped()
@@ -46,6 +47,8 @@ class ApriltagNode(Node):
 
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.create_service(ResetOdom, "resetOdom", self.reset_callback)
 
@@ -88,9 +91,10 @@ class ApriltagNode(Node):
             xyz_values = [element.attrib["xyz"] for element in xyz_elements]
             xyz = xyz_values[0].split(" ")
 
-            rpy_elements = link.findall(".//origin[@rpy]")
-            rpy_values = [element.attrib["rpy"] for element in rpy_elements]
-            rpy = rpy_values[0].split(" ")
+            # TODO: Consider the known rotation of the tags (uncomment the following code and modify as needed)
+            # rpy_elements = link.findall(".//origin[@rpy]")
+            # rpy_values = [element.attrib["rpy"] for element in rpy_elements]
+            # rpy = rpy_values[0].split(" ")
             
             # Build a vector containing the translation from the camera to the tag
             tag_translation_vector = [-tag.pose.pose.pose.position.z, tag.pose.pose.pose.position.y, tag.pose.pose.pose.position.x]
@@ -103,10 +107,17 @@ class ApriltagNode(Node):
             # Build a vector containing the known translation from the origin of the field to the tag
             known_translation_vector = [float(xyz[0]), float(xyz[1]), float(xyz[2])]
 
-            # Set the transform's translation to the sum of the two translation vectors
-            t.transform.translation.x = tag_translation_vector[0] + known_translation_vector[0]
-            t.transform.translation.y = tag_translation_vector[1] + known_translation_vector[1]
-            t.transform.translation.z = tag_translation_vector[2] + known_translation_vector[2]
+            # Lookup the odom to zed2i_camera_link tf
+            try:
+                transform = self.tf_buffer.lookup_transform("odom", "zed2i_camera_link", rclpy.time.Time())
+            except TransformException as ex:
+                self.get_logger().info(f'Could not transform odom to zed2i_camera_link: {ex}')
+                return
+
+            # Set the transform's translation to the sum of the three translation vectors TODO: This only works when the robot is facing the tags
+            t.transform.translation.x = tag_translation_vector[0] + known_translation_vector[0] - transform.transform.translation.x
+            t.transform.translation.y = tag_translation_vector[1] + known_translation_vector[1] - transform.transform.translation.y
+            t.transform.translation.z = tag_translation_vector[2] + known_translation_vector[2] - transform.transform.translation.z
 
             transforms.append(t)
 
