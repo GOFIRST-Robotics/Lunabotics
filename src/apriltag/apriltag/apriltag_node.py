@@ -1,5 +1,6 @@
 import os
 import rclpy
+import numpy as np
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster, TransformException
 from tf2_ros.buffer import Buffer
@@ -8,14 +9,11 @@ from tf2_ros.transform_listener import TransformListener
 from rovr_interfaces.srv import ResetOdom
 from geometry_msgs.msg import TransformStamped
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
-from scipy.spatial.transform import Rotation
 
 import xml.etree.ElementTree as ET
 
-"""Make sure to turn on the camera using 
-ros2 launch isaac_ros_apriltag isaac_ros_apriltag_usb_cam.launch.py
-or nothing here will work"""
-
+# The threshold for the orientation of the tag to be considered close enough to the identity quaternion
+ORIENTATION_THRESHOLD = 0.01
 
 class ApriltagNode(Node):
     def __init__(self):
@@ -90,24 +88,19 @@ class ApriltagNode(Node):
             xyz_elements = link.findall(".//origin[@xyz]")
             xyz_values = [element.attrib["xyz"] for element in xyz_elements]
             xyz = xyz_values[0].split(" ")
-
-            # TODO: Consider the known rotation of the tags (uncomment the following code and modify as needed)
-            # rpy_elements = link.findall(".//origin[@rpy]")
-            # rpy_values = [element.attrib["rpy"] for element in rpy_elements]
-            # rpy = rpy_values[0].split(" ")
             
+            # If the quaternion of the tag is not close enough to the identity quaternion, skip it
+            self.get_logger().info(f"Norm of quaternion: {np.linalg.norm([tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w - 1])}")
+            if np.linalg.norm([tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w - 1]) > ORIENTATION_THRESHOLD:
+                continue
+
             # Build a vector containing the translation from the camera to the tag
             tag_translation_vector = [-tag.pose.pose.pose.position.z, tag.pose.pose.pose.position.y, tag.pose.pose.pose.position.x]
-
-            # Build a vector containing the quaternion rotation from the camera to the tag
-            tag_quaternion = [tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w]
-            # Convert the quaternion to a rotation matrix and rotate the translation vector
-            tag_translation_vector = Rotation.from_quat(tag_quaternion).as_matrix() @ tag_translation_vector
 
             # Build a vector containing the known translation from the origin of the field to the tag
             known_translation_vector = [float(xyz[0]), float(xyz[1]), float(xyz[2])]
 
-            # Lookup the odom to zed2i_camera_link tf
+            # Lookup the odom to zed2i_camera_link tf from the tf buffer
             try:
                 transform = self.tf_buffer.lookup_transform("odom", "zed2i_camera_link", rclpy.time.Time())
             except TransformException as ex:
@@ -121,11 +114,14 @@ class ApriltagNode(Node):
 
             transforms.append(t)
 
-        self.averagedTag = TransformStamped()
-        self.averagedTag.child_frame_id = "odom"
-        self.averagedTag.header.frame_id = "map"
-        self.averagedTag.header.stamp = self.get_clock().now().to_msg()
-        self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
+        if len(transforms) == 0:
+            return  # No tags close enough to the identity quaternion
+        else:
+            self.averagedTag = TransformStamped()
+            self.averagedTag.child_frame_id = "odom"
+            self.averagedTag.header.frame_id = "map"
+            self.averagedTag.header.stamp = self.get_clock().now().to_msg()
+            self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
 
     # TODO: Consider using an EKF instead of just averaging
     def averageTransforms(self, transforms, t):

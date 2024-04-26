@@ -75,7 +75,7 @@ class MainControlNode(Node):
         self.skimmer_goal_reached = True
 
         # Define timers here
-        self.apriltag_timer = self.create_timer(0.1, self.publish_odom_callback)
+        self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -94,16 +94,20 @@ class MainControlNode(Node):
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
 
+        self.started_calibration = False
+        self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-    def publish_odom_callback(self) -> None:
+    def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
-        future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
-        future.add_done_callback(self.future_odom_callback)
+        if not self.started_calibration:
+            asyncio.ensure_future(self.calibrate_field_coordinates())
+            self.started_calibration = True
 
     def future_odom_callback(self, future) -> None:
         if future.result().success:
-            self.get_logger().info("Apriltag Odometry Published")
+            self.field_calibrated = True
+            self.get_logger().info("map -> odom TF published!")
             # TODO: The stuff below should be removed when done testing
             time.sleep(1)
             goal_pose = PoseStamped()
@@ -114,7 +118,6 @@ class MainControlNode(Node):
             goal_pose.pose.orientation.w = 1.0
             self.nav2.goToPose(goal_pose)
             # TODO: The stuff above should be removed when done testing
-            self.apriltag_timer.cancel()
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -126,6 +129,22 @@ class MainControlNode(Node):
         """This method returns to teleop control."""
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
+
+    async def calibrate_field_coordinates(self) -> None:
+        """This method rotates until we can see apriltag(s) and then sets the map -> odom tf."""
+        self.get_logger().info("starting")
+        await asyncio.sleep(1)  # Start up delay
+        self.get_logger().info("past delay")
+        if not self.field_calibrated:
+            self.get_logger().info("Beginning search for apriltags")
+            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.15))
+        while not self.field_calibrated:
+            future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
+            future.add_done_callback(self.future_odom_callback)
+            await asyncio.sleep(0.05)  # Allows other async tasks to continue running (this is non-blocking)
+        self.get_logger().info("Field Coordinates Calibrated!")
+        await self.cli_drivetrain_stop.call_async(Stop.Request())
+        self.apriltag_timer.cancel()
 
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
