@@ -100,10 +100,15 @@ class ApriltagNode(Node):
             odom_to_tag_transform.transform.rotation.y = 0.0
             odom_to_tag_transform.transform.rotation.z = 1.0
             odom_to_tag_transform.transform.rotation.w = 0.0
-            odom_to_tag_transform.transform.translation.z = 0.0 # W don't care about z because our robot can't move up or down
 
-            # TODO: Use the known map coordinates of the apriltag as an offset
-            # TODO: Bring back averaging if possible?
+            # We don't care about z because our robot can't move up or down
+            odom_to_tag_transform.transform.translation.z = 0.0
+
+            # Use the known map coordinates of the apriltag as an offset
+            odom_to_tag_transform.transform.translation.x -= float(xyz[0])
+            odom_to_tag_transform.transform.translation.y -= float(xyz[1])
+
+            # TODO: Bring back averaging tags if possible?
 
             self.averagedTag = odom_to_tag_transform
 
