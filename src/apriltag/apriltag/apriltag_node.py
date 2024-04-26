@@ -74,13 +74,7 @@ class ApriltagNode(Node):
             return
 
         tags = msg.detections
-        transforms = []
         for tag in tags:
-            t = TransformStamped()
-            t.child_frame_id = "odom"
-            t.header.frame_id = "map"
-            t.header.stamp = self.get_clock().now().to_msg()
-
             id = tag.id
             tree = ET.parse(self.file_path)
             root = tree.getroot()
@@ -90,67 +84,56 @@ class ApriltagNode(Node):
             xyz_elements = link.findall(".//origin[@xyz]")
             xyz_values = [element.attrib["xyz"] for element in xyz_elements]
             xyz = xyz_values[0].split(" ")
-            
-            # If the quaternion of the tag is not close enough to the identity quaternion, skip it
-            tag_quaternion = np.array([tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w])
-            if np.linalg.norm(tag_quaternion - KNOWN_QUATERNION) > ORIENTATION_THRESHOLD:
-                continue
-
-            # Build a vector containing the translation from the camera to the tag
-            tag_translation_vector = [-tag.pose.pose.pose.position.z, tag.pose.pose.pose.position.y, tag.pose.pose.pose.position.x]
-
-            # Build a vector containing the known translation from the origin of the field to the tag
-            known_translation_vector = [float(xyz[0]), float(xyz[1]), float(xyz[2])]
 
             # Lookup the odom to zed2i_camera_link tf from the tf buffer
             try:
-                transform = self.tf_buffer.lookup_transform("odom", "zed2i_camera_link", rclpy.time.Time())
+                odom_to_tag_transform = self.tf_buffer.lookup_transform("odom", f"{tag.family}:{id}", rclpy.time.Time())
             except TransformException as ex:
-                self.get_logger().info(f'Could not transform odom to zed2i_camera_link: {ex}')
+                self.get_logger().warn(f'Could not transform odom to zed2i_camera_link: {ex}')
                 return
 
-            # Set the transform's translation to the sum of the three translation vectors
-            t.transform.translation.x = tag_translation_vector[0] + known_translation_vector[0] - transform.transform.translation.x
-            t.transform.translation.y = tag_translation_vector[1] + known_translation_vector[1] - transform.transform.translation.y
-            t.transform.translation.z = 0.0 # We don't care about the z translation because our robot can't move up or down
+            odom_to_tag_transform.child_frame_id = "odom"
+            odom_to_tag_transform.header.frame_id = "map"
+            odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
 
-            transforms.append(t)
+            odom_to_tag_transform.transform.rotation.x = 0.0
+            odom_to_tag_transform.transform.rotation.y = 0.0
+            odom_to_tag_transform.transform.rotation.z = 1.0
+            odom_to_tag_transform.transform.rotation.w = 0.0
+            odom_to_tag_transform.transform.translation.z = 0.0 # W don't care about z because our robot can't move up or down
 
-        if len(transforms) == 0:
-            return  # No tags close enough to the identity quaternion
-        else:
-            self.averagedTag = TransformStamped()
-            self.averagedTag.child_frame_id = "odom"
-            self.averagedTag.header.frame_id = "map"
-            self.averagedTag.header.stamp = self.get_clock().now().to_msg()
-            self.averagedTag = self.averageTransforms(transforms, self.averagedTag)
+            # TODO: Use the known map coordinates of the apriltag as an offset
+            # TODO: Bring back averaging if possible?
 
-    # TODO: Consider using an EKF instead of just averaging
-    def averageTransforms(self, transforms, t):
-        # Computes the average of a list of transforms
-        x = 0
-        y = 0
-        z = 0
-        qx_sum = 0
-        qy_sum = 0
-        qz_sum = 0
-        qw_sum = 0
-        for transform in transforms:
-            x += transform.transform.translation.x
-            y += transform.transform.translation.y
-            z += transform.transform.translation.z
-            qx_sum += transform.transform.rotation.x
-            qy_sum += transform.transform.rotation.y
-            qz_sum += transform.transform.rotation.z
-            qw_sum += transform.transform.rotation.w
-        t.transform.translation.x = x / len(transforms)
-        t.transform.translation.y = y / len(transforms)
-        t.transform.translation.z = z / len(transforms)
-        t.transform.rotation.x = qx_sum / len(transforms)
-        t.transform.rotation.y = qy_sum / len(transforms)
-        t.transform.rotation.z = qz_sum / len(transforms)
-        t.transform.rotation.w = qw_sum / len(transforms)
-        return t
+            self.averagedTag = odom_to_tag_transform
+
+
+    # # TODO: Consider using an EKF instead of just averaging
+    # def averageTransforms(self, transforms, t):
+    #     # Computes the average of a list of transforms
+    #     x = 0
+    #     y = 0
+    #     z = 0
+    #     qx_sum = 0
+    #     qy_sum = 0
+    #     qz_sum = 0
+    #     qw_sum = 0
+    #     for transform in transforms:
+    #         x += transform.transform.translation.x
+    #         y += transform.transform.translation.y
+    #         z += transform.transform.translation.z
+    #         qx_sum += transform.transform.rotation.x
+    #         qy_sum += transform.transform.rotation.y
+    #         qz_sum += transform.transform.rotation.z
+    #         qw_sum += transform.transform.rotation.w
+    #     t.transform.translation.x = x / len(transforms)
+    #     t.transform.translation.y = y / len(transforms)
+    #     t.transform.translation.z = z / len(transforms)
+    #     t.transform.rotation.x = qx_sum / len(transforms)
+    #     t.transform.rotation.y = qy_sum / len(transforms)
+    #     t.transform.rotation.z = qz_sum / len(transforms)
+    #     t.transform.rotation.w = qw_sum / len(transforms)
+    #     return t
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
