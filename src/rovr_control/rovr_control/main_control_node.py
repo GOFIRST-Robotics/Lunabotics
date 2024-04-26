@@ -9,7 +9,7 @@ from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor  # This is needed to run multiple callbacks in a single thread
 
 # Import ROS 2 formatted message types
-from geometry_msgs.msg import Twist, Vector3, PoseStamped
+from geometry_msgs.msg import Twist, Vector3
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
 
@@ -22,7 +22,6 @@ import asyncio  # Allows the use of asynchronous methods!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
-import time # For time.sleep()
 
 # Provides a “navigation as a library” capability
 from nav2_simple_commander.robot_navigator import BasicNavigator 
