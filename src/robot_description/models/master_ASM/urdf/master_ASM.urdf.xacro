@@ -51,7 +51,7 @@ Stephen Brawner (brawner@gmail.com)
   <joint name="camera_joint" type="fixed">
     <child link="base_link"/>
     <parent link="zed2i_camera_link"/>
-    <origin xyz="-0.343 -0.009 -0.1254" rpy="0 0 0" /> <!-- TODO: we are not actually mounting the ZED parallel to the ground -->
+    <origin xyz="-0.343 -0.009 -0.1254" rpy="0 -0.52359878 0" />
   </joint>
 
   <gazebo reference="zed2i_camera_link">

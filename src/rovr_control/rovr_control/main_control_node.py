@@ -132,11 +132,11 @@ class MainControlNode(Node):
 
     async def calibrate_field_coordinates(self) -> None:
         """This method rotates until we can see apriltag(s) and then sets the map -> odom tf."""
-        self.get_logger().info("starting")
-        await asyncio.sleep(1)  # Start up delay
-        self.get_logger().info("past delay")
         if not self.field_calibrated:
             self.get_logger().info("Beginning search for apriltags")
+            while not self.cli_drivetrain_drive.wait_for_service():  # Wait for the drivetrain services to be available
+                self.get_logger().warn("Waiting for drivetrain services to become available...")
+                await asyncio.sleep(0.1)
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.15))
         while not self.field_calibrated:
             future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())

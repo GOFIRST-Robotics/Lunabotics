@@ -13,7 +13,9 @@ from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
 import xml.etree.ElementTree as ET
 
 # The threshold for the orientation of the tag to be considered close enough to the identity quaternion
-ORIENTATION_THRESHOLD = 0.01
+ORIENTATION_THRESHOLD = 0.02
+# The known quaternion when facing the tags head on
+KNOWN_QUATERNION = np.array([0.26524, 0.02248, 0.00328, 0.96391])
 
 class ApriltagNode(Node):
     def __init__(self):
@@ -90,8 +92,8 @@ class ApriltagNode(Node):
             xyz = xyz_values[0].split(" ")
             
             # If the quaternion of the tag is not close enough to the identity quaternion, skip it
-            self.get_logger().info(f"Norm of quaternion: {np.linalg.norm([tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w - 1])}")
-            if np.linalg.norm([tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w - 1]) > ORIENTATION_THRESHOLD:
+            tag_quaternion = np.array([tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w])
+            if np.linalg.norm(tag_quaternion - KNOWN_QUATERNION) > ORIENTATION_THRESHOLD:
                 continue
 
             # Build a vector containing the translation from the camera to the tag
@@ -107,10 +109,10 @@ class ApriltagNode(Node):
                 self.get_logger().info(f'Could not transform odom to zed2i_camera_link: {ex}')
                 return
 
-            # Set the transform's translation to the sum of the three translation vectors TODO: This only works when the robot is facing the tags
+            # Set the transform's translation to the sum of the three translation vectors
             t.transform.translation.x = tag_translation_vector[0] + known_translation_vector[0] - transform.transform.translation.x
             t.transform.translation.y = tag_translation_vector[1] + known_translation_vector[1] - transform.transform.translation.y
-            t.transform.translation.z = tag_translation_vector[2] + known_translation_vector[2] - transform.transform.translation.z
+            t.transform.translation.z = 0.0 # We don't care about the z translation because our robot can't move up or down
 
             transforms.append(t)
 
