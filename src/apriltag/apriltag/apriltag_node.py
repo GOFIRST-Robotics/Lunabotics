@@ -1,6 +1,5 @@
 import os
 import rclpy
-import numpy as np
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster, TransformException
 from tf2_ros.buffer import Buffer
