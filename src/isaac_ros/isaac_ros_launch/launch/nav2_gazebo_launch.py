@@ -18,6 +18,7 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -100,6 +101,12 @@ def generate_launch_description():
         }.items(),
     )
 
+    frame_id_renamer = Node(
+        package="isaac_ros_launch",
+        executable="frame_id_renamer",
+        name="frame_id_renamer",
+    )
+
     return LaunchDescription(
         [
             run_rviz_arg,
@@ -108,5 +115,6 @@ def generate_launch_description():
             rviz_launch,
             nav2_launch,
             robot_state_publisher,
+            frame_id_renamer,
         ]
     )
