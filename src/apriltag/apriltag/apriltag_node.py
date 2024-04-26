@@ -12,27 +12,23 @@ from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
 
 import xml.etree.ElementTree as ET
 
-# The threshold for the orientation of the tag to be considered close enough to the identity quaternion
-ORIENTATION_THRESHOLD = 0.02
-# The known quaternion when facing the tags head on
-KNOWN_QUATERNION = np.array([0.26524, 0.02248, 0.00328, 0.96391])
 
 class ApriltagNode(Node):
     def __init__(self):
         super().__init__("apriltag_node")
         current_dir = os.getcwd()
 
-        self.declare_parameter('autonomous_field_type', 'top') # The type of field ("top", "bottom", "nasa")
-        field_type = self.get_parameter('autonomous_field_type').value
+        self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
+        field_type = self.get_parameter("autonomous_field_type").value
         paths = {
             "top": "src/apriltag/apriltag/apriltag_location_ucf_top.urdf.xarco",
             "bottom": "src/apriltag/apriltag/apriltag_location_ucf_bot.urdf.xarco",
-            "nasa": "src/apriltag/apriltag/apriltag_location_nasa.urdf.xarco"
+            "nasa": "src/apriltag/apriltag/apriltag_location_nasa.urdf.xarco",
         }
         relative_path = paths[field_type]
         self.file_path = os.path.join(current_dir, relative_path)
 
-        self.averagedTag = None
+        self.map_to_odom_tf = None
 
         self.map_transform = TransformStamped()
         self.map_transform.child_frame_id = "odom"
@@ -58,7 +54,7 @@ class ApriltagNode(Node):
     # Service callback definition
     def reset_callback(self, request, response):
         """Run once, return success/ fail"""
-        response.success = bool(self.postTransform(self.averagedTag))
+        response.success = bool(self.postTransform(self.map_to_odom_tf))
         return response
 
     # Publish transform if the tag is detected
@@ -89,7 +85,7 @@ class ApriltagNode(Node):
             try:
                 odom_to_tag_transform = self.tf_buffer.lookup_transform("odom", f"{tag.family}:{id}", rclpy.time.Time())
             except TransformException as ex:
-                self.get_logger().warn(f'Could not transform odom to zed2i_camera_link: {ex}')
+                self.get_logger().warn(f"Could not transform odom to zed2i_camera_link: {ex}")
                 return
 
             odom_to_tag_transform.child_frame_id = "odom"
@@ -108,37 +104,7 @@ class ApriltagNode(Node):
             odom_to_tag_transform.transform.translation.x -= float(xyz[0])
             odom_to_tag_transform.transform.translation.y -= float(xyz[1])
 
-            # TODO: Bring back averaging tags if possible?
-
-            self.averagedTag = odom_to_tag_transform
-
-
-    # # TODO: Consider using an EKF instead of just averaging
-    # def averageTransforms(self, transforms, t):
-    #     # Computes the average of a list of transforms
-    #     x = 0
-    #     y = 0
-    #     z = 0
-    #     qx_sum = 0
-    #     qy_sum = 0
-    #     qz_sum = 0
-    #     qw_sum = 0
-    #     for transform in transforms:
-    #         x += transform.transform.translation.x
-    #         y += transform.transform.translation.y
-    #         z += transform.transform.translation.z
-    #         qx_sum += transform.transform.rotation.x
-    #         qy_sum += transform.transform.rotation.y
-    #         qz_sum += transform.transform.rotation.z
-    #         qw_sum += transform.transform.rotation.w
-    #     t.transform.translation.x = x / len(transforms)
-    #     t.transform.translation.y = y / len(transforms)
-    #     t.transform.translation.z = z / len(transforms)
-    #     t.transform.rotation.x = qx_sum / len(transforms)
-    #     t.transform.rotation.y = qy_sum / len(transforms)
-    #     t.transform.rotation.z = qz_sum / len(transforms)
-    #     t.transform.rotation.w = qw_sum / len(transforms)
-    #     return t
+            self.map_to_odom_tf = odom_to_tag_transform
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
