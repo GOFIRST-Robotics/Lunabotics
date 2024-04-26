@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.actions import ExecuteProcess
 
 
 # Launches the joystick node and the gstreamer camera client node on the team laptop
@@ -11,13 +12,12 @@ def generate_launch_description():
         executable="joy_node",
         parameters=["config/joy_node.yaml"],
     )
-
-    GStreamer_node = Node(
-        package="gstreamer",
-        executable="server",
-    )
+ 
+    start_gStreamer_client = ExecuteProcess(
+        cmd=['rqt', '--force-discover'],
+        shell=True, output='screen')
 
     ld.add_action(joystick_node)
-    ld.add_action(GStreamer_node)
+    ld.add_action(start_gStreamer_client)
 
     return ld
