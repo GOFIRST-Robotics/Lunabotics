@@ -108,16 +108,6 @@ class MainControlNode(Node):
         if future.result().success:
             self.field_calibrated = True
             self.get_logger().info("map -> odom TF published!")
-            # TODO: The stuff below should be removed when done testing
-            time.sleep(1)
-            goal_pose = PoseStamped()
-            goal_pose.header.frame_id = 'map'
-            goal_pose.header.stamp = self.nav2.get_clock().now().to_msg()
-            goal_pose.pose.position.x = 0.0
-            goal_pose.pose.position.y = 0.0
-            goal_pose.pose.orientation.w = 1.0
-            self.nav2.goToPose(goal_pose)
-            # TODO: The stuff above should be removed when done testing
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
