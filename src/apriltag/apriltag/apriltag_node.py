@@ -1,5 +1,6 @@
 import os
 import rclpy
+from scipy.spatial.transform import Rotation as R
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster, TransformException
 from tf2_ros.buffer import Buffer
@@ -80,6 +81,10 @@ class ApriltagNode(Node):
             xyz_values = [element.attrib["xyz"] for element in xyz_elements]
             xyz = xyz_values[0].split(" ")
 
+            rpy_elements = link.findall(".//origin[@rpy]")
+            rpy_values = [element.attrib["rpy"] for element in rpy_elements]
+            rpy = rpy_values[0].split(" ")
+
             # Lookup the odom to zed2i_camera_link tf from the tf buffer
             try:
                 odom_to_tag_transform = self.tf_buffer.lookup_transform("odom", f"{tag.family}:{id}", rclpy.time.Time())
@@ -91,13 +96,23 @@ class ApriltagNode(Node):
             odom_to_tag_transform.header.frame_id = "map"
             odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
 
-            odom_to_tag_transform.transform.rotation.x = 0.0
-            odom_to_tag_transform.transform.rotation.y = 0.0
-            odom_to_tag_transform.transform.rotation.z = 1.0
-            odom_to_tag_transform.transform.rotation.w = 0.0
+            # Apply a known rotation to the transform
+            rotation_quaternion = R.from_euler("xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True).as_quat()
+            current_quaternion = R.from_quat(
+                [
+                    odom_to_tag_transform.transform.rotation.x,
+                    odom_to_tag_transform.transform.rotation.y,
+                    odom_to_tag_transform.transform.rotation.z,
+                    odom_to_tag_transform.transform.rotation.w,
+                ]
+            ).as_quat()
+            rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
 
-            # We don't care about z because our robot can't move up or down
-            odom_to_tag_transform.transform.translation.z = 0.0
+            # Update the transform with the rotated quaternion
+            odom_to_tag_transform.transform.rotation.x = rotated_quaternion[0]
+            odom_to_tag_transform.transform.rotation.y = rotated_quaternion[1]
+            odom_to_tag_transform.transform.rotation.z = rotated_quaternion[2]
+            odom_to_tag_transform.transform.rotation.w = rotated_quaternion[3]
 
             # Use the known map coordinates of the apriltag as an offset
             odom_to_tag_transform.transform.translation.x -= float(xyz[0])
