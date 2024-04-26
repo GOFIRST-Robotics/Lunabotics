@@ -6,6 +6,7 @@ from tf2_ros import TransformBroadcaster
 from rovr_interfaces.srv import ResetOdom
 from geometry_msgs.msg import TransformStamped
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
+from scipy.spatial.transform import Rotation
 
 import xml.etree.ElementTree as ET
 
@@ -90,13 +91,22 @@ class ApriltagNode(Node):
             rpy_elements = link.findall(".//origin[@rpy]")
             rpy_values = [element.attrib["rpy"] for element in rpy_elements]
             rpy = rpy_values[0].split(" ")
+            
+            # Build a vector containing the translation from the camera to the tag
+            tag_translation_vector = [-tag.pose.pose.pose.position.z, tag.pose.pose.pose.position.y, tag.pose.pose.pose.position.x]
 
-            t.transform.translation.x = tag.pose.pose.pose.position.x - float(xyz[0])
-            t.transform.translation.y = tag.pose.pose.pose.position.y - float(xyz[1])
-            t.transform.translation.z = tag.pose.pose.pose.position.z - float(xyz[2])
-            t.transform.rotation.x = tag.pose.pose.pose.orientation.x - float(rpy[0])
-            t.transform.rotation.y = tag.pose.pose.pose.orientation.y - float(rpy[1])
-            t.transform.rotation.z = tag.pose.pose.pose.orientation.z - float(rpy[2])
+            # Build a vector containing the quaternion rotation from the camera to the tag
+            tag_quaternion = [tag.pose.pose.pose.orientation.x, tag.pose.pose.pose.orientation.y, tag.pose.pose.pose.orientation.z, tag.pose.pose.pose.orientation.w]
+            # Convert the quaternion to a rotation matrix and rotate the translation vector
+            tag_translation_vector = Rotation.from_quat(tag_quaternion).as_matrix() @ tag_translation_vector
+
+            # Build a vector containing the known translation from the origin of the field to the tag
+            known_translation_vector = [float(xyz[0]), float(xyz[1]), float(xyz[2])]
+
+            # Set the transform's translation to the sum of the two translation vectors
+            t.transform.translation.x = tag_translation_vector[0] + known_translation_vector[0]
+            t.transform.translation.y = tag_translation_vector[1] + known_translation_vector[1]
+            t.transform.translation.z = tag_translation_vector[2] + known_translation_vector[2]
 
             transforms.append(t)
 
