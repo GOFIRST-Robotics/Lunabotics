@@ -18,6 +18,7 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import (
@@ -114,7 +115,7 @@ def generate_launch_description():
             nvblox_launch,
             rviz_launch,
             nav2_launch,
+            robot_state_publisher,
             frame_id_renamer,
-            robot_state_publisher
         ]
     )
