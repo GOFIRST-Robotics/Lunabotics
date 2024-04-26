@@ -63,7 +63,20 @@ def generate_launch_description():
             "from_bag": LaunchConfiguration("from_bag"),
         }.items(),
     )
-
+    #odom transform
+    odom_transform = Node(
+        package="isaac_ros_launch",
+        executable="odom_publisher",
+        name="odom_publisher",
+        output="screen",
+    )
+    #map transform
+    map_transform = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=["--frame-id", "map", "--child-frame-id", "odom"],
+        output="screen",
+    )
     # Nvblox
     nvblox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(bringup_dir, "nvblox.launch.py")]),
@@ -116,6 +129,8 @@ def generate_launch_description():
             from_bag_arg,
             shared_container,
             zed_launch,
+            odom_transform,
+            map_transform,
             nvblox_launch,
             rviz_launch,
             nav2_launch,
