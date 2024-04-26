@@ -27,6 +27,9 @@ import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
 
+# Provides a “navigation as a library” capability
+from nav2_simple_commander.robot_navigator import BasicNavigator 
+
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
 
@@ -94,7 +97,7 @@ class MainControlNode(Node):
             self.autonomous_berm_location.pose.orientation.z = 0.0
 
         # Define timers here
-        self.apriltag_timer = self.create_timer(0.1, self.publish_odom_callback)
+        self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -135,15 +138,20 @@ class MainControlNode(Node):
         
         return dig_location
 
-    def publish_odom_callback(self) -> None:
+        self.started_calibration = False
+        self.field_calibrated = False
+        self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
+
+    def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
-        future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
-        future.add_done_callback(self.future_odom_callback)
+        if not self.started_calibration:
+            asyncio.ensure_future(self.calibrate_field_coordinates())
+            self.started_calibration = True
 
     def future_odom_callback(self, future) -> None:
         if future.result().success:
-            self.get_logger().info("Apriltag Odometry Published")
-            self.apriltag_timer.cancel()
+            self.field_calibrated = True
+            self.get_logger().info("map -> odom TF published!")
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -155,6 +163,22 @@ class MainControlNode(Node):
         """This method returns to teleop control."""
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
+
+    async def calibrate_field_coordinates(self) -> None:
+        """This method rotates until we can see apriltag(s) and then sets the map -> odom tf."""
+        if not self.field_calibrated:
+            self.get_logger().info("Beginning search for apriltags")
+            while not self.cli_drivetrain_drive.wait_for_service():  # Wait for the drivetrain services to be available
+                self.get_logger().warn("Waiting for drivetrain services to become available...")
+                await asyncio.sleep(0.1)
+            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.15))
+        while not self.field_calibrated:
+            future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
+            future.add_done_callback(self.future_odom_callback)
+            await asyncio.sleep(0.05)  # Allows other async tasks to continue running (this is non-blocking)
+        self.get_logger().info("Field Coordinates Calibrated!")
+        await self.cli_drivetrain_stop.call_async(Stop.Request())
+        self.apriltag_timer.cancel()
 
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:

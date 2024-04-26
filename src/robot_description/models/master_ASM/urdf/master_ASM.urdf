@@ -96,11 +96,30 @@ Stephen Brawner (brawner@gmail.com)
     <parent link="zed2i_right_camera_frame"/>
     <child link="zed2i_right_camera_optical_frame"/>
   </joint>
-  <joint name="camera_joint" type="fixed">
+
+  <!-- Connect the base_link to the new link with only a translation -->
+  <joint name="translation_end_to_base" type="fixed">
+    <parent link="translation_end_link"/>
     <child link="base_link"/>
-    <parent link="zed2i_camera_link"/>
-    <origin rpy="0 -0.52359878 0" xyz="-0.343 -0.009 -0.1254"/>
+    <origin xyz="-0.343 -0.009 0.1254" rpy="0 0 0"/>
   </joint>
+
+  <!-- Add a new link at the end of the translation vector -->
+  <link name="translation_end_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <!-- Connect the new link to the camera_link with only a rotation -->
+  <joint name="camera_to_translation_end" type="fixed">
+    <parent link="zed2i_camera_link"/>
+    <child link="translation_end_link"/>
+    <origin xyz="0 0 0" rpy="0 -0.52359878 0"/>
+  </joint>
+
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
       <!-- <visualize>true</visualize> -->
