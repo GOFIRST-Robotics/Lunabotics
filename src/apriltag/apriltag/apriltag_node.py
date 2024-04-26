@@ -133,22 +133,25 @@ class ApriltagNode(Node):
         x = 0
         y = 0
         z = 0
-        qx = 0
-        qy = 0
-        qz = 0
+        qx_sum = 0
+        qy_sum = 0
+        qz_sum = 0
+        qw_sum = 0
         for transform in transforms:
             x += transform.transform.translation.x
             y += transform.transform.translation.y
             z += transform.transform.translation.z
-            qx += transform.transform.rotation.x
-            qy += transform.transform.rotation.y
-            qz += transform.transform.rotation.z
+            qx_sum += transform.transform.rotation.x
+            qy_sum += transform.transform.rotation.y
+            qz_sum += transform.transform.rotation.z
+            qw_sum += transform.transform.rotation.w
         t.transform.translation.x = x / len(transforms)
         t.transform.translation.y = y / len(transforms)
         t.transform.translation.z = z / len(transforms)
-        t.transform.rotation.x = qx / len(transforms)
-        t.transform.rotation.y = qy / len(transforms)
-        t.transform.rotation.z = qz / len(transforms)
+        t.transform.rotation.x = qx_sum / len(transforms)
+        t.transform.rotation.y = qy_sum / len(transforms)
+        t.transform.rotation.z = qz_sum / len(transforms)
+        t.transform.rotation.w = qw_sum / len(transforms)
         return t
 
     def broadcast_transform(self):
