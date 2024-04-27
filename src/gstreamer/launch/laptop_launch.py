@@ -13,7 +13,7 @@ def generate_launch_description():
         parameters=["config/joy_node.yaml"],
     )
 
-    start_gStreamer_client = ExecuteProcess(cmd=["rqt", "--force-discover"], shell=True, output="screen")
+    start_gStreamer_client = ExecuteProcess(cmd=["rqt", "--force-discover", "--standalone", "CameraClient"], shell=True, output="screen")
 
     ld.add_action(joystick_node)
     ld.add_action(start_gStreamer_client)
