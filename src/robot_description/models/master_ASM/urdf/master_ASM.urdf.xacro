@@ -71,7 +71,8 @@ Stephen Brawner (brawner@gmail.com)
           <far>20.0</far>
         </clip>
       </camera>
-      <topic>camera</topic>
+      <topic>/color/image</topic>
+      <info_topic>/color/camera_info</info_topic>
     </sensor>
 
     <sensor name="depthcamera" type="depth">
@@ -90,7 +91,8 @@ Stephen Brawner (brawner@gmail.com)
           <far>20.0</far>
         </clip>
       </camera>
-      <topic>depth</topic>
+      <topic>/depth/image</topic>
+      <info_topic>/depth/camera_info</info_topic>
     </sensor>
 
     <sensor name="imu_sensor" type="imu">

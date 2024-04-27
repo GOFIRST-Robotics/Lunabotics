@@ -98,10 +98,7 @@ def generate_launch_description():
             SetRemap(src=["color/camera_info"], dst=["/front/stereo_camera/left/camera_info"], condition=setup_for_isaac_sim),
             SetRemap(src=["pointcloud"], dst=["/point_cloud"], condition=setup_for_isaac_sim),
             # Remappings for gazebo simulation data
-            SetRemap(src=["depth/image"], dst=["/depth_camera_image"], condition=setup_for_gazebo),
-            SetRemap(src=["depth/camera_info"], dst=["/depth_camera_info"], condition=setup_for_gazebo),
-            SetRemap(src=["color/image"], dst=["/color_camera_image"], condition=setup_for_gazebo),
-            SetRemap(src=["color/camera_info"], dst=["/color_camera_info"], condition=setup_for_gazebo),
+            
             # Include the node container
             load_composable_nodes,
         ]

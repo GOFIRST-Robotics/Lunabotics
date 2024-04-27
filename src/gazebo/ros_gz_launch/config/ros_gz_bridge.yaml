@@ -47,24 +47,28 @@
   gz_type_name: "ignition.msgs.Double"
   direction: ROS_TO_GZ
 
-- topic_name: "/camera"
+- gz_topic_name: "/color/image"
+  ros_topic_name: "/gazebo/color/image"
   ros_type_name: "sensor_msgs/msg/Image"
   gz_type_name: "ignition.msgs.Image"
-  direction: BIDIRECTIONAL
-- topic_name: "/camera_info"
+  direction: GZ_TO_ROS
+- gz_topic_name: "/color/camera_info"
+  ros_topic_name: "/gazebo/color/camera_info"
   ros_type_name: "sensor_msgs/msg/CameraInfo"
   gz_type_name: "ignition.msgs.CameraInfo"
-  direction: BIDIRECTIONAL
+  direction: GZ_TO_ROS
 
-- topic_name: "/depth"
+- gz_topic_name: "/depth/image"
+  ros_topic_name: "/gazebo/depth/image"
   ros_type_name: "sensor_msgs/msg/Image"
   gz_type_name: "ignition.msgs.Image"
-  direction: BIDIRECTIONAL
-- topic_name: "/depth/points"
-  ros_type_name: "sensor_msgs/msg/PointCloud2"
-  gz_type_name: "ignition.msgs.PointCloudPacked"
-  direction: BIDIRECTIONAL
-  
+  direction: GZ_TO_ROS
+- gz_topic_name: "/depth/camera_info"
+  ros_topic_name: "/gazebo/depth/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "ignition.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+
 - topic_name: "/imu"
   ros_type_name: "sensor_msgs/msg/Imu"
   gz_type_name: "ignition.msgs.IMU"
@@ -74,6 +78,7 @@
   ros_type_name: "nav_msgs/msg/Odometry"
   gz_type_name: "ignition.msgs.Odometry"
   direction: BIDIRECTIONAL
+
 - topic_name: "/tf"
   ros_type_name: "tf2_msgs/msg/TFMessage"
   gz_type_name: "ignition.msgs.Pose_V"
