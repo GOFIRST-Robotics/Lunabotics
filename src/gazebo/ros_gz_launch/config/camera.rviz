@@ -35,16 +35,33 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
+        zed2i_camera_center:
+          Value: true
+        zed2i_camera_link:
+          Value: true
+        zed2i_left_camera_frame:
+          Value: true
+        zed2i_left_camera_optical_frame:
+          Value: true
+        zed2i_right_camera_frame:
+          Value: true
+        zed2i_right_camera_optical_frame:
+          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        map:
-          odom:
-            base_link:
-              {}
+      map:
+        odom:
+          zed2i_camera_link:
+            base_link: {}
+            zed2i_camera_center:
+              zed2i_left_camera_frame:
+                zed2i_left_camera_optical_frame: {}
+              zed2i_right_camera_frame:
+                zed2i_right_camera_optical_frame: {}
       Update Interval: 0
       Value: true
     - Class: rviz_default_plugins/Image
