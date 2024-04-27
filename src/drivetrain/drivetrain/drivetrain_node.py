@@ -48,7 +48,7 @@ class SwerveModule:
     def set_state(self, power: float, angle: float) -> None:
         self.set_angle(angle)
         self.set_power(power)
-        if self.simulation:
+        if self.drivetrain.GAZEBO_SIMULATION:
             self.publish_gazebo(power, angle)
 
     def set_gazebo_pubs(self, wheel, swerve):
