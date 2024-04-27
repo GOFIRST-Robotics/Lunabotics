@@ -108,6 +108,14 @@ def generate_launch_description():
         name="frame_id_renamer",
     )
 
+    #map transform
+    map_transform = Node(
+        package="tf2_ros",
+        executable="static_transform_publisher",
+        arguments=["--frame-id", "map", "--child-frame-id", "odom"],
+        output="screen",
+    )
+
     return LaunchDescription(
         [
             run_rviz_arg,
@@ -117,5 +125,6 @@ def generate_launch_description():
             nav2_launch,
             robot_state_publisher,
             frame_id_renamer,
+            map_transform,
         ]
     )

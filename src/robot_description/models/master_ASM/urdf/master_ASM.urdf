@@ -141,14 +141,6 @@ Stephen Brawner (brawner@gmail.com)
       <topic>/depth/image</topic>
       <info_topic>/depth/camera_info</info_topic>
     </sensor>
-    <sensor name="imu_sensor" type="imu">
-      <always_on>1</always_on>
-      <update_rate>1</update_rate>
-      <visualize>true</visualize>
-      <topic>imu</topic>
-      <plugin filename="libignition-gazebo-imu-system.so" name="ignition::gazebo::systems::Imu">
-      </plugin>
-    </sensor>
   </gazebo>
   <link name="swerve1_Link">
     <inertial>
