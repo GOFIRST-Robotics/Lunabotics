@@ -100,9 +100,9 @@ Stephen Brawner (brawner@gmail.com)
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
     <child link="zed2i_camera_link"/>
-    <origin rpy="0 0.52359878 0" xyz="0.343 -0.009 -0.1254"/>
+    <origin rpy="0 0 0" xyz="0.343 -0.009 -0.1254"/>
   </joint>
-  <gazebo reference="zed2i_left_camera_frame">
+  <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
       <!-- <visualize>true</visualize> -->
       <always_on>true</always_on>
@@ -116,7 +116,7 @@ Stephen Brawner (brawner@gmail.com)
         </image>
         <clip>
           <near>0.3</near>
-          <far>20.0</far>
+          <far>5.0</far>
         </clip>
       </camera>
       <topic>/color/image</topic>
