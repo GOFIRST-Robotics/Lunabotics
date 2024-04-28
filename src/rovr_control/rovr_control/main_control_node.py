@@ -28,7 +28,7 @@ import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
 
 # Provides a “navigation as a library” capability
-from nav2_simple_commander.robot_navigator import BasicNavigator 
+from nav2_simple_commander.robot_navigator import BasicNavigator
 
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
@@ -97,7 +97,7 @@ class MainControlNode(Node):
             self.autonomous_berm_location.pose.orientation.z = 0.0
 
         # Define timers here
-        self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
+        self.apriltag_timer = None
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -118,9 +118,9 @@ class MainControlNode(Node):
             Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
         )
 
+        self.started_calibration = False
+        self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
-        # self.nav2 .setInitialPose(initial_pose)  # TODO: Is this line needed or no?
-        self.nav2.waitUntilNav2Active()  # Wait for the nav2 stack to become active
 
     def optimal_dig_location(self) -> PoseStamped:  
         """This method gets the starting dig location and orientation of the robot."""
@@ -137,10 +137,6 @@ class MainControlNode(Node):
         
         
         return dig_location
-
-        self.started_calibration = False
-        self.field_calibrated = False
-        self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
@@ -179,6 +175,7 @@ class MainControlNode(Node):
         self.get_logger().info("Field Coordinates Calibrated!")
         await self.cli_drivetrain_stop.call_async(Stop.Request())
         self.apriltag_timer.cancel()
+        self.end_autonomous()  # Return to Teleop mode
 
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
@@ -301,6 +298,17 @@ class MainControlNode(Node):
                 self.cli_lift_set_power.call_async(SetPower.Request(power=-self.skimmer_lift_manual_power))
             elif msg.buttons[LEFT_TRIGGER] == 0 and buttons[LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
+
+            # Check if the Apriltag calibration button is pressed
+            if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+                # Start the field calibration process
+                self.started_calibration = False
+                self.field_calibrated = False
+                self.state = states["Autonomous"]  # Exit Teleop mode
+                if not self.apriltag_timer:
+                    self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
+                else:
+                    self.apriltag_timer.reset()
 
         # THE CONTROLS BELOW ALWAYS WORK #
 

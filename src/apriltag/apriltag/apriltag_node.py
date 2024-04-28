@@ -97,7 +97,9 @@ class ApriltagNode(Node):
             odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
 
             # Apply a known rotation to the transform
-            rotation_quaternion = R.from_euler("xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True).as_quat()
+            rotation_quaternion = R.from_euler(
+                "xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True
+            ).as_quat()
             current_quaternion = R.from_quat(
                 [
                     odom_to_tag_transform.transform.rotation.x,
