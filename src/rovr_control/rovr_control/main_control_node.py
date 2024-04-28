@@ -7,10 +7,12 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor  # This is needed to run multiple callbacks in a single thread
+
+# Provides a “navigation as a library” capability
 from nav2_simple_commander.robot_navigator import (
     BasicNavigator,
     TaskResult,
-)  # Provides a “navigation as a library” capability
+)
 
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist, Vector3, PoseStamped
@@ -26,9 +28,6 @@ import asyncio  # Allows the use of asynchronous methods!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
-
-# Provides a “navigation as a library” capability
-from nav2_simple_commander.robot_navigator import BasicNavigator
 
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
@@ -83,6 +82,8 @@ class MainControlNode(Node):
 
         # Define berm zone locations
         self.autonomous_berm_location = PoseStamped()
+        self.autonomous_berm_location.header.frame_id = "map"
+        self.autonomous_berm_location.header.stamp = self.get_clock().now().to_msg()
         if self.autonomous_field_type == "top":
             self.autonomous_berm_location.pose.position.x = 6.84
             self.autonomous_berm_location.pose.position.y = 3.57
@@ -122,20 +123,21 @@ class MainControlNode(Node):
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-    def optimal_dig_location(self) -> PoseStamped:  
+    def optimal_dig_location(self) -> PoseStamped:
         """This method gets the starting dig location and orientation of the robot."""
         dig_location = PoseStamped()
-        
-        #TODO: Determine Alogorithm for dig location
-        #https://navigation.ros.org/commander_api/index.html
+        self.dig_location.header.frame_id = "map"
+        self.dig_location.header.stamp = self.get_clock().now().to_msg()
+
+        # TODO: Determine Alogorithm for dig location
+        # https://navigation.ros.org/commander_api/index.html
         costmap = self.nav2.getGlobalCostmap()
-        
-        #Compute dig location and orientation
-        dig_location.pose.position.x = 0
-        dig_location.pose.position.y = 0
+
+        # Compute dig location and orientation
+        dig_location.pose.position.x = 0.0
+        dig_location.pose.position.y = 0.0
         dig_location.pose.orientation.z = 0.0
-        
-        
+
         return dig_location
 
     def start_calibration_callback(self) -> None:
@@ -167,7 +169,9 @@ class MainControlNode(Node):
             while not self.cli_drivetrain_drive.wait_for_service():  # Wait for the drivetrain services to be available
                 self.get_logger().warn("Waiting for drivetrain services to become available...")
                 await asyncio.sleep(0.1)
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.15))
+            await self.cli_drivetrain_drive.call_async(
+                Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.15)
+            )
         while not self.field_calibrated:
             future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
             future.add_done_callback(self.future_odom_callback)
@@ -203,8 +207,7 @@ class MainControlNode(Node):
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Autonomous Digging Procedure Complete!\n")
-            
-            if (self.autonomous_cycle_process == None):
+            if self.autonomous_cycle_process == None:
                 self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().info("Autonomous Digging Procedure Terminated\n")
@@ -226,7 +229,7 @@ class MainControlNode(Node):
             await asyncio.sleep(10)  # How long to offload for # TODO: Use the RealSense check_load node instead?
             await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
-            if (self.autonomous_cycle_process == None):
+            if self.autonomous_cycle_process == None:
                 self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().info("Autonomous Offload Procedure Terminated\n")
@@ -249,7 +252,6 @@ class MainControlNode(Node):
             )  # Start the auto dig process
             while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-                
             self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
             while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
