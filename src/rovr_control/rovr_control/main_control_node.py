@@ -24,7 +24,7 @@ import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
 
 # Provides a “navigation as a library” capability
-from nav2_simple_commander.robot_navigator import BasicNavigator 
+from nav2_simple_commander.robot_navigator import BasicNavigator
 
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
@@ -35,7 +35,7 @@ from .gamepad_constants import *
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
-states = {"Teleop": 0, "Auto_Dig": 1, "Auto_Offload": 2}
+states = {"Teleop": 0, "Auto_Dig": 1, "Auto_Offload": 2, "Calibrating": 3}
 
 
 class MainControlNode(Node):
@@ -74,7 +74,7 @@ class MainControlNode(Node):
         self.skimmer_goal_reached = True
 
         # Define timers here
-        self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
+        self.apriltag_timer = None
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -134,6 +134,7 @@ class MainControlNode(Node):
         self.get_logger().info("Field Coordinates Calibrated!")
         await self.cli_drivetrain_stop.call_async(Stop.Request())
         self.apriltag_timer.cancel()
+        self.end_autonomous()  # Return to Teleop mode
 
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
@@ -210,6 +211,17 @@ class MainControlNode(Node):
                 self.cli_lift_set_power.call_async(SetPower.Request(power=-self.skimmer_lift_manual_power))
             elif msg.buttons[LEFT_TRIGGER] == 0 and buttons[LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
+
+            # Check if the Apriltag calibration button is pressed
+            if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+                # Start the field calibration process
+                self.started_calibration = False
+                self.field_calibrated = False
+                self.state = states["Calibrating"]  # Exit Teleop mode
+                if not self.apriltag_timer:
+                    self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
+                else:
+                    self.apriltag_timer.reset()
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
