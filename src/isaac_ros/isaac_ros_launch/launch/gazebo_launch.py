@@ -13,6 +13,7 @@ def generate_launch_description():
         launch_arguments={
             "setup_for_zed": "False",
             "setup_for_gazebo": "True",
+            "use_nvblox": "False",
         }.items(),
     )
 
