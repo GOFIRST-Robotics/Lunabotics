@@ -45,30 +45,13 @@ Stephen Brawner (brawner@gmail.com)
     </collision>
   </link>
 
-  <!-- Connect the base_link to the new link with only a translation -->
-  <joint name="translation_end_to_base" type="fixed">
-    <parent link="translation_end_link"/>
-    <child link="base_link"/>
-    <origin xyz="-0.343 -0.009 0.1254" rpy="0 0 0"/>
-  </joint>
-
-  <!-- Add a new link at the end of the translation vector -->
-  <link name="translation_end_link">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.001"/>
-      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
-    </inertial>
-  </link>
-
-  <!-- Connect the new link to the camera_link with only a rotation -->
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
   <xacro:zed_camera name="zed2i" model="zed2i">
   </xacro:zed_camera>
-  <joint name="camera_to_translation_end" type="fixed">
-    <parent link="zed2i_camera_link"/>
-    <child link="translation_end_link"/>
-    <origin xyz="0 0 0" rpy="0 -0.52359878 0"/>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="zed2i_camera_link"/>
+    <origin xyz="0.343 -0.009 -0.1254" rpy="0 -0.52359878 0" />
   </joint>
 
   <gazebo reference="zed2i_camera_link">
@@ -77,7 +60,27 @@ Stephen Brawner (brawner@gmail.com)
       <always_on>true</always_on>
       <update_rate>30</update_rate>
       <camera>
-        <horizontal_fov>1.91986218</horizontal_fov>
+        <horizontal_fov>1.91986218</horizontal_fov> 
+        <image>
+          <format>R8G8B8</format>
+          <width>1280</width>
+          <height>720</height>
+        </image>
+        <clip>
+          <near>0.3</near>
+          <far>5.0</far>
+        </clip>
+      </camera>
+      <topic>/color/image</topic>
+      <info_topic>/color/camera_info</info_topic>
+    </sensor>
+
+    <sensor name="depthcamera" type="depth">
+      <!-- <visualize>true</visualize> -->
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+      <camera>
+        <horizontal_fov>1.91986218</horizontal_fov> 
         <image>
           <format>R8G8B8</format>
           <width>1280</width>
@@ -88,16 +91,10 @@ Stephen Brawner (brawner@gmail.com)
           <far>20.0</far>
         </clip>
       </camera>
-      <topic>camera</topic>
+      <topic>/depth/image</topic>
+      <info_topic>/depth/camera_info</info_topic>
     </sensor>
-    <sensor name="imu_sensor" type="imu">
-      <always_on>1</always_on>
-      <update_rate>1</update_rate>
-      <visualize>true</visualize>
-      <topic>imu</topic>
-      <plugin filename="libignition-gazebo-imu-system.so" name="ignition::gazebo::systems::Imu">
-      </plugin>
-    </sensor>
+    
   </gazebo>
 
   <link
