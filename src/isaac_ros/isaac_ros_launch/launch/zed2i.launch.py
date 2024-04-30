@@ -49,7 +49,7 @@ def generate_launch_description():
 
     record_svo_arg = DeclareLaunchArgument(
         "record_svo",
-        default_value="True",  # TODO: Set this to false by default when done testing
+        default_value="False",
         description="Whether to record ZED data to an SVO file",
     )
 
@@ -107,7 +107,7 @@ def generate_launch_description():
                 " service call ",
                 "/zed2i/zed_node/start_svo_rec ",
                 "zed_interfaces/srv/StartSvoRec ",
-                f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",  # TODO: Tune this bitrate to get good results!
+                f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",  # Tune this bitrate to adjust file size
             ]
         ],
         shell=True,
