@@ -73,13 +73,6 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
     )
 
-    frame_id_renamer = Node(
-        package="isaac_ros_launch",
-        executable="frame_id_renamer",
-        name="frame_id_renamer",
-        condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
-    )
-
     # Nvblox
     nvblox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(bringup_dir, "nvblox.launch.py")]),
@@ -145,7 +138,6 @@ def generate_launch_description():
             nav2_launch,
             zed_launch,
             gazebo_launch,
-            frame_id_renamer,
             rviz_launch,
         ]
     )
