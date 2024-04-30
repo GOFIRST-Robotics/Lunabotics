@@ -2,6 +2,8 @@ import rclpy
 from rclpy.node import Node
 from PIL import Image
 import numpy as np
+from geometry_msgs.msg import PoseStamped, Point, Quaternion
+
 from nav2_simple_commander.robot_navigator import (
     BasicNavigator,
     TaskResult,
@@ -10,6 +12,17 @@ from nav2_simple_commander.robot_navigator import (
 # Provides a “navigation as a library” capability
 
 #https://navigation.ros.org/commander_api/index.html
+
+# driveOnHeading(dist=0.15, speed=0.025, time_allowance=10)
+
+
+def create_pose_stamped(x, y, z, qx, qy, qz, qw):
+    pose_stamped_msg = PoseStamped()
+    pose_stamped_msg.pose.position = Point(x, y, z)
+    pose_stamped_msg.pose.orientation = Quaternion(qx, qy, qz, qw)
+    return pose_stamped_msg
+
+
 class test_auto(Node):
     def __init__(self):
         super().__init__('test_auto')
@@ -36,10 +49,13 @@ class test_auto(Node):
             self.nav2.goTo((location * RESOLUTION) + OFFSET_X, 4.47, 180)
 
             self.nav2.goTo(DUMPZONE, 0)
-            self.DUMP()
+            self.dump()
 
         
         return TaskResult.SUCCESS
+    
+    def dump(self):
+        self.nav2.goToPose()
         
 
     def optimal_dig_location(self):
