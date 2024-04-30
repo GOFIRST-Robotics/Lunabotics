@@ -16,6 +16,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+from datetime import datetime
 
 from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration, FindExecutable
@@ -92,14 +93,21 @@ def generate_launch_description():
         ],
     )
 
+    # Get the current date and time
+    now = datetime.now()
+    # Format as a string
+    timestamp_str = now.strftime("%m-%d-%Y_%H:%M:%S")
+    # Add the timestamp to the svo filename
+    svo_filename = f"match_recording_{timestamp_str}.svo"
+
     record_svo_srv = ExecuteProcess(
         cmd=[
             [
                 FindExecutable(name="ros2"),
                 " service call ",
-                "/zed/zed_node/start_svo_rec ",
+                "/zed2i/zed_node/start_svo_rec ",
                 "zed_interfaces/srv/StartSvoRec ",
-                "\"{compression_mode: 2, bitrate: 2000, svo_filename: 'match_recording.svo'}\"",  # TODO: Tune this bitrate to get good results!
+                f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",  # TODO: Tune this bitrate to get good results!
             ]
         ],
         shell=True,
@@ -108,12 +116,12 @@ def generate_launch_description():
 
     stop_svo_recording = RegisterEventHandler(
         event_handler=OnShutdown(
-            target_action=ExecuteProcess(
+            on_shutdown=ExecuteProcess(
                 cmd=[
                     [
                         FindExecutable(name="ros2"),
                         " service call ",
-                        "/zed/zed_node/stop_svo_rec ",
+                        "/zed2i/zed_node/stop_svo_rec ",
                         "std_srvs/srv/Trigger ",
                     ]
                 ],
