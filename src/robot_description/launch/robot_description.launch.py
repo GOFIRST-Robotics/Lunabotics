@@ -28,4 +28,11 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([robot_state_publisher])
+    jsp_node = Node(
+        package="joint_state_publisher",
+        executable="joint_state_publisher",
+        name="joint_state_publisher",
+        output="both",
+    )
+    
+    return LaunchDescription([robot_state_publisher, jsp_node])
