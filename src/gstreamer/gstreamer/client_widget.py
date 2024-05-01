@@ -60,19 +60,20 @@ class ClientWidget(QWidget):
     def wait_cli(self,cli:Client,req):
         future = cli.call_async(req)
         start_time = self.node.get_clock().now().nanoseconds
-        while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:
-            pass
+        # while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:
+        #     pass
         if not future.done():
             print("Service call failed")
-            return
+            # return
         self.node.destroy_client(cli)
         self.restart_window()
+        return
     
     @Slot()
     def on_camera1_push_button_clicked(self):
         req = SetActiveCamera.Request()
-        req.srctype = "videotestsrc"
-        req.device = "0"
+        req.srctype = "v4l2src"
+        req.device = "/dev/video1"
         req.width = 640
         req.height = 480
         req.framerate = 30

@@ -43,7 +43,7 @@ class ServerNode(Node):
         if self.g_server is not None:
             print("Stopping server")
             self.g_server.stop()
-            time.sleep(5) #wait for server to completely shut down
+            # time.sleep(5) #wait for server to completely shut down
         if self.ip_srv is None:
             print("No client ip set")
             return -1

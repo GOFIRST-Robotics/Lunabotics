@@ -21,17 +21,21 @@ class GstreamerServer:
             camera_src.set_property("device", camera_srv.device)
         self.pipeline.add(camera_src)
 
-        caps = Gst.Caps.from_string(
-            f"video/x-raw, \
-            width={camera_srv.width}, \
-            height={camera_srv.height}, \
-            framerate={camera_srv.framerate}/1, \
-            format={camera_srv.format}"
-        )
-        src_caps = Gst.ElementFactory.make("capsfilter", "src_caps")
-        src_caps.set_property("caps", caps)
-        self.pipeline.add(src_caps)
-        camera_src.link(src_caps)
+        # caps = Gst.Caps.from_string(
+        #     f"video/x-raw, \
+        #     width={camera_srv.width}, \
+        #     height={camera_srv.height}, \
+        #     framerate={camera_srv.framerate}/1, \
+        #     format={camera_srv.format}"
+        # )
+        # src_caps = Gst.ElementFactory.make("capsfilter", "src_caps")
+        # src_caps.set_property("caps", caps)
+        # self.pipeline.add(src_caps)
+        # camera_src.link(src_caps)
+        
+        nonNVvideoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
+        self.pipeline.add(nonNVvideoconvert)
+        camera_src.link(nonNVvideoconvert)
 
         if platform.machine() == "aarch64":
             videoconvert = Gst.ElementFactory.make("nvvidconv", "nvvidconv")
@@ -40,7 +44,7 @@ class GstreamerServer:
         else:
             sys.exit(1)
         self.pipeline.add(videoconvert)
-        src_caps.link(videoconvert)
+        nonNVvideoconvert.link(videoconvert)
 
         udp_sink = Gst.ElementFactory.make("udpsink", "udpsink")
         udp_sink.set_property("host", ip_srv.client_ip)
