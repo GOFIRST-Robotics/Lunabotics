@@ -36,7 +36,6 @@ class FramePublisher(Node):
 
         # Read message content and assign it to
         # corresponding tf variables
-        odom_to_base_tf.header.stamp = self.get_clock().now().to_msg()
         odom_to_base_tf.header.frame_id = "odom"
         odom_to_base_tf.child_frame_id = "base_link"
 
@@ -79,6 +78,7 @@ class FramePublisher(Node):
         odom_to_base_tf.transform.rotation.w = odom_tf_rot.as_quat()[3]
 
         # Send the transformation
+        odom_to_base_tf.header.stamp = self.get_clock().now().to_msg()
         self.tf_broadcaster.sendTransform(odom_to_base_tf)
 
 

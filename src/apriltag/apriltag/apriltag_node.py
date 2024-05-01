@@ -49,7 +49,7 @@ class ApriltagNode(Node):
         self.create_service(ResetOdom, "resetOdom", self.reset_callback)
 
         # Create a timer to broadcast the map -> odom transform
-        self.timer = self.create_timer(0.1, self.broadcast_transform)
+        self.timer = self.create_timer(0.02, self.broadcast_transform)
 
     # Service callback definition
     def reset_callback(self, request, response):
