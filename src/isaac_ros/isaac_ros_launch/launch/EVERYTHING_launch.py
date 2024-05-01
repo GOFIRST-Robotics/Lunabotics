@@ -1,21 +1,17 @@
 import os
 
-from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.substitutions import Command
-from launch_ros.actions import ComposableNodeContainer, Node
-from launch_ros.descriptions import ComposableNode
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.conditions import IfCondition
+from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
-
-from nav2_common.launch import RewrittenYaml
+from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
     ld = LaunchDescription()
+
+    bringup_dir = get_package_share_directory("isaac_ros_launch")
 
     # The CAN controllers need to be wired up and CAN modules enabled for this ROS 2 node to work
     ros2socketcan_bridge = Node(
@@ -35,147 +31,12 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    # This ROS 2 Node processes apriltag detections and resets our odometry
-    tag_reader = Node(
-        package="apriltag",
-        executable="apriltag_node",
-        name="apriltag_node",
-    )
-
-    # ISAAC ROS Apriltag for detecting apriltags
-    apriltag_node = ComposableNode(
-        package="isaac_ros_apriltag",
-        plugin="nvidia::isaac_ros::apriltag::AprilTagNode",
-        name="isaac_ros_apriltag",
-        namespace="",
-        remappings=[("image", "zed_node/left/image_rect_color_rgb"), ("camera_info", "zed_node/left/camera_info")],
-    )
-    image_format_converter_node_left = ComposableNode(
-        package="isaac_ros_image_proc",
-        plugin="nvidia::isaac_ros::image_proc::ImageFormatConverterNode",
-        name="image_format_node_left",
-        parameters=[
-            {
-                "encoding_desired": "rgb8",
-            }
-        ],
-        remappings=[("image_raw", "zed_node/left/image_rect_color"), ("image", "zed_node/left/image_rect_color_rgb")],
-    )
-    apriltag_container = ComposableNodeContainer(
-        package="rclcpp_components",
-        name="apriltag_container",
-        namespace="",
-        executable="component_container_mt",
-        composable_node_descriptions=[apriltag_node, image_format_converter_node_left],
-        output="screen",
-    )
-
-    # The zed camera model name: zed, zed2, zed2i, zedm, zedx or zedxm
-    camera_model = "zed2i"
-
-    # URDF/xacro file to be loaded by the Robot State Publisher node
-    xacro_path = os.path.join(get_package_share_directory("zed_wrapper"), "urdf", "zed_descr.urdf.xacro")
-
-    # ZED Configurations to be loaded by ZED Node
-    config_common = os.path.join(get_package_share_directory("isaac_ros_apriltag"), "config", "zed.yaml")
-    config_camera = os.path.join(get_package_share_directory("zed_wrapper"), "config", camera_model + ".yaml")
-
-    # Robot State Publisher node
-    rsp_node = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="zed_state_publisher",
-        output="screen",
-        parameters=[
-            {
-                "robot_description": Command(
-                    ["xacro", " ", xacro_path, " ", "camera_name:=", camera_model, " ", "camera_model:=", camera_model]
-                )
-            }
-        ],
-    )
-    # ZED node using manual composition
-    zed_node = Node(
-        package="zed_wrapper",
-        executable="zed_wrapper",
-        output="screen",
-        parameters=[
-            config_common,  # Common parameters
-            config_camera,  # Camera related parameters
-        ],
-    )
-    bringup_dir = get_package_share_directory("isaac_ros_launch")
-    nav2_bringup_dir = get_package_share_directory("nav2_bringup")
-    # Launch Arguments
-    run_rviz_arg = DeclareLaunchArgument("run_rviz", default_value="True", description="Whether to start RVIZ")
-    from_bag_arg = DeclareLaunchArgument(
-        "from_bag",
-        default_value="False",
-        description="Whether to run from a bag or live zed data",
-    )
-    global_frame = LaunchConfiguration("global_frame", default="odom")
-    # Create a shared container to hold composable nodes
-    # for speed ups through intra process communication.
-    shared_container_name = "shared_nvblox_container"
-    shared_container = Node(
-        name=shared_container_name,
-        package="rclcpp_components",
-        executable="component_container_mt",
-        output="screen",
-    )
-    # This is the ROS 2 wrapper for the ZED stereo depth camera
-    # Note: This was only officially tested with a ZED 2i camera so far.
-    zed_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(bringup_dir, "zed2i.launch.py")]),
+    isaac_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(bringup_dir, "isaac_launch.py")),
         launch_arguments={
-            "attach_to_shared_component_container": "True",
-            "component_container_name": shared_container_name,
-            "from_bag": LaunchConfiguration("from_bag"),
-        }.items(),
-    )
-
-    # ISAAC ROS Nvblox (for SLAM and localization)
-    nvblox_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(bringup_dir, "nvblox.launch.py")]),
-        launch_arguments={
-            "global_frame": global_frame,
             "setup_for_zed": "True",
-            "attach_to_shared_component_container": "True",
-            "component_container_name": shared_container_name,
-        }.items(),
-    )
-    # Rviz (for visualization)
-    rviz_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                os.path.join(
-                    bringup_dir,
-                    "rviz.launch.py",
-                )
-            ]
-        ),
-        launch_arguments={
-            "config_name": "zed_example.rviz",
-            "global_frame": global_frame,
-        }.items(),
-        condition=IfCondition(LaunchConfiguration("run_rviz")),
-    )
-    # Nav2 Parameters
-    nav2_param_file = os.path.join("config", "nav2_isaac_sim.yaml")
-    param_substitutions = {"global_frame": LaunchConfiguration("global_frame", default="odom")}
-    configured_params = RewrittenYaml(
-        source_file=nav2_param_file,
-        root_key="",
-        param_rewrites=param_substitutions,
-        convert_types=True,
-    )
-    # Nav2 Path Planning and Navigation
-    nav2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")),
-        launch_arguments={
-            "use_sim_time": "False",
-            "params_file": configured_params,
-            "autostart": "True",
+            "setup_for_gazebo": "False",
+            "use_nvblox": "True",
         }.items(),
     )
 
@@ -241,23 +102,12 @@ def generate_launch_description():
     # Add all of the actions to the launch description
     ld.add_action(ros2socketcan_bridge)
     ld.add_action(read_serial)
-    ld.add_action(tag_reader)
-    ld.add_action(apriltag_container)
-    ld.add_action(rsp_node)
-    ld.add_action(zed_node)
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
     ld.add_action(drivetrain)
     ld.add_action(skimmer)
     ld.add_action(realsense)
     ld.add_action(check_load)
-    ld.add_action(run_rviz_arg)
-    ld.add_action(from_bag_arg)
-    ld.add_action(shared_container)
-    ld.add_action(zed_launch)
-    ld.add_action(nvblox_launch)
-    ld.add_action(rviz_launch)
-    ld.add_action(nav2_launch)
-
+    ld.add_action(isaac_launch)
     # Return the launch description
     return ld
