@@ -35,6 +35,11 @@ def generate_launch_description():
         default_value="True",
         description="Whether to run nvblox",
     )
+    record_svo_arg = DeclareLaunchArgument(
+        "record_svo",
+        default_value="False",
+        description="Whether to record a ZED svo file",
+    )
 
     global_frame = LaunchConfiguration("global_frame", default="odom")
 
@@ -55,6 +60,7 @@ def generate_launch_description():
         launch_arguments={
             "attach_to_shared_component_container": "True",
             "component_container_name": shared_container_name,
+            "record_svo": record_svo_arg,
         }.items(),
         condition=IfCondition(LaunchConfiguration("setup_for_zed")),
     )
