@@ -20,22 +20,23 @@ class GstreamerServer:
         else:
             camera_src.set_property("device", camera_srv.device)
         self.pipeline.add(camera_src)
-
-        # caps = Gst.Caps.from_string(
-        #     f"video/x-raw, \
-        #     width={camera_srv.width}, \
-        #     height={camera_srv.height}, \
-        #     framerate={camera_srv.framerate}/1, \
-        #     format={camera_srv.format}"
-        # )
-        # src_caps = Gst.ElementFactory.make("capsfilter", "src_caps")
-        # src_caps.set_property("caps", caps)
-        # self.pipeline.add(src_caps)
-        # camera_src.link(src_caps)
         
         nonNVvideoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
         self.pipeline.add(nonNVvideoconvert)
         camera_src.link(nonNVvideoconvert)
+
+        caps = Gst.Caps.from_string(
+            f"video/x-raw, \
+            width=(int){camera_srv.width}, \
+            height=(int){camera_srv.height}, \
+            framerate=(fraction){camera_srv.framerate}/1, \
+            format=(string){camera_srv.format}"
+        )
+        src_caps = Gst.ElementFactory.make("capsfilter", "src_caps")
+        src_caps.set_property("caps", caps)
+        self.pipeline.add(src_caps)
+        nonNVvideoconvert.link(src_caps)
+        
 
         if platform.machine() == "aarch64":
             videoconvert = Gst.ElementFactory.make("nvvidconv", "nvvidconv")
@@ -44,7 +45,7 @@ class GstreamerServer:
         else:
             sys.exit(1)
         self.pipeline.add(videoconvert)
-        nonNVvideoconvert.link(videoconvert)
+        src_caps.link(videoconvert)
 
         udp_sink = Gst.ElementFactory.make("udpsink", "udpsink")
         udp_sink.set_property("host", ip_srv.client_ip)
@@ -58,6 +59,7 @@ class GstreamerServer:
 
     def init_h265(self, input, sink):
         # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)1920, height=(int)1080, format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h265enc ! rtph265pay ! udpsink host=127.0.0.1 port=5000
+        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480, format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h265enc ! rtph265pay ! udpsink host=127.0.0.1 port=5000
         nvv4l2h265enc = Gst.ElementFactory.make("nvv4l2h265enc", "nvv4l2h265enc")
         self.pipeline.add(nvv4l2h265enc)
         input.link(nvv4l2h265enc)

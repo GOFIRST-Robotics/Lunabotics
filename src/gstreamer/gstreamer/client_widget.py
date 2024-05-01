@@ -13,7 +13,7 @@ import struct
 from rqt_py_common.extended_combo_box import ExtendedComboBox
 
 class ClientWidget(QWidget):
-    timeout = 2e9 # 2 seconds with nano seconds as unit
+    timeout = 5e9 # 2 seconds with nano seconds as unit
     encodings = ["h265", "av1"]
     def __init__(self, node: Node):
         super(ClientWidget, self).__init__()
@@ -60,20 +60,24 @@ class ClientWidget(QWidget):
     def wait_cli(self,cli:Client,req):
         future = cli.call_async(req)
         start_time = self.node.get_clock().now().nanoseconds
-        # while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:
-        #     pass
+        #test with jetson if commenting out line 68 fix
+        self.restart_window()
+
+        while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:
+            pass
         if not future.done():
             print("Service call failed")
             # return
+        if future.done():
+            print(f"returned {future.result()}")
         self.node.destroy_client(cli)
-        self.restart_window()
         return
     
     @Slot()
     def on_camera1_push_button_clicked(self):
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video1"
+        req.device = "/dev/video0"
         req.width = 640
         req.height = 480
         req.framerate = 30
