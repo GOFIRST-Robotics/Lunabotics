@@ -50,7 +50,7 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("skimmer_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("skimmer_belt_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_lift_manual_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
 
@@ -83,19 +83,27 @@ class MainControlNode(Node):
         # Define berm zone locations
         self.autonomous_berm_location = PoseStamped()
         self.autonomous_berm_location.header.frame_id = "map"
-        self.autonomous_berm_location.header.stamp = self.get_clock().now().to_msg()
         if self.autonomous_field_type == "top":
-            self.autonomous_berm_location.pose.position.x = 6.84
+            self.autonomous_berm_location.pose.position.x = -6.84
             self.autonomous_berm_location.pose.position.y = 3.57
+            self.autonomous_berm_location.pose.orientation.x = 0.0
+            self.autonomous_berm_location.pose.orientation.y = 0.0
             self.autonomous_berm_location.pose.orientation.z = 0.0
+            self.autonomous_berm_location.pose.orientation.w = 1.0
         elif self.autonomous_field_type == "bottom":
-            self.autonomous_berm_location.pose.position.x = 6.84
+            self.autonomous_berm_location.pose.position.x = -6.84
             self.autonomous_berm_location.pose.position.y = 1.0
+            self.autonomous_berm_location.pose.orientation.x = 0.0
+            self.autonomous_berm_location.pose.orientation.y = 0.0
             self.autonomous_berm_location.pose.orientation.z = 0.0
+            self.autonomous_berm_location.pose.orientation.w = 1.0
         elif self.autonomous_field_type == "nasa":
-            self.autonomous_berm_location.pose.position.x = 1.3
+            self.autonomous_berm_location.pose.position.x = -1.3
             self.autonomous_berm_location.pose.position.y = 0.6
+            self.autonomous_berm_location.pose.orientation.x = 0.0
+            self.autonomous_berm_location.pose.orientation.y = 0.0
             self.autonomous_berm_location.pose.orientation.z = 0.0
+            self.autonomous_berm_location.pose.orientation.w = 1.0
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
@@ -194,7 +202,7 @@ class MainControlNode(Node):
             await self.cli_drivetrain_drive.call_async(
                 Drive.Request(forward_power=self.autonomous_driving_power, horizontal_power=0.0, turning_power=0.0)
             )
-            # TODO: Drive forward until our skimmer is full OR we reach the end of the arena OR we reach an obstacle
+            # TODO: Use the self.nav2 drive on heading method here and wait to reach the end of the line
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_skimmer_stop.call_async(Stop.Request())
             await self.cli_skimmer_setHeight.call_async(
@@ -249,6 +257,7 @@ class MainControlNode(Node):
             )  # Start the auto dig process
             while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+            self.autonomous_berm_location.header.stamp = self.get_clock().now().to_msg()
             self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
             while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
