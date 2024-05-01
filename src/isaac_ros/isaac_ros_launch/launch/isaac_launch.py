@@ -16,6 +16,7 @@ from nav2_common.launch import RewrittenYaml
 def generate_launch_description():
     bringup_dir = get_package_share_directory("isaac_ros_launch")
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
+    apriltag_bringup_dir = get_package_share_directory("apriltag")
 
     # Launch Arguments
     run_rviz_arg = DeclareLaunchArgument("run_rviz", default_value="True", description="Whether to start RVIZ")
@@ -121,6 +122,18 @@ def generate_launch_description():
         }.items(),
     )
 
+    # apriltag launch # TODO: Test this
+    apriltag_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_launch.py")]),
+        condition=IfCondition(LaunchConfiguration("setup_for_gazebo").inverse()),
+    )
+
+    # apriltag (gazebo) launch # TODO: Test this
+    apriltag_gazebo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_gazebo_launch.py")]),
+        condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
+    )
+
     return LaunchDescription(
         [
             run_rviz_arg,
@@ -133,5 +146,7 @@ def generate_launch_description():
             zed_launch,
             gazebo_launch,
             rviz_launch,
+            apriltag_launch,
+            apriltag_gazebo_launch,
         ]
     )
