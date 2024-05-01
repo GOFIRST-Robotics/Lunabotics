@@ -3,7 +3,7 @@ from rclpy.node import Node
 from PIL import Image
 import numpy as np
 from geometry_msgs.msg import PoseStamped, Point, Quaternion
-import scipy
+from scipy.spatial.transform import Rotation as R
 
 
 from nav2_simple_commander.robot_navigator import (
@@ -18,10 +18,11 @@ from nav2_simple_commander.robot_navigator import (
 # driveOnHeading(dist=0.15, speed=0.025, time_allowance=10)
 
 
-def create_pose_stamped(x, y, z, qx, qy, qz, qw):
+def create_pose_stamped(x, y, yaw):
     pose_stamped_msg = PoseStamped()
-    pose_stamped_msg.pose.position = Point(x, y, z)
-    pose_stamped_msg.pose.orientation = Quaternion(qx, qy, qz, qw)
+    pose_stamped_msg.pose.position.x = x
+    pose_stamped_msg.pose.position.y = y
+    pose_stamped_msg.pose.orientation = R.from_euler("z", yaw, degrees=True).as_quat()
     return pose_stamped_msg
 
 
@@ -46,9 +47,9 @@ class test_auto(Node):
             return TaskResult.FAILURE
 
         for location in optimal_dig_location:
-            self.nav2.goTo((location * RESOLUTION) + OFFSET_X, 2.47, 180)
+            self.nav2.goTo((location) + OFFSET_X, 2.47, 180)
             self.LOWERSKIMMMER()
-            self.nav2.goTo((location * RESOLUTION) + OFFSET_X, 4.47, 180)
+            self.nav2.driveOnHeading(dist=2.57, speed = 0.025, time_allowance=10)
 
             self.nav2.goTo(DUMPZONE, 0)
             self.dump()
@@ -61,22 +62,6 @@ class test_auto(Node):
         
 
     def optimal_dig_location(self):
-        robot_width = 0.5
-        # robot_height = 0.5
-        dig_size = (0.5, 0.5) # Get the width and heighto f dig
-
-        self.autonomous_field_type = "nasa"
-        if self.autonomous_field_type == "top":
-            dig = (8.14, 4.07)
-            # self.autonomous_dig_location.pose.orientation.z = 0.0
-        elif self.autonomous_field_type == "bottom":
-            dig = (8.14, 4.07)
-            # self.autonomous_dig_location.pose.orientation.z = 0.0
-        elif self.autonomous_field_type == "nasa":
-            dig = (1.3, 0.6)
-            # self.autonomous_dig_location.pose.orientation.z = 0.0
-        
-        
         costmap = self.nav2.getGlobalCostmap()
         
         format = costmap.metadata
@@ -98,16 +83,15 @@ class test_auto(Node):
         robot_width_pixels = robot_width / format.resolution        # dig_zone_data[dig_zone_data <= 100] = 0 # Set this to whatever the "too dangerous" threshold is
 
         for i in range(dig_zone_data.shape[0]):
-            if np.amax(dig_zone_data[int(i-robot_width_pixels/2):int(i+robot_width_pixels/2), :]) <= self.DANGER_THRESHOLD:
-                available_dig_spots.append(i)
-                i += robot_width_pixels
+            if self.nav2.lineCost(-8.14 + i * .10, -8.14 + i*.10, 2.57, 0, .1) <= self.DANGER_THRESHOLD:
+                available_dig_spots.append((-8.14 + i * .10, 2.57))
+                i += robot_width / .10
         
         if (len(available_dig_spots) == 0):
             self.DANGER_THRESHOLD += 5
             if self.DANGER_THRESHOLD > self.REAL_DANGER_THRESHOLD:
                 self.get_logger().info("No available dig spots. Switch to Teleop por favor!")
                 return None
-            
         return available_dig_spots
     
 

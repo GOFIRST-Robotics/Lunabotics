@@ -124,22 +124,19 @@ class MainControlNode(Node):
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-    def optimal_dig_location(self) -> PoseStamped:
-        """This method gets the starting dig location and orientation of the robot."""
-        dig_location = PoseStamped()
-        self.dig_location.header.frame_id = "map"
-        self.dig_location.header.stamp = self.get_clock().now().to_msg()
-
-        # TODO: Determine Alogorithm for dig location
-        # https://navigation.ros.org/commander_api/index.html
-        costmap = self.nav2.getGlobalCostmap()
-
-        # Compute dig location and orientation
-        dig_location.pose.position.x = 0.0
-        dig_location.pose.position.y = 0.0
-        dig_location.pose.orientation.z = 0.0
-
-        return dig_location
+    def optimal_dig_location(self) -> list:        
+        available_dig_spots = []
+        for i in range(4.7 / .10):
+            if self.nav2.lineCost(-8.14 + i * .10, -8.14 + i*.10, 2.57, 0, .1) <= self.DANGER_THRESHOLD:
+                available_dig_spots.append((-8.14 + i * .10, 2.57))
+                i += 1 / .10
+        
+        if (len(available_dig_spots) == 0):
+            self.DANGER_THRESHOLD += 5
+            if self.DANGER_THRESHOLD > self.REAL_DANGER_THRESHOLD:
+                self.get_logger().info("No available dig spots. Switch to Teleop por favor!")
+                return None
+        return available_dig_spots
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
