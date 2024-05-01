@@ -18,9 +18,7 @@ def generate_launch_description():
     nav2_bringup_dir = get_package_share_directory("nav2_bringup")
 
     # Launch Arguments
-    run_rviz_arg = DeclareLaunchArgument(
-        "run_rviz", default_value="True", description="Whether to start RVIZ"
-    )
+    run_rviz_arg = DeclareLaunchArgument("run_rviz", default_value="True", description="Whether to start RVIZ")
     setup_for_zed_arg = DeclareLaunchArgument(
         "setup_for_zed",
         default_value="True",
@@ -105,9 +103,7 @@ def generate_launch_description():
 
     # Nav2 params
     nav2_param_file = os.path.join("config", "nav2_isaac_sim.yaml")
-    param_substitutions = {
-        "global_frame": LaunchConfiguration("global_frame", default="odom")
-    }
+    param_substitutions = {"global_frame": LaunchConfiguration("global_frame", default="odom")}
     configured_params = RewrittenYaml(
         source_file=nav2_param_file,
         root_key="",
@@ -117,9 +113,7 @@ def generate_launch_description():
 
     # nav2 launch
     nav2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")
-        ),
+        PythonLaunchDescriptionSource(os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")),
         launch_arguments={
             "use_sim_time": "False",
             "params_file": configured_params,
