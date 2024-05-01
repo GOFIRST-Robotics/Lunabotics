@@ -126,16 +126,15 @@ class MainControlNode(Node):
 
     def optimal_dig_location(self) -> list:        
         available_dig_spots = []
-        for i in range(4.7 / .10):
-            if self.nav2.lineCost(-8.14 + i * .10, -8.14 + i*.10, 2.57, 0, .1) <= self.DANGER_THRESHOLD:
-                available_dig_spots.append((-8.14 + i * .10, 2.57))
-                i += 1 / .10
-        
-        if (len(available_dig_spots) == 0):
-            self.DANGER_THRESHOLD += 5
+        while (len(available_dig_spots) == 0):
             if self.DANGER_THRESHOLD > self.REAL_DANGER_THRESHOLD:
                 self.get_logger().info("No available dig spots. Switch to Teleop por favor!")
                 return None
+            for i in range(4.07 / .10):
+                if self.nav2.lineCost(-8.14 + i * .10, -8.14 + i*.10, 2.57, 0, .1) <= self.DANGER_THRESHOLD:
+                    available_dig_spots.append((-8.14 + i * .10, 2.57))
+                    i += 1 / .10
+            self.DANGER_THRESHOLD += 5
         return available_dig_spots
 
     def start_calibration_callback(self) -> None:
