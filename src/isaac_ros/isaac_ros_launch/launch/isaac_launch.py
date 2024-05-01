@@ -122,7 +122,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    # TODO: Eventually merge the two apriltag launch files below into a single launch file
+    # TODO: Eventually merge the two apriltag launch files below into a single launch file?
 
     # apriltag launch # TODO: Test this
     apriltag_launch = IncludeLaunchDescription(
