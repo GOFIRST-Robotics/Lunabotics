@@ -28,9 +28,12 @@ def generate_launch_description():
         }.items(),
     )
 
+    # TODO: check_load has not been tested yet!
     check_load_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(check_load_bringup_dir, "check_load_launch.py")),
     )
+
+    # TODO: Add the gstreamer server node when that is ready
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
