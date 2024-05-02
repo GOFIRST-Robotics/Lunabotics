@@ -80,11 +80,10 @@ bt_navigator_rclcpp_node:
 controller_server:
   ros__parameters:
     use_sim_time: false
-    controller_frequency: 10.0
+    controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
-    failure_tolerance: 0.3
     progress_checker_plugin: "progress_checker"
     goal_checker_plugin: ["general_goal_checker"]
     controller_plugins: ["FollowPath"]
@@ -98,39 +97,21 @@ controller_server:
     general_goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 3.14
+      yaw_goal_tolerance: 0.25
       stateful: True
     # DWB parameters
     FollowPath:
-      # NOTE(remos):
-      #   The RotationShimController did not work for Isaac Sim 2023.1.0 at the time of the release.
-      #   Therefore we comment it here and use the DWBLocalPlanner for the moment.
-      # TODO(remos):
-      #   Bring back the RotationShimController when the issue is fixed
-      #   as it offers better navigation performance when doing narrow turns.
-
-      # Rotation Shim Controller params
-      # This will turn the robot in place when the heading difference between the robot
-      # and the path is too big.
-      # plugin: "nav2_rotation_shim_controller::RotationShimController"
-      # primary_controller: "dwb_core::DWBLocalPlanner"
-      # angular_dist_threshold: 0.3 # ~= 17 degree
-      # forward_sampling_distance: 1.0
-      # rotate_to_heading_angular_vel: 1.8
-      # max_angular_accel: 3.2
-      # simulate_ahead_time: 1.0
-
       # Primary controller params (DWBLocalPlanner)
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
-      min_vel_x: -0.5  # TODO: adjust this if needed (m/s)
-      min_vel_y: -0.5  # TODO: adjust this if needed (m/s)
-      max_vel_x: 0.5  # TODO: adjust this if needed (m/s)
-      max_vel_y: 0.5  # TODO: adjust this if needed (m/s)
-      max_vel_theta: 0.5  # TODO: adjust this if needed (m/s)
-      min_speed_xy: -0.5  # TODO: adjust this if needed (m/s)
-      max_speed_xy: 0.5  # TODO: adjust this if needed (m/s)
-      min_speed_theta: -0.5  # TODO: adjust this if needed (m/s)
+      min_vel_x: -1.0  # TODO: adjust this if needed (m/s)
+      min_vel_y: -1.0  # TODO: adjust this if needed (m/s)
+      max_vel_x: 1.0  # TODO: adjust this if needed (m/s)
+      max_vel_y: 1.0  # TODO: adjust this if needed (m/s)
+      max_vel_theta: 1.0  # TODO: adjust this if needed (m/s)
+      min_speed_xy: -1.0  # TODO: adjust this if needed (m/s)
+      max_speed_xy: 1.0  # TODO: adjust this if needed (m/s)
+      min_speed_theta: -1.0  # TODO: adjust this if needed (m/s)
       acc_lim_x: 1.0  # TODO: adjust this if needed (m/s^2)
       acc_lim_y: 1.0  # TODO: adjust this if needed (m/s^2)
       acc_lim_theta: 1.0  # TODO: adjust this if needed (m/s^2)

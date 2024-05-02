@@ -179,6 +179,9 @@ class MainControlNode(Node):
             await asyncio.sleep(0.05)  # Allows other async tasks to continue running (this is non-blocking)
         self.get_logger().info("Field Coordinates Calibrated!")
         await self.cli_drivetrain_stop.call_async(Stop.Request())
+        self.nav2.spin(3.14)  # Turn around 180 degrees to face the rest of the field
+        while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
+            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
         self.apriltag_timer.cancel()
         self.end_autonomous()  # Return to Teleop mode
 
