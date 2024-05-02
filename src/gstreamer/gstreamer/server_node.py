@@ -47,11 +47,11 @@ class ServerNode(Node):
         if self.ip_srv is None:
             print("No client ip set")
             return -1
-        if self.camera_srv is None:
-            print("No camera set")
-            return -2
         if self.encod_srv is None:
             print("No encoding set")
+            return -2
+        if self.camera_srv is None:
+            print("No camera set")
             return -3
         self.g_server = GstreamerServer(self.ip_srv, self.camera_srv, self.encod_srv)
         self.g_server.run()

@@ -7,7 +7,7 @@ class GstreamerClient:
     def __init__(self):
         # Initialize GStreamer
         Gst.init(None)
-        print("Creating Pipeline \n ")
+        print("Creating Pipeline")
         self.pipeline = Gst.Pipeline()
 
         source = Gst.ElementFactory.make("udpsrc", "src")
@@ -68,7 +68,7 @@ class GstreamerClient:
 
     def run(self):
         # Start playing
-        print("Starting pipeline \n")
+        print("Starting pipeline")
         self.pipeline.set_state(Gst.State.PLAYING)
 
         self.stop_event = Event()
