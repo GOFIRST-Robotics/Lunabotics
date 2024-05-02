@@ -7,7 +7,7 @@ from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from nav2_common.launch import RewrittenYaml
@@ -60,7 +60,7 @@ def generate_launch_description():
         launch_arguments={
             "attach_to_shared_component_container": "True",
             "component_container_name": shared_container_name,
-            "record_svo": record_svo_arg,
+            "record_svo": LaunchConfiguration("record_svo"),
         }.items(),
         condition=IfCondition(LaunchConfiguration("setup_for_zed")),
     )
@@ -128,14 +128,12 @@ def generate_launch_description():
         }.items(),
     )
 
-    # TODO: Eventually merge the two apriltag launch files below into a single launch file?
-
-    # apriltag launch # TODO: Test this
+    # apriltag launch
     apriltag_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_launch.py")]),
-        condition=IfCondition(LaunchConfiguration("setup_for_gazebo").inverse()),
+        condition=UnlessCondition(LaunchConfiguration("setup_for_gazebo")),
     )
-    # apriltag (gazebo) launch # TODO: Test this
+    # apriltag (gazebo) launch
     apriltag_gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_gazebo_launch.py")]),
         condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
@@ -146,6 +144,7 @@ def generate_launch_description():
             run_rviz_arg,
             setup_for_zed_arg,
             setup_for_gazebo_arg,
+            record_svo_arg,
             use_nvblox_arg,
             shared_container,
             nvblox_launch,
