@@ -18,11 +18,17 @@ from nav2_simple_commander.robot_navigator import (
 # driveOnHeading(dist=0.15, speed=0.025, time_allowance=10)
 
 
+# Helper Method
 def create_pose_stamped(x, y, yaw):
     pose_stamped_msg = PoseStamped()
+    pose_stamped_msg.header.frame_id = "map"
     pose_stamped_msg.pose.position.x = x
     pose_stamped_msg.pose.position.y = y
-    pose_stamped_msg.pose.orientation = R.from_euler("z", yaw, degrees=True).as_quat()
+    quat = R.from_euler("z", yaw, degrees=True).as_quat()
+    pose_stamped_msg.pose.orientation.x = quat[0]
+    pose_stamped_msg.pose.orientation.y = quat[1]
+    pose_stamped_msg.pose.orientation.z = quat[2]
+    pose_stamped_msg.pose.orientation.w = quat[3]
     return pose_stamped_msg
 
 

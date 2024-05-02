@@ -28,6 +28,7 @@ import asyncio  # Allows the use of asynchronous methods!
 import subprocess  # This is for the webcam stream subprocesses
 import signal  # Allows us to kill subprocesses
 import os  # Allows us to kill subprocesses
+from scipy.spatial.transform import Rotation as R
 
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
@@ -40,6 +41,18 @@ buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
 states = {"Teleop": 0, "Autonomous": 1}
 
+# Helper Method
+def create_pose_stamped(x, y, yaw):
+    pose_stamped_msg = PoseStamped()
+    pose_stamped_msg.header.frame_id = "map"
+    pose_stamped_msg.pose.position.x = x
+    pose_stamped_msg.pose.position.y = y
+    quat = R.from_euler("z", yaw, degrees=True).as_quat()
+    pose_stamped_msg.pose.orientation.x = quat[0]
+    pose_stamped_msg.pose.orientation.y = quat[1]
+    pose_stamped_msg.pose.orientation.z = quat[2]
+    pose_stamped_msg.pose.orientation.w = quat[3]
+    return pose_stamped_msg
 
 class MainControlNode(Node):
     def __init__(self) -> None:
@@ -81,29 +94,12 @@ class MainControlNode(Node):
         self.skimmer_goal_reached = True
 
         # Define berm zone locations
-        self.autonomous_berm_location = PoseStamped()
-        self.autonomous_berm_location.header.frame_id = "map"
         if self.autonomous_field_type == "top":
-            self.autonomous_berm_location.pose.position.x = -6.84
-            self.autonomous_berm_location.pose.position.y = 3.57
-            self.autonomous_berm_location.pose.orientation.x = 0.0
-            self.autonomous_berm_location.pose.orientation.y = 0.0
-            self.autonomous_berm_location.pose.orientation.z = 0.0
-            self.autonomous_berm_location.pose.orientation.w = 1.0
+            self.autonomous_berm_location = create_pose_stamped(6.84, -3.57, 90)
         elif self.autonomous_field_type == "bottom":
-            self.autonomous_berm_location.pose.position.x = -6.84
-            self.autonomous_berm_location.pose.position.y = 1.0
-            self.autonomous_berm_location.pose.orientation.x = 0.0
-            self.autonomous_berm_location.pose.orientation.y = 0.0
-            self.autonomous_berm_location.pose.orientation.z = 0.0
-            self.autonomous_berm_location.pose.orientation.w = 1.0
+            self.autonomous_berm_location = create_pose_stamped(6.84, -1.0, 90)
         elif self.autonomous_field_type == "nasa":
-            self.autonomous_berm_location.pose.position.x = -1.3
-            self.autonomous_berm_location.pose.position.y = 0.6
-            self.autonomous_berm_location.pose.orientation.x = 0.0
-            self.autonomous_berm_location.pose.orientation.y = 0.0
-            self.autonomous_berm_location.pose.orientation.z = 0.0
-            self.autonomous_berm_location.pose.orientation.w = 1.0
+            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
@@ -257,7 +253,6 @@ class MainControlNode(Node):
             )  # Start the auto dig process
             while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            self.autonomous_berm_location.header.stamp = self.get_clock().now().to_msg()
             self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
             while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)

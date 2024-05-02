@@ -119,11 +119,13 @@ class ApriltagNode(Node):
             # Use the known map coordinates of the apriltag as an offset
             odom_to_tag_transform.transform.translation.x -= float(xyz[0])
             odom_to_tag_transform.transform.translation.y -= float(xyz[1])
+            odom_to_tag_transform.transform.translation.z = 0.0 # We don't care about the z value
 
             self.map_to_odom_tf = odom_to_tag_transform
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
+        self.map_transform.header.stamp = self.get_clock().now().to_msg()
         self.tf_broadcaster.sendTransform(self.map_transform)
 
 
