@@ -48,7 +48,7 @@ def create_pose_stamped(x, y, yaw):
     pose_stamped_msg.header.frame_id = "map"
     pose_stamped_msg.pose.position.x = x
     pose_stamped_msg.pose.position.y = y
-    quat = R.from_euler("z", yaw, degrees=True).as_quat()
+    quat = R.from_euler("z", yaw - 15, degrees=True).as_quat()  # TODO: Why does this need to be offset?
     pose_stamped_msg.pose.orientation.x = quat[0]
     pose_stamped_msg.pose.orientation.y = quat[1]
     pose_stamped_msg.pose.orientation.z = quat[2]
@@ -93,18 +93,22 @@ class MainControlNode(Node):
         self.autonomous_digging_process = None
         self.autonomous_offload_process = None
         self.autonomous_cycle_process = None
+        self.travel_automation_process = None
         self.skimmer_goal_reached = True
 
         self.DANGER_THRESHOLD = 1
         self.REAL_DANGER_THRESHOLD = 100
 
-        # Define berm zone locations
+        # Define important map locations
         if self.autonomous_field_type == "top":
-            self.autonomous_berm_location = create_pose_stamped(6.84, -3.57, 90)
+            self.autonomous_berm_location = create_pose_stamped(7.25, -3.2, 90)  # TODO: Test this location in simulation
+            self.travel_automation_location = create_pose_stamped(6.2, -1.2, 0)
         elif self.autonomous_field_type == "bottom":
-            self.autonomous_berm_location = create_pose_stamped(6.84, -1.0, 90)
+            self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
+            self.travel_automation_location = create_pose_stamped(6.2, -3.2, 0)
         elif self.autonomous_field_type == "nasa":
-            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)
+            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)  # TODO: Test this location in simulation
+            self.travel_automation_location = create_pose_stamped(6.2, -1.2, 0)  # TODO: Test this location in simulation
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
@@ -194,6 +198,25 @@ class MainControlNode(Node):
         self.apriltag_timer.cancel()
         self.end_autonomous()  # Return to Teleop mode
 
+    async def travel_automation(self) -> None:
+        """This method is used to automate the travel of the robot to the excavation zone."""
+        self.get_logger().info("Starting Travel Automation!")
+        try:
+            await self.calibrate_field_coordinates()  # Calibrate the field coordinates first
+            self.nav2.goToPose(self.travel_automation_location)  # Navigate to the excavation zone
+            while not self.nav2.isTaskComplete():  # Wait for the excavation zone to be reached
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+            if self.nav2.getResult() == TaskResult.FAILED:
+                self.get_logger().error("Failed to reach the excavation zone!")
+                self.end_autonomous()  # Return to Teleop mode
+                return
+            self.get_logger().info("Travel Automation Complete!")
+            if self.travel_automation_process is None:
+                self.end_autonomous()  # Return to Teleop mode
+        except asyncio.CancelledError:
+            self.get_logger().warn("Travel Automation Terminated!")
+            self.end_autonomous()  # Return to Teleop mode
+
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
@@ -206,11 +229,10 @@ class MainControlNode(Node):
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            # Start driving forward
-            await self.cli_drivetrain_drive.call_async(
-                Drive.Request(forward_power=self.autonomous_driving_power, horizontal_power=0.0, turning_power=0.0)
-            )
-            # TODO: Use the self.nav2 drive on heading method here and wait to reach the end of the line
+            # Drive forward while digging
+            self.nav2.driveOnHeading(dist=0.15, speed=0.25)  # TODO: Adjust these parameters
+            while not self.nav2.isTaskComplete():  # Wait for the end of the driveOnHeading task
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_skimmer_stop.call_async(Stop.Request())
             await self.cli_skimmer_setHeight.call_async(
@@ -220,7 +242,7 @@ class MainControlNode(Node):
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Autonomous Digging Procedure Complete!\n")
-            if self.autonomous_cycle_process == None:
+            if self.autonomous_cycle_process is None:
                 self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().warn("Autonomous Digging Procedure Terminated\n")
@@ -239,10 +261,10 @@ class MainControlNode(Node):
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Commence Offloading!")
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            await asyncio.sleep(10)  # How long to offload for # TODO: Use the RealSense check_load node instead?
+            await asyncio.sleep(10)  # TODO: Tune how long to offload for (or try using ros_check_load instead)
             await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
-            if self.autonomous_cycle_process == None:
+            if self.autonomous_cycle_process is None:
                 self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().warn("Autonomous Offload Procedure Terminated\n")
@@ -335,6 +357,18 @@ class MainControlNode(Node):
                 self.apriltag_timer.cancel()
                 self.get_logger().warn("Field Calibration Terminated\n")
                 self.end_autonomous()  # Return to Teleop mode
+
+        # Check if the travel automation button is pressed
+        if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
+            if self.state == states["Teleop"]:
+                self.stop_all_subsystems()  # Stop all subsystems
+                self.state = states["Autonomous"]
+                self.travel_automation_process = asyncio.ensure_future(
+                    self.travel_automation()
+                )  # Start the travel_automation process
+            elif self.state == states["Autonomous"]:
+                self.travel_automation_process.cancel()  # Terminate the travel_automation_process process
+                self.travel_automation_process = None
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
