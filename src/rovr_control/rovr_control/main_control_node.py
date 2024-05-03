@@ -41,6 +41,7 @@ buttons = [0] * 11  # This is to help with button press detection
 # Define the possible states of our robot
 states = {"Teleop": 0, "Autonomous": 1}
 
+
 # Helper Method
 def create_pose_stamped(x, y, yaw):
     pose_stamped_msg = PoseStamped()
@@ -53,6 +54,7 @@ def create_pose_stamped(x, y, yaw):
     pose_stamped_msg.pose.orientation.z = quat[2]
     pose_stamped_msg.pose.orientation.w = quat[3]
     return pose_stamped_msg
+
 
 class MainControlNode(Node):
     def __init__(self) -> None:
@@ -93,6 +95,9 @@ class MainControlNode(Node):
         self.autonomous_cycle_process = None
         self.skimmer_goal_reached = True
 
+        self.DANGER_THRESHOLD = 1
+        self.REAL_DANGER_THRESHOLD = 100
+
         # Define berm zone locations
         if self.autonomous_field_type == "top":
             self.autonomous_berm_location = create_pose_stamped(6.84, -3.57, 90)
@@ -128,18 +133,22 @@ class MainControlNode(Node):
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-    def optimal_dig_location(self) -> list:        
-        available_dig_spots = []
-        while (len(available_dig_spots) == 0):
-            if self.DANGER_THRESHOLD > self.REAL_DANGER_THRESHOLD:
-                self.get_logger().info("No available dig spots. Switch to Teleop por favor!")
-                return None
-            for i in range(4.07 / .10):
-                if self.nav2.lineCost(-8.14 + i * .10, -8.14 + i*.10, 2.57, 0, .1) <= self.DANGER_THRESHOLD:
-                    available_dig_spots.append((-8.14 + i * .10, 2.57))
-                    i += 1 / .10
-            self.DANGER_THRESHOLD += 5
-        return available_dig_spots
+    def optimal_dig_location(self) -> list:
+        try:
+            available_dig_spots = []
+            while len(available_dig_spots) == 0:
+                if self.DANGER_THRESHOLD > self.REAL_DANGER_THRESHOLD:
+                    self.get_logger().warn("No safe digging spots are available!")
+                    break
+                for i in range(int(4.07 / 0.10)):
+                    if self.nav2.lineCost(-8.14 + i * 0.10, -8.14 + i * 0.10, 2.57, 0, 0.1) <= self.DANGER_THRESHOLD:
+                        available_dig_spots.append((-8.14 + i * 0.10, 2.57))
+                        i += 1 / 0.10
+                self.DANGER_THRESHOLD += 5
+            return available_dig_spots
+        except Exception as e:
+            self.get_logger().error(f"Error: {e}")
+            return available_dig_spots
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
@@ -245,12 +254,17 @@ class MainControlNode(Node):
         self.get_logger().info("\nStarting an Autonomous Cycle!")
         try:  # Wrap the autonomous procedure in a try-except
             ## Navigate to the dig_location, run the dig procedure, then navigate to the berm zone and run the offload procedure ##
+            if not self.field_calibrated:
+                self.get_logger().error("Field coordinates must be calibrated first!")
+                self.end_autonomous()  # Return to Teleop mode
+                return
             self.nav2.goToPose(self.optimal_dig_location())  # Navigate to the dig location
             while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             if self.nav2.getResult() == TaskResult.FAILED:
                 self.get_logger().error("Failed to reach the dig location!")
                 self.end_autonomous()  # Return to Teleop mode
+                return
             self.autonomous_digging_process = asyncio.ensure_future(
                 self.auto_dig_procedure()
             )  # Start the auto dig process
@@ -262,6 +276,7 @@ class MainControlNode(Node):
             if self.nav2.getResult() == TaskResult.FAILED:
                 self.get_logger().error("Failed to reach the berm zone!")
                 self.end_autonomous()  # Return to Teleop mode
+                return
             self.autonomous_offload_process = asyncio.ensure_future(
                 self.auto_offload_procedure()
             )  # Start the auto offload process
@@ -313,7 +328,7 @@ class MainControlNode(Node):
             if self.apriltag_timer.is_canceled():
                 self.started_calibration = False
                 self.field_calibrated = False
-                self.state = states["Calibrating"]  # Exit Teleop mode
+                self.state = states["Autonomous"]  # Exit Teleop mode
                 self.apriltag_timer.reset()
             # Stop the field calibration process
             else:
