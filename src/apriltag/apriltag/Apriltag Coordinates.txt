@@ -5,8 +5,8 @@ Bottom left berm 7.59, 3.12
 Bottom right berm 6.09, 3.12
 
 starting zone (in meters)
-Near base tag1 0, 1
-Near base tag2 0, 1.2159
+Near base tag1 0, 1.2159
+Near base tag2 0, 1
 
 Bottom UCF Field:
 Top left berm 7.59, 1.45
