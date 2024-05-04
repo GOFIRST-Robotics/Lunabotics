@@ -231,7 +231,7 @@ public:
     this->declare_parameter("FRONT_LEFT_TURN", 3);
     this->declare_parameter("BACK_RIGHT_TURN", 6);
     this->declare_parameter("FRONT_RIGHT_TURN", 5);
-    this->declare_parameter("SKIMMER_LIFT_MOTOR", 2); // TODO: Set this
+    this->declare_parameter("SKIMMER_LIFT_MOTOR", 1);
     this->declare_parameter("STEERING_MOTOR_GEAR_RATIO", 40);
 
     // Print the ROS Parameters to the terminal below #
