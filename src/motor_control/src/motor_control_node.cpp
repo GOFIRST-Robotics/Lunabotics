@@ -280,7 +280,7 @@ private:
     for (auto pair : this->current_msg) {
       uint32_t motorId = pair.first;
       // If the motor controller has previously received a command, send the most recent command again
-      if (this->pid_controllers[motorId] && this->pid_controllers[motorId]->isActive == false) {
+      if ((this->pid_controllers[motorId] && this->pid_controllers[motorId]->isActive == false) || !this->pid_controllers[motorId]) {
         send_can(std::get<0>(this->current_msg[motorId]), std::get<1>(this->current_msg[motorId]));
       }
     }
