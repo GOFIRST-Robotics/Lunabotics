@@ -15,7 +15,7 @@ def generate_launch_description():
     # check_load_bringup_dir = get_package_share_directory("skimmer") # NOTE: Uncomment this line if we decide to actually use ros_check_load
 
     main_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(main_bringup_dir, "main_launch_no_joysticks.py")),
+        PythonLaunchDescriptionSource(os.path.join(main_bringup_dir, "main_no_joysticks_launch.py")),
     )
 
     isaac_launch = IncludeLaunchDescription(
