@@ -20,7 +20,7 @@ from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower, SetHeight
+from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, ResetOdom
 
 # Import Python Modules
@@ -68,6 +68,8 @@ class MainControlNode(Node):
         self.declare_parameter("skimmer_belt_power", -0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_lift_manual_power", 0.05)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("lift_dumping_position", -500)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_position", -2500)  # Measured in encoder counts
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -76,6 +78,8 @@ class MainControlNode(Node):
         self.skimmer_belt_power = self.get_parameter("skimmer_belt_power").value
         self.skimmer_lift_manual_power = self.get_parameter("skimmer_lift_manual_power").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
+        self.lift_dumping_position = self.get_parameter("lift_dumping_position").value * 360 / 42  # Convert encoder counts to degrees
+        self.lift_digging_position = self.get_parameter("lift_digging_position").value * 360 / 42  # Convert encoder counts to degrees
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
@@ -84,6 +88,8 @@ class MainControlNode(Node):
         self.get_logger().info("skimmer_belt_power has been set to: " + str(self.skimmer_belt_power))
         self.get_logger().info("skimmer_lift_manual_power has been set to: " + str(self.skimmer_lift_manual_power))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
+        self.get_logger().info("lift_dumping_position has been set to: " + str(self.lift_dumping_position))
+        self.get_logger().info("lift_digging_position has been set to: " + str(self.lift_digging_position))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -112,17 +118,18 @@ class MainControlNode(Node):
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-        self.apriltag_timer.cancel()  # Cancel the timer initially
+        self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
         self.cli_skimmer_stop = self.create_client(Stop, "skimmer/stop")
         self.cli_skimmer_setPower = self.create_client(SetPower, "skimmer/setPower")
-        self.cli_skimmer_setHeight = self.create_client(SetHeight, "skimmer/setHeight")
+        self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
+        self.cli_lift_zero = self.create_client(Stop, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_set_apriltag_odometry = self.create_client(ResetOdom, "resetOdom")
 
@@ -136,6 +143,10 @@ class MainControlNode(Node):
         self.started_calibration = False
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
+
+        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+            self.get_logger().warn("Waiting for the lift/zero service to be available")
+        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
 
     def optimal_dig_location(self) -> list:
         try:
@@ -223,9 +234,7 @@ class MainControlNode(Node):
         self.get_logger().info("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            await self.cli_skimmer_setHeight.call_async(
-                SetHeight.Request(height=2000)
-            )  # Lower the skimmer into the ground # TODO: Adjust this height
+            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_position))  # Lower the skimmer into the ground
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
@@ -235,10 +244,8 @@ class MainControlNode(Node):
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_skimmer_stop.call_async(Stop.Request())
-            await self.cli_skimmer_setHeight.call_async(
-                SetHeight.Request(height=1000)
-            )  # Raise the skimmer back up a bit # TODO: Adjust this height
-            # Wait for the goal height to be reached
+            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise the skimmer back up
+            # Wait for the lift goal to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Autonomous Digging Procedure Complete!\n")
@@ -253,15 +260,13 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously offloading!"""
         self.get_logger().info("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_skimmer_setHeight.call_async(
-                SetHeight.Request(height=500)
-            )  # Raise up the skimmer in preparation for dumping # TODO: Adjust this height
-            # Wait for the goal height to be reached
+            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise up the skimmer in preparation for dumping
+            # Wait for the lift goal to be reached
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Commence Offloading!")
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            await asyncio.sleep(10)  # TODO: Tune how long to offload for (or try using ros_check_load instead)
+            await asyncio.sleep(10)  # How long to offload for # TODO: Adjust this time as needed
             await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
             if self.autonomous_cycle_process is None:
@@ -336,6 +341,14 @@ class MainControlNode(Node):
             if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
                 self.cli_skimmer_setPower.call_async(SetPower.Request(power=-self.skimmer_belt_power))
 
+            # Check if the lift dumping position button is pressed #
+            if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
+                self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))
+
+            # Check if the lift digging position button is pressed #
+            if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+                self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_position))
+
             # Manually adjust the height of the skimmer with the left and right triggers
             if msg.buttons[RIGHT_TRIGGER] == 1 and buttons[RIGHT_TRIGGER] == 0:
                 self.cli_lift_set_power.call_async(SetPower.Request(power=self.skimmer_lift_manual_power))
@@ -349,7 +362,7 @@ class MainControlNode(Node):
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the Apriltag calibration button is pressed
-        if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+        if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
             # Start the field calibration process
             if self.apriltag_timer.is_canceled():
                 self.started_calibration = False
@@ -410,30 +423,6 @@ class MainControlNode(Node):
             elif self.state == states["Autonomous"]:
                 self.autonomous_cycle_process.cancel()  # Terminate the autonomous cycle process
                 self.autonomous_cycle_process = None
-
-        # Check if the camera toggle button is pressed
-        if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
-            self.camera_view_toggled = not self.camera_view_toggled
-            if self.camera_view_toggled:  # Start streaming /dev/front_webcam on port 5000
-                if self.back_camera is not None:
-                    # Kill the self.back_camera process
-                    os.killpg(os.getpgid(self.back_camera.pid), signal.SIGTERM)
-                    self.back_camera = None
-                self.front_camera = subprocess.Popen(
-                    'gst-launch-1.0 v4l2src device=/dev/front_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=10.133.232.197 port=5000',
-                    shell=True,
-                    preexec_fn=os.setsid,
-                )
-            else:  # Start streaming /dev/back_webcam on port 5000
-                if self.front_camera is not None:
-                    # Kill the self.front_camera process
-                    os.killpg(os.getpgid(self.front_camera.pid), signal.SIGTERM)
-                    self.front_camera = None
-                self.back_camera = subprocess.Popen(
-                    'gst-launch-1.0 v4l2src device=/dev/back_webcam ! "video/x-raw,width=640,height=480,framerate=15/1" ! nvvidconv ! "video/x-raw(memory:NVMM),format=NV12" ! nvv4l2av1enc bitrate=200000 ! "video/x-av1" ! udpsink host=10.133.232.197  port=5000',
-                    shell=True,
-                    preexec_fn=os.setsid,
-                )
 
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
