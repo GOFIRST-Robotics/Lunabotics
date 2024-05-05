@@ -58,8 +58,8 @@ class MainControlNode(Node):
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.skimmer_belt_power = self.get_parameter("skimmer_belt_power").value
         self.skimmer_lift_manual_power = self.get_parameter("skimmer_lift_manual_power").value
-        self.lift_dumping_position = self.get_parameter("lift_dumping_position").value
-        self.lift_digging_position = self.get_parameter("lift_digging_position").value
+        self.lift_dumping_position = self.get_parameter("lift_dumping_position").value * 360 / 42  # Convert encoder counts to degrees
+        self.lift_digging_position = self.get_parameter("lift_digging_position").value * 360 / 42  # Convert encoder counts to degrees
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
