@@ -23,7 +23,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/MotorCommandSet.srv"
   "srv/Stop.srv"
   "srv/SetPower.srv"
-  "srv/SetHeight.srv"
+  "srv/SetPosition.srv"
   "srv/Drive.srv"
   "srv/ResetOdom.srv"
   "msg/AbsoluteEncoders.msg"
