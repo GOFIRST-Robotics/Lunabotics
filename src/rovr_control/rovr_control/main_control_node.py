@@ -47,8 +47,8 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("skimmer_belt_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("skimmer_lift_manual_power", 0.35)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("skimmer_belt_power", -0.2)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("skimmer_lift_manual_power", 0.05)  # Measured in Duty Cycle (0.0-1.0)
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -74,7 +74,8 @@ class MainControlNode(Node):
         self.skimmer_goal_reached = True
 
         # Define timers here
-        self.apriltag_timer = None
+        self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
+        self.apriltag_timer.cancel()  # Cancel the timer initially
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -158,7 +159,7 @@ class MainControlNode(Node):
             self.get_logger().info("Autonomous Digging Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-            self.get_logger().info("Autonomous Digging Procedure Terminated\n")
+            self.get_logger().warn("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
     # TODO: This autonomous routine has not been tested yet!
@@ -177,7 +178,7 @@ class MainControlNode(Node):
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-            self.get_logger().info("Autonomous Offload Procedure Terminated\n")
+            self.get_logger().warn("Autonomous Offload Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
     def skimmer_goal_callback(self, msg: Bool) -> None:
@@ -202,6 +203,10 @@ class MainControlNode(Node):
             if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
                 self.cli_skimmer_toggle.call_async(SetPower.Request(power=self.skimmer_belt_power))
 
+            # Check if the reverse skimmer button is pressed #
+            if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
+                self.cli_skimmer_setPower.call_async(SetPower.Request(power=-self.skimmer_belt_power))
+
             # Manually adjust the height of the skimmer with the left and right triggers
             if msg.buttons[RIGHT_TRIGGER] == 1 and buttons[RIGHT_TRIGGER] == 0:
                 self.cli_lift_set_power.call_async(SetPower.Request(power=self.skimmer_lift_manual_power))
@@ -212,18 +217,21 @@ class MainControlNode(Node):
             elif msg.buttons[LEFT_TRIGGER] == 0 and buttons[LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
 
-            # Check if the Apriltag calibration button is pressed
-            if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
-                # Start the field calibration process
+        # THE CONTROLS BELOW ALWAYS WORK #
+
+        # Check if the Apriltag calibration button is pressed
+        if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+            # Start the field calibration process
+            if self.apriltag_timer.is_canceled():
                 self.started_calibration = False
                 self.field_calibrated = False
                 self.state = states["Calibrating"]  # Exit Teleop mode
-                if not self.apriltag_timer:
-                    self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-                else:
-                    self.apriltag_timer.reset()
-
-        # THE CONTROLS BELOW ALWAYS WORK #
+                self.apriltag_timer.reset()
+            # Stop the field calibration process
+            else:
+                self.apriltag_timer.cancel()
+                self.get_logger().warn("Field Calibration Terminated\n")
+                self.end_autonomous()  # Return to Teleop mode
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
