@@ -105,9 +105,10 @@ class MainControlNode(Node):
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-            self.get_logger().warn("Waiting for the lift/zero service to be available")
-        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
+        # ----- BLOCKING WHILE STATEMENT!!!! ----- #
+        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+        #     self.get_logger().warn("Waiting for the lift/zero service to be available, blocking")
+        # self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""

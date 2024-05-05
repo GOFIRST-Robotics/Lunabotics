@@ -32,13 +32,13 @@ def generate_launch_description():
         emulate_tty=True,
     )
     
-    skimmer = Node(
-        package="skimmer",
-        executable="skimmer_node",
-        name="skimmer_node",
-        parameters=["config/motor_control.yaml"],
-        output="screen",
-    )
+    # skimmer = Node(
+    #     package="skimmer",
+    #     executable="skimmer_node",
+    #     name="skimmer_node",
+    #     parameters=["config/motor_control.yaml"],
+    #     output="screen",
+    # )
     
     read_serial = Node(
         package="rovr_control",
@@ -46,17 +46,17 @@ def generate_launch_description():
         name="read_serial",
     )
     
-    can_bus = Node(
-        package="ros2socketcan_bridge",
-        executable="ros2socketcan",
-        name="ros2socketcan",
-    )
+    # can_bus = Node(
+    #     package="ros2socketcan_bridge",
+    #     executable="ros2socketcan",
+    #     name="ros2socketcan",
+    # )
 
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
     ld.add_action(drivetrain)
-    ld.add_action(skimmer)
+    # ld.add_action(skimmer)
     ld.add_action(read_serial)
-    ld.add_action(can_bus)
+    # ld.add_action(can_bus)
 
     return ld
