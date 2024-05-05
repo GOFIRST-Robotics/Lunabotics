@@ -8,7 +8,7 @@ import rclpy
 from rclpy.node import Node
 
 # Import ROS 2 formatted message types
-from std_msgs.msg import Float32, Bool
+from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
@@ -35,7 +35,6 @@ class SkimmerNode(Node):
         self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
 
         # Define publishers here
-        self.publisher_height = self.create_publisher(Float32, "skimmer/height", 10)
         self.publisher_goal_reached = self.create_publisher(Bool, "skimmer/goal_reached", 10)
 
         # Define subscribers here
@@ -195,9 +194,6 @@ class SkimmerNode(Node):
     def done_callback(self, future):
         self.current_height_degrees = future.result().data
         height_meters = (self.current_height_degrees * self.PULLEY_CIRCUMFERENCE) / (360 * self.LIFT_GEAR_RATIO)
-
-        height_msg = Float32(data=height_meters)
-        self.publisher_height.publish(height_msg)
 
         goal_reached_msg = Bool(data=abs(self.current_goal_height - height_meters) <= self.goal_threshold)
         self.publisher_goal_reached.publish(goal_reached_msg)
