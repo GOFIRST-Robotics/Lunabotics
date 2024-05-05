@@ -42,7 +42,7 @@ printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.user.zed.umn.gazebo \n" > ~/Lunab
 2.) To make it so zed modules won't rerun every time you start the container, do this:
 
 ```
-echo "-v /usr/local/zed/resources:/usr/local/zed/resources" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
+echo "-v /usr/local/zed/resources:/usr/local/zed/resources -v /ssd:/ssd" > ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
 ```
 3.) Then run this command:
 
