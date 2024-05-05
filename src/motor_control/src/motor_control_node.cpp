@@ -165,10 +165,12 @@ class MotorControlNode : public rclcpp::Node {
 
   // Set the percent power of the motor between -1.0 and 1.0
   void vesc_set_duty_cycle(uint32_t id, float percentPower) {
-    // Do not allow setting more than 100% power in either direction
+    // Disable the PID controller for this motor if it's active
     if (this->pid_controllers[id]) {
       this->pid_controllers[id]->isActive = false;
     }
+
+    // Do not allow setting more than 100% power in either direction
     percentPower = std::clamp(percentPower, (float)(-1), (float)(1));
     int32_t data = percentPower * 100000; // Convert from percent power to a signed 32-bit integer
 

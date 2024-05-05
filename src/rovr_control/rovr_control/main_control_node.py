@@ -81,7 +81,7 @@ class MainControlNode(Node):
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-        self.apriltag_timer.cancel()  # Cancel the timer initially
+        self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -92,6 +92,7 @@ class MainControlNode(Node):
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
+        self.cli_lift_zero = self.create_client(Stop, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_set_apriltag_odometry = self.create_client(ResetOdom, "resetOdom")
 
@@ -103,6 +104,8 @@ class MainControlNode(Node):
         self.started_calibration = False
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
+
+        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""

@@ -132,7 +132,6 @@ class SkimmerNode(Node):
             MotorCommandSet.Request(type="duty_cycle", can_id=self.SKIMMER_LIFT_MOTOR, value=power)
         )
 
-    # TODO: Test this method before using it!
     def zero_lift(self) -> None:
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
         self.lift_set_power(0.05)
