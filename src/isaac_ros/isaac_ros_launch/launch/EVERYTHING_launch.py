@@ -12,7 +12,6 @@ def generate_launch_description():
 
     main_bringup_dir = get_package_share_directory("rovr_control")
     isaac_bringup_dir = get_package_share_directory("isaac_ros_launch")
-    # check_load_bringup_dir = get_package_share_directory("skimmer") # NOTE: Uncomment this line if we decide to actually use ros_check_load
 
     main_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(main_bringup_dir, "main_no_joysticks_launch.py")),
@@ -29,11 +28,6 @@ def generate_launch_description():
         }.items(),
     )
 
-    # NOTE: Uncomment this code block if we decide to actually use ros_check_load
-    # check_load_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(os.path.join(check_load_bringup_dir, "check_load_launch.py")),
-    # )
-
     # NOTE: Uncomment this code block if we get the gstreamer server working
     # gstreamer_server = Node(
     #     package="gstreamer",
@@ -45,7 +39,6 @@ def generate_launch_description():
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
-    # ld.add_action(check_load_launch) # NOTE: Uncomment this line if we decide to actually use ros_check_load
     # ld.add_action(gstreamer_server)  # NOTE: Uncomment this line if we get the gstreamer server working
     ld.add_action(isaac_launch)
     # Return the launch description
