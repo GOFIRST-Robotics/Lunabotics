@@ -83,13 +83,13 @@
       This assumes that we are placing 2 tags on the wall.
       -->
       <include>
-        <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00000</uri>
+        <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00001</uri>
         <pose relative_to='top_bottom_right'>0 1.2159 0.4 1.57 0 -1.57</pose>
         <name>AprilTag_1_Top</name>
       </include>
 
       <include>
-        <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00001</uri>
+        <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00002</uri>
         <pose relative_to='top_bottom_right'>0 1 0.4 1.57 0 -1.57</pose>
         <name>AprilTag_2_Top</name>
       </include>
