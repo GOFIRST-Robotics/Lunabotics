@@ -23,7 +23,7 @@ class GstreamerClient:
         self.pipeline.add(sink)
 
         self.pipeline.add(source)
-        encoding = "h265"
+        encoding = "av1"
         if encoding == "h265":
             self.init_h265(source, queue)
         elif encoding == "av1":
@@ -56,10 +56,11 @@ class GstreamerClient:
         h265parse.link(queue)
 
     def init_av1(self, source, queue):
+        # gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=30/1" ! queue ! nvv4l2decoder ! nvvideoconvert ! ximagesink
         caps_v4l2src = Gst.ElementFactory.make("capsfilter", "caps_v4l2src")
         caps_v4l2src.set_property(
             "caps",
-            Gst.Caps.from_string("video/x-av1,width=640,height=480,framerate=15/1"),
+            Gst.Caps.from_string("video/x-av1,width=640,height=480,framerate=30/1"),
         )
         self.pipeline.add(caps_v4l2src)
         source.link(caps_v4l2src)
