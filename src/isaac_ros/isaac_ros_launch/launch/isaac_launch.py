@@ -131,6 +131,7 @@ def generate_launch_description():
     # apriltag launch
     apriltag_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_launch.py")]),
+        launch_arguments={"attach_to_shared_component_container": "True"}.items(),
         condition=UnlessCondition(LaunchConfiguration("setup_for_gazebo")),
     )
     # apriltag (gazebo) launch
