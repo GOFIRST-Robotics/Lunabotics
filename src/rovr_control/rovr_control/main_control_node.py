@@ -49,8 +49,8 @@ class MainControlNode(Node):
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_belt_power", -0.2)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_lift_manual_power", 0.05)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("lift_dumping_position", -500)  # Measured in encoder counts
-        self.declare_parameter("lift_digging_position", -2500)  # Measured in encoder counts
+        self.declare_parameter("lift_dumping_position", -1500)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_position", -3400)  # Measured in encoder counts
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -106,9 +106,9 @@ class MainControlNode(Node):
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
         # ----- BLOCKING WHILE STATEMENT!!!! ----- #
-        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-        #     self.get_logger().warn("Waiting for the lift/zero service to be available, blocking")
-        # self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
+        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+            self.get_logger().warn("Waiting for the lift/zero service to be available, blocking")
+        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
