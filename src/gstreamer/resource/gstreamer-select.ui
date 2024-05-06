@@ -18,6 +18,9 @@
     <layout class="QGridLayout" name="gridLayout">
      <item row="1" column="1">
       <widget class="QPushButton" name="camera4_push_button">
+       <property name="toolTip">
+        <string>Select camera 4</string>
+       </property>
        <property name="text">
         <string>Camera 4</string>
        </property>
@@ -45,8 +48,31 @@
      </item>
      <item row="1" column="0">
       <widget class="QPushButton" name="camera3_push_button">
+       <property name="toolTip">
+        <string>Select camera 3</string>
+       </property>
        <property name="text">
         <string>Camera 3</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QPushButton" name="camera6_push_button">
+       <property name="toolTip">
+        <string>Select camera 6</string>
+       </property>
+       <property name="text">
+        <string>Camera 6</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QPushButton" name="camera5_push_button">
+       <property name="toolTip">
+        <string>Select camera 5</string>
+       </property>
+       <property name="text">
+        <string>Camera 5</string>
        </property>
       </widget>
      </item>

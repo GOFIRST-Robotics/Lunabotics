@@ -74,7 +74,7 @@ class GstreamerClient:
         self.stop_event = Event()
         change_source_thread = Thread()
         change_source_thread.start()
-
+        
     def stop(self):
         self.stop_event.set()
         self.pipeline.set_state(Gst.State.NULL)

@@ -132,6 +132,32 @@ class ClientWidget(QWidget):
         req.format = "NV12"
         cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
         self.wait_cli(cli,req)
+        
+    @Slot()
+    def on_camera5_push_button_clicked(self):
+        print("Requesting Camera 5")
+        req = SetActiveCamera.Request()
+        req.srctype = "videotestsrc"
+        req.device = "1"
+        req.width = 640
+        req.height = 480
+        req.framerate = 30
+        req.format = "NV12"
+        cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
+        self.wait_cli(cli,req)
+        
+    @Slot()
+    def on_camera6_push_button_clicked(self):
+        print("Requesting Camera 6")
+        req = SetActiveCamera.Request()
+        req.srctype = "videotestsrc"
+        req.device = "0"
+        req.width = 640
+        req.height = 480
+        req.framerate = 30
+        req.format = "NV12"
+        cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
+        self.wait_cli(cli,req)
 
     def restart_window(self):
         self.display_window.stop()
