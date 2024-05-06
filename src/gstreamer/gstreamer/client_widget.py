@@ -57,18 +57,19 @@ class ClientWidget(QWidget):
                 ),  # SIOCGIFADDR
             )[20:24]
             )
+        
     def wait_cli(self,cli:Client,req):
         future = cli.call_async(req)
         start_time = self.node.get_clock().now().nanoseconds
 
-        self.restart_window() # restart the client gstreamer while waiting for service response
-
+        # Block while waiting for server to respond
         while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:
             pass
         if not future.done():
-            print("Service call failed")
+            print("Service Call Failed")
             return
         
+        print("Service Call Returned")
         result = future.result().success
         if result == -1:
             print("No client IP Set")
@@ -77,10 +78,12 @@ class ClientWidget(QWidget):
         elif result == -3:
             print("No camera selected")
             
+        self.restart_window() 
         self.node.destroy_client(cli)
     
     @Slot()
     def on_camera1_push_button_clicked(self):
+        print("Requesting Camera 1")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
         req.device = "/dev/video0"
@@ -93,9 +96,10 @@ class ClientWidget(QWidget):
 
     @Slot()
     def on_camera2_push_button_clicked(self):
+        print("Requesting Camera 2")
         req = SetActiveCamera.Request()
-        req.srctype = "videotestsrc"
-        req.device = "1"
+        req.srctype = "v4l2src"
+        req.device = "/dev/video2"
         req.width = 640
         req.height = 480
         req.framerate = 30
@@ -105,9 +109,10 @@ class ClientWidget(QWidget):
 
     @Slot()
     def on_camera3_push_button_clicked(self):
+        print("Requesting Camera 3")
         req = SetActiveCamera.Request()
-        req.srctype = "videotestsrc"
-        req.device = "2"
+        req.srctype = "v4l2src"
+        req.device = "/dev/video4"
         req.width = 640
         req.height = 480
         req.framerate = 30
@@ -117,16 +122,16 @@ class ClientWidget(QWidget):
 
     @Slot()
     def on_camera4_push_button_clicked(self):
+        print("Requesting Camera 4")
         req = SetActiveCamera.Request()
-        req.srctype = "videotestsrc"
-        req.device = "3"
+        req.srctype = "v4l2src"
+        req.device = "/dev/video5"
         req.width = 640
         req.height = 480
         req.framerate = 30
         req.format = "NV12"
         cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
         self.wait_cli(cli,req)
-
 
     def restart_window(self):
         self.display_window.stop()

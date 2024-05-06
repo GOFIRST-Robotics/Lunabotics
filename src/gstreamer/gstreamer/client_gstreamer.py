@@ -7,7 +7,7 @@ class GstreamerClient:
     def __init__(self):
         # Initialize GStreamer
         Gst.init(None)
-        print("Creating Pipeline")
+        # print("Creating Pipeline")
         self.pipeline = Gst.Pipeline()
 
         source = Gst.ElementFactory.make("udpsrc", "src")
