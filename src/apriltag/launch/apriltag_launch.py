@@ -1,4 +1,3 @@
-from sympy import use
 import launch
 from launch_ros.actions import ComposableNodeContainer, Node
 from launch_ros.descriptions import ComposableNode
