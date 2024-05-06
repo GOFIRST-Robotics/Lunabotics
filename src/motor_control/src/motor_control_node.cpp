@@ -324,8 +324,8 @@ private:
     // Store the most recent motor data in the hashmap
     this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
 
-    // RCLCPP_INFO(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    // RCLCPP_INFO(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+    RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
+    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
@@ -376,7 +376,7 @@ private:
       response->success = 0; // indicates success
     } else {
       response->success = 1; // indicates failure
-      // RCLCPP_ERROR(this->get_logger(), "GET command for CAN ID %u read stale data!", request->can_id);
+      RCLCPP_WARN(this->get_logger(), "GET command for CAN ID %u read stale data!", request->can_id);
     }
   }
 

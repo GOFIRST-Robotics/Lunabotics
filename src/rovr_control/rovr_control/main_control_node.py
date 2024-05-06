@@ -19,9 +19,6 @@ from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, ResetOdom
 
 # Import Python Modules
 import asyncio  # Allows the use of asynchronous methods!
-import subprocess  # This is for the webcam stream subprocesses
-import signal  # Allows us to kill subprocesses
-import os  # Allows us to kill subprocesses
 
 # Provides a “navigation as a library” capability
 from nav2_simple_commander.robot_navigator import BasicNavigator
@@ -105,9 +102,9 @@ class MainControlNode(Node):
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-        # ----- BLOCKING WHILE STATEMENT!!!! ----- #
+        # ----- !! BLOCKING WHILE LOOP !! ----- #
         while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-            self.get_logger().warn("Waiting for the lift/zero service to be available, blocking")
+            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
         self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
 
     def start_calibration_callback(self) -> None:
