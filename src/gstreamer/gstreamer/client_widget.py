@@ -14,7 +14,7 @@ from rqt_py_common.extended_combo_box import ExtendedComboBox
 
 class ClientWidget(QWidget):
     timeout = 2e9 # 2 seconds with nano seconds as unit
-    encodings = ["h265", "av1"]
+    encodings = ["av1", "h265"]
     def __init__(self, node: Node):
         super(ClientWidget, self).__init__()
         self.setObjectName("ClientWidget")
@@ -86,7 +86,7 @@ class ClientWidget(QWidget):
         print("Requesting Camera 1")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video0"
+        req.device = "/dev/video2"
         req.width = 640
         req.height = 480
         req.framerate = 30
@@ -99,9 +99,9 @@ class ClientWidget(QWidget):
         print("Requesting Camera 2")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video2"
-        req.width = 1344
-        req.height = 376
+        req.device = "/dev/video6"
+        req.width = 640
+        req.height = 480
         req.framerate = 30
         req.format = "NV12"
         cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
@@ -125,7 +125,7 @@ class ClientWidget(QWidget):
         print("Requesting Camera 4")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video5"
+        req.device = "/dev/video7"
         req.width = 640
         req.height = 480
         req.framerate = 30
@@ -138,20 +138,7 @@ class ClientWidget(QWidget):
         print("Requesting Camera 5")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video6"
-        req.width = 640
-        req.height = 480
-        req.framerate = 30
-        req.format = "NV12"
-        cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
-        self.wait_cli(cli,req)
-        
-    @Slot()
-    def on_camera6_push_button_clicked(self):
-        print("Requesting Camera 6")
-        req = SetActiveCamera.Request()
-        req.srctype = "v4l2src"
-        req.device = "/dev/video7"
+        req.device = "/dev/video5"
         req.width = 640
         req.height = 480
         req.framerate = 30

@@ -16,23 +16,13 @@
   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
    <item>
     <layout class="QGridLayout" name="gridLayout">
-     <item row="1" column="1">
-      <widget class="QPushButton" name="camera4_push_button">
-       <property name="toolTip">
-        <string>Select camera 4</string>
-       </property>
-       <property name="text">
-        <string>Camera 4</string>
-       </property>
-      </widget>
-     </item>
      <item row="0" column="0">
       <widget class="QPushButton" name="camera1_push_button">
        <property name="toolTip">
         <string>Select camera 1</string>
        </property>
        <property name="text">
-        <string>Camera 1</string>
+        <string>Front Camera</string>
        </property>
       </widget>
      </item>
@@ -42,7 +32,7 @@
         <string>Select camera 2</string>
        </property>
        <property name="text">
-        <string>Camera 2</string>
+        <string>Back Camera</string>
        </property>
       </widget>
      </item>
@@ -52,17 +42,17 @@
         <string>Select camera 3</string>
        </property>
        <property name="text">
-        <string>Camera 3</string>
+        <string>Left Camera</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QPushButton" name="camera6_push_button">
+     <item row="1" column="1">
+      <widget class="QPushButton" name="camera4_push_button">
        <property name="toolTip">
-        <string>Select camera 6</string>
+        <string>Select camera 4</string>
        </property>
        <property name="text">
-        <string>Camera 6</string>
+        <string>Right Camera</string>
        </property>
       </widget>
      </item>
@@ -72,7 +62,7 @@
         <string>Select camera 5</string>
        </property>
        <property name="text">
-        <string>Camera 5</string>
+        <string>Conveyor Camera</string>
        </property>
       </widget>
      </item>
