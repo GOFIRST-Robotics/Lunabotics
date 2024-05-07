@@ -122,7 +122,7 @@ class MainControlNode(Node):
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-        self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
+        # self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -148,10 +148,13 @@ class MainControlNode(Node):
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-        # ----- !! BLOCKING WHILE LOOP !! ----- #
-        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
+        # # ----- !! BLOCKING WHILE LOOP !! ----- #
+        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
+        # self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
+        dig_locations = self.optimal_dig_location()
+        # print("dig locations:", len(self.optimal_dig_location()))
+        self.nav2.goToPose(dig_locations[0])
 
     def optimal_dig_location(self) -> list:
         available_dig_spots = []
@@ -161,11 +164,12 @@ class MainControlNode(Node):
             resolution = costmap.getResolution()
 
             # NEEDED MEASUREMENTS:
-            robot_width = 1 / 2
+            robot_width = 1.749 / 2
             robot_width_pixels = robot_width // resolution
-            danger_threshold, real_danger_threshold = 5, 150
-            dig_zone_depth, dig_zone_start, dig_zone_end = 2.57 // resolution, 4.07 // resolution, 8.14 // resolution
-            dig_zone_border_y = 2 // resolution
+            danger_threshold, real_danger_threshold = 50, 150
+            dig_zone_depth, dig_zone_start, dig_zone_end = 2.57 // 2, 4.07, 8.14
+            dig_zone_border_y = 2.0
+            
 
             while len(available_dig_spots) == 0:
                 if danger_threshold > real_danger_threshold:
@@ -173,10 +177,11 @@ class MainControlNode(Node):
                     return None
                 i = dig_zone_start + robot_width
                 while i <= dig_zone_end - robot_width:
-                    if costmap.getDigCost(dig_zone_start + i, dig_zone_border_y, robot_width_pixels, dig_zone_depth) <= self.DANGER_THRESHOLD:
-                        available_dig_spots.append(create_pose_stamped(dig_zone_start + i, dig_zone_border_y, 90))
+                    if costmap.getDigCost(i, dig_zone_border_y, robot_width_pixels, dig_zone_depth) <= self.DANGER_THRESHOLD:
+                        available_dig_spots.append(create_pose_stamped(i, -dig_zone_border_y, 90))
                         i += robot_width
-                    i += resolution
+                    else:
+                        i += resolution
                 if len(available_dig_spots) > 0:
                     return available_dig_spots
                 danger_threshold += 5
