@@ -1,6 +1,6 @@
 import os
 
-# from launch_ros.actions import Node  # NOTE: Uncomment this code block if we get the gstreamer server working
+from launch_ros.actions import Node
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -28,18 +28,18 @@ def generate_launch_description():
         }.items(),
     )
 
-    # NOTE: Uncomment this code block if we get the gstreamer server working
-    # gstreamer_server = Node(
-    #     package="gstreamer",
-    #     executable="server_node",
-    #     name="gstreamer_server_node",
-    #     output="screen",
-    #     emulate_tty=True,
-    # )
+    gstreamer_server = Node(
+        package="gstreamer",
+        executable="server_node",
+        name="gstreamer_server_node",
+        output="screen",
+        emulate_tty=True,
+    )
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
-    # ld.add_action(gstreamer_server)  # NOTE: Uncomment this line if we get the gstreamer server working
+    ld.add_action(gstreamer_server)
     ld.add_action(isaac_launch)
+
     # Return the launch description
     return ld
