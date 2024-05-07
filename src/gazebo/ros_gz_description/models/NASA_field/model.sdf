@@ -34,14 +34,14 @@
       -->
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00001</uri>
-        <pose relative_to='bottom_right'>-6.87 1 0.4 1.57 0 -1.57</pose>
+        <pose relative_to='bottom_right'>-6.87 1 0.4 1.57 0 1.57</pose>
         <name>AprilTag_1</name>
       </include> 
 
       
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00002</uri>
-        <pose relative_to='bottom_right'>-6.87 1.2159 0.4 1.57 0 -1.57</pose>
+        <pose relative_to='bottom_right'>-6.87 1.2159 0.4 1.57 0 1.57</pose>
         <name>AprilTag_2</name>
       </include>
 
