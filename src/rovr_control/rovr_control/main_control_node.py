@@ -152,9 +152,12 @@ class MainControlNode(Node):
         # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
         #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
         # self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
-        dig_locations = self.optimal_dig_location()
-        # print("dig locations:", len(self.optimal_dig_location()))
-        self.nav2.goToPose(dig_locations[0])
+        
+        
+        
+        # dig_locations = self.optimal_dig_location()
+        # # print("dig locations:", len(self.optimal_dig_location()))
+        # self.nav2.goToPose(dig_locations[0])
 
     def optimal_dig_location(self) -> list:
         available_dig_spots = []
