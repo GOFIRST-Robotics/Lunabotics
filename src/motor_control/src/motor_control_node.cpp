@@ -376,7 +376,7 @@ private:
       response->success = 0; // indicates success
     } else {
       response->success = 1; // indicates failure
-      RCLCPP_ERROR(this->get_logger(), "GET command for CAN ID %u read stale data!", request->can_id);
+      RCLCPP_WARN(this->get_logger(), "GET command for CAN ID %u read stale data!", request->can_id);
     }
   }
 
