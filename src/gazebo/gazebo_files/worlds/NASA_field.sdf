@@ -32,7 +32,7 @@
 
     <include>
       <uri>package://robot_description/models/master_ASM</uri>
-      <pose>-2.2 -1.5 1 0 0 3.14159265</pose>
+      <pose>-2.2 -1.5 0.6 0 0.44 0</pose>
       <!-- Global odometer -->
       <plugin
       filename="ignition-gazebo-odometry-publisher-system"
