@@ -24,7 +24,7 @@ and handling semantics found in the costmap 2d C++ API.
 """
 
 import numpy as np
-
+from typing import Tuple
 
 class PyCostmap2D:
     """
@@ -46,8 +46,8 @@ class PyCostmap2D:
             None
 
         """
-        self.size_x = costmap.metadata.width
-        self.size_y = costmap.metadata.height
+        self.size_x = costmap.metadata.size_x
+        self.size_y = costmap.metadata.size_y
         self.resolution = costmap.metadata.resolution
         self.origin_x = costmap.metadata.origin.position.x
         self.origin_y = costmap.metadata.origin.position.y
@@ -140,7 +140,7 @@ class PyCostmap2D:
         """
         self.costmap[self.getIndex(mx, my)] = cost
 
-    def mapToWorld(self, mx: int, my: int) -> tuple[float, float]:
+    def mapToWorld(self, mx: int, my: int) -> Tuple[float, float]:
         """
         Get the world coordinate XY using map coordinate XY.
 

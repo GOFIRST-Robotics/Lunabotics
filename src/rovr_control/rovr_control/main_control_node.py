@@ -3,6 +3,8 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: November 2023
 
+import sys
+
 # Import the ROS 2 module
 import rclpy
 from rclpy.node import Node
@@ -36,7 +38,7 @@ from .gamepad_constants import *
 # Uncomment the line below to use the Xbox controller mappings instead
 # from .xbox_controller_constants import *
 
-from costmap_2d import PyCostmap2D
+from .costmap_2d import PyCostmap2D
 
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
@@ -154,28 +156,33 @@ class MainControlNode(Node):
     def optimal_dig_location(self) -> list:
         available_dig_spots = []
         
-        costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
-        resolution = costmap.getResolution()
+        try:
+            costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
+            resolution = costmap.getResolution()
 
-        # NEEDED MEASUREMENTS:
-        robot_width = 1 / 2
-        robot_width_pixels = robot_width // resolution
-        danger_threshold, real_danger_threshold = 100, 150
-        dig_zone_depth, dig_zone_start, dig_zone_end = 2.57 // resolution, 4.07 // resolution, 8.14 // resolution
-        dig_zone_border_y = 2 // resolution
-        
+            # NEEDED MEASUREMENTS:
+            robot_width = 1 / 2
+            robot_width_pixels = robot_width // resolution
+            danger_threshold, real_danger_threshold = 5, 150
+            dig_zone_depth, dig_zone_start, dig_zone_end = 2.57 // resolution, 4.07 // resolution, 8.14 // resolution
+            dig_zone_border_y = 2 // resolution
 
-        while len(available_dig_spots) == 0:
-            if danger_threshold > real_danger_threshold:
-                self.get_logger().warn("No safe digging spots available. Switch to manual control.")
-                return None
-            for i in range(dig_zone_start + robot_width, dig_zone_end - robot_width, resolution):
-                if costmap.getDigCost(dig_zone_start + i, dig_zone_border_y, robot_width_pixels, dig_zone_depth) <= self.DANGER_THRESHOLD:
-                    available_dig_spots.append((dig_zone_start + i, dig_zone_border_y))
-                    i += robot_width
-            if len(available_dig_spots) > 0:
-                return available_dig_spots
-            danger_threshold += 5
+            while len(available_dig_spots) == 0:
+                if danger_threshold > real_danger_threshold:
+                    self.get_logger().warn("No safe digging spots available. Switch to manual control.")
+                    return None
+                i = dig_zone_start + robot_width
+                while i <= dig_zone_end - robot_width:
+                    if costmap.getDigCost(dig_zone_start + i, dig_zone_border_y, robot_width_pixels, dig_zone_depth) <= self.DANGER_THRESHOLD:
+                        available_dig_spots.append(create_pose_stamped(dig_zone_start + i, dig_zone_border_y, 90))
+                        i += robot_width
+                    i += resolution
+                if len(available_dig_spots) > 0:
+                    return available_dig_spots
+                danger_threshold += 5
+        except Exception as e:
+            self.get_logger().error(f"Error in optimal_dig_location: {e} on line {sys.exc_info()[-1].tb_lineno}")
+            return None
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
@@ -297,7 +304,7 @@ class MainControlNode(Node):
                 self.get_logger().error("Field coordinates must be calibrated first!")
                 self.end_autonomous()  # Return to Teleop mode
                 return
-            self.nav2.goToPose(self.optimal_dig_location())  # Navigate to the dig location
+            self.nav2.goToPose(self.optimal_dig_location()[0])  # Navigate to the dig location
             while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             if self.nav2.getResult() == TaskResult.FAILED:
