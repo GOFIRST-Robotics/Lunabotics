@@ -203,4 +203,4 @@ class PyCostmap2D:
     
     def getDigCost(self, wx, wy, robot_width, dig_length):
         mx, my = self.worldToMapValidated(wx, wy)
-        return np.amax(self.costmap[mx-robot_width:mx+robot_width, my, my+dig_length])
+        return np.amax(self.costmap[mx-robot_width:mx+robot_width, my:my+dig_length])
