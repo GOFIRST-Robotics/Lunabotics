@@ -69,11 +69,11 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("skimmer_belt_power", -0.2)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("skimmer_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_lift_manual_power", 0.05)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
-        self.declare_parameter("lift_dumping_position", -1500)  # Measured in encoder counts
-        self.declare_parameter("lift_digging_position", -3400)  # Measured in encoder counts
+        self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_position", -3050)  # Measured in encoder counts
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -266,7 +266,7 @@ class MainControlNode(Node):
             while not self.skimmer_goal_reached:
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             # Drive forward while digging
-            self.nav2.driveOnHeading(dist=0.15, speed=0.25)  # TODO: Adjust these parameters
+            self.nav2.driveOnHeading(dist=0.75, speed=0.1)  # TODO: Tune these values
             while not self.nav2.isTaskComplete():  # Wait for the end of the driveOnHeading task
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
