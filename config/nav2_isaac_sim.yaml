@@ -20,7 +20,7 @@ bt_navigator:
   ros__parameters:
     use_sim_time: False
     global_frame: odom
-    robot_base_frame: base_link
+    robot_base_frame: zed2i_camera_link
     odom_topic: /odom
     bt_loop_duration: 20
     default_server_timeout: 40
@@ -176,7 +176,7 @@ local_costmap:
       update_frequency: 10.0
       publish_frequency: 10.0
       global_frame: odom
-      robot_base_frame: base_link
+      robot_base_frame: zed2i_camera_link
       use_sim_time: False
       rolling_window: True
       width: 10
@@ -208,7 +208,7 @@ global_costmap:
       update_frequency: 10.0
       publish_frequency: 10.0
       global_frame: odom
-      robot_base_frame: base_link
+      robot_base_frame: zed2i_camera_link
       use_sim_time: False
       rolling_window: True
       width: 200
@@ -257,7 +257,7 @@ smoother_server:
     use_sim_time: False
     costmap_topic: global_costmap/costmap_raw
     footprint_topic: global_costmap/published_footprint
-    robot_base_frame: base_link
+    robot_base_frame: zed2i_camera_link
     transform_timeout: 0.1
     smoother_plugins: ["simple_smoother"]
     simple_smoother:
@@ -284,7 +284,7 @@ behavior_server:
     wait:
       plugin: "nav2_behaviors/Wait"
     global_frame: odom
-    robot_base_frame: base_link
+    robot_base_frame: zed2i_camera_link
     transform_tolerance: 0.2
     use_sim_time: False
     simulate_ahead_time: 2.0
