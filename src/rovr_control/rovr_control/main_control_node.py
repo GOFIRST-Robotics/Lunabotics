@@ -155,6 +155,7 @@ class MainControlNode(Node):
             await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_position))  # Lower the skimmer into the ground
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
+                self.get_logger().info("Moving skimmer to the goal")
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             # Drive forward while digging
             self.nav2.driveOnHeading(dist=0.75, speed=0.1)  # TODO: Tune these values
@@ -165,10 +166,10 @@ class MainControlNode(Node):
             await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise the skimmer back up
             # Wait for the lift goal to be reached
             while not self.skimmer_goal_reached:
+                self.get_logger().info("Moving skimmer to the goal")
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Autonomous Digging Procedure Complete!\n")
-            if self.autonomous_cycle_process is None:
-                self.end_autonomous()  # Return to Teleop mode
+            self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().warn("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
@@ -181,10 +182,11 @@ class MainControlNode(Node):
             await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise up the skimmer in preparation for dumping
             # Wait for the lift goal to be reached
             while not self.skimmer_goal_reached:
+                self.get_logger().info("Moving skimmer to the goal")
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Commence Offloading!")
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            await asyncio.sleep(10)  # How long to offload for # TODO: Adjust this time as needed
+            await asyncio.sleep(5 / abs(self.skimmer_belt_power))  # How long to offload for # TODO: Adjust this time factor as needed
             await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
             self.end_autonomous()  # Return to Teleop mode
