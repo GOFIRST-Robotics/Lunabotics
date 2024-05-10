@@ -20,11 +20,10 @@ def generate_launch_description():
     isaac_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(isaac_bringup_dir, "isaac_launch.py")),
         launch_arguments={
-            "run_rviz": "False",
             "setup_for_zed": "True",
             "setup_for_gazebo": "False",
             "use_nvblox": "True",
-            "run_rviz": "False",  # We don't need to run RViz during matches
+            "run_rviz_robot": "False",  # We don't need to run RViz during matches
             "record_svo": "True",  # Record match data to an SVO file
         }.items(),
     )
