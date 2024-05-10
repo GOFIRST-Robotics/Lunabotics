@@ -19,7 +19,7 @@ def generate_launch_description():
     apriltag_bringup_dir = get_package_share_directory("apriltag")
 
     # Launch Arguments
-    run_rviz_arg = DeclareLaunchArgument("run_rviz", default_value="True", description="Whether to start RVIZ")
+    run_rviz_arg = DeclareLaunchArgument("run_rviz_robot", default_value="True", description="Whether to start RVIZ")
     setup_for_zed_arg = DeclareLaunchArgument(
         "setup_for_zed",
         default_value="True",
@@ -105,7 +105,7 @@ def generate_launch_description():
             "config_name": "zed_example.rviz",
             "global_frame": global_frame,
         }.items(),
-        condition=IfCondition(LaunchConfiguration("run_rviz")),
+        condition=IfCondition(LaunchConfiguration("run_rviz_robot")),
     )
 
     # Nav2 params

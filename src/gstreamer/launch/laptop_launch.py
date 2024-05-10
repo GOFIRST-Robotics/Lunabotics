@@ -9,7 +9,7 @@ from launch.substitutions import LaunchConfiguration
 def generate_launch_description():
     ld = LaunchDescription()
     
-    run_rviz_arg = DeclareLaunchArgument("run_rviz", default_value="True", description="Whether to start RVIZ")
+    run_rviz_arg = DeclareLaunchArgument("run_rviz_client", default_value="True", description="Whether to start RVIZ")
 
     joystick_node = Node(
         package="joy",
@@ -27,7 +27,7 @@ def generate_launch_description():
         name="rviz2",
         output="screen",
         arguments=["-d", "config/rviz/isaac_sim_example.rviz"],
-        condition=IfCondition(LaunchConfiguration("run_rviz")),
+        condition=IfCondition(LaunchConfiguration("run_rviz_client")),
     )
 
     ld.add_action(run_rviz_arg)
