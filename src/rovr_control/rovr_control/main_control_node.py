@@ -29,9 +29,6 @@ from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, ResetOdom
 import asyncio  # Allows the use of asynchronous methods!
 from scipy.spatial.transform import Rotation as R
 
-# Provides a “navigation as a library” capability
-from nav2_simple_commander.robot_navigator import BasicNavigator
-
 # Import our logitech gamepad button mappings
 from .gamepad_constants import *
 
@@ -122,7 +119,7 @@ class MainControlNode(Node):
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-        # self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
+        self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -149,15 +146,10 @@ class MainControlNode(Node):
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
         # # ----- !! BLOCKING WHILE LOOP !! ----- #
-        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        # self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
+        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
+        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
         
-        
-        
-        # dig_locations = self.optimal_dig_location()
-        # # print("dig locations:", len(self.optimal_dig_location()))
-        # self.nav2.goToPose(dig_locations[0])
 
     def optimal_dig_location(self) -> list:
         available_dig_spots = []
@@ -408,25 +400,13 @@ class MainControlNode(Node):
                 self.get_logger().warn("Field Calibration Terminated\n")
                 self.end_autonomous()  # Return to Teleop mode
 
-        # Check if the travel automation button is pressed
-        if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
-            if self.state == states["Teleop"]:
-                self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]
-                self.travel_automation_process = asyncio.ensure_future(
-                    self.travel_automation()
-                )  # Start the travel_automation process
-            elif self.state == states["Autonomous"]:
-                self.travel_automation_process.cancel()  # Terminate the travel_automation_process process
-                self.travel_automation_process = None
-
         # Check if the autonomous digging button is pressed
         if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
                 self.autonomous_digging_process = asyncio.ensure_future(
-                    self.Autonomous_Dig_procedure()
+                    self.auto_dig_procedure()
                 )  # Start the auto dig process
             elif self.state == states["Autonomous"]:
                 self.autonomous_digging_process.cancel()  # Terminate the auto dig process
@@ -438,7 +418,7 @@ class MainControlNode(Node):
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
                 self.autonomous_offload_process = asyncio.ensure_future(
-                    self.Autonomous_Offload_procedure()
+                    self.auto_offload_procedure()
                 )  # Start the auto dig process
             elif self.state == states["Autonomous"]:
                 self.autonomous_offload_process.cancel()  # Terminate the auto offload process
@@ -449,7 +429,6 @@ class MainControlNode(Node):
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
-
                 self.autonomous_cycle_process = asyncio.ensure_future(
                     self.auto_cycle_procedure()
                 )  # Start the autonomous cycle!
