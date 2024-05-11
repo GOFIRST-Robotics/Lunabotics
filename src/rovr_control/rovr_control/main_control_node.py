@@ -137,15 +137,13 @@ class MainControlNode(Node):
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
-        self.skimmer_goal_subscription = self.create_subscription(
-            Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
-        )
+        self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
 
         self.started_calibration = False
         self.field_calibrated = False
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-        # # ----- !! BLOCKING WHILE LOOP !! ----- #
+        # ----- !! BLOCKING WHILE LOOP !! ----- #
         while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
             self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
         self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
