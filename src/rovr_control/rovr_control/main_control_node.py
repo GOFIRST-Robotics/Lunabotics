@@ -70,8 +70,8 @@ class MainControlNode(Node):
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("skimmer_lift_manual_power", 0.05)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("skimmer_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_position", -3200)  # Measured in encoder counts
 
@@ -267,8 +267,9 @@ class MainControlNode(Node):
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
             # Drive forward while digging
-            self.nav2.driveOnHeading(dist=0.75, speed=0.1)  # TODO: Tune these values
-            while not self.nav2.isTaskComplete():  # Wait for the end of the driveOnHeading task
+            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.2, turning_power=0.0))
+            start_time = self.get_clock().now().nanoseconds
+            while self.get_clock().now().nanoseconds - start_time < 10e9:
                 self.get_logger().info("Auto Driving")
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
