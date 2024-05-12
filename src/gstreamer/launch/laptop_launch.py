@@ -15,7 +15,7 @@ def generate_launch_description():
     # Config
     config_name = LaunchConfiguration("config_name", default="zed_example.rviz")
     config_path = PathJoinSubstitution([bringup_dir, config_name])
-    global_frame = LaunchConfiguration("global_frame", default="odom")
+    global_frame = LaunchConfiguration("global_frame", default="map")
 
     run_rviz_arg = DeclareLaunchArgument("run_rviz_client", default_value="True", description="Whether to start RVIZ")
 
