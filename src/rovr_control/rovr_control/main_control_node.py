@@ -128,6 +128,7 @@ class MainControlNode(Node):
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
+        self.cli_drivetrain_calibrate = self.create_client(Stop, "drivetrain/calibrate")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
         self.cli_lift_zero = self.create_client(Stop, "lift/zero")
@@ -257,7 +258,7 @@ class MainControlNode(Node):
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
             # Drive forward while digging
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.2, turning_power=0.0))
+            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.25, turning_power=0.0))
             start_time = self.get_clock().now().nanoseconds
             while self.get_clock().now().nanoseconds - start_time < 10e9:
                 self.get_logger().info("Auto Driving")
@@ -382,6 +383,10 @@ class MainControlNode(Node):
             elif msg.buttons[LEFT_TRIGGER] == 0 and buttons[LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
 
+            # Check if the calibration button is pressed
+            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
+                self.cli_drivetrain_calibrate.call_async(Stop.Request())
+
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the Apriltag calibration button is pressed
@@ -421,18 +426,6 @@ class MainControlNode(Node):
             elif self.state == states["Autonomous"]:
                 self.autonomous_offload_process.cancel()  # Terminate the auto offload process
                 self.autonomous_offload_process = None
-
-        # Check if the autonomous cycle button is pressed
-        if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-            if self.state == states["Teleop"]:
-                self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]
-                self.autonomous_cycle_process = asyncio.ensure_future(
-                    self.auto_cycle_procedure()
-                )  # Start the autonomous cycle!
-            elif self.state == states["Autonomous"]:
-                self.autonomous_cycle_process.cancel()  # Terminate the autonomous cycle process
-                self.autonomous_cycle_process = None
 
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
