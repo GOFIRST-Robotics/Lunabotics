@@ -86,7 +86,7 @@ class ClientWidget(QWidget):
         print("Requesting Camera 1")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video2"
+        req.device = "/dev/video0"
         req.width = 640
         req.height = 480
         req.framerate = 30
