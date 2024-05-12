@@ -3,7 +3,7 @@
   gz_topic_name: "/clock"
   ros_type_name: "rosgraph_msgs/msg/Clock"
   gz_type_name: "gz.msgs.Clock"
-  direction: BIDIRECTIONAL
+  direction: GZ_TO_ROS
 
 - ros_topic_name: "/wheel1/cmd_vel"
   gz_topic_name: "/model/Master_ASM/joint/wheel1_joint/cmd_vel"

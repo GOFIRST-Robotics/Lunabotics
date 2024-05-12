@@ -49,7 +49,7 @@ def create_pose_stamped(x, y, yaw):
     pose_stamped_msg.header.frame_id = "map"
     pose_stamped_msg.pose.position.x = x
     pose_stamped_msg.pose.position.y = y
-    quat = R.from_euler("z", yaw - 15, degrees=True).as_quat()  # TODO: Why does this need to be offset?
+    quat = R.from_euler("z", yaw, degrees=True).as_quat()  # TODO: Why does this need to be offset?
     pose_stamped_msg.pose.orientation.x = quat[0]
     pose_stamped_msg.pose.orientation.y = quat[1]
     pose_stamped_msg.pose.orientation.z = quat[2]
@@ -67,7 +67,7 @@ class MainControlNode(Node):
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("autonomous_field_type", "bottom")  # The type of field ("top", "bottom", "nasa")
         self.declare_parameter("skimmer_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_position", -3200)  # Measured in encoder counts
@@ -112,14 +112,14 @@ class MainControlNode(Node):
             self.travel_automation_location = create_pose_stamped(6.2, -1.2, 0)
         elif self.autonomous_field_type == "bottom":
             self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
-            self.travel_automation_location = create_pose_stamped(6.2, -3.2, 0)
+            self.travel_automation_location = create_pose_stamped(6.2, -3.2, 270)
         elif self.autonomous_field_type == "nasa":
             self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)  # TODO: Test this location in simulation
             self.travel_automation_location = create_pose_stamped(6.2, -1.2, 0)  # TODO: Test this location in simulation
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-        self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
+        # self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -144,43 +144,43 @@ class MainControlNode(Node):
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
         # ----- !! BLOCKING WHILE LOOP !! ----- #
-        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
-        
+        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
+        # self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
 
-    def optimal_dig_location(self) -> list:
-        available_dig_spots = []
+    # def optimal_dig_location(self) -> list:
+    #     available_dig_spots = []
         
-        try:
-            costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
-            resolution = costmap.getResolution()
-
-            # NEEDED MEASUREMENTS:
-            robot_width = 1.749 / 2
-            robot_width_pixels = robot_width // resolution
-            danger_threshold, real_danger_threshold = 50, 150
-            dig_zone_depth, dig_zone_start, dig_zone_end = 2.57 // 2, 4.07, 8.14
-            dig_zone_border_y = 2.0
+    #     try:
+    #         costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
+            
+    #         resolution = costmap.getResolution()
+    #         print(resolution)
+    #         # NEEDED MEASUREMENTS:
+    #         robot_width = 1.749 / 2
+    #         robot_width_pixels = robot_width // resolution
+    #         danger_threshold, real_danger_threshold = 50, 150
+    #         dig_zone_depth, dig_zone_start, dig_zone_end = 2.57, 4.07, 8.14
+    #         dig_zone_border_y = 2.0
             
 
-            while len(available_dig_spots) == 0:
-                if danger_threshold > real_danger_threshold:
-                    self.get_logger().warn("No safe digging spots available. Switch to manual control.")
-                    return None
-                i = dig_zone_start + robot_width
-                while i <= dig_zone_end - robot_width:
-                    if costmap.getDigCost(i, dig_zone_border_y, robot_width_pixels, dig_zone_depth) <= self.DANGER_THRESHOLD:
-                        available_dig_spots.append(create_pose_stamped(i, -dig_zone_border_y, 90))
-                        i += robot_width
-                    else:
-                        i += resolution
-                if len(available_dig_spots) > 0:
-                    return available_dig_spots
-                danger_threshold += 5
-        except Exception as e:
-            self.get_logger().error(f"Error in optimal_dig_location: {e} on line {sys.exc_info()[-1].tb_lineno}")
-            return None
+    #         while len(available_dig_spots) == 0:
+    #             if danger_threshold > real_danger_threshold:
+    #                 self.get_logger().warn("No safe digging spots available. Switch to manual control.")
+    #                 return None
+    #             i = dig_zone_start + robot_width
+    #             while i <= dig_zone_end - robot_width:
+    #                 if costmap.getDigCost(i, dig_zone_border_y, robot_width_pixels, dig_zone_depth) <= self.DANGER_THRESHOLD:
+    #                     available_dig_spots.append(create_pose_stamped(i, -dig_zone_border_y, 270))
+    #                     i += robot_width
+    #                 else:
+    #                     i += resolution
+    #             if len(available_dig_spots) > 0:
+    #                 return available_dig_spots
+    #             danger_threshold += 5
+    #     except Exception as e:
+    #         self.get_logger().error(f"Error in optimal_dig_location: {e} on line {sys.exc_info()[-1].tb_lineno}")
+    #         return None
 
     def start_calibration_callback(self) -> None:
         """This method publishes the odometry of the robot."""
@@ -219,43 +219,71 @@ class MainControlNode(Node):
             await asyncio.sleep(0.05)  # Allows other async tasks to continue running (this is non-blocking)
         self.get_logger().info("Field Coordinates Calibrated!")
         await self.cli_drivetrain_stop.call_async(Stop.Request())
-        self.nav2.spin(3.14)  # Turn around 180 degrees to face the rest of the field
+        self.nav2.goToPose(create_pose_stamped(1.5, -3.0, 0))  # Turn around to face the rest of the field
         while not self.nav2.isTaskComplete():
             await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-        self.apriltag_timer.cancel()
+        if not self.field_calibrated:
+            self.get_logger().error("Field coordinates must be calibrated first!")
+            self.end_autonomous()  # Return to Teleop mode
+            return
+        self.nav2.goToPose(self.travel_automation_location)  # Navigate to the dig location
+        while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
+            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+        if self.nav2.getResult() == TaskResult.FAILED:
+            self.get_logger().error("Failed to reach the dig location!")
+            self.end_autonomous()  # Return to Teleop mode
+            return
+        self.autonomous_digging_process = asyncio.ensure_future(
+            self.auto_dig_procedure()
+        )  # Start the auto dig process
+        while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
+            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+        self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
+        while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
+            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+        if self.nav2.getResult() == TaskResult.FAILED:
+            self.get_logger().error("Failed to reach the berm zone!")
+            self.end_autonomous()  # Return to Teleop mode
+            return
+        self.autonomous_offload_process = asyncio.ensure_future(
+            self.auto_offload_procedure()
+        )  # Start the auto offload process
+        while not self.autonomous_offload_process.done():  # Wait for the offload process to complete
+            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+        self.get_logger().info("Completed an Autonomous Cycle!\n")
         self.end_autonomous()  # Return to Teleop mode
 
-    async def travel_automation(self) -> None:
-        """This method is used to automate the travel of the robot to the excavation zone."""
-        self.get_logger().info("Starting Travel Automation!")
-        try:
-            await self.calibrate_field_coordinates()  # Calibrate the field coordinates first
-            self.nav2.goToPose(self.travel_automation_location)  # Navigate to the excavation zone
-            while not self.nav2.isTaskComplete():  # Wait for the excavation zone to be reached
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            if self.nav2.getResult() == TaskResult.FAILED:
-                self.get_logger().error("Failed to reach the excavation zone!")
-                self.end_autonomous()  # Return to Teleop mode
-                return
-            self.get_logger().info("Travel Automation Complete!")
-            if self.travel_automation_process is None:
-                self.end_autonomous()  # Return to Teleop mode
-        except asyncio.CancelledError:
-            self.get_logger().warn("Travel Automation Terminated!")
-            self.end_autonomous()  # Return to Teleop mode
+    # async def travel_automation(self) -> None:
+    #     """This method is used to automate the travel of the robot to the excavation zone."""
+    #     self.get_logger().info("Starting Travel Automation!")
+    #     try:
+    #         await self.calibrate_field_coordinates()  # Calibrate the field coordinates first
+    #         self.nav2.goToPose(self.travel_automation_location)  # Navigate to the excavation zone
+    #         while not self.nav2.isTaskComplete():  # Wait for the excavation zone to be reached
+    #             await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+    #         if self.nav2.getResult() == TaskResult.FAILED:
+    #             self.get_logger().error("Failed to reach the excavation zone!")
+    #             self.end_autonomous()  # Return to Teleop mode
+    #             return
+    #         self.get_logger().info("Travel Automation Complete!")
+    #         if self.travel_automation_process is None:
+    #             self.end_autonomous()  # Return to Teleop mode
+    #     except asyncio.CancelledError:
+    #         self.get_logger().warn("Travel Automation Terminated!")
+    #         self.end_autonomous()  # Return to Teleop mode
 
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
         self.get_logger().info("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_position))  # Lower the skimmer into the ground
-            self.skimmer_goal_reached = False
-            # Wait for the goal height to be reached
-            while not self.skimmer_goal_reached:
-                self.get_logger().info("Moving skimmer to the goal")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
+            # await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_position))  # Lower the skimmer into the ground
+            # self.skimmer_goal_reached = False
+            # # Wait for the goal height to be reached
+            # while not self.skimmer_goal_reached:
+            #     self.get_logger().info("Moving skimmer to the goal")
+            #     await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+            # await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
             # Drive forward while digging
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.2, turning_power=0.0))
             start_time = self.get_clock().now().nanoseconds
@@ -263,15 +291,16 @@ class MainControlNode(Node):
                 self.get_logger().info("Auto Driving")
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
-            await self.cli_skimmer_stop.call_async(Stop.Request())
-            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise the skimmer back up
-            self.skimmer_goal_reached = False
-            # Wait for the lift goal to be reached
-            while not self.skimmer_goal_reached:
-                self.get_logger().info("Moving skimmer to the goal")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+            # await self.cli_skimmer_stop.call_async(Stop.Request())
+            # await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise the skimmer back up
+            # self.skimmer_goal_reached = False
+            # # Wait for the lift goal to be reached
+            # while not self.skimmer_goal_reached:
+            #     self.get_logger().info("Moving skimmer to the goal")
+            #     await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Autonomous Digging Procedure Complete!\n")
-            self.end_autonomous()  # Return to Teleop mode
+            if self.autonomous_cycle_process is None:
+                self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
             self.get_logger().warn("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
@@ -281,16 +310,16 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously offloading!"""
         self.get_logger().info("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise up the skimmer in preparation for dumping
-            self.skimmer_goal_reached = False
-            # Wait for the lift goal to be reached
-            while not self.skimmer_goal_reached:
-                self.get_logger().info("Moving skimmer to the goal")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+            # await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise up the skimmer in preparation for dumping
+            # self.skimmer_goal_reached = False
+            # # Wait for the lift goal to be reached
+            # while not self.skimmer_goal_reached:
+            #     self.get_logger().info("Moving skimmer to the goal")
+            #     await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Commence Offloading!")
-            await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            await asyncio.sleep(8 / abs(self.skimmer_belt_power))  # How long to offload for # TODO: Adjust this time factor as needed
-            await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
+            # await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
+            # await asyncio.sleep(8 / abs(self.skimmer_belt_power))  # How long to offload for # TODO: Adjust this time factor as needed
+            # await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
             if self.autonomous_cycle_process is None:
                 self.end_autonomous()  # Return to Teleop mode
@@ -308,7 +337,7 @@ class MainControlNode(Node):
                 self.get_logger().error("Field coordinates must be calibrated first!")
                 self.end_autonomous()  # Return to Teleop mode
                 return
-            self.nav2.goToPose(self.optimal_dig_location()[0])  # Navigate to the dig location
+            self.nav2.goToPose(self.travel_automation_location)  # Navigate to the dig location
             while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             if self.nav2.getResult() == TaskResult.FAILED:

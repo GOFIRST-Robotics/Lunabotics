@@ -25,11 +25,11 @@ def generate_launch_description():
         default_value="True",
         description="Whether to run from live zed data",
     )
-    # setup_for_gazebo_arg = DeclareLaunchArgument(
-    #     "setup_for_gazebo",
-    #     default_value="False",
-    #     description="Whether to run in gazebo",
-    # )
+    setup_for_gazebo_arg = DeclareLaunchArgument(
+        "setup_for_gazebo",
+        default_value="False",
+        description="Whether to run in gazebo",
+    )
     use_nvblox_arg = DeclareLaunchArgument(
         "use_nvblox",
         default_value="True",
@@ -65,18 +65,18 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration("setup_for_zed")),
     )
     # # Gazebo
-    # gazebo_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(
-    #         [
-    #             os.path.join(
-    #                 get_package_share_directory("ros_gz_launch"),
-    #                 "launch",
-    #                 "UCF_field.launch.py",
-    #             )
-    #         ]
-    #     ),
-    #     condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
-    # )
+    gazebo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                os.path.join(
+                    get_package_share_directory("ros_gz_launch"),
+                    "launch",
+                    "UCF_field.launch.py",
+                )
+            ]
+        ),
+        condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
+    )
 
     # Nvblox
     nvblox_launch = IncludeLaunchDescription(
@@ -122,7 +122,7 @@ def generate_launch_description():
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(nav2_bringup_dir, "launch", "navigation_launch.py")),
         launch_arguments={
-            "use_sim_time": "False",
+            "use_sim_time": "True",
             "params_file": configured_params,
             "autostart": "True",
         }.items(),
@@ -131,28 +131,28 @@ def generate_launch_description():
     # apriltag launch
     apriltag_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_launch.py")]),
-        # condition=UnlessCondition(LaunchConfiguration("setup_for_gazebo")),
+        condition=UnlessCondition(LaunchConfiguration("setup_for_gazebo")),
     )
     # apriltag (gazebo) launch
-    # apriltag_gazebo_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_gazebo_launch.py")]),
-    #     condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
-    # )
+    apriltag_gazebo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(apriltag_bringup_dir, "apriltag_gazebo_launch.py")]),
+        condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
+    )
 
     return LaunchDescription(
         [
             run_rviz_arg,
             setup_for_zed_arg,
-            # setup_for_gazebo_arg,
+            setup_for_gazebo_arg,
             record_svo_arg,
             use_nvblox_arg,
             shared_container,
             nvblox_launch,
             nav2_launch,
             zed_launch,
-            # gazebo_launch,
+            gazebo_launch,
             rviz_launch,
             apriltag_launch,
-            # apriltag_gazebo_launch,
+            apriltag_gazebo_launch,
         ]
     )
