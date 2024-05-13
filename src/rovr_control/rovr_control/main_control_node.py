@@ -260,7 +260,7 @@ class MainControlNode(Node):
             # Drive forward while digging
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.25, turning_power=0.0))
             start_time = self.get_clock().now().nanoseconds
-            while self.get_clock().now().nanoseconds - start_time < 10e9:
+            while self.get_clock().now().nanoseconds - start_time < 12e9:
                 self.get_logger().info("Auto Driving")
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
@@ -282,7 +282,15 @@ class MainControlNode(Node):
         """This method lays out the procedure for autonomously offloading!"""
         self.get_logger().info("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise up the skimmer in preparation for dumping
+            # Drive backward into the berm zone
+            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=-0.25, turning_power=0.0))
+            start_time = self.get_clock().now().nanoseconds
+            while self.get_clock().now().nanoseconds - start_time < 10e9:
+                self.get_logger().info("Auto Driving")
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+            await self.cli_drivetrain_stop.call_async(Stop.Request())
+            # Raise up the skimmer in preparation for dumping
+            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))
             self.skimmer_goal_reached = False
             # Wait for the lift goal to be reached
             while not self.skimmer_goal_reached:
