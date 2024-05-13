@@ -70,7 +70,7 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_field_type", "bottom")  # The type of field ("top", "bottom", "nasa")
         self.declare_parameter("skimmer_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
-        self.declare_parameter("lift_digging_position", -3100)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_position", -3150)  # Measured in encoder counts
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
