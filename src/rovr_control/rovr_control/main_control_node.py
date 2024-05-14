@@ -277,8 +277,6 @@ class MainControlNode(Node):
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_skimmer_stop.call_async(Stop.Request())
-            # await self.cli_lift_stop.call_async(Stop.Request())
-            # ? this may be needed to stop the lift
             await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise the skimmer back up
             self.skimmer_goal_reached = False
             # Wait for the lift goal to be reached

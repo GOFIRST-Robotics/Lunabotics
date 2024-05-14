@@ -188,9 +188,6 @@ class SkimmerNode(Node):
 
     def done_callback(self, future):
         self.current_position_degrees = future.result().data
-        # self.get_logger().info(f'abs({self.current_goal_position} + {self.lift_encoder_offset} - {self.current_position_degrees}) <= {self.goal_threshold}')
-        # self.get_logger().info(f'abs({self.current_goal_position + self.lift_encoder_offset} - {self.current_position_degrees}) <= {self.goal_threshold}')
-        # self.get_logger().info(f'abs({self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees}) <= {self.goal_threshold}')
         goal_reached_msg = Bool(
             data=abs(self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees) <= self.goal_threshold
         )
@@ -206,12 +203,10 @@ class SkimmerNode(Node):
         self.top_limit_pressed = limit_switches_msg.top_limit_switch
         self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
         if self.top_limit_pressed:  # If the top limit switch is pressed
-            # self.get_logger().error(f'(top) RESETTING OFFSET to {self.current_position_degrees}')
             self.lift_encoder_offset = self.current_position_degrees
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
         elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
-            # self.get_logger().error(f'(bottom) RESETTING OFFSET to {self.current_position_degrees}')
             self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
