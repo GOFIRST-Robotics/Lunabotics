@@ -8,4 +8,4 @@
     autonomous_field_type: "bottom" # The type of field ("top", "bottom", "nasa")
     lift_dumping_position: -1000 # Measured in encoder counts!
     lift_digging_start_position: -3050 # Measured in encoder counts!
-    lift_digging_end_position: -3150
+    lift_digging_end_position: -3150 # Measured in encoder counts!
