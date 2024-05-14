@@ -18,7 +18,7 @@ class ApriltagNode(Node):
         super().__init__("apriltag_node")
         current_dir = os.getcwd()
 
-        self.declare_parameter("autonomous_field_type", "top")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("autonomous_field_type", "bottom")  # The type of field ("top", "bottom", "nasa")
         field_type = self.get_parameter("autonomous_field_type").value
         paths = {
             "top": "src/apriltag/apriltag/apriltag_location_ucf_top.urdf.xarco",
@@ -126,18 +126,16 @@ class ApriltagNode(Node):
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
         # Lookup the odom to zed2i_camera_link tf from the tf buffer
-        # self.get_logger().warn(f"Could not transform odom to zed2i_camera_link: {ex}")
         self.map_transform.header.stamp = self.get_clock().now().to_msg()
         self.tf_broadcaster.sendTransform(self.map_transform)
-        return
-        try:
-            odom_to_camera_link_transform = self.tf_buffer.lookup_transform("odom", "zed2i_camera_link", rclpy.time.Time())
-            self.map_transform.header.stamp = odom_to_camera_link_transform.header.stamp
-            self.tf_broadcaster.sendTransform(self.map_transform)
-        except TransformException as ex:
-            self.get_logger().warn(f"Could not transform odom to zed2i_camera_link: {ex}")
-            self.map_transform.header.stamp = self.get_clock().now().to_msg()
-            self.tf_broadcaster.sendTransform(self.map_transform)
+        # try:
+        #     odom_to_camera_link_transform = self.tf_buffer.lookup_transform("odom", "zed2i_camera_link", rclpy.time.Time())
+        #     self.map_transform.header.stamp = odom_to_camera_link_transform.header.stamp
+        #     self.tf_broadcaster.sendTransform(self.map_transform)
+        # except TransformException as ex:
+        #     self.get_logger().warn(f"Could not transform odom to zed2i_camera_link: {ex}")
+        #     self.map_transform.header.stamp = self.get_clock().now().to_msg()
+        #     self.tf_broadcaster.sendTransform(self.map_transform)
 
 
 def main(args=None):

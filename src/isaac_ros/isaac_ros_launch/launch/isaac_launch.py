@@ -41,7 +41,7 @@ def generate_launch_description():
         description="Whether to record a ZED svo file",
     )
 
-    global_frame = LaunchConfiguration("global_frame", default="odom")
+    global_frame = LaunchConfiguration("global_frame", default="map")
 
     # Create a shared container to hold composable nodes
     # for speed ups through intra process communication.
@@ -64,7 +64,7 @@ def generate_launch_description():
         }.items(),
         condition=IfCondition(LaunchConfiguration("setup_for_zed")),
     )
-    # # Gazebo
+    # Gazebo
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -84,7 +84,7 @@ def generate_launch_description():
         launch_arguments={
             "global_frame": global_frame,
             "setup_for_zed": LaunchConfiguration("setup_for_zed"),
-            # "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
+            "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
             "attach_to_shared_component_container": "True",
             "component_container_name": shared_container_name,
         }.items(),
@@ -110,7 +110,7 @@ def generate_launch_description():
 
     # Nav2 params
     nav2_param_file = os.path.join("config", "nav2_isaac_sim.yaml")
-    param_substitutions = {"global_frame": LaunchConfiguration("global_frame", default="odom")}
+    param_substitutions = {"global_frame": LaunchConfiguration("global_frame", default="map")}
     configured_params = RewrittenYaml(
         source_file=nav2_param_file,
         root_key="",
