@@ -12,25 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
-from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
+from launch.substitutions import PathJoinSubstitution
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.substitutions import FindPackageShare
 
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    # Configure ROS nodes for launch
-
-    # Setup project paths
-    pkg_project_bringup = get_package_share_directory("ros_gz_launch")
 
     UCF_field = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(pkg_project_bringup, "launch", "UCF_field.launch.py"))
+        PythonLaunchDescriptionSource(
+            [PathJoinSubstitution([FindPackageShare("ros_gz_launch"), "UCF_field.launch.py"])]
+        )
     )
 
     rovr_control = Node(
