@@ -221,6 +221,7 @@ class MainControlNode(Node):
         while not self.nav2.isTaskComplete():
             await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
         self.apriltag_timer.cancel()
+        self.end_autonomous()  # Return to Teleop mode
 
     # async def travel_automation(self) -> None:
     #     """This method is used to automate the travel of the robot to the excavation zone."""
