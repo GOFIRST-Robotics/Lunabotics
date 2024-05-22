@@ -3,7 +3,6 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: November 2023
 
-import sys
 
 # Import the ROS 2 module
 import rclpy
@@ -35,7 +34,6 @@ from .gamepad_constants import *
 # Uncomment the line below to use the Xbox controller mappings instead
 # from .xbox_controller_constants import *
 
-from .costmap_2d import PyCostmap2D
 
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
@@ -122,7 +120,7 @@ class MainControlNode(Node):
 
         # Define timers here
         self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-        # self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
+        self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -154,10 +152,8 @@ class MainControlNode(Node):
 
     # def optimal_dig_location(self) -> list:
     #     available_dig_spots = []
-        
     #     try:
     #         costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
-            
     #         resolution = costmap.getResolution()
     #         print(resolution)
     #         # NEEDED MEASUREMENTS:
@@ -166,8 +162,6 @@ class MainControlNode(Node):
     #         danger_threshold, real_danger_threshold = 50, 150
     #         dig_zone_depth, dig_zone_start, dig_zone_end = 2.57, 4.07, 8.14
     #         dig_zone_border_y = 2.0
-            
-
     #         while len(available_dig_spots) == 0:
     #             if danger_threshold > real_danger_threshold:
     #                 self.get_logger().warn("No safe digging spots available. Switch to manual control.")
@@ -237,9 +231,7 @@ class MainControlNode(Node):
             self.get_logger().error("Failed to reach the dig location!")
             self.end_autonomous()  # Return to Teleop mode
             return
-        self.autonomous_digging_process = asyncio.ensure_future(
-            self.auto_dig_procedure()
-        )  # Start the auto dig process
+        self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure())  # Start the auto dig process
         while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
             await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
         self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
@@ -294,8 +286,8 @@ class MainControlNode(Node):
             elapsed = self.get_clock().now().nanoseconds - start_time
             # accelerate for 2 seconds
             while elapsed < 2e9:
-                await self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9*(elapsed)))
-                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.25e-9*(elapsed), turning_power=0.0))
+                await self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
+                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.25e-9 * (elapsed), turning_power=0.0))
                 self.get_logger().info("Accelerating lift and drive train")
                 elapsed = self.get_clock().now().nanoseconds - start_time
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
