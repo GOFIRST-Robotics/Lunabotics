@@ -125,7 +125,6 @@ class ApriltagNode(Node):
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
-        # Lookup the odom to zed2i_camera_link tf from the tf buffer
         self.map_transform.header.stamp = self.get_clock().now().to_msg()
         self.tf_broadcaster.sendTransform(self.map_transform)
 
