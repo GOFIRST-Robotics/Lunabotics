@@ -217,37 +217,10 @@ class MainControlNode(Node):
             await asyncio.sleep(0.05)  # Allows other async tasks to continue running (this is non-blocking)
         self.get_logger().info("Field Coordinates Calibrated!")
         await self.cli_drivetrain_stop.call_async(Stop.Request())
-        self.nav2.goToPose(create_pose_stamped(1.5, -3.0, 0))  # Turn around to face the rest of the field
+        self.nav2.spin(3.14)  # Turn around 180 degrees to face the rest of the field
         while not self.nav2.isTaskComplete():
             await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-        if not self.field_calibrated:
-            self.get_logger().error("Field coordinates must be calibrated first!")
-            self.end_autonomous()  # Return to Teleop mode
-            return
-        self.nav2.goToPose(self.travel_automation_location)  # Navigate to the dig location
-        while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
-            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-        if self.nav2.getResult() == TaskResult.FAILED:
-            self.get_logger().error("Failed to reach the dig location!")
-            self.end_autonomous()  # Return to Teleop mode
-            return
-        self.autonomous_digging_process = asyncio.ensure_future(self.auto_dig_procedure())  # Start the auto dig process
-        while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
-            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-        self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
-        while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
-            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-        if self.nav2.getResult() == TaskResult.FAILED:
-            self.get_logger().error("Failed to reach the berm zone!")
-            self.end_autonomous()  # Return to Teleop mode
-            return
-        self.autonomous_offload_process = asyncio.ensure_future(
-            self.auto_offload_procedure()
-        )  # Start the auto offload process
-        while not self.autonomous_offload_process.done():  # Wait for the offload process to complete
-            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-        self.get_logger().info("Completed an Autonomous Cycle!\n")
-        self.end_autonomous()  # Return to Teleop mode
+        self.apriltag_timer.cancel()
 
     # async def travel_automation(self) -> None:
     #     """This method is used to automate the travel of the robot to the excavation zone."""
