@@ -28,16 +28,18 @@ def generate_launch_description():
 
     # Setup to launch the simulator and Gazebo world
     gz_sim = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "gz_sim.launch.py"])]),
+        PythonLaunchDescriptionSource(
+            [PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])]
+        ),
         launch_arguments={
-            "gz_args": PathJoinSubstitution([FindPackageShare("ros_gz_launch"), "worlds", "UCF_field.sdf"])
+            "gz_args": PathJoinSubstitution([FindPackageShare("gazebo_files"), "worlds", "UCF_field.sdf"])
         }.items(),
     )
 
     # Takes the description and joint angles as inputs and publishes the 3D poses of the robot links
     robot_state_publisher = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("robot_description"), "robot_description.launch.py"])]
+            [PathJoinSubstitution([FindPackageShare("robot_description"), "launch", "robot_description.launch.py"])]
         ),
     )
 
@@ -58,7 +60,7 @@ def generate_launch_description():
         executable="parameter_bridge",
         parameters=[
             {
-                "config_file": PathJoinSubstitution([FindPackageShare("gazebo_files"), "config", "ros_gz_bridge.yaml"]),
+                "config_file": PathJoinSubstitution([FindPackageShare("ros_gz_launch"), "config", "ros_gz_bridge.yaml"]),
                 "qos_overrides./tf_static.publisher.durability": "transient_local",
             }
         ],
