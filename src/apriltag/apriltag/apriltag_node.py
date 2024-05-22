@@ -94,7 +94,6 @@ class ApriltagNode(Node):
 
             odom_to_tag_transform.child_frame_id = "odom"
             odom_to_tag_transform.header.frame_id = "map"
-            odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
 
             # Apply a known rotation to the transform
             rotation_quaternion = R.from_euler(
