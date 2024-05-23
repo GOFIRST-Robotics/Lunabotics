@@ -2,7 +2,44 @@
 
 The official NASA Lunabotics 2024 repository for University of Minnesota Robotics.
 
-![Control-Flow Diagram](assets/NASA-Lunabotics-Software-Diagram.png)
+```mermaid
+graph LR
+    subgraph A[Operator Laptop]
+        B[RQT Camera Frontend]
+        J[joy_node]
+    end
+    subgraph C[Robot]
+        subgraph F[Nvidia Jetson AGX Orin]
+            G[motor_control]
+            H[GStreamer NVENC AV1 Encoding]
+            I[isaac_ros_nvblox]
+            L[ros2socketcan_bridge]
+            M[Nav2]
+            N[Subsystem ROS 2 Nodes]
+            O[rovr_control]
+            P[ZED ROS 2 Wrapper]
+        end
+        D[Arduino Microcontroller]
+        K[Limit Switches and Absolute Encoders]
+        E[VESC Motor Controllers]
+    end
+    K --> D
+    J -- /joy --> O
+    O -- Serial Bus --> D
+    D -- Serial Bus --> O
+    H -- WiFi Connection --> B
+    L -- CAN Bus --> E
+    E -- CAN Bus --> L
+    P --> I
+    I --> M
+    M --> O
+    M -- /cmd_vel --> N
+    G -- /CAN/can0/transmit --> L
+    L -- /CAN/can0/receive --> G
+    O -- /cmd_vel --> N
+    O -- ROS 2 Services --> N
+    N -- ROS 2 Services --> G
+```
 
 ## How to Run Inside Docker Container
 
