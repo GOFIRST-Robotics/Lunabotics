@@ -44,7 +44,7 @@ graph LR
 ## How to Run Inside Docker Container
 
 <details>
-<summary>How to Run Inside Docker Container On Windows/Mac</summary>
+<summary>How to Run Inside the Dev Container On Windows/Mac</summary>
 <br>
 Open vscode then press ctrl+shift+p and type "Clone Repository in Container Volume". Select "Dev Containers: Clone Repository in Container Volume" and then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics-2024 repository.
 <br><br>
@@ -56,10 +56,36 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-If your machine does not have an Nvidia GPU, build using a command like this instead: (select the packages you want)
+If your machine does not have an Nvidia GPU, select only the packages you want like this:
 
 ```
 colcon build --symlink-install --packages-up-to rovr_control motor_control ros2socketcan_bridge
+```
+
+If you ever need to rebuild the remote container image, first update the x86_64 and aarch64 images:
+```
+cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
+
+docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_bcf535ea3b9d16a854aaeb1701ab5a86" -f Dockerfile.user -t umnrobotics/isaac_ros:x86_64.ros2_humble.user .
+docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:x86_64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn .
+docker push umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
+
+docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_b7e1ed6c02a6fa3c1c7392479291c035" -f Dockerfile.user -t umnrobotics/isaac_ros:arm64.ros2_humble.user --platform "arm64" .
+docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:arm64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64" .
+docker push umnrobotics/isaac_ros:arm64.ros2_humble.user.umn
+```
+
+Then, run the following command with the devcontainer cli installed:
+```
+docker pull umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
+docker pull umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64"
+
+docker manifest rm umnrobotics/isaac_ros:latest
+docker manifest create umnrobotics/isaac_ros:latest --amend umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --amend umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
+docker manifest push umnrobotics/isaac_ros:latest
+
+docker buildx create --use
+devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:isaac_ros_devcontainer"
 ```
 </details>
 
@@ -90,32 +116,6 @@ cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
 It is also worth noting that the docker buildkit doesn't respect Nvidia runtime for building which is needed for zed, so if you set up a new jetson you will need to do one of the following (https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/issues/98#issuecomment-1777711989)
 </details>
 
-If you need to rebuild the remote container image, first update the x86_64 and aarch64 images:
-```
-cd ~/Lunabotics-2024/src/isaac_ros/isaac_ros_common/docker
-
-docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_bcf535ea3b9d16a854aaeb1701ab5a86" -f Dockerfile.user -t umnrobotics/isaac_ros:x86_64.ros2_humble.user .
-docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:x86_64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn .
-docker push umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-
-docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_b7e1ed6c02a6fa3c1c7392479291c035" -f Dockerfile.user -t umnrobotics/isaac_ros:arm64.ros2_humble.user --platform "arm64" .
-docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:arm64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64" .
-docker push umnrobotics/isaac_ros:arm64.ros2_humble.user.umn
-```
-
-Then, run the following command with the devcontainer cli installed:
-```
-docker pull umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-docker pull umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64"
-
-docker manifest rm umnrobotics/isaac_ros:latest
-docker manifest create umnrobotics/isaac_ros:latest --amend umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --amend umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-docker manifest push umnrobotics/isaac_ros:latest
-
-docker buildx create --use
-devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:isaac_ros_devcontainer"
-```
-
 ## ROS 2 General Workspace Tips
 
 Make sure to `source install/setup.bash` in every new terminal.
@@ -137,7 +137,7 @@ git config --global core.autocrlf true
   
 Install Gazebo Fortress by running: `sudo apt-get install ros-humble-ros-gz`
 
-More info [here](https://gazebosim.org/docs/garden/ros_installation). Remember we are using ROS 2 Humble.
+More info [here](https://gazebosim.org/docs/garden/ros_installation). Remember that we are using ROS 2 Humble.
 
 Instructions for building the ROS bridge (ros_gz) can be found [here](https://github.com/gazebosim/ros_gz/tree/humble#from-source).
 
@@ -159,7 +159,7 @@ Then to control the robot, you will need to run:
 ```
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
-to control the robot with your keyboard.
+in another terminal to control the robot with your keyboard.
 
 Alternatively, you can run these nodes:
 ```
@@ -229,7 +229,7 @@ sudo grep 'mycmd' /var/log/syslog
 [Accelerated GStreamer Guide](https://docs.nvidia.com/jetson/archives/r35.2.1/DeveloperGuide/text/SD/Multimedia/AcceleratedGstreamer.html)
 
 <details>
-<summary>Useful Gstreamer Commands</summary>
+<summary>Gstreamer Server/Client Instructions</summary>
 <br>
 To start gstreamer client make sure to add the deepstream layer to the docker layers 
 
