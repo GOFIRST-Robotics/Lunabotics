@@ -24,15 +24,13 @@ graph LR
         E[VESC Motor Controllers]
     end
     K --> D
-    J -- /joy --> O
-    O -- Serial Bus --> D
-    D -- Serial Bus --> O
+    O <-- Serial Bus --> D
     H -- WiFi Connection --> B
-    L -- CAN Bus --> E
-    E -- CAN Bus --> L
+    L <-- CAN Bus --> E
     P --> I
-    I --> M
+    I -- Cost Map --> M
     M --> O
+    J -- /joy --> O
     M -- /cmd_vel --> N
     G -- /CAN/can0/transmit --> L
     L -- /CAN/can0/receive --> G
