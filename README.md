@@ -40,10 +40,75 @@ title: ROS Nodes
 ---
 graph TB
 
-    main_control
+    main_control_node
 
 
 ```
+
+```mermaid
+graph TB
+    subgraph laptop[Operator Laptop]
+        B[RQT Camera Frontend]
+        joy_node
+    end
+    subgraph Robot
+        direction TB
+        subgraph F[Nvidia Jetson AGX Orin]
+            G[motor_control]
+            H[GStreamer NVENC AV1 Encoding]
+            I[isaac_ros_nvblox]
+            L[ros2socketcan_bridge]
+            Nav2
+            N[Subsystem ROS 2 Nodes]
+            rovr_control
+            P[ZED ROS 2 Wrapper]
+
+            G -- /CAN/can0/transmit --> L
+            L -- /CAN/can0/receive --> G
+
+        end
+        D[Arduino Microcontroller]
+        K[Limit Switches and Absolute Encoders]
+        E[VESC Motor Controllers]
+    end
+    K --> D
+    rovr_control <-- Serial Bus --> D
+    H -- WiFi Connection --> B
+    L <-- CAN Bus --> E
+    P --> I
+    I -- Cost Map --> Nav2
+    Nav2 --> rovr_control
+    joy_node -- /joy --> rovr_control
+    Nav2 -- /cmd_vel --> N
+    
+    rovr_control -- /cmd_vel --> N
+    rovr_control -- ROS 2 Services --> N
+    N -- ROS 2 Services --> G
+```
+
+```mermaid
+---
+title: VESCs Behavior
+---
+sequenceDiagram
+    participant j as Jetson
+    participant v as VESCs
+    participant m as Motor
+
+    alt Power Set
+        j ->> v: "id: power"
+        v ->> m: power
+    else Position Set
+        j ->> v: "5 id: position"
+        loop PID
+            m ->> v: position
+            v ->> m: power
+        end
+    end
+    
+
+```
+
 
 
 ```mermaid
