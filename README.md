@@ -3,12 +3,57 @@
 The official NASA Lunabotics 2024 repository for University of Minnesota Robotics.
 
 ```mermaid
+---
+title: Connectivity Chart
+---
 graph LR
+    Laptop
+
+    Router
+
+    subgraph Robot
+        direction TB
+        Jetson
+        Arduino
+        VESCs
+        limit[Limit Switches]
+        absEncoder[Absolute Encoders]
+        Cameras
+
+        subgraph Motors
+            hall[Relative Encoders]
+        end
+    end
+
+    Laptop <-- Ethernet --> Router <-- Wifi --> Jetson
+    limit & absEncoder --> Arduino -- USB --> Jetson
+    Cameras -- USB --> Jetson
+    Jetson <-- Can Bus --> VESCs 
+
+    hall -- Encoder Cables --> VESCs -- Motor Cables --> Motors
+
+```
+
+```mermaid
+---
+title: ROS Nodes
+---
+graph TB
+
+    main_control
+
+
+```
+
+
+```mermaid
+graph TB
     subgraph A[Operator Laptop]
         B[RQT Camera Frontend]
         J[joy_node]
     end
     subgraph C[Robot]
+        direction TB
         subgraph F[Nvidia Jetson AGX Orin]
             G[motor_control]
             H[GStreamer NVENC AV1 Encoding]
@@ -18,6 +63,10 @@ graph LR
             N[Subsystem ROS 2 Nodes]
             O[rovr_control]
             P[ZED ROS 2 Wrapper]
+
+            G -- /CAN/can0/transmit --> L
+            L -- /CAN/can0/receive --> G
+
         end
         D[Arduino Microcontroller]
         K[Limit Switches and Absolute Encoders]
@@ -32,8 +81,7 @@ graph LR
     M --> O
     J -- /joy --> O
     M -- /cmd_vel --> N
-    G -- /CAN/can0/transmit --> L
-    L -- /CAN/can0/receive --> G
+    
     O -- /cmd_vel --> N
     O -- ROS 2 Services --> N
     N -- ROS 2 Services --> G
