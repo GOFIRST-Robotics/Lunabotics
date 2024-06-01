@@ -8,7 +8,6 @@ title: Connectivity Chart
 ---
 graph LR
     Laptop
-
     Router
 
     subgraph Robot
@@ -31,59 +30,58 @@ graph LR
     Jetson <-- Can Bus --> VESCs 
 
     hall -- Encoder Cables --> VESCs -- Motor Cables --> Motors
-
 ```
 
-```mermaid
----
-title: ROS Nodes
----
-graph TB
 
-    main_control_node
-
-
-```
 
 ```mermaid
 graph TB
-    subgraph laptop[Operator Laptop]
+    subgraph laptop[Driver Laptop]
         B[RQT Camera Frontend]
         joy_node
     end
     subgraph Robot
         direction TB
-        subgraph F[Nvidia Jetson AGX Orin]
-            G[motor_control]
+        subgraph jetson[Nvidia Jetson AGX Orin]
+            motor_control
             H[GStreamer NVENC AV1 Encoding]
-            I[isaac_ros_nvblox]
-            L[ros2socketcan_bridge]
+            isaac_ros_nvblox
+            ros2socketcan_bridge
             Nav2
-            N[Subsystem ROS 2 Nodes]
+            skimmer_node
+            drivetrain_node
+            apriltag_node
             rovr_control
             P[ZED ROS 2 Wrapper]
 
-            G -- /CAN/can0/transmit --> L
-            L -- /CAN/can0/receive --> G
+            motor_control -- /CAN/can0/transmit --> ros2socketcan_bridge
+            ros2socketcan_bridge -- /CAN/can0/receive --> motor_control
+            Nav2 --> rovr_control
+            P --> isaac_ros_nvblox
 
         end
-        D[Arduino Microcontroller]
+        arduino[Arduino Microcontroller]
         K[Limit Switches and Absolute Encoders]
-        E[VESC Motor Controllers]
-    end
-    K --> D
-    rovr_control <-- Serial Bus --> D
-    H -- WiFi Connection --> B
-    L <-- CAN Bus --> E
-    P --> I
-    I -- Cost Map --> Nav2
-    Nav2 --> rovr_control
-    joy_node -- /joy --> rovr_control
-    Nav2 -- /cmd_vel --> N
+        vesc[VESC Motor Controllers]
+
+        K --> arduino
+        rovr_control <-- Serial Bus --> arduino
+        ros2socketcan_bridge <-- CAN Bus --> vesc
+        isaac_ros_nvblox -- Cost Map --> Nav2
+        Nav2 -- /cmd_vel --> drivetrain_node
     
-    rovr_control -- /cmd_vel --> N
-    rovr_control -- ROS 2 Services --> N
-    N -- ROS 2 Services --> G
+        rovr_control -- /cmd_vel --> drivetrain_node
+        rovr_control -- ROS 2 Services --> skimmer_node
+        drivetrain_node & skimmer_node -- ROS 2 Services --> motor_control
+
+
+
+    end
+
+    H -- WiFi Connection --> B
+    joy_node -- /joy --> rovr_control
+
+    
 ```
 
 ```mermaid
@@ -95,11 +93,15 @@ sequenceDiagram
     participant v as VESCs
     participant m as Motor
 
-    alt Power Set
-        j ->> v: "id: power"
+    loop CANBUS
+        v ->> j: status frames
+    end
+
+    alt Power Request
+        j ->> v: id: power
         v ->> m: power
-    else Position Set
-        j ->> v: "5 id: position"
+    else Position Request
+        j ->> v: 5 id: position
         loop PID
             m ->> v: position
             v ->> m: power
@@ -109,48 +111,6 @@ sequenceDiagram
 
 ```
 
-
-
-```mermaid
-graph TB
-    subgraph A[Operator Laptop]
-        B[RQT Camera Frontend]
-        J[joy_node]
-    end
-    subgraph C[Robot]
-        direction TB
-        subgraph F[Nvidia Jetson AGX Orin]
-            G[motor_control]
-            H[GStreamer NVENC AV1 Encoding]
-            I[isaac_ros_nvblox]
-            L[ros2socketcan_bridge]
-            M[Nav2]
-            N[Subsystem ROS 2 Nodes]
-            O[rovr_control]
-            P[ZED ROS 2 Wrapper]
-
-            G -- /CAN/can0/transmit --> L
-            L -- /CAN/can0/receive --> G
-
-        end
-        D[Arduino Microcontroller]
-        K[Limit Switches and Absolute Encoders]
-        E[VESC Motor Controllers]
-    end
-    K --> D
-    O <-- Serial Bus --> D
-    H -- WiFi Connection --> B
-    L <-- CAN Bus --> E
-    P --> I
-    I -- Cost Map --> M
-    M --> O
-    J -- /joy --> O
-    M -- /cmd_vel --> N
-    
-    O -- /cmd_vel --> N
-    O -- ROS 2 Services --> N
-    N -- ROS 2 Services --> G
-```
 
 ## How to Run Inside Docker Container
 
