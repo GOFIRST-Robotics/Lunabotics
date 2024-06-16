@@ -6,6 +6,8 @@
 
 # Import the ROS 2 module
 import rclpy
+from rclpy.action import ActionClient
+from rclpy.client import Future
 from rclpy.node import Node
 from rclpy.executors import SingleThreadedExecutor  # This is needed to run multiple callbacks in a single thread
 
@@ -23,6 +25,7 @@ from std_msgs.msg import Bool
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, ResetOdom
+from rovr_interfaces.action import AutoOffload
 
 # Import Python Modules
 import asyncio  # Allows the use of asynchronous methods!
@@ -139,6 +142,12 @@ class MainControlNode(Node):
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
         self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
+
+        # Define actions here
+        self.auto_offload_client = ActionClient(self, AutoOffload, "auto_offload")
+
+        # Define futures here
+        self.auto_dig_future = Future()
 
         self.started_calibration = False
         self.field_calibrated = False
@@ -265,36 +274,6 @@ class MainControlNode(Node):
             self.get_logger().warn("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
-    # This autonomous routine has been tested and works!
-    async def auto_offload_procedure(self) -> None:
-        """This method lays out the procedure for autonomously offloading!"""
-        self.get_logger().info("\nStarting Autonomous Offload Procedure!")
-        try:  # Wrap the autonomous procedure in a try-except
-            # Drive backward into the berm zone
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=-0.25, turning_power=0.0))
-            start_time = self.get_clock().now().nanoseconds
-            while self.get_clock().now().nanoseconds - start_time < 10e9:
-                self.get_logger().info("Auto Driving")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            await self.cli_drivetrain_stop.call_async(Stop.Request())
-            # Raise up the skimmer in preparation for dumping
-            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))
-            self.skimmer_goal_reached = False
-            # Wait for the lift goal to be reached
-            while not self.skimmer_goal_reached:
-                self.get_logger().info("Moving skimmer to the goal")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            self.get_logger().info("Commence Offloading!")
-            await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            await asyncio.sleep(8 / abs(self.skimmer_belt_power))  # How long to offload for
-            await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
-            self.get_logger().info("Autonomous Offload Procedure Complete!\n")
-            if self.autonomous_cycle_process is None:
-                self.end_autonomous()  # Return to Teleop mode
-        except asyncio.CancelledError:  # Put termination code here
-            self.get_logger().warn("Autonomous Offload Procedure Terminated\n")
-            self.end_autonomous()  # Return to Teleop mode
-
     # TODO: This autonomous routine has not been tested yet!
     async def auto_cycle_procedure(self) -> None:
         """This method lays out the procedure for doing a complete autonomous cycle!"""
@@ -324,11 +303,12 @@ class MainControlNode(Node):
                 self.get_logger().error("Failed to reach the berm zone!")
                 self.end_autonomous()  # Return to Teleop mode
                 return
-            self.autonomous_offload_process = asyncio.ensure_future(
-                self.auto_offload_procedure()
-            )  # Start the auto offload process
-            while not self.autonomous_offload_process.done():  # Wait for the offload process to complete
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
+            goal = AutoOffload.Goal(
+                    lift_dumping_position=self.lift_dumping_position,
+                    skimmer_belt_power=self.skimmer_belt_power,
+                )
+            self.auto_offload_future = self.auto_offload_client.send_goal_async(goal=goal)
+            rclpy.spin_until_future_complete(self, self.auto_offload_future)
             self.get_logger().info("Completed an Autonomous Cycle!\n")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
@@ -416,12 +396,14 @@ class MainControlNode(Node):
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
-                self.autonomous_offload_process = asyncio.ensure_future(
-                    self.auto_offload_procedure()
-                )  # Start the auto dig process
+                goal = AutoOffload.Goal(
+                    lift_dumping_position=self.lift_dumping_position,
+                    skimmer_belt_power=self.skimmer_belt_power,
+                )
+                self.auto_offload_future = self.auto_offload_client.send_goal_async(goal=goal)
+                self.auto_offload_future.add_done_callback(self.end_autonomous)
             elif self.state == states["Autonomous"]:
-                self.autonomous_offload_process.cancel()  # Terminate the auto offload process
-                self.autonomous_offload_process = None
+                self.auto_offload_future.cancel()
 
         # # Check if the autonomous cycle button is pressed
         # if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
@@ -432,6 +414,7 @@ class MainControlNode(Node):
         #             self.auto_cycle_procedure()
         #         )  # Start the autonomous cycle!
         #     elif self.state == states["Autonomous"]:
+        #         self.auto_offload_future.cancel()
         #         self.autonomous_cycle_process.cancel()  # Terminate the autonomous cycle process
         #         self.autonomous_cycle_process = None
 
