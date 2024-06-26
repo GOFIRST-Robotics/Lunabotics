@@ -15,6 +15,7 @@ from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, Stop, SetPosition
 from rovr_interfaces.msg import LimitSwitches
 
+import time
 
 class SkimmerNode(Node):
     def __init__(self):
@@ -28,8 +29,10 @@ class SkimmerNode(Node):
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(SetPower, "skimmer/toggle", self.toggle_callback)
         self.srv_stop = self.create_service(Stop, "skimmer/stop", self.stop_callback)
-        self.srv_setPower = self.create_service(SetPower, "skimmer/setPower", self.set_power_callback)
-        self.srv_setPosition = self.create_service(SetPosition, "lift/setPosition", self.set_position_callback)
+        self.skimmer_goal_subscription = self.create_subscription(
+            Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
+        )
+        self.skimmer_goal_reached = False
         self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
         self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
@@ -101,17 +104,6 @@ class SkimmerNode(Node):
         else:
             self.set_power(skimmer_belt_power)
 
-    def set_position(self, position: int) -> None:
-        """This method sets the position (in degrees) of the skimmer."""
-        self.current_goal_position = position  # goal position should be in degrees
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                type="position",
-                can_id=self.SKIMMER_LIFT_MOTOR,
-                value=float(self.current_goal_position + self.lift_encoder_offset),
-            )
-        )
-
     def stop_lift(self) -> None:
         """This method stops the lift."""
         self.lift_running = False
@@ -157,11 +149,28 @@ class SkimmerNode(Node):
         response.success = 0  # indicates success
         return response
 
-    def set_position_callback(self, request, response):
+    def set_position_callback(self, request: SetPosition.Request, response: SetPosition.Response):
         """This service request sets the position of the lift."""
-        self.set_position(request.position)
-        response.success = 0  # indicates success
+        self.current_goal_position = request.position  # goal position should be in degrees
+        future = self.cli_motor_set.call_async(
+            MotorCommandSet.Request(
+                type="position",
+                can_id=self.SKIMMER_LIFT_MOTOR,
+                value=float(self.current_goal_position + self.lift_encoder_offset),
+            )
+        )
+        # TODO Lunabotics-2024 #257
+        self.skimmer_goal_reached = False
+        while not self.skimmer_goal_reached and self.lift_running:
+            time.sleep(0.1)
+
+        response.success = self.skimmer_goal_reached
         return response
+
+    def skimmer_goal_callback(self, msg: Bool):
+        if msg.data:
+            self.skimmer_goal_reached = True
+            self.get_logger().info("Skimmer Goal Reached!")
 
     def stop_lift_callback(self, request, response):
         """This service request stops the lift system."""
