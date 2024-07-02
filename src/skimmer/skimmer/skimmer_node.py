@@ -189,7 +189,8 @@ class SkimmerNode(Node):
     def done_callback(self, future):
         self.current_position_degrees = future.result().data
         goal_reached_msg = Bool(
-            data=abs(self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees) <= self.goal_threshold
+            data=abs(self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees)
+            <= self.goal_threshold
         )
         self.publisher_goal_reached.publish(goal_reached_msg)
 

@@ -78,9 +78,15 @@ class MainControlNode(Node):
         self.skimmer_belt_power = self.get_parameter("skimmer_belt_power").value
         self.skimmer_lift_manual_power = self.get_parameter("skimmer_lift_manual_power").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_dumping_position = self.get_parameter("lift_dumping_position").value * 360 / 42  # Convert encoder counts to degrees
-        self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value * 360 / 42  # Convert encoder counts to degrees
-        self.lift_digging_end_position = self.get_parameter("lift_digging_end_position").value * 360 / 42  # Convert encoder counts to degrees
+        self.lift_dumping_position = (
+            self.get_parameter("lift_dumping_position").value * 360 / 42
+        )  # Convert encoder counts to degrees
+        self.lift_digging_start_position = (
+            self.get_parameter("lift_digging_start_position").value * 360 / 42
+        )  # Convert encoder counts to degrees
+        self.lift_digging_end_position = (
+            self.get_parameter("lift_digging_end_position").value * 360 / 42
+        )  # Convert encoder counts to degrees
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
@@ -108,7 +114,9 @@ class MainControlNode(Node):
 
         # Define important map locations
         if self.autonomous_field_type == "top":
-            self.autonomous_berm_location = create_pose_stamped(7.25, -3.2, 90)  # TODO: Test this location in simulation
+            self.autonomous_berm_location = create_pose_stamped(
+                7.25, -3.2, 90
+            )  # TODO: Test this location in simulation
             self.dig_location = create_pose_stamped(6.2, -1.2, 0)
         elif self.autonomous_field_type == "bottom":
             self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
@@ -138,7 +146,9 @@ class MainControlNode(Node):
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
-        self.skimmer_goal_subscription = self.create_subscription(Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10)
+        self.skimmer_goal_subscription = self.create_subscription(
+            Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
+        )
 
         self.started_calibration = False
         self.field_calibrated = False
@@ -210,7 +220,9 @@ class MainControlNode(Node):
             while not self.cli_drivetrain_drive.wait_for_service():  # Wait for the drivetrain services to be available
                 self.get_logger().warn("Waiting for drivetrain services to become available...")
                 await asyncio.sleep(0.1)
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.3))
+            await self.cli_drivetrain_drive.call_async(
+                Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.3)
+            )
         while not self.field_calibrated:
             future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
             future.add_done_callback(self.future_odom_callback)
@@ -223,14 +235,15 @@ class MainControlNode(Node):
         self.apriltag_timer.cancel()
         self.end_autonomous()  # Return to Teleop mode
 
-
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
         self.get_logger().info("\nStarting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_lift_zero.call_async(Stop.Request())
-            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_start_position))  # Lower the skimmer onto the ground
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=self.lift_digging_start_position)
+            )  # Lower the skimmer onto the ground
             self.skimmer_goal_reached = False
             # Wait for the goal height to be reached
             while not self.skimmer_goal_reached:
@@ -243,7 +256,9 @@ class MainControlNode(Node):
             # accelerate for 2 seconds
             while elapsed < 2e9:
                 await self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
-                await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=0.25e-9 * (elapsed), turning_power=0.0))
+                await self.cli_drivetrain_drive.call_async(
+                    Drive.Request(forward_power=0.0, horizontal_power=0.25e-9 * (elapsed), turning_power=0.0)
+                )
                 self.get_logger().info("Accelerating lift and drive train")
                 elapsed = self.get_clock().now().nanoseconds - start_time
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
@@ -253,7 +268,9 @@ class MainControlNode(Node):
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             await self.cli_skimmer_stop.call_async(Stop.Request())
-            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))  # Raise the skimmer back up
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=self.lift_dumping_position)
+            )  # Raise the skimmer back up
             self.skimmer_goal_reached = False
             # Wait for the lift goal to be reached
             while not self.skimmer_goal_reached:
@@ -271,7 +288,9 @@ class MainControlNode(Node):
         self.get_logger().info("\nStarting Autonomous Offload Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             # Drive backward into the berm zone
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.0, horizontal_power=-0.25, turning_power=0.0))
+            await self.cli_drivetrain_drive.call_async(
+                Drive.Request(forward_power=0.0, horizontal_power=-0.25, turning_power=0.0)
+            )
             start_time = self.get_clock().now().nanoseconds
             while self.get_clock().now().nanoseconds - start_time < 10e9:
                 self.get_logger().info("Auto Driving")
@@ -347,7 +366,9 @@ class MainControlNode(Node):
         if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
             forward_power = msg.axes[bindings.RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
-            horizontal_power = msg.axes[bindings.RIGHT_JOYSTICK_HORIZONTAL_AXIS] * self.max_drive_power  # Horizontal power
+            horizontal_power = (
+                msg.axes[bindings.RIGHT_JOYSTICK_HORIZONTAL_AXIS] * self.max_drive_power
+            )  # Horizontal power
             turn_power = msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(
                 Twist(linear=Vector3(x=forward_power, y=horizontal_power), angular=Vector3(z=turn_power))
