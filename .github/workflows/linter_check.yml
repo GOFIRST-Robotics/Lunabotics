@@ -1,14 +1,11 @@
 name: Linter Check
 
 on:
-  # Trigger the workflow on push or pull request,
-  # but only for the main branch
+  # Trigger the workflow on push to main or any pull request.
   push:
     branches:
       - main
   pull_request:
-    branches:
-      - main
 
 jobs:
   run-linters:
@@ -16,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v1
