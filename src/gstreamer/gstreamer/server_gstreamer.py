@@ -7,6 +7,7 @@ from rovr_interfaces.srv import SetClientIp, SetActiveCamera, SetEncoding
 gi.require_version("Gst", "1.0")
 from gi.repository import Gst  # noqa: E402
 
+
 class GstreamerServer:
 
     def __init__(self, ip_srv: SetClientIp, camera_srv: SetActiveCamera, encod_srv: SetEncoding):
@@ -20,7 +21,7 @@ class GstreamerServer:
         else:
             camera_src.set_property("device", camera_srv.device)
         self.pipeline.add(camera_src)
-        
+
         nonNVvideoconvert = Gst.ElementFactory.make("videoconvert", "videoconvert")
         self.pipeline.add(nonNVvideoconvert)
         camera_src.link(nonNVvideoconvert)
@@ -36,7 +37,6 @@ class GstreamerServer:
         src_caps.set_property("caps", caps)
         self.pipeline.add(src_caps)
         nonNVvideoconvert.link(src_caps)
-        
 
         if platform.machine() == "aarch64":
             videoconvert = Gst.ElementFactory.make("nvvidconv", "nvvidconv")
@@ -86,6 +86,7 @@ class GstreamerServer:
     def stop(self):
         self.pipeline.set_state(Gst.State.NULL)
 
+
 if __name__ == "__main__":
     ip = SetClientIp.Request()
     ip.client_ip = "127.0.0.1"
@@ -98,14 +99,14 @@ if __name__ == "__main__":
     camera.format = "NV12"
     encoding = SetEncoding.Request()
     encoding.encoding = "h265"
-    server = GstreamerServer(ip,camera,encoding)
+    server = GstreamerServer(ip, camera, encoding)
     server.run()
     stop_event = Event()
     change_source_thread = Thread()
     change_source_thread.start()
     while True:
         try:
-            message:Gst.Message = server.pipeline.get_bus().timed_pop(Gst.SECOND)
+            message: Gst.Message = server.pipeline.get_bus().timed_pop(Gst.SECOND)
             if message is None:
                 pass
             elif message.type == Gst.MessageType.EOS:
