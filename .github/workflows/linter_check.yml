@@ -1,4 +1,4 @@
-name: Linter Check
+name: Lint Check
 
 on:
   # Trigger the workflow on push to main or any pull request.
@@ -13,19 +13,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.11
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.11
 
-      - name: Install Python dependencies
-        run: pip install black flake8
+    - name: Install Python dependencies
+      run: pip install black flake8
 
-      - name: Run linters
-        uses: wearerequired/lint-action@v2
-        with:
-          black: true
-          flake8: true
+    - name: Run linters
+      uses: wearerequired/lint-action@v2
+      with:
+        black: true
+        flake8: true
