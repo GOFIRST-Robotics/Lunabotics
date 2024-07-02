@@ -29,10 +29,10 @@ import asyncio  # Allows the use of asynchronous methods!
 from scipy.spatial.transform import Rotation as R
 
 # Import our logitech gamepad button mappings
-from .gamepad_constants import *
+from . import gamepad_constants as bindings
 
 # Uncomment the line below to use the Xbox controller mappings instead
-# from .xbox_controller_constants import *
+# from . import xbox_controller_constants as bindings
 
 
 # GLOBAL VARIABLES #
@@ -346,47 +346,47 @@ class MainControlNode(Node):
 
         if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop
-            forward_power = msg.axes[RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
-            horizontal_power = msg.axes[RIGHT_JOYSTICK_HORIZONTAL_AXIS] * self.max_drive_power  # Horizontal power
-            turn_power = msg.axes[LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
+            forward_power = msg.axes[bindings.RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
+            horizontal_power = msg.axes[bindings.RIGHT_JOYSTICK_HORIZONTAL_AXIS] * self.max_drive_power  # Horizontal power
+            turn_power = msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(
                 Twist(linear=Vector3(x=forward_power, y=horizontal_power), angular=Vector3(z=turn_power))
             )
 
             # Check if the skimmer button is pressed #
-            if msg.buttons[X_BUTTON] == 1 and buttons[X_BUTTON] == 0:
+            if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
                 self.cli_skimmer_toggle.call_async(SetPower.Request(power=self.skimmer_belt_power))
 
             # Check if the reverse skimmer button is pressed #
-            if msg.buttons[Y_BUTTON] == 1 and buttons[Y_BUTTON] == 0:
+            if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
                 self.cli_skimmer_setPower.call_async(SetPower.Request(power=-self.skimmer_belt_power))
 
             # Check if the lift dumping position button is pressed #
-            if msg.buttons[B_BUTTON] == 1 and buttons[B_BUTTON] == 0:
+            if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
                 self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))
 
             # Check if the lift digging position button is pressed #
-            if msg.buttons[A_BUTTON] == 1 and buttons[A_BUTTON] == 0:
+            if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
                 self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_start_position))
 
             # Manually adjust the height of the skimmer with the left and right triggers
-            if msg.buttons[RIGHT_TRIGGER] == 1 and buttons[RIGHT_TRIGGER] == 0:
+            if msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
                 self.cli_lift_set_power.call_async(SetPower.Request(power=self.skimmer_lift_manual_power))
-            elif msg.buttons[RIGHT_TRIGGER] == 0 and buttons[RIGHT_TRIGGER] == 1:
+            elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
-            elif msg.buttons[LEFT_TRIGGER] == 1 and buttons[LEFT_TRIGGER] == 0:
+            elif msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
                 self.cli_lift_set_power.call_async(SetPower.Request(power=-self.skimmer_lift_manual_power))
-            elif msg.buttons[LEFT_TRIGGER] == 0 and buttons[LEFT_TRIGGER] == 1:
+            elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
 
             # Check if the calibration button is pressed
-            if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
+            if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
                 self.cli_drivetrain_calibrate.call_async(Stop.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the Apriltag calibration button is pressed
-        if msg.buttons[START_BUTTON] == 1 and buttons[START_BUTTON] == 0:
+        if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Start the field calibration process
             if self.apriltag_timer.is_canceled():
                 self.started_calibration = False
@@ -400,7 +400,7 @@ class MainControlNode(Node):
                 self.end_autonomous()  # Return to Teleop mode
 
         # Check if the autonomous digging button is pressed
-        if msg.buttons[BACK_BUTTON] == 1 and buttons[BACK_BUTTON] == 0:
+        if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
@@ -412,7 +412,7 @@ class MainControlNode(Node):
                 self.autonomous_digging_process = None
 
         # Check if the autonomous offload button is pressed
-        if msg.buttons[LEFT_BUMPER] == 1 and buttons[LEFT_BUMPER] == 0:
+        if msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]
