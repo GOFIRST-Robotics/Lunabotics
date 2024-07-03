@@ -10,7 +10,7 @@ on:
 permissions: { }
 
 jobs:
-  build:
+  run-linters:
     name: Lint
     runs-on: ubuntu-latest
 
