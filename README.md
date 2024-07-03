@@ -2,6 +2,8 @@
 
 The official NASA Lunabotics 2024 repository for University of Minnesota Robotics.
 
+[![Lint Check](https://github.com/GOFIRST-Robotics/Lunabotics-2024/actions/workflows/linter_check.yml/badge.svg)](https://github.com/GOFIRST-Robotics/Lunabotics-2024/actions/workflows/linter_check.yml) [![Trufflehog Scan](https://github.com/GOFIRST-Robotics/Lunabotics-2024/actions/workflows/trufflehog_scan.yml/badge.svg)](https://github.com/GOFIRST-Robotics/Lunabotics-2024/actions/workflows/trufflehog_scan.yml)
+
 ```mermaid
 graph LR
     subgraph A[Operator Laptop]
