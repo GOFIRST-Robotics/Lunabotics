@@ -1,17 +1,23 @@
+name: Trufflehog Scan
+
 on:
+  # Trigger the workflow on push to main or any pull request.
   push:
     branches:
       - main
   pull_request:
 
 jobs:
-  test:
+  run-scan:
+    name: Run scan
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
     - name: Secret Scanning
       uses: trufflesecurity/trufflehog@main
       with:
