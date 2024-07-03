@@ -178,7 +178,10 @@ class MainControlNode(Node):
     #                 return None
     #             i = dig_zone_start + robot_width
     #             while i <= dig_zone_end - robot_width:
-    #                 if costmap.getDigCost(i, dig_zone_border_y, robot_width_pixels, dig_zone_depth) <= self.DANGER_THRESHOLD:
+    #                 if (
+    #                     costmap.getDigCost(i, dig_zone_border_y, robot_width_pixels, dig_zone_depth)
+    #                     <= self.DANGER_THRESHOLD
+    #                 ):
     #                     available_dig_spots.append(create_pose_stamped(i, -dig_zone_border_y, 270))
     #                     i += robot_width
     #                 else:
@@ -319,7 +322,8 @@ class MainControlNode(Node):
         """This method lays out the procedure for doing a complete autonomous cycle!"""
         self.get_logger().info("\nStarting an Autonomous Cycle!")
         try:  # Wrap the autonomous procedure in a try-except
-            ## Navigate to the dig_location, run the dig procedure, then navigate to the berm zone and run the offload procedure ##
+            # Navigate to the dig_location, run the dig procedure,
+            # then navigate to the berm zone and run the offload procedure
             if not self.field_calibrated:
                 self.get_logger().error("Field coordinates must be calibrated first!")
                 self.end_autonomous()  # Return to Teleop mode

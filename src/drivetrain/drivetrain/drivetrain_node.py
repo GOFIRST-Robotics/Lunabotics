@@ -182,7 +182,8 @@ class DrivetrainNode(Node):
         if self.front_left.current_absolute_angle is not None:
             print("Absolute Encoder angles reset")
 
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             front_left_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN)
             )
@@ -190,7 +191,8 @@ class DrivetrainNode(Node):
                 lambda future: self.front_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
             )
 
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             front_right_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN)
             )
@@ -198,7 +200,8 @@ class DrivetrainNode(Node):
                 lambda future: self.front_right.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
             )
 
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             back_left_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN)
             )
@@ -206,7 +209,8 @@ class DrivetrainNode(Node):
                 lambda future: self.back_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
             )
 
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             back_right_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN)
             )
@@ -317,7 +321,8 @@ class DrivetrainNode(Node):
     def calibrate_callback(self, request, response):
         """This service request calibrates the drivetrain."""
         if self.front_left.current_absolute_angle is not None:
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             front_left_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN)
             )
@@ -325,7 +330,8 @@ class DrivetrainNode(Node):
                 lambda future: self.front_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
             )
 
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             front_right_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN)
             )
@@ -333,7 +339,8 @@ class DrivetrainNode(Node):
                 lambda future: self.front_right.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
             )
 
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             back_left_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN)
             )
@@ -341,7 +348,8 @@ class DrivetrainNode(Node):
                 lambda future: self.back_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
             )
 
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees. Divide this by the gear ratio to get the wheel position.
+            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
+            # Divide this by the gear ratio to get the wheel position.
             back_right_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN)
             )

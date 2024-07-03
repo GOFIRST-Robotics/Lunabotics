@@ -39,7 +39,8 @@ class GstreamerClient:
         vid_conv.link(sink)
 
     def init_h265(self, source, queue):
-        # gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay ! h265parse ! queue ! nvv4l2decoder ! nveglglessink
+        # gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay
+        # ! h265parse ! queue ! nvv4l2decoder ! nveglglessink
         caps_udp = Gst.ElementFactory.make("capsfilter", "caps_udp")
         caps_udp.set_property("caps", Gst.Caps.from_string("application/x-rtp,payload=96"))
         self.pipeline.add(caps_udp)
@@ -56,7 +57,8 @@ class GstreamerClient:
         h265parse.link(queue)
 
     def init_av1(self, source, queue):
-        # gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=30/1" ! queue ! nvv4l2decoder ! nvvideoconvert ! ximagesink
+        # gst-launch-1.0 udpsrc port=5000 ! "video/x-av1,width=640,height=480,framerate=30/1" ! queue
+        # ! nvv4l2decoder ! nvvideoconvert ! ximagesink
         caps_v4l2src = Gst.ElementFactory.make("capsfilter", "caps_v4l2src")
         caps_v4l2src.set_property(
             "caps",

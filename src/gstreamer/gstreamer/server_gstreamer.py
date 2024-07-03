@@ -58,8 +58,12 @@ class GstreamerServer:
             self.init_av1(videoconvert, udp_sink)
 
     def init_h265(self, input, sink):
-        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)1920, height=(int)1080, format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h265enc ! rtph265pay ! udpsink host=127.0.0.1 port=5000
-        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480, format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h265enc ! rtph265pay ! udpsink host=127.0.0.1 port=5000
+        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)1920, height=(int)1080,
+        # format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h265enc
+        # ! rtph265pay! udpsink host=127.0.0.1 port=5000
+        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480,
+        # format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h265enc
+        # ! rtph265pay ! udpsink host=127.0.0.1 port=5000
         nvv4l2h265enc = Gst.ElementFactory.make("nvv4l2h265enc", "nvv4l2h265enc")
         self.pipeline.add(nvv4l2h265enc)
         input.link(nvv4l2h265enc)
@@ -71,7 +75,8 @@ class GstreamerServer:
         rtph265pay.link(sink)
 
     def init_av1(self, input, sink):
-        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480, format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2av1enc ! udpsink host=127.0.0.1 port=5000
+        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480, format=(string)NV12,
+        # framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2av1enc ! udpsink host=127.0.0.1 port=5000
         nvv4l2av1enc = Gst.ElementFactory.make("nvv4l2av1enc", "nvv4l2av1enc")
         nvv4l2av1enc.set_property("bitrate", 1000000)
         self.pipeline.add(nvv4l2av1enc)
