@@ -58,6 +58,12 @@ def generate_launch_description():
         name="ros2socketcan",
     )
 
+    calibrate_field_coordinate_server = Node(
+        package="rovr_control",
+        executable="calibrate_field_coordinate_server",
+        name="calibrate_field_coordinate_server",
+    )
+
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
     ld.add_action(joystick_node)
@@ -65,5 +71,6 @@ def generate_launch_description():
     ld.add_action(skimmer)
     ld.add_action(read_serial)
     ld.add_action(can_bus)
+    ld.add_action(calibrate_field_coordinate_server)
 
     return ld
