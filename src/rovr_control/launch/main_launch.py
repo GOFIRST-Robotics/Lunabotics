@@ -58,10 +58,16 @@ def generate_launch_description():
         name="ros2socketcan",
     )
 
+    # Add our autonomous action servers here
     calibrate_field_coordinate_server = Node(
         package="rovr_control",
         executable="calibrate_field_coordinate_server",
         name="calibrate_field_coordinate_server",
+    )
+    auto_dig_server = Node(
+        package="rovr_control",
+        executable="auto_dig_server",
+        name="auto_dig_server",
     )
 
     ld.add_action(rovr_control)
@@ -72,5 +78,6 @@ def generate_launch_description():
     ld.add_action(read_serial)
     ld.add_action(can_bus)
     ld.add_action(calibrate_field_coordinate_server)
+    ld.add_action(auto_dig_server)
 
     return ld
