@@ -6,8 +6,11 @@
 
 # Import the ROS 2 module
 import rclpy
+from rclpy.action import ActionClient
+from rclpy.action.client import ClientGoalHandle
+from rclpy.client import Future
 from rclpy.node import Node
-from rclpy.executors import SingleThreadedExecutor  # This is needed to run multiple callbacks in a single thread
+from rclpy.executors import MultiThreadedExecutor
 
 # Provides a “navigation as a library” capability
 from nav2_simple_commander.robot_navigator import (
@@ -19,21 +22,21 @@ from nav2_simple_commander.robot_navigator import (
 from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from sensor_msgs.msg import Joy
 from std_msgs.msg import Bool
+from action_msgs.msg import GoalStatus
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, ResetOdom
+from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, SetPower, SetPosition
+from rovr_interfaces.action import CalibrateFieldCoordinates
 
 # Import Python Modules
 import asyncio  # Allows the use of asynchronous methods!
 from scipy.spatial.transform import Rotation as R
 
 # Import our logitech gamepad button mappings
-from . import gamepad_constants as bindings
+from rovr_control import gamepad_constants as bindings
 
 # Uncomment the line below to use the Xbox controller mappings instead
-# from . import xbox_controller_constants as bindings
-
+# from rovr_control import xbox_controller_constants as bindings
 
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
@@ -125,23 +128,18 @@ class MainControlNode(Node):
             self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)  # TODO: Test this location in simulation
             self.dig_location = create_pose_stamped(6.2, -1.2, 0)  # TODO: Test this location in simulation
 
-        # Define timers here
-        self.apriltag_timer = self.create_timer(0.1, self.start_calibration_callback)
-        self.apriltag_timer.cancel()  # Cancel the apriltag timer initially
-
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
         self.cli_skimmer_stop = self.create_client(Stop, "skimmer/stop")
         self.cli_skimmer_setPower = self.create_client(SetPower, "skimmer/setPower")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
-        self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
+        self.cli_drivetrain = self.create_client(Drive, "drivetrain/drive")
         self.cli_drivetrain_calibrate = self.create_client(Stop, "drivetrain/calibrate")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
         self.cli_lift_zero = self.create_client(Stop, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
-        self.cli_set_apriltag_odometry = self.create_client(ResetOdom, "resetOdom")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -150,8 +148,11 @@ class MainControlNode(Node):
             Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
         )
 
-        self.started_calibration = False
-        self.field_calibrated = False
+        self.act_calibrate_field_coordinates = ActionClient(
+            self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
+        )
+
+        self.field_calibrated_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
         # ----- !! BLOCKING WHILE LOOP !! ----- #
@@ -193,17 +194,6 @@ class MainControlNode(Node):
     #         self.get_logger().error(f"Error in optimal_dig_location: {e} on line {sys.exc_info()[-1].tb_lineno}")
     #         return None
 
-    def start_calibration_callback(self) -> None:
-        """This method publishes the odometry of the robot."""
-        if not self.started_calibration:
-            asyncio.ensure_future(self.calibrate_field_coordinates())
-            self.started_calibration = True
-
-    def future_odom_callback(self, future) -> None:
-        if future.result().success:
-            self.field_calibrated = True
-            self.get_logger().info("map -> odom TF published!")
-
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
         self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
@@ -214,29 +204,6 @@ class MainControlNode(Node):
         """This method returns to teleop control."""
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
-
-    # This autonomous routine has been tested and works!
-    async def calibrate_field_coordinates(self) -> None:
-        """This method rotates until we can see apriltag(s) and then sets the map -> odom tf."""
-        if not self.field_calibrated:
-            self.get_logger().info("Beginning search for apriltags")
-            while not self.cli_drivetrain_drive.wait_for_service():  # Wait for the drivetrain services to be available
-                self.get_logger().warn("Waiting for drivetrain services to become available...")
-                await asyncio.sleep(0.1)
-            await self.cli_drivetrain_drive.call_async(
-                Drive.Request(forward_power=0.0, horizontal_power=0.0, turning_power=0.3)
-            )
-        while not self.field_calibrated:
-            future = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
-            future.add_done_callback(self.future_odom_callback)
-            await asyncio.sleep(0.05)  # Allows other async tasks to continue running (this is non-blocking)
-        self.get_logger().info("Field Coordinates Calibrated!")
-        await self.cli_drivetrain_stop.call_async(Stop.Request())
-        self.nav2.spin(3.14)  # Turn around 180 degrees to face the rest of the field
-        while not self.nav2.isTaskComplete():
-            await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-        self.apriltag_timer.cancel()
-        self.end_autonomous()  # Return to Teleop mode
 
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
@@ -324,7 +291,7 @@ class MainControlNode(Node):
         try:  # Wrap the autonomous procedure in a try-except
             # Navigate to the dig_location, run the dig procedure,
             # then navigate to the berm zone and run the offload procedure
-            if not self.field_calibrated:
+            if self.field_calibrated.done() and self.field_calibrated.result() is False:
                 self.get_logger().error("Field coordinates must be calibrated first!")
                 self.end_autonomous()  # Return to Teleop mode
                 return
@@ -361,6 +328,21 @@ class MainControlNode(Node):
     def skimmer_goal_callback(self, msg: Bool) -> None:
         """Update the member variable accordingly."""
         self.skimmer_goal_reached = msg.data
+
+    def calibrate_goal_reponse_callback(self, future: Future):
+        self.field_calibrated_handle: ClientGoalHandle = future.result()
+        if not self.field_calibrated_handle.accepted:
+            self.get_logger().info("Goal rejected")
+            return
+        field_calibrated: Future = self.field_calibrated_handle.get_result_async()
+        field_calibrated.add_done_callback(self.get_calibrate_result_callback)
+
+    def get_calibrate_result_callback(self, future: Future):
+        self.field_calibrated_handle = future.result()
+
+        if self.field_calibrated_handle.status == GoalStatus.STATUS_SUCCEEDED:
+            self.get_logger().info("Field calibration succeeded!")
+            self.end_autonomous()
 
     def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
@@ -413,15 +395,20 @@ class MainControlNode(Node):
         # Check if the Apriltag calibration button is pressed
         if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Start the field calibration process
-            if self.apriltag_timer.is_canceled():
-                self.started_calibration = False
-                self.field_calibrated = False
+            if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
+                self.get_logger().info("Field calibration button pressed")
+                if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
+                    self.get_logger().error("Field calibration action not available")
+                    return
+                field_calibrated_request = self.act_calibrate_field_coordinates.send_goal_async(
+                    CalibrateFieldCoordinates.Goal()
+                )
+                field_calibrated_request.add_done_callback(self.calibrate_goal_reponse_callback)
                 self.state = states["Autonomous"]  # Exit Teleop mode
-                self.apriltag_timer.reset()
             # Stop the field calibration process
             else:
-                self.apriltag_timer.cancel()
                 self.get_logger().warn("Field Calibration Terminated\n")
+                self.field_calibrated_handle.cancel_goal_async()
                 self.end_autonomous()  # Return to Teleop mode
 
         # Check if the autonomous digging button is pressed
@@ -465,7 +452,7 @@ class MainControlNode(Node):
             buttons[index] = msg.buttons[index]
 
 
-async def spin(executor: SingleThreadedExecutor) -> None:
+async def spin(executor: MultiThreadedExecutor) -> None:
     """This function is called in the main function to run the executor."""
     while rclpy.ok():  # While ROS is still running
         executor.spin_once()  # Spin the executor once
@@ -475,18 +462,17 @@ async def spin(executor: SingleThreadedExecutor) -> None:
 def main(args=None) -> None:
     rclpy.init(args=args)
 
-    node = MainControlNode()  # Instantiate the node
-    executor = SingleThreadedExecutor()  # Create an executor
-    executor.add_node(node)  # Add the node to the executor
-
-    node.get_logger().info("Hello from the rovr_control package!")
+    main_node = MainControlNode()  # Instantiate the node
+    executor = MultiThreadedExecutor()  # Create an executor
+    executor.add_node(main_node)  # Add the node to the executor
+    main_node.get_logger().info("Hello from the rovr_control package!")
 
     loop = asyncio.get_event_loop()  # Get the event loop
     loop.run_until_complete(spin(executor))  # Run the spin function in the event loop
 
     # Clean up and shutdown
-    node.nav2.lifecycleShutdown()
-    node.destroy_node()
+    main_node.nav2.lifecycleShutdown()
+    main_node.destroy_node()
     rclpy.shutdown()
 
 
