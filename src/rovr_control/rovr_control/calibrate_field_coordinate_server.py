@@ -1,15 +1,16 @@
 import math
 
-from action_msgs.msg import GoalStatus
 import rclpy
 from rclpy.action import ActionClient, ActionServer
 from rclpy.action.client import ClientGoalHandle
-from rclpy.action.server import ServerGoalHandle, CancelResponse
-from nav2_msgs.action import Spin
+from rclpy.action.server import CancelResponse
 from rovr_interfaces.action import CalibrateFieldCoordinates
 from rovr_interfaces.srv import ResetOdom
 from rclpy.node import Node
 from rclpy.task import Future
+
+from action_msgs.msg import GoalStatus
+from nav2_msgs.action import Spin
 
 
 class CalibrateFieldCoordinateServer(Node):
@@ -29,7 +30,7 @@ class CalibrateFieldCoordinateServer(Node):
         self.cli_spin = ActionClient(self.client_node, Spin, "spin")
         self.spin_handle = ClientGoalHandle(None, None, None)
 
-    def execute_callback(self, goal_handle: ServerGoalHandle):
+    def execute_callback(self, goal_handle: CalibrateFieldCoordinates.Goal):
         """This method rotates until we can see apriltag(s) and then sets the map -> odom tf."""
         self.get_logger().info("Executing goal...")
         result = CalibrateFieldCoordinates.Result()
@@ -66,14 +67,14 @@ class CalibrateFieldCoordinateServer(Node):
             rclpy.spin_until_future_complete(self.client_node, self.future_odom)
 
         if self.spin_handle.status == GoalStatus.STATUS_CANCELED:
-            self.get_logger().error("Spin canceled")
+            self.get_logger().warn("Spin canceled")
             goal_handle.canceled()
             return result
         elif self.future_odom.done() and self.future_odom.result().success is True:
             self.get_logger().info("map -> odom TF published!")
             rclpy.spin_until_future_complete(self.client_node, self.spin_handle.cancel_goal_async())
         else:
-            self.get_logger().error("Failed to find apriltag")
+            self.get_logger().warn("Failed to find apriltag")
             goal_handle.abort()
             return result
 
@@ -91,13 +92,14 @@ class CalibrateFieldCoordinateServer(Node):
             return result
         rclpy.spin_until_future_complete(self.client_node, self.spin_handle.get_result_async())
         if goal_handle.status == GoalStatus.STATUS_CANCELING:
-            self.get_logger().error("Final spin to field Spin canceled")
+            self.get_logger().warn("Final spin to field Spin canceled")
             goal_handle.canceled()
             return result
         goal_handle.succeed()
         return result
 
     def cancel_callback(self, cancel_request):
+        """This method is called when the action is cancelled."""
         self.get_logger().info("Goal was canceled")
         if self.spin_handle.status == GoalStatus.STATUS_EXECUTING:
             self.spin_handle.cancel_goal_async()

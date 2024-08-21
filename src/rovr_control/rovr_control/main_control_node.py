@@ -80,7 +80,7 @@ class MainControlNode(Node):
         self.skimmer_belt_power = self.get_parameter("skimmer_belt_power").value
         self.skimmer_lift_manual_power = self.get_parameter("skimmer_lift_manual_power").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_dumping_position = int(
+        self.lift_dumping_position = (
             self.get_parameter("lift_dumping_position").value * 360 / 42
         )  # Convert encoder counts to degrees
         self.lift_digging_start_position = (
@@ -260,7 +260,7 @@ class MainControlNode(Node):
     def calibrate_goal_reponse_callback(self, future: Future):
         self.field_calibrated_handle: ClientGoalHandle = future.result()
         if not self.field_calibrated_handle.accepted:
-            self.get_logger().info("field calibration Goal rejected")
+            self.get_logger().info("Field calibration Goal rejected")
             return
         field_calibrated: Future = self.field_calibrated_handle.get_result_async()
         field_calibrated.add_done_callback(self.get_calibrate_result_callback)
@@ -268,7 +268,7 @@ class MainControlNode(Node):
     def auto_offload_goal_reponse_callback(self, future: Future):
         self.auto_offload_handle: ClientGoalHandle = future.result()
         if not self.auto_offload_handle.accepted:
-            self.get_logger().info("auto offload Goal rejected")
+            self.get_logger().info("Auto offload Goal rejected")
             return
         result: Future = self.auto_offload_handle.get_result_async()
         result.add_done_callback(self.get_auto_offload_result_callback)
@@ -342,10 +342,10 @@ class MainControlNode(Node):
                 if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Field calibration action not available")
                     return
-                field_calibrated_request = self.act_calibrate_field_coordinates.send_goal_async(
-                    CalibrateFieldCoordinates.Goal()
-                )
+                goal = CalibrateFieldCoordinates.Goal()
+                field_calibrated_request = self.act_calibrate_field_coordinates.send_goal_async(goal)
                 field_calibrated_request.add_done_callback(self.calibrate_goal_reponse_callback)
+                self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]  # Exit Teleop mode
             # Terminate the field calibration process
             else:
@@ -357,7 +357,7 @@ class MainControlNode(Node):
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]
+                self.state = states["Autonomous"]  # Exit Teleop mode
                 self.autonomous_digging_process = asyncio.ensure_future(
                     self.auto_dig_procedure()
                 )  # Start the auto dig process
@@ -368,21 +368,20 @@ class MainControlNode(Node):
         # Check if the autonomous offload button is pressed
         if msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
             # Check if the auto offload process is not running
-            if not self.act_auto_offload.wait_for_server(timeout_sec=1.0):
-                self.get_logger().error("Auto offload action not available")
-                return
-            if self.state == states["Teleop"]:
-                self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]
+            if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
+                if not self.act_auto_offload.wait_for_server(timeout_sec=1.0):
+                    self.get_logger().error("Auto offload action not available")
+                    return
                 goal = AutoOffload.Goal(
                     lift_dumping_position=self.lift_dumping_position,
                     skimmer_belt_power=self.skimmer_belt_power,
                 )
                 auto_offload_request = self.act_auto_offload.send_goal_async(goal)
                 auto_offload_request.add_done_callback(self.auto_offload_goal_reponse_callback)
+                self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]  # Exit Teleop mode
             # Terminate the auto offload process
-            elif self.state == states["Autonomous"]:
+            else:
                 self.get_logger().warn("Auto Offload Terminated\n")
                 self.auto_offload_handle.cancel_goal_async()
                 self.end_autonomous()  # Return to Teleop mode
