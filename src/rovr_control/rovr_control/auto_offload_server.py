@@ -29,7 +29,7 @@ class AutoOffloadServer(Node):
 
         self.canceled = False
 
-    def execute_callback(self, goal_handle:AutoOffload.Goal):
+    def execute_callback(self, goal_handle: AutoOffload.Goal):
         """This method lays out the procedure for autonomously offloading!"""
         result = AutoOffload.Result()
 
