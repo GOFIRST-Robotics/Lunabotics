@@ -15,7 +15,6 @@ from rclpy.executors import MultiThreadedExecutor
 # Provides a “navigation as a library” capability
 from nav2_simple_commander.robot_navigator import (
     BasicNavigator,
-    TaskResult,
 )
 
 # Import ROS 2 formatted message types
@@ -254,48 +253,6 @@ class MainControlNode(Node):
             self.get_logger().warn("Autonomous Digging Procedure Terminated\n")
             self.end_autonomous()  # Return to Teleop mode
 
-    # TODO: This autonomous routine has not been tested yet!
-    async def auto_cycle_procedure(self) -> None:
-        """This method lays out the procedure for doing a complete autonomous cycle!"""
-        self.get_logger().info("\nStarting an Autonomous Cycle!")
-        try:  # Wrap the autonomous procedure in a try-except
-            # Navigate to the dig_location, run the dig procedure,
-            # then navigate to the berm zone and run the offload procedure
-            if self.field_calibrated.done() and self.field_calibrated.result() is False:
-                self.get_logger().error("Field coordinates must be calibrated first!")
-                self.end_autonomous()  # Return to Teleop mode
-                return
-            self.nav2.goToPose(self.dig_location)  # Navigate to the dig location
-            while not self.nav2.isTaskComplete():  # Wait for the dig location to be reached
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            if self.nav2.getResult() == TaskResult.FAILED:
-                self.get_logger().error("Failed to reach the dig location!")
-                self.end_autonomous()  # Return to Teleop mode
-                return
-            self.autonomous_digging_process = asyncio.ensure_future(
-                self.auto_dig_procedure()
-            )  # Start the auto dig process
-            while not self.autonomous_digging_process.done():  # Wait for the dig process to complete
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            self.nav2.goToPose(self.autonomous_berm_location)  # Navigate to the berm zone
-            while not self.nav2.isTaskComplete():  # Wait for the berm zone to be reached
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            if self.nav2.getResult() == TaskResult.FAILED:
-                self.get_logger().error("Failed to reach the berm zone!")
-                self.end_autonomous()  # Return to Teleop mode
-                return
-            goal = AutoOffload.Goal(
-                lift_dumping_position=self.lift_dumping_position,
-                skimmer_belt_power=self.skimmer_belt_power,
-            )
-            self.auto_offload_future = self.act_auto_offload.send_goal_async(goal)
-            rclpy.spin_until_future_complete(self, self.auto_offload_future)
-            self.get_logger().info("Completed an Autonomous Cycle!\n")
-            self.end_autonomous()  # Return to Teleop mode
-        except asyncio.CancelledError:  # Put termination code here
-            self.get_logger().info("Autonomous Cycle Terminated\n")
-            self.end_autonomous()  # Return to Teleop mode
-
     def skimmer_goal_callback(self, msg: Bool) -> None:
         """Update the member variable accordingly."""
         self.skimmer_goal_reached = msg.data
@@ -429,19 +386,6 @@ class MainControlNode(Node):
                 self.get_logger().warn("Auto Offload Terminated\n")
                 self.auto_offload_handle.cancel_goal_async()
                 self.end_autonomous()  # Return to Teleop mode
-
-        # # Check if the autonomous cycle button is pressed
-        # if msg.buttons[RIGHT_BUMPER] == 1 and buttons[RIGHT_BUMPER] == 0:
-        #     if self.state == states["Teleop"]:
-        #         self.stop_all_subsystems()  # Stop all subsystems
-        #         self.state = states["Autonomous"]
-        #         self.autonomous_cycle_process = asyncio.ensure_future(
-        #             self.auto_cycle_procedure()
-        #         )  # Start the autonomous cycle!
-        #     elif self.state == states["Autonomous"]:
-        #         self.auto_offload_future.cancel()
-        #         self.autonomous_cycle_process.cancel()  # Terminate the autonomous cycle process
-        #         self.autonomous_cycle_process = None
 
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
