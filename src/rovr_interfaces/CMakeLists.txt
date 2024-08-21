@@ -20,18 +20,19 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/AutoDig.action"
-  "srv/MotorCommandGet.srv"
-  "srv/MotorCommandSet.srv"
-  "srv/Stop.srv"
-  "srv/SetPower.srv"
-  "srv/SetPosition.srv"
-  "srv/Drive.srv"
-  "srv/ResetOdom.srv"
-  "srv/SetClientIp.srv"
-  "srv/SetActiveCamera.srv"
-  "srv/SetEncoding.srv"
+  "action/CalibrateFieldCoordinates.action"
   "msg/AbsoluteEncoders.msg"
   "msg/LimitSwitches.msg"
+  "srv/Drive.srv"
+  "srv/MotorCommandGet.srv"
+  "srv/MotorCommandSet.srv"
+  "srv/ResetOdom.srv"
+  "srv/SetActiveCamera.srv"
+  "srv/SetClientIp.srv"
+  "srv/SetEncoding.srv"
+  "srv/SetPosition.srv"
+  "srv/SetPower.srv"
+  "srv/Stop.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)
 
