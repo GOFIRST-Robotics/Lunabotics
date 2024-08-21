@@ -28,6 +28,7 @@ setup(
             {
                 "main_control_node = rovr_control.main_control_node:main",
                 "read_serial = rovr_control.read_serial:main",
+                "calibrate_field_coordinate_server = rovr_control.calibrate_field_coordinate_server:main",
             }
         ],
     },
