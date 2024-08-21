@@ -15,8 +15,8 @@
 		"FASTFASTRTPS_DEFAULT_PROFILES_FILE": "/usr/local/share/middleware_profiles/rtps_udp_profile.xml",
 		// "ROS_DOMAIN_ID": "${localEnv:ROS_DOMAIN_ID}"
 	},
-	"initializeCommand": "git config --global --add safe.directory /workspaces/Lunabotics-2024 && git reset --soft && git submodule update --init --recursive && git config --global submodule.recurse true && git pull || true",
-	"postCreateCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics-2024/install/setup.bash' >> ~/.bashrc",
+	"initializeCommand": "git config --global --add safe.directory /workspaces/Lunabotics && git reset --soft && git submodule update --init --recursive && git config --global submodule.recurse true && git pull || true",
+	"postCreateCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics/install/setup.bash' >> ~/.bashrc",
 	"postStartCommand": "sudo apt-get update && rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox'",
 	// "mounts": [
 	// 	"type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix",
