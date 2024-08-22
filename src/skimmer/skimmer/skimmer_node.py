@@ -101,6 +101,7 @@ class SkimmerNode(Node):
         else:
             self.set_power(skimmer_belt_power)
 
+    # TODO: This method can probably be deleted during the implementation of ticket #257
     def set_position(self, position: int) -> None:
         """This method sets the position (in degrees) of the skimmer."""
         self.current_goal_position = position  # goal position should be in degrees
@@ -157,6 +158,9 @@ class SkimmerNode(Node):
         response.success = 0  # indicates success
         return response
 
+    # TODO: This method needs to be modified during the implementation of ticket #257
+    # to return a proper future indicating when the goal position has been reached
+    # so that rclpy.spin_until_future_complete() can be used to wait for the goal.
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
