@@ -17,7 +17,7 @@ class AutoDigServer(Node):
         self._action_server = ActionServer(
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
         )
-        self.client_node = rclpy.create_node("auto_offload_action_server_client")
+        self.client_node = rclpy.create_node("auto_dig_action_server_client")
 
         # TODO: This should not be needed anymore after ticket #257 is implemented!
         self.skimmer_goal_subscription = self.client_node.create_subscription(
