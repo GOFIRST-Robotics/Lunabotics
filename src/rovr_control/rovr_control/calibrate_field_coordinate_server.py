@@ -36,11 +36,11 @@ class CalibrateFieldCoordinateServer(Node):
         result = CalibrateFieldCoordinates.Result()
         self.get_logger().info("Beginning search for apriltags")
 
+        # Make sure the services are available
         if not self.cli_set_apriltag_odometry.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Apriltag odom service not available")
             goal_handle.abort()
             return result
-
         if not self.cli_spin.wait_for_server(timeout_sec=1.0):
             self.get_logger().error("Nav2 service not available")
             goal_handle.abort()
@@ -99,7 +99,7 @@ class CalibrateFieldCoordinateServer(Node):
         return result
 
     def cancel_callback(self, cancel_request):
-        """This method is called when the action is cancelled."""
+        """This method is called when the action is canceled."""
         self.get_logger().info("Goal was canceled")
         if self.spin_handle.status == GoalStatus.STATUS_EXECUTING:
             self.spin_handle.cancel_goal_async()

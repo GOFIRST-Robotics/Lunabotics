@@ -209,7 +209,7 @@ class MainControlNode(Node):
     # TODO: This autonomous routine has not been tested yet!
     async def auto_dig_procedure(self) -> None:
         """This method lays out the procedure for autonomously digging!"""
-        self.get_logger().info("\nStarting Autonomous Digging Procedure!")
+        self.get_logger().info("Starting Autonomous Digging Procedure!")
         try:  # Wrap the autonomous procedure in a try-except
             await self.cli_lift_zero.call_async(Stop.Request())
             await self.cli_lift_setPosition.call_async(
@@ -247,45 +247,38 @@ class MainControlNode(Node):
             while not self.skimmer_goal_reached:
                 self.get_logger().info("Moving skimmer to dumping position")
                 await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            self.get_logger().info("Autonomous Digging Procedure Complete!\n")
+            self.get_logger().info("Autonomous Digging Procedure Complete!")
             self.end_autonomous()  # Return to Teleop mode
         except asyncio.CancelledError:  # Put termination code here
-            self.get_logger().warn("Autonomous Digging Procedure Terminated\n")
+            self.get_logger().warn("Autonomous Digging Procedure Terminated")
             self.end_autonomous()  # Return to Teleop mode
 
+    # TODO: This should not be needed anymore after ticket #257 is implemented!
     def skimmer_goal_callback(self, msg: Bool) -> None:
         """Update the member variable accordingly."""
         self.skimmer_goal_reached = msg.data
 
-    def calibrate_goal_reponse_callback(self, future: Future):
+    def get_result_callback(self, future: Future):
+        goal_handle: ClientGoalHandle = future.result()
+        if goal_handle.status == GoalStatus.STATUS_SUCCEEDED:
+            self.get_logger().info("Autonomous Goal succeeded!")
+            self.end_autonomous()
+
+    def calibrate_goal_response_callback(self, future: Future):
         self.field_calibrated_handle: ClientGoalHandle = future.result()
         if not self.field_calibrated_handle.accepted:
             self.get_logger().info("Field calibration Goal rejected")
             return
         field_calibrated: Future = self.field_calibrated_handle.get_result_async()
-        field_calibrated.add_done_callback(self.get_calibrate_result_callback)
+        field_calibrated.add_done_callback(self.get_result_callback)
 
-    def auto_offload_goal_reponse_callback(self, future: Future):
+    def auto_offload_goal_response_callback(self, future: Future):
         self.auto_offload_handle: ClientGoalHandle = future.result()
         if not self.auto_offload_handle.accepted:
             self.get_logger().info("Auto offload Goal rejected")
             return
         result: Future = self.auto_offload_handle.get_result_async()
-        result.add_done_callback(self.get_auto_offload_result_callback)
-
-    def get_calibrate_result_callback(self, future: Future):
-        self.field_calibrated_handle = future.result()
-
-        if self.field_calibrated_handle.status == GoalStatus.STATUS_SUCCEEDED:
-            self.get_logger().info("Field calibration succeeded!")
-            self.end_autonomous()
-
-    def get_auto_offload_result_callback(self, future: Future):
-        self.auto_offload_handle = future.result()
-
-        if self.auto_offload_handle.status == GoalStatus.STATUS_SUCCEEDED:
-            self.get_logger().info("Auto offload succeeded!")
-            self.end_autonomous()
+        result.add_done_callback(self.get_result_callback)
 
     def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
@@ -336,6 +329,7 @@ class MainControlNode(Node):
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the Apriltag calibration button is pressed
+        # TODO: This needs to be tested on the physical robot!
         if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Check if the field calibration process is not running
             if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
@@ -344,16 +338,17 @@ class MainControlNode(Node):
                     return
                 goal = CalibrateFieldCoordinates.Goal()
                 field_calibrated_request = self.act_calibrate_field_coordinates.send_goal_async(goal)
-                field_calibrated_request.add_done_callback(self.calibrate_goal_reponse_callback)
+                field_calibrated_request.add_done_callback(self.calibrate_goal_response_callback)
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]  # Exit Teleop mode
             # Terminate the field calibration process
             else:
-                self.get_logger().warn("Field Calibration Terminated\n")
+                self.get_logger().warn("Field Calibration Terminated")
                 self.field_calibrated_handle.cancel_goal_async()
                 self.end_autonomous()  # Return to Teleop mode
 
         # Check if the autonomous digging button is pressed
+        # TODO: This needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             if self.state == states["Teleop"]:
                 self.stop_all_subsystems()  # Stop all subsystems
@@ -366,6 +361,7 @@ class MainControlNode(Node):
                 self.autonomous_digging_process = None
 
         # Check if the autonomous offload button is pressed
+        # TODO: This needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
             # Check if the auto offload process is not running
             if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
@@ -377,12 +373,12 @@ class MainControlNode(Node):
                     skimmer_belt_power=self.skimmer_belt_power,
                 )
                 auto_offload_request = self.act_auto_offload.send_goal_async(goal)
-                auto_offload_request.add_done_callback(self.auto_offload_goal_reponse_callback)
+                auto_offload_request.add_done_callback(self.auto_offload_goal_response_callback)
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]  # Exit Teleop mode
             # Terminate the auto offload process
             else:
-                self.get_logger().warn("Auto Offload Terminated\n")
+                self.get_logger().warn("Auto Offload Terminated")
                 self.auto_offload_handle.cancel_goal_async()
                 self.end_autonomous()  # Return to Teleop mode
 
