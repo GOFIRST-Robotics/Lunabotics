@@ -5,7 +5,6 @@ from rclpy.node import Node
 
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import Drive, Stop, SetPosition, SetPower
-from std_msgs.msg import Bool
 
 import time
 
@@ -23,12 +22,8 @@ class AutoDigServer(Node):
         self.declare_parameter("skimmer_belt_power", -0.3)
 
         self.lift_dumping_position = self.get_parameter("lift_dumping_position").value * 360 / 42
-        self.lift_digging_start_position = (
-            self.get_parameter("lift_digging_start_position").value * 360 / 42
-        )
-        self.lift_digging_end_position = (
-            self.get_parameter("lift_digging_end_position").value * 360 / 42
-        )
+        self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value * 360 / 42
+        self.lift_digging_end_position = self.get_parameter("lift_digging_end_position").value * 360 / 42
         self.skimmer_belt_power = self.get_parameter("skimmer_belt_power").value
 
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
@@ -58,7 +53,7 @@ class AutoDigServer(Node):
             self.get_logger().error("Failed to Zero Lift")
             self.canceled = False
             return result
-        
+
         # Lower the skimmer onto the ground=
         if not self.cli_lift_setPosition.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Failed to get lift set positon service")
@@ -73,22 +68,16 @@ class AutoDigServer(Node):
             return result
 
         # Start the skimmer belt
-        self.skimmer_future = self.cli_skimmer_setPower.call_async(
-            SetPower.Request(power=self.skimmer_belt_power)
-        )
+        self.skimmer_future = self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
 
         # Drive forward while digging
         start_time = self.get_clock().now().nanoseconds
         elapsed = self.get_clock().now().nanoseconds - start_time
         # accelerate for 2 seconds
         while elapsed < 2e9 and not self.canceled:
-            self.lift_future = self.cli_lift_set_power.call_async(
-                SetPower.Request(power=-0.05e-9 * (elapsed))
-            )
+            self.lift_future = self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
             self.drivetrain_future = self.cli_drivetrain_drive.call_async(
-                Drive.Request(
-                    forward_power=0.0, horizontal_power=0.25e-9 * (elapsed), turning_power=0.0
-                )
+                Drive.Request(forward_power=0.0, horizontal_power=0.25e-9 * (elapsed), turning_power=0.0)
             )
             self.get_logger().info("Accelerating lift and drive train")
             elapsed = self.get_clock().now().nanoseconds - start_time

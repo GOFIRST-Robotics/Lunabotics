@@ -63,18 +63,12 @@ class MainControlNode(Node):
         super().__init__("rovr_control")
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter(
-            "autonomous_driving_power", 0.25
-        )  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("skimmer_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter(
-            "autonomous_field_type", "bottom"
-        )  # The type of field ("top", "bottom", "nasa")
-        self.declare_parameter(
-            "skimmer_lift_manual_power", 0.075
-        )  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("autonomous_field_type", "bottom")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("skimmer_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
         self.declare_parameter("lift_digging_end_position", -3150)  # Measured in encoder counts
@@ -97,29 +91,15 @@ class MainControlNode(Node):
         )  # Convert encoder counts to degrees
 
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info(
-            "autonomous_driving_power has been set to: " + str(self.autonomous_driving_power)
-        )
+        self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
-        self.get_logger().info(
-            "skimmer_belt_power has been set to: " + str(self.skimmer_belt_power)
-        )
-        self.get_logger().info(
-            "skimmer_lift_manual_power has been set to: " + str(self.skimmer_lift_manual_power)
-        )
-        self.get_logger().info(
-            "autonomous_field_type has been set to: " + str(self.autonomous_field_type)
-        )
-        self.get_logger().info(
-            "lift_dumping_position has been set to: " + str(self.lift_dumping_position)
-        )
-        self.get_logger().info(
-            "lift_digging_start_position has been set to: " + str(self.lift_digging_start_position)
-        )
-        self.get_logger().info(
-            "lift_digging_end_position has been set to: " + str(self.lift_digging_end_position)
-        )
+        self.get_logger().info("skimmer_belt_power has been set to: " + str(self.skimmer_belt_power))
+        self.get_logger().info("skimmer_lift_manual_power has been set to: " + str(self.skimmer_lift_manual_power))
+        self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
+        self.get_logger().info("lift_dumping_position has been set to: " + str(self.lift_dumping_position))
+        self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -144,12 +124,8 @@ class MainControlNode(Node):
             self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
             self.dig_location = create_pose_stamped(6.2, -3.2, 270)
         elif self.autonomous_field_type == "nasa":
-            self.autonomous_berm_location = create_pose_stamped(
-                1.3, -0.6, 90
-            )  # TODO: Test this location in simulation
-            self.dig_location = create_pose_stamped(
-                6.2, -1.2, 0
-            )  # TODO: Test this location in simulation
+            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)  # TODO: Test this location in simulation
+            self.dig_location = create_pose_stamped(6.2, -1.2, 0)  # TODO: Test this location in simulation
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -174,9 +150,7 @@ class MainControlNode(Node):
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
         )
-        self.act_auto_dig = ActionClient(
-            self, AutoDig, "auto_dig"
-        )
+        self.act_auto_dig = ActionClient(self, AutoDig, "auto_dig")
         self.act_auto_offload = ActionClient(self, AutoOffload, "auto_offload")
 
         self.field_calibrated_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
@@ -230,7 +204,7 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Stop.Request())  # Stop the skimmer lift
 
-    def end_autonomous(self,msg=None) -> None:
+    def end_autonomous(self, msg=None) -> None:
         """This method returns to teleop control."""
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
@@ -294,25 +268,17 @@ class MainControlNode(Node):
             start_time = self.get_clock().now().nanoseconds
             while self.get_clock().now().nanoseconds - start_time < 10e9:
                 self.get_logger().info("Auto Driving")
-                await asyncio.sleep(
-                    0.1
-                )  # Allows other async tasks to continue running (this is non-blocking)
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             await self.cli_drivetrain_stop.call_async(Stop.Request())
             # Raise up the skimmer in preparation for dumping
-            await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=self.lift_dumping_position)
-            )
+            await self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))
             self.skimmer_goal_reached = False
             # Wait for the lift goal to be reached
             while not self.skimmer_goal_reached:
                 self.get_logger().info("Moving skimmer to the goal")
-                await asyncio.sleep(
-                    0.1
-                )  # Allows other async tasks to continue running (this is non-blocking)
+                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
             self.get_logger().info("Commence Offloading!")
-            await self.cli_skimmer_setPower.call_async(
-                SetPower.Request(power=self.skimmer_belt_power)
-            )
+            await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
             await asyncio.sleep(8 / abs(self.skimmer_belt_power))  # How long to offload for
             await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
             self.get_logger().info("Autonomous Offload Procedure Complete!\n")
@@ -463,9 +429,7 @@ async def spin(executor: MultiThreadedExecutor) -> None:
     """This function is called in the main function to run the executor."""
     while rclpy.ok():  # While ROS is still running
         executor.spin_once()  # Spin the executor once
-        await asyncio.sleep(
-            0
-        )  # Setting the delay to 0 provides an optimized path to allow other tasks to run.
+        await asyncio.sleep(0)  # Setting the delay to 0 provides an optimized path to allow other tasks to run.
 
 
 def main(args=None) -> None:
