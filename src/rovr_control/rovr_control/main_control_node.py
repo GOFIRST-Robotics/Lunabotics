@@ -20,7 +20,6 @@ from nav2_simple_commander.robot_navigator import (
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from sensor_msgs.msg import Joy
-from std_msgs.msg import Bool
 from action_msgs.msg import GoalStatus
 
 # Import custom ROS 2 interfaces
@@ -136,9 +135,6 @@ class MainControlNode(Node):
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
-        self.skimmer_goal_subscription = self.create_subscription(
-            Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
-        )
 
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
