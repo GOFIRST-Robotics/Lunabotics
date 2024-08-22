@@ -10,7 +10,6 @@ from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
 from rclpy.client import Future
 from rclpy.node import Node
-from rclpy.executors import MultiThreadedExecutor
 
 # Provides a “navigation as a library” capability
 from nav2_simple_commander.robot_navigator import (
@@ -27,7 +26,6 @@ from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, SetPower, SetPosit
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload
 
 # Import Python Modules
-import asyncio  # Allows the use of asynchronous methods!
 from scipy.spatial.transform import Rotation as R
 
 # Import our logitech gamepad button mappings
@@ -287,6 +285,7 @@ class MainControlNode(Node):
                 if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Field calibration action not available")
                     return
+                self.get_logger().info("Starting Apriltag Field Calibration!")
                 goal = CalibrateFieldCoordinates.Goal()
                 field_calibrated_request = self.act_calibrate_field_coordinates.send_goal_async(goal)
                 field_calibrated_request.add_done_callback(self.calibrate_goal_response_callback)
@@ -306,6 +305,7 @@ class MainControlNode(Node):
                 if not self.act_auto_dig.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Auto dig action not available")
                     return
+                self.get_logger().info("Starting Autonomous Digging Procedure!")
                 goal = AutoDig.Goal(
                     lift_dumping_position=self.lift_dumping_position,
                     lift_digging_start_position=self.lift_digging_start_position,
@@ -329,6 +329,7 @@ class MainControlNode(Node):
                 if not self.act_auto_offload.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Auto offload action not available")
                     return
+                self.get_logger().info("Starting Autonomous Offload Procedure!")
                 goal = AutoOffload.Goal(
                     lift_dumping_position=self.lift_dumping_position,
                     skimmer_belt_power=self.skimmer_belt_power,
@@ -348,23 +349,12 @@ class MainControlNode(Node):
             buttons[index] = msg.buttons[index]
 
 
-async def spin(executor: MultiThreadedExecutor) -> None:
-    """This function is called in the main function to run the executor."""
-    while rclpy.ok():  # While ROS is still running
-        executor.spin_once()  # Spin the executor once
-        await asyncio.sleep(0)  # Setting the delay to 0 provides an optimized path to allow other tasks to run.
-
-
 def main(args=None) -> None:
     rclpy.init(args=args)
 
     main_node = MainControlNode()  # Instantiate the node
-    executor = MultiThreadedExecutor()  # Create an executor
-    executor.add_node(main_node)  # Add the node to the executor
     main_node.get_logger().info("Hello from the rovr_control package!")
-
-    loop = asyncio.get_event_loop()  # Get the event loop
-    loop.run_until_complete(spin(executor))  # Run the spin function in the event loop
+    rclpy.spin(main_node)  # Spin the node
 
     # Clean up and shutdown
     main_node.nav2.lifecycleShutdown()
