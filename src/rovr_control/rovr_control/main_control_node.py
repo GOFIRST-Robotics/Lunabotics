@@ -160,9 +160,9 @@ class MainControlNode(Node):
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
         # ----- !! BLOCKING WHILE LOOP !! ----- #
-        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        # self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
+        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
+        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
 
     # NOTE: This method is meant to find a safe digging location on the field, but it has not been tested enough yet.
     # def optimal_dig_location(self) -> list:
@@ -204,7 +204,7 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Stop.Request())  # Stop the skimmer lift
 
-    def end_autonomous(self, msg=None) -> None:
+    def end_autonomous(self) -> None:
         """This method returns to teleop control."""
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
