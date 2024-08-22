@@ -30,6 +30,7 @@ setup(
                 "read_serial = rovr_control.read_serial:main",
                 "calibrate_field_coordinate_server = rovr_control.calibrate_field_coordinate_server:main",
                 "auto_dig_server = rovr_control.auto_dig_server:main",
+                "auto_offload_server = rovr_control.auto_offload_server:main",
             }
         ],
     },
