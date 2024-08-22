@@ -25,7 +25,7 @@ from action_msgs.msg import GoalStatus
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, SetPower, SetPosition
-from rovr_interfaces.action import CalibrateFieldCoordinates, AutoOffload
+from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload
 
 # Import Python Modules
 import asyncio  # Allows the use of asynchronous methods!
@@ -103,13 +103,6 @@ class MainControlNode(Node):
 
         # Define some initial states here
         self.state = states["Teleop"]
-        self.camera_view_toggled = False
-        self.front_camera = None
-        self.back_camera = None
-        self.autonomous_digging_process = None
-        self.autonomous_offload_process = None
-        self.autonomous_cycle_process = None
-        self.skimmer_goal_reached = True
 
         self.DANGER_THRESHOLD = 1
         self.REAL_DANGER_THRESHOLD = 100
@@ -150,10 +143,13 @@ class MainControlNode(Node):
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
         )
+        self.act_auto_dig = ActionClient(self, AutoDig, "auto_dig")
         self.act_auto_offload = ActionClient(self, AutoOffload, "auto_offload")
 
         self.field_calibrated_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
+        self.auto_dig_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
+
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
         # ----- !! BLOCKING WHILE LOOP !! ----- #
@@ -206,58 +202,6 @@ class MainControlNode(Node):
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
 
-    # TODO: This autonomous routine has not been tested yet!
-    async def auto_dig_procedure(self) -> None:
-        """This method lays out the procedure for autonomously digging!"""
-        self.get_logger().info("Starting Autonomous Digging Procedure!")
-        try:  # Wrap the autonomous procedure in a try-except
-            await self.cli_lift_zero.call_async(Stop.Request())
-            await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=self.lift_digging_start_position)
-            )  # Lower the skimmer onto the ground
-            self.skimmer_goal_reached = False
-            # Wait for the goal height to be reached
-            while not self.skimmer_goal_reached:
-                self.get_logger().info("Moving skimmer to starting dig position")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            await self.cli_skimmer_setPower.call_async(SetPower.Request(power=self.skimmer_belt_power))
-            # Drive forward while digging
-            start_time = self.get_clock().now().nanoseconds
-            elapsed = self.get_clock().now().nanoseconds - start_time
-            # accelerate for 2 seconds
-            while elapsed < 2e9:
-                await self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
-                await self.cli_drivetrain_drive.call_async(
-                    Drive.Request(forward_power=0.0, horizontal_power=0.25e-9 * (elapsed), turning_power=0.0)
-                )
-                self.get_logger().info("Accelerating lift and drive train")
-                elapsed = self.get_clock().now().nanoseconds - start_time
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            # keep digging at full speed for the remaining 10 seconds
-            while self.get_clock().now().nanoseconds - start_time < 12e9:
-                self.get_logger().info("Auto Driving")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            await self.cli_drivetrain_stop.call_async(Stop.Request())
-            await self.cli_skimmer_stop.call_async(Stop.Request())
-            await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=self.lift_dumping_position)
-            )  # Raise the skimmer back up
-            self.skimmer_goal_reached = False
-            # Wait for the lift goal to be reached
-            while not self.skimmer_goal_reached:
-                self.get_logger().info("Moving skimmer to dumping position")
-                await asyncio.sleep(0.1)  # Allows other async tasks to continue running (this is non-blocking)
-            self.get_logger().info("Autonomous Digging Procedure Complete!")
-            self.end_autonomous()  # Return to Teleop mode
-        except asyncio.CancelledError:  # Put termination code here
-            self.get_logger().warn("Autonomous Digging Procedure Terminated")
-            self.end_autonomous()  # Return to Teleop mode
-
-    # TODO: This should not be needed anymore after ticket #257 is implemented!
-    def skimmer_goal_callback(self, msg: Bool) -> None:
-        """Update the member variable accordingly."""
-        self.skimmer_goal_reached = msg.data
-
     def get_result_callback(self, future: Future):
         goal_handle: ClientGoalHandle = future.result()
         if goal_handle.status == GoalStatus.STATUS_SUCCEEDED:
@@ -280,6 +224,14 @@ class MainControlNode(Node):
         result: Future = self.auto_offload_handle.get_result_async()
         result.add_done_callback(self.get_result_callback)
 
+    def auto_dig_goal_response_callback(self, future: Future):
+        self.auto_dig_handle: ClientGoalHandle = future.result()
+        if not self.auto_dig_handle.accepted:
+            self.get_logger().info("Auto dig Goal rejected")
+            return
+        result: Future = self.auto_dig_handle.get_result_async()
+        result.add_done_callback(self.get_result_callback)
+
     def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
 
@@ -293,7 +245,10 @@ class MainControlNode(Node):
             )  # Horizontal power
             turn_power = msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
             self.drive_power_publisher.publish(
-                Twist(linear=Vector3(x=forward_power, y=horizontal_power), angular=Vector3(z=turn_power))
+                Twist(
+                    linear=Vector3(x=forward_power, y=horizontal_power),
+                    angular=Vector3(z=turn_power),
+                )
             )
 
             # Check if the skimmer button is pressed #
@@ -350,15 +305,25 @@ class MainControlNode(Node):
         # Check if the autonomous digging button is pressed
         # TODO: This needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
-            if self.state == states["Teleop"]:
+            # Check if the auto digging process is not running
+            if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
+                if not self.act_auto_dig.wait_for_server(timeout_sec=1.0):
+                    self.get_logger().error("Auto dig action not available")
+                    return
+                goal = AutoDig.Goal(
+                    lift_dumping_position=self.lift_dumping_position,
+                    lift_digging_start_position=self.lift_digging_start_position,
+                    skimmer_belt_power=self.skimmer_belt_power,
+                )
+                auto_dig_request = self.act_auto_dig.send_goal_async(goal)
+                auto_dig_request.add_done_callback(self.auto_dig_goal_response_callback)
                 self.stop_all_subsystems()  # Stop all subsystems
                 self.state = states["Autonomous"]  # Exit Teleop mode
-                self.autonomous_digging_process = asyncio.ensure_future(
-                    self.auto_dig_procedure()
-                )  # Start the auto dig process
-            elif self.state == states["Autonomous"]:
-                self.autonomous_digging_process.cancel()  # Terminate the auto dig process
-                self.autonomous_digging_process = None
+            # Terminate the auto dig process
+            else:
+                self.get_logger().warn("Auto Dig Terminated")
+                self.auto_dig_handle.cancel_goal_async()
+                self.end_autonomous()  # Return to Teleop mode
 
         # Check if the autonomous offload button is pressed
         # TODO: This needs to be tested extensively on the physical robot!
