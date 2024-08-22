@@ -236,6 +236,14 @@ class MainControlNode(Node):
         result: Future = self.auto_offload_handle.get_result_async()
         result.add_done_callback(self.get_result_callback)
 
+    def auto_dig_goal_response_callback(self, future: Future):
+        self.auto_dig_handle: ClientGoalHandle = future.result()
+        if not self.auto_dig_handle.accepted:
+            self.get_logger().info("Auto dig Goal rejected")
+            return
+        result: Future = self.auto_dig_handle.get_result_async()
+        result.add_done_callback(self.get_result_callback)
+
     def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
 
@@ -309,15 +317,25 @@ class MainControlNode(Node):
         # Check if the autonomous digging button is pressed
         # TODO: This needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
-            if self.state == states["Teleop"]:
-                self.get_logger().info("Starting Auto Dig\n")
+            # Check if the auto digging process is not running
+            if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
+                if not self.act_auto_dig.wait_for_server(timeout_sec=1.0):
+                    self.get_logger().error("Auto dig action not available")
+                    return
+                goal = AutoDig.Goal(
+                    lift_dumping_position=self.lift_dumping_position,
+                    lift_digging_start_position=self.lift_digging_start_position,
+                    skimmer_belt_power=self.skimmer_belt_power,
+                )
+                auto_dig_request = self.act_auto_dig.send_goal_async(goal)
+                auto_dig_request.add_done_callback(self.auto_dig_goal_response_callback)
                 self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]
-                goal = AutoDig.Goal()
-                self.auto_dig_future = self.auto_dig_client.send_goal_async(goal=goal)
-                self.auto_dig_future.add_done_callback(self.end_autonomous)
-            elif self.state == states["Autonomous"]:
-                self.auto_dig_future.cancel()
+                self.state = states["Autonomous"]  # Exit Teleop mode
+            # Terminate the auto dig process
+            else:
+                self.get_logger().warn("Auto Dig Terminated")
+                self.auto_dig_handle.cancel_goal_async()
+                self.end_autonomous()  # Return to Teleop mode
 
         # Check if the autonomous offload button is pressed
         # TODO: This needs to be tested extensively on the physical robot!

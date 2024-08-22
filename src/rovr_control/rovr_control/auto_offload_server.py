@@ -18,6 +18,8 @@ class AutoOffloadServer(Node):
             self, AutoOffload, "auto_offload", self.execute_callback, cancel_callback=self.cancel_callback
         )
         self.client_node = rclpy.create_node("auto_offload_action_server_client")
+
+        # TODO: This should not be needed anymore after ticket #257 is implemented!
         self.skimmer_goal_subscription = self.client_node.create_subscription(
             Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
         )
@@ -35,7 +37,7 @@ class AutoOffloadServer(Node):
 
     def execute_callback(self, goal_handle: AutoOffload.Goal):
         """This method lays out the procedure for autonomously offloading!"""
-        self.get_logger().info("Executing goal...")
+        self.get_logger().info("Starting Autonomous Offload Procedure!")
         result = AutoOffload.Result()
 
         # Make sure the services are available
@@ -84,10 +86,10 @@ class AutoOffloadServer(Node):
         # Raise up the skimmer in preparation for dumping
         self.get_logger().info("Raising the Lift!")
         self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
-        self.skimmer_goal_reached = False
         # Wait for the lift goal to be reached
+        self.skimmer_goal_reached = False
         while not self.skimmer_goal_reached:
-            self.get_logger().info("Moving skimmer to the goal")
+            self.get_logger().info("Moving the lift to the goal")
             rclpy.spin_once(self.client_node, timeout_sec=0)  # Allows for task to be canceled
             if self.canceled:
                 self.get_logger().warn("Raising the Lift was Canceled!\n")
