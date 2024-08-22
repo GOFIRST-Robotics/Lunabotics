@@ -103,13 +103,6 @@ class MainControlNode(Node):
 
         # Define some initial states here
         self.state = states["Teleop"]
-        self.camera_view_toggled = False
-        self.front_camera = None
-        self.back_camera = None
-        self.autonomous_digging_process = None
-        self.autonomous_offload_process = None
-        self.autonomous_cycle_process = None
-        self.skimmer_goal_reached = True
 
         self.DANGER_THRESHOLD = 1
         self.REAL_DANGER_THRESHOLD = 100
@@ -208,11 +201,6 @@ class MainControlNode(Node):
         """This method returns to teleop control."""
         self.stop_all_subsystems()  # Stop all subsystems
         self.state = states["Teleop"]  # Return to Teleop mode
-
-    # TODO: This should not be needed anymore after ticket #257 is implemented!
-    def skimmer_goal_callback(self, msg: Bool) -> None:
-        """Update the member variable accordingly."""
-        self.skimmer_goal_reached = msg.data
 
     def get_result_callback(self, future: Future):
         goal_handle: ClientGoalHandle = future.result()
