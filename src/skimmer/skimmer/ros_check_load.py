@@ -9,8 +9,8 @@ import math
 # NOTE: We decided not to use this node for 2024 as we didn't have the time to test it.
 
 # TODO: NEED TO UPDATE SKIMMER SIZE, DISTANCE, DISTANCE THRESHOLD
-# TODO: Should probably update pollrate/ consecutive cycles
-# TODO: make sure hte topic names are all correct
+# TODO: Should probably update pollrate / consecutive cycles
+# TODO: Make sure the topic names are all correct
 
 SKIMMERSIZEY = 0.7112  # width of the skimmer in meters
 SKIMMERSIZEX = 0.623  # length of the skimmer in meters
