@@ -5,7 +5,7 @@
   <version>0.0.1</version>
   <description>Gstreamer streaming package for umn robotics</description>
   <maintainer email="jmblixt3@gmail.com">blixt</maintainer>
-  <license>MIT</license>
+  <license>MIT License</license>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
   <exec_depend>rovr_interfaces</exec_depend>

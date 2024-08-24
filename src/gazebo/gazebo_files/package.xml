@@ -2,12 +2,10 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>gazebo_files</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>Gazebo Files for gazebo simulation of robot</description>
   <maintainer email="mars2140@umn.edu">Peter Marshall</maintainer>
   <license>Apache 2.0</license>
-  <author>Michael Carroll</author>
-  <author>Dharini Dutia</author>
   <author>Peter Marshall</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
