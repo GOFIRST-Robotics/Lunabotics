@@ -63,9 +63,6 @@
 				},
 				"ruff.lineLength": 99,
 				"ruff.lint.enable": true,
-				"ruff.format.args": [
-					"line-length=99"
-				],
 				"ruff.lint.select": [
 					"A",
 					"C",
