@@ -107,16 +107,17 @@ class MainControlNode(Node):
 
         # Define important map locations
         if self.autonomous_field_type == "top":
-            self.autonomous_berm_location = create_pose_stamped(
-                7.25, -3.2, 90
-            )  # TODO: Test this location in simulation
+            # TODO: Test the below location in simulation:
+            self.autonomous_berm_location = create_pose_stamped(7.25, -3.2, 90)
             self.dig_location = create_pose_stamped(6.2, -1.2, 0)
         elif self.autonomous_field_type == "bottom":
             self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
             self.dig_location = create_pose_stamped(6.2, -3.2, 270)
         elif self.autonomous_field_type == "nasa":
-            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)  # TODO: Test this location in simulation
-            self.dig_location = create_pose_stamped(6.2, -1.2, 0)  # TODO: Test this location in simulation
+            # TODO: Test the below location in simulation:
+            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)
+            # TODO: Test the below location in simulation:
+            self.dig_location = create_pose_stamped(6.2, -1.2, 0)
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -133,7 +134,7 @@ class MainControlNode(Node):
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
-        # In order to have action's be cancellable they need to be called in a ReentrantCallbackGroup
+        # In order to have actions be cancellable they need to be called in a ReentrantCallbackGroup
         self.joy_subscription = self.create_subscription(
             Joy,
             "joy",
@@ -262,7 +263,7 @@ class MainControlNode(Node):
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the Apriltag calibration button is pressed
-        # TODO: This needs to be tested on the physical robot!
+        # TODO: This autonomous action needs to be tested on the physical robot!
         if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Check if the field calibration process is not running
             if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
@@ -272,9 +273,7 @@ class MainControlNode(Node):
                 self.stop_all_subsystems()
                 self.get_logger().info("Starting Apriltag Field Calibration!")
                 self.field_calibrated_handle: ClientGoalHandle = (
-                    await self.act_calibrate_field_coordinates.send_goal_async(
-                        CalibrateFieldCoordinates.Goal()
-                    )
+                    await self.act_calibrate_field_coordinates.send_goal_async(CalibrateFieldCoordinates.Goal())
                 )
                 if not self.field_calibrated_handle.accepted:
                     self.get_logger().info("Field calibration Goal rejected")
@@ -288,7 +287,7 @@ class MainControlNode(Node):
                 self.end_autonomous()
 
         # Check if the autonomous digging button is pressed
-        # TODO: This needs to be tested extensively on the physical robot!
+        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             # Check if the auto digging process is not running
             if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
@@ -312,7 +311,7 @@ class MainControlNode(Node):
                 self.end_autonomous()
 
         # Check if the autonomous offload button is pressed
-        # TODO: This needs to be tested extensively on the physical robot!
+        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
             # Check if the auto offload process is not running
             if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
@@ -328,6 +327,7 @@ class MainControlNode(Node):
                 self.auto_offload_handle: ClientGoalHandle = await self.act_auto_offload.send_goal_async(goal)
                 self.auto_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
+            # Terminate the auto offload process
             else:
                 self.get_logger().warn("Auto Offload Terminated")
                 await self.auto_offload_handle.cancel_goal_async()
