@@ -8,6 +8,7 @@
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.client import Future
 from rclpy.node import Node
 
@@ -106,16 +107,17 @@ class MainControlNode(Node):
 
         # Define important map locations
         if self.autonomous_field_type == "top":
-            self.autonomous_berm_location = create_pose_stamped(
-                7.25, -3.2, 90
-            )  # TODO: Test this location in simulation
+            # TODO: Test the below location in simulation:
+            self.autonomous_berm_location = create_pose_stamped(7.25, -3.2, 90)
             self.dig_location = create_pose_stamped(6.2, -1.2, 0)
         elif self.autonomous_field_type == "bottom":
             self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
             self.dig_location = create_pose_stamped(6.2, -3.2, 270)
         elif self.autonomous_field_type == "nasa":
-            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)  # TODO: Test this location in simulation
-            self.dig_location = create_pose_stamped(6.2, -1.2, 0)  # TODO: Test this location in simulation
+            # TODO: Test the below location in simulation:
+            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)
+            # TODO: Test the below location in simulation:
+            self.dig_location = create_pose_stamped(6.2, -1.2, 0)
 
         # Define service clients here
         self.cli_skimmer_toggle = self.create_client(SetPower, "skimmer/toggle")
@@ -132,7 +134,14 @@ class MainControlNode(Node):
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
-        self.joy_subscription = self.create_subscription(Joy, "joy", self.joystick_callback, 10)
+        # In order to have actions be cancellable they need to be called in a ReentrantCallbackGroup
+        self.joy_subscription = self.create_subscription(
+            Joy,
+            "joy",
+            self.joystick_callback,
+            10,
+            callback_group=ReentrantCallbackGroup(),
+        )
 
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
@@ -202,31 +211,7 @@ class MainControlNode(Node):
             self.get_logger().info("Autonomous Goal succeeded!")
             self.end_autonomous()
 
-    def calibrate_goal_response_callback(self, future: Future):
-        self.field_calibrated_handle: ClientGoalHandle = future.result()
-        if not self.field_calibrated_handle.accepted:
-            self.get_logger().info("Field calibration Goal rejected")
-            return
-        field_calibrated: Future = self.field_calibrated_handle.get_result_async()
-        field_calibrated.add_done_callback(self.get_result_callback)
-
-    def auto_offload_goal_response_callback(self, future: Future):
-        self.auto_offload_handle: ClientGoalHandle = future.result()
-        if not self.auto_offload_handle.accepted:
-            self.get_logger().info("Auto offload Goal rejected")
-            return
-        result: Future = self.auto_offload_handle.get_result_async()
-        result.add_done_callback(self.get_result_callback)
-
-    def auto_dig_goal_response_callback(self, future: Future):
-        self.auto_dig_handle: ClientGoalHandle = future.result()
-        if not self.auto_dig_handle.accepted:
-            self.get_logger().info("Auto dig Goal rejected")
-            return
-        result: Future = self.auto_dig_handle.get_result_async()
-        result.add_done_callback(self.get_result_callback)
-
-    def joystick_callback(self, msg: Joy) -> None:
+    async def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
 
         # PUT TELEOP CONTROLS BELOW #
@@ -278,71 +263,75 @@ class MainControlNode(Node):
         # THE CONTROLS BELOW ALWAYS WORK #
 
         # Check if the Apriltag calibration button is pressed
-        # TODO: This needs to be tested on the physical robot!
+        # TODO: This autonomous action needs to be tested on the physical robot!
         if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Check if the field calibration process is not running
             if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
                 if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Field calibration action not available")
                     return
+                self.stop_all_subsystems()
                 self.get_logger().info("Starting Apriltag Field Calibration!")
-                goal = CalibrateFieldCoordinates.Goal()
-                field_calibrated_request = self.act_calibrate_field_coordinates.send_goal_async(goal)
-                field_calibrated_request.add_done_callback(self.calibrate_goal_response_callback)
-                self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]  # Exit Teleop mode
+                self.field_calibrated_handle: ClientGoalHandle = (
+                    await self.act_calibrate_field_coordinates.send_goal_async(CalibrateFieldCoordinates.Goal())
+                )
+                if not self.field_calibrated_handle.accepted:
+                    self.get_logger().info("Field calibration Goal rejected")
+                    return
+                self.field_calibrated_handle.get_result_async().add_done_callback(self.get_result_callback)
+                self.state = states["Autonomous"]
             # Terminate the field calibration process
             else:
                 self.get_logger().warn("Field Calibration Terminated")
-                self.field_calibrated_handle.cancel_goal_async()
-                self.end_autonomous()  # Return to Teleop mode
+                await self.field_calibrated_handle.cancel_goal_async()
+                self.end_autonomous()
 
         # Check if the autonomous digging button is pressed
-        # TODO: This needs to be tested extensively on the physical robot!
+        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             # Check if the auto digging process is not running
             if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
                 if not self.act_auto_dig.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Auto dig action not available")
                     return
+                self.stop_all_subsystems()
                 self.get_logger().info("Starting Autonomous Digging Procedure!")
                 goal = AutoDig.Goal(
                     lift_dumping_position=self.lift_dumping_position,
                     lift_digging_start_position=self.lift_digging_start_position,
                     skimmer_belt_power=self.skimmer_belt_power,
                 )
-                auto_dig_request = self.act_auto_dig.send_goal_async(goal)
-                auto_dig_request.add_done_callback(self.auto_dig_goal_response_callback)
-                self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]  # Exit Teleop mode
+                self.auto_dig_handle: ClientGoalHandle = await self.act_auto_dig.send_goal_async(goal)
+                self.auto_dig_handle.get_result_async().add_done_callback(self.get_result_callback)
+                self.state = states["Autonomous"]
             # Terminate the auto dig process
             else:
                 self.get_logger().warn("Auto Dig Terminated")
-                self.auto_dig_handle.cancel_goal_async()
-                self.end_autonomous()  # Return to Teleop mode
+                await self.auto_dig_handle.cancel_goal_async()
+                self.end_autonomous()
 
         # Check if the autonomous offload button is pressed
-        # TODO: This needs to be tested extensively on the physical robot!
+        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
             # Check if the auto offload process is not running
             if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
                 if not self.act_auto_offload.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Auto offload action not available")
                     return
+                self.stop_all_subsystems()
                 self.get_logger().info("Starting Autonomous Offload Procedure!")
                 goal = AutoOffload.Goal(
                     lift_dumping_position=self.lift_dumping_position,
                     skimmer_belt_power=self.skimmer_belt_power,
                 )
-                auto_offload_request = self.act_auto_offload.send_goal_async(goal)
-                auto_offload_request.add_done_callback(self.auto_offload_goal_response_callback)
-                self.stop_all_subsystems()  # Stop all subsystems
-                self.state = states["Autonomous"]  # Exit Teleop mode
+                self.auto_offload_handle: ClientGoalHandle = await self.act_auto_offload.send_goal_async(goal)
+                self.auto_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
+                self.state = states["Autonomous"]
             # Terminate the auto offload process
             else:
                 self.get_logger().warn("Auto Offload Terminated")
-                self.auto_offload_handle.cancel_goal_async()
-                self.end_autonomous()  # Return to Teleop mode
+                await self.auto_offload_handle.cancel_goal_async()
+                self.end_autonomous()
 
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
