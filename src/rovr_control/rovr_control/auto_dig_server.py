@@ -1,43 +1,39 @@
 import rclpy
 from rclpy.action import ActionServer
-from rclpy.node import Node
 
-from rclpy.action.server import CancelResponse
 from std_msgs.msg import Bool
 
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import Drive, Stop, SetPosition, SetPower
+from rclpy.action.server import ServerGoalHandle, CancelResponse
 
-import time
+from rovr_control.node_util import AsyncNode
 
 
-class AutoDigServer(Node):
+class AutoDigServer(AsyncNode):
     def __init__(self):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
         )
-        self.client_node = rclpy.create_node("auto_dig_action_server_client")
 
         # TODO: This should not be needed anymore after ticket #257 is implemented!
-        self.skimmer_goal_subscription = self.client_node.create_subscription(
+        self.skimmer_goal_subscription = self.create_subscription(
             Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
         )
 
-        self.cli_drivetrain_drive = self.client_node.create_client(Drive, "drivetrain/drive")
-        self.cli_drivetrain_stop = self.client_node.create_client(Stop, "drivetrain/stop")
+        self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
+        self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
 
-        self.cli_lift_zero = self.client_node.create_client(Stop, "lift/zero")
-        self.cli_lift_setPosition = self.client_node.create_client(SetPosition, "lift/setPosition")
-        self.cli_lift_set_power = self.client_node.create_client(SetPower, "lift/setPower")
-        self.cli_lift_stop = self.client_node.create_client(Stop, "lift/stop")
+        self.cli_lift_zero = self.create_client(Stop, "lift/zero")
+        self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
+        self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
+        self.cli_lift_stop = self.create_client(Stop, "lift/stop")
 
-        self.cli_skimmer_stop = self.client_node.create_client(Stop, "skimmer/stop")
-        self.cli_skimmer_setPower = self.client_node.create_client(SetPower, "skimmer/setPower")
+        self.cli_skimmer_stop = self.create_client(Stop, "skimmer/stop")
+        self.cli_skimmer_setPower = self.create_client(SetPower, "skimmer/setPower")
 
-        self.canceled = False
-
-    def execute_callback(self, goal_handle: AutoDig.Goal):
+    async def execute_callback(self, goal_handle: ServerGoalHandle):
         self.get_logger().info("Starting Autonomous Digging Procedure!")
         result = AutoDig.Result()
 
@@ -78,32 +74,14 @@ class AutoDigServer(Node):
         # Zero the skimmer
         self.cli_lift_zero.call_async(Stop.Request())
         # Wait for the lift goal to be reached
-        self.skimmer_goal_reached = False
-        while not self.skimmer_goal_reached:
-            self.get_logger().info("Moving the lift to the goal")
-            rclpy.spin_once(self.client_node, timeout_sec=0)  # Allows for task to be canceled
-            if self.canceled:
-                self.get_logger().warn("Zeroing the Lift was Canceled!\n")
-                self.canceled = False
-                goal_handle.canceled()
-                return result
-            time.sleep(0.1)
+        await self.skimmer_sleep()
 
         # Lower the skimmer onto the ground
         self.cli_lift_setPosition.call_async(
             SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
         )
         # Wait for the lift goal to be reached
-        self.skimmer_goal_reached = False
-        while not self.skimmer_goal_reached:
-            self.get_logger().info("Moving the lift to the goal")
-            rclpy.spin_once(self.client_node, timeout_sec=0)  # Allows for task to be canceled
-            if self.canceled:
-                self.get_logger().warn("Lowering the Lift was Canceled!\n")
-                self.canceled = False
-                goal_handle.canceled()
-                return result
-            time.sleep(0.1)
+        await self.skimmer_sleep()
 
         # Start the skimmer belt
         self.cli_skimmer_setPower.call_async(SetPower.Request(power=goal_handle.request.skimmer_belt_power))
@@ -112,7 +90,7 @@ class AutoDigServer(Node):
         start_time = self.get_clock().now().nanoseconds
         elapsed = self.get_clock().now().nanoseconds - start_time
         # accelerate for 2 seconds
-        # TODO make the ramp up a service so this while loop isn't needed
+        # TODO: completing ticket #298 can replace this while loop with a motor ramp up service
         while elapsed < 2e9:
             self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
             self.cli_drivetrain_drive.call_async(
@@ -120,56 +98,33 @@ class AutoDigServer(Node):
             )
             self.get_logger().info("Accelerating lift and drive train")
             elapsed = self.get_clock().now().nanoseconds - start_time
-            rclpy.spin_once(self.client_node, timeout_sec=0)  # Allows for task to be canceled
-            if self.canceled:
-                self.get_logger().warn("Digging Acceleration Canceled!\n")
-                self.canceled = False
-                goal_handle.canceled()
-                return result
-            time.sleep(0.1)
+            await self.async_sleep(0.1)  # Allows for task to be canceled
 
         self.get_logger().info("Auto Driving")
-        # keep digging at full speed for the remaining 10 seconds
-        while self.get_clock().now().nanoseconds - start_time < 12e9:
-            rclpy.spin_once(self.client_node, timeout_sec=0)  # Allows for task to be canceled
-            if self.canceled:
-                self.get_logger().warn("Digging Canceled!\n")
-                self.canceled = False
-                goal_handle.canceled()
-                return result
-            time.sleep(0.1)
+        await self.async_sleep(12)  # Allows for task to be canceled
+        self.get_logger().info("Done Driving")
 
         # Stop driving and skimming
-        self.cli_drivetrain_stop.call_async(Stop.Request())
-        self.cli_skimmer_stop.call_async(Stop.Request())
+        await self.cli_drivetrain_stop.call_async(Stop.Request())
+        await self.cli_skimmer_stop.call_async(Stop.Request())
 
         self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
         # Wait for the lift goal to be reached
-        self.skimmer_goal_reached = False
-        while not self.skimmer_goal_reached:
-            self.get_logger().info("Moving the lift to the goal")
-            rclpy.spin_once(self.client_node, timeout_sec=0)  # Allows for task to be canceled
-            if self.canceled:
-                self.get_logger().warn("Raising the Lift was Canceled!\n")
-                self.canceled = False
-                goal_handle.canceled()
-                return result
-            time.sleep(0.1)
+        await self.skimmer_sleep()
 
-        self.get_logger().info("Autonomous Digging Procedure Complete!\n")
+        self.get_logger().info("Autonomous Digging Procedure Complete!")
         goal_handle.succeed()
         return result
 
-    def cancel_callback(self, cancel_request):
+    def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
-        self.get_logger().info("Goal was canceled")
-        self.canceled = True
+        self.get_logger().info("Goal is cancelling")
+        if not self.skimmer_goal_reached.done():
+            self.cli_drivetrain_stop.call_async(Stop.Request())
+        if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
+            self.cli_drivetrain_stop.call_async(Stop.Request())
+            self.cli_skimmer_stop.call_async(Stop.Request())
         return CancelResponse.ACCEPT
-
-    # TODO: This should not be needed anymore after ticket #257 is implemented!
-    def skimmer_goal_callback(self, msg: Bool) -> None:
-        """Update the member variable accordingly."""
-        self.skimmer_goal_reached = msg.data
 
 
 def main(args=None) -> None:
