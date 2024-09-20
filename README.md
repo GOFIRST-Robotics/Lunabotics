@@ -284,7 +284,7 @@ ros2 run gstreamer server_node
 Follow [these](https://msadowski.github.io/linux-static-port/) instructions.
 
 ## Install Nvidia Drivers / CUDA Toolkit on Ubuntu 22.04
-Follow [these](https://developer.nvidia.com/cuda-12-6-0-download-archive?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_local) instructions
+Follow [these](https://developer.nvidia.com/cuda-12-6-0-download-archive?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_local) instructions.
 
 ## Jetson External HDD Commands
 
