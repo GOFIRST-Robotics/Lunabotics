@@ -46,7 +46,7 @@ graph LR
 <details>
 <summary>How to Run Inside the Dev Container On Windows/Mac</summary>
 <br>
-Open vscode and install the "Dev Containers" extension. Then, with vscode open, press ctrl+shift+p to open the vscode command palette and type "Clone Repository in Container Volume". Select the "Dev Containers: Clone Repository in Container Volume" option, then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository (the repository named "Lunabotics").
+Open vscode and install the "Dev Containers" extension. Then, with vscode open, press ctrl+shift+p to open the vscode command palette and type "Clone Repository in Container Volume". Select the "Dev Containers: Clone Repository in Container Volume" option, then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository (the repository named "Lunabotics"). If you are cloning the repository directly into the container volume, you do NOT need to clone the repo locally, it will be automatically cloned into the repo.
 <br><br>
 
 After opening the container, you can run the following command in the Command Palette (Ctrl + Shift + P) to build the project:
