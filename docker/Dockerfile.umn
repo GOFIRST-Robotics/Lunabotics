@@ -16,6 +16,7 @@ RUN apt-get update  && apt-get install -y \
     python3-requests \
     libeigen3-dev \
     ros-humble-grid-map-rviz-plugin \
+    ros-humble-point-cloud-transport-plugins \
     ros-humble-can-msgs \
     ros-humble-usb-cam \
     python3-pytest \

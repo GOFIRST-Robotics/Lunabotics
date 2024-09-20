@@ -15,6 +15,5 @@ chmod +x ZED_SDK_Linux.run ; ./ZED_SDK_Linux.run silent skip_od_module skip_pyth
 sudo ln -sf /usr/lib/aarch64-linux-gnu/tegra/libv4l2.so.0 /usr/lib/aarch64-linux-gnu/libv4l2.so
 
 # Cleanup
-sudo rm -rf /usr/local/zed/resources/*
 rm -rf ZED_SDK_Linux.run
 sudo rm -rf /var/lib/apt/lists/*
