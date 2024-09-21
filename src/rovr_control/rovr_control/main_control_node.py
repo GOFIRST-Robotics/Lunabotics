@@ -217,18 +217,10 @@ class MainControlNode(Node):
         # PUT TELEOP CONTROLS BELOW #
 
         if self.state == states["Teleop"]:
-            # Drive the robot using joystick input during Teleop
+            # Drive the robot using joystick input during Teleop (Arcade Drive)
             forward_power = msg.axes[bindings.RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
-            horizontal_power = (
-                msg.axes[bindings.RIGHT_JOYSTICK_HORIZONTAL_AXIS] * self.max_drive_power
-            )  # Horizontal power
-            turn_power = msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
-            self.drive_power_publisher.publish(
-                Twist(
-                    linear=Vector3(x=forward_power, y=horizontal_power),
-                    angular=Vector3(z=turn_power),
-                )
-            )
+            turning_power = msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
+            self.drive_power_publisher.publish(Twist(linear=Vector3(x=forward_power), angular=Vector3(z=turning_power)))
 
             # Check if the skimmer button is pressed #
             if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:

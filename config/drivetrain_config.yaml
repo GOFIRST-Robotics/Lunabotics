@@ -1,11 +1,5 @@
 /**:
   ros__parameters:
-    HALF_WHEEL_BASE: 0.55959375 # HALF of the wheelbase in meters
-    HALF_TRACK_WIDTH: 0.2746375 # HALF of the trackwidth in meters
-    STEERING_MOTOR_GEAR_RATIO: 40 # Gear ratio of the steering motor (40:1)
-    FRONT_LEFT_MAGNET_OFFSET: 97 # (in encoder counts)
-    FRONT_RIGHT_MAGNET_OFFSET: 873 # (in encoder counts)
-    BACK_LEFT_MAGNET_OFFSET: 50 # (in encoder counts)
-    BACK_RIGHT_MAGNET_OFFSET: 647 # (in encoder counts)
-    ABSOLUTE_ENCODER_COUNTS: 1024 # (in encoder counts)
+    HALF_WHEEL_BASE: 0.55959375 # HALF of the wheelbase in meters # TODO: Update this for the 2024-2025 robot
+    HALF_TRACK_WIDTH: 0.2746375 # HALF of the trackwidth in meters # TODO: Update this for the 2024-2025 robot
     GAZEBO_SIMULATION: False # Set to true if running in Gazebo
