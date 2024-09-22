@@ -63,7 +63,9 @@ Stephen Brawner (brawner@gmail.com)
 
   <!-- Connect the new link to the camera_link with only a rotation -->
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
-  <xacro:zed_camera name="zed2i" model="zed2i">
+  <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false">
+    <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
+    <gnss_origin></gnss_origin>
   </xacro:zed_camera>
   <joint name="translation_end_to_camera" type="fixed">
     <parent link="zed2i_camera_link"/>
