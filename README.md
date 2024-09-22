@@ -119,20 +119,21 @@ sequenceDiagram
 <details>
 <summary>How to Run Inside the Dev Container On Windows/Mac</summary>
 <br>
-Open vscode then press ctrl+shift+p and type "Clone Repository in Container Volume". Select "Dev Containers: Clone Repository in Container Volume" and then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository.
+Open vscode and install the "Dev Containers" extension. Then, with vscode open, press ctrl+shift+p to open the vscode command palette and type "Clone Repository in Container Volume". Select the "Dev Containers: Clone Repository in Container Volume" option, then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository (the repository named "Lunabotics"). If you are cloning the repository directly into the container volume, you do NOT need to clone the repo locally, it will be automatically cloned into the repo.
 <br><br>
 
-If your machine does not have an Nvidia GPU or you haven't set it up with [container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), run the following commands in the Command Palette (Ctrl + Shift + P):
+After opening the container, you can run the following command in the Command Palette (Ctrl + Shift + P) to build the project:
+```
+Tasks: Run Build Task
+```
 
+Or, if your machine does not have an Nvidia GPU or you haven't set it up with [container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), run the following commands instead in the Command Palette (Ctrl + Shift + P):
 ```
 Tasks: Configure Default Build Task
 Build No GPU Tasks
 ```
 
-After opening the container, run the following commands in the Command Palette (Ctrl + Shift + P):
-```
-Tasks: Run Build Task
-```
+Optionally, traditional "colcon build" commands can be run in the vscode terminal instead of using the Command Palette commands above.
 </details>
 <details>
 <summary>Updating Dev Container For Windows/Mac</summary>
@@ -192,6 +193,10 @@ Then run this command:
 cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
 ../scripts/run_dev.sh ~/Lunabotics
 ```
+Alternatively, you can run this command, which will execute the printf, the echo, and the run_dev.sh script:
+```
+./scripts/enter_isaac_ros_container.sh
+```
 </details>
 <details>
 <summary>Dev Container</summary>
@@ -213,11 +218,24 @@ It is also worth noting that the docker buildkit doesn't respect Nvidia runtime 
 
 ## ROS 2 General Workspace Tips
 
+When cloning this repository manually on Linux, you must run `git submodule update --init --recursive` inside the workspace folder to recursively pull all git submodules before building the project.
+
+Use `colcon build --symlink-install` when building so that Python nodes do not need to be rebuilt every time.
+Additionally, use these commands to avoid building unnecessary packages when testing:
+`colcon build --symlink-install --packages-up-to <package name>`
+or `colcon build --symlink-install --packages-select <package name>`
+
 Make sure to `source install/setup.bash` in every new terminal.
 
 Run `rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "nvblox negotiated"` to install package dependencies.
 
-Run `rm -rf build install log` to clean your workspace.
+Run `ros2 run <package_name> <node_name>` to run just the specified node.
+
+Run `ros2 launch <package_name> <launch file name>` to launch a launch file.
+
+Run `rm -rf build install log` to clean your workspace if you need to build completely from scratch.
+
+Run `docker system prune -a --volumes` to remove all Docker images, containers, and volumes from your machine. This is useful when the ISAAC ROS container gets messed up and you want to rebuild the container from scratch.
 
 To normalize line endings in git, use the command:
 ```
@@ -348,6 +366,9 @@ ros2 run gstreamer server_node
 ## Set static serial ports on the Jetson
 
 Follow [these](https://msadowski.github.io/linux-static-port/) instructions.
+
+## Install Nvidia Drivers / CUDA Toolkit on Ubuntu 22.04
+Follow [these](https://developer.nvidia.com/cuda-12-6-0-download-archive?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_local) instructions.
 
 ## Jetson External HDD Commands
 
