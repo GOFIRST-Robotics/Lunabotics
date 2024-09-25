@@ -15,6 +15,7 @@ from std_msgs.msg import Float64
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import Stop, Drive, MotorCommandSet, MotorCommandGet
 
+
 class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
@@ -67,7 +68,6 @@ class DrivetrainNode(Node):
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
 
-
         if self.GAZEBO_SIMULATION:
             # TODO: The lines below need to be modified
             self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
@@ -75,35 +75,33 @@ class DrivetrainNode(Node):
             self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
             self.back_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
 
-    
     # Define subsystem methods here
     def drive(self, linear_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
 
         # reverse turning direction
         turning_power *= -1
-        #TODO: check in simulation if we need this ^^^
+        # TODO: check in simulation if we need this ^^^
 
-        #clamp the values to -1 to 1
+        # clamp the values to -1 to 1
         linear_power = max(-1.0, min(linear_power, 1.0))
         turning_power = max(-1.0, min(turning_power, 1.0))
-
 
         leftPower = linear_power - turning_power
         rightPower = linear_power + turning_power
 
         # Desaturate the wheel speeds if needed
-        if (math.abs(leftPower) > 1.0 or math.abs(rightPower) > 1.0):
-            
-            scale_factor = 1.0/max(leftPower, rightPower)
+        if math.abs(leftPower) > 1.0 or math.abs(rightPower) > 1.0:
+
+            scale_factor = 1.0 / max(leftPower, rightPower)
             leftPower *= scale_factor
             rightPower *= scale_factor
-        
+
         MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=leftPower)
         MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
         MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
         MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
-        
+
     def stop(self) -> None:
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0)
