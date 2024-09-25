@@ -13,10 +13,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import Drive, MotorCommandSet
-from std_srvs.srv import Trigger
-from rovr_interfaces.msg import LimitSwitches
-
+from rovr_interfaces.srv import Stop, Drive, MotorCommandSet, MotorCommandGet
 
 class DrivetrainNode(Node):
     def __init__(self):
@@ -48,16 +45,12 @@ class DrivetrainNode(Node):
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
-        self.limit_switch_reader = self.create_subscription(
-            LimitSwitches, "limitSwitches", self.limit_switch_callback, 10
-        )
 
         if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
             self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
             self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
             self.gazebo_wheel4_pub = self.create_publisher(Float64, "wheel4/cmd_vel", 10)
-
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
@@ -73,59 +66,44 @@ class DrivetrainNode(Node):
         self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
-        self.get_logger().info("MAX_DRIVETRAIN_RPM has been set to: " + str(self.MAX_DRIVETRAIN_RPM))
 
+
+        if self.GAZEBO_SIMULATION:
+            # TODO: The lines below need to be modified
+            self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
+            self.front_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
+            self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
+            self.back_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
+
+    
     # Define subsystem methods here
-    def drive(self, forward_power: float, turning_power: float) -> None:
+    def drive(self, linear_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
-        if not self.ready_to_drive:
-            self.get_logger().warn("The digger is not raised. Cannot drive.")
-            return False
 
-        # Clamp the values between -1 and 1
-        forward_power = max(-1.0, min(forward_power, 1.0))
+        # reverse turning direction
+        turning_power *= -1
+        #TODO: check in simulation if we need this ^^^
+
+        #clamp the values to -1 to 1
+        linear_power = max(-1.0, min(linear_power, 1.0))
         turning_power = max(-1.0, min(turning_power, 1.0))
 
-        # Calculate the wheel speeds for each side of the drivetrain
-        leftPower = forward_power - turning_power
-        rightPower = forward_power + turning_power
+
+        leftPower = linear_power - turning_power
+        rightPower = linear_power + turning_power
 
         # Desaturate the wheel speeds if needed
-        if abs(leftPower) > 1.0 or abs(rightPower) > 1.0:
-            scale_factor = 1.0 / max(abs(leftPower), abs(rightPower))
+        if (math.abs(leftPower) > 1.0 or math.abs(rightPower) > 1.0):
+            
+            scale_factor = 1.0/max(leftPower, rightPower)
             leftPower *= scale_factor
             rightPower *= scale_factor
-
-        # Send velocity (not duty cycle) motor commands to the motor_control_node
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.FRONT_LEFT_DRIVE, type="velocity", value=leftPower * self.MAX_DRIVETRAIN_RPM
-            )
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.BACK_LEFT_DRIVE, type="velocity", value=leftPower * self.MAX_DRIVETRAIN_RPM
-            )
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.FRONT_RIGHT_DRIVE, type="velocity", value=rightPower * self.MAX_DRIVETRAIN_RPM
-            )
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.BACK_RIGHT_DRIVE, type="velocity", value=rightPower * self.MAX_DRIVETRAIN_RPM
-            )
-        )
-
-        # Publish the wheel speeds to the gazebo simulation
-        if self.GAZEBO_SIMULATION:
-            self.gazebo_wheel1_pub.publish(Float64(data=leftPower))
-            self.gazebo_wheel2_pub.publish(Float64(data=rightPower))
-            self.gazebo_wheel3_pub.publish(Float64(data=rightPower))
-            self.gazebo_wheel4_pub.publish(Float64(data=leftPower))
-        return True
-
+        
+        MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+        MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+        MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+        MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+        
     def stop(self) -> None:
         """This method stops the drivetrain."""
         self.drive(0.0, 0.0)
@@ -140,18 +118,15 @@ class DrivetrainNode(Node):
 
     def drive_callback(self, request, response):
         """This service request drives the robot with the specified speeds."""
-        response.success = self.drive(request.forward_power, request.turning_power)
+        self.drive(request.forward_power, request.turning_power)
+        response.success = 0  # indicates success
         return response
 
     # Define subscriber callback methods here
 
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.x, msg.angular.z)
-
-    def limit_switch_callback(self, msg):
-        """This service determines if the digger is raised or not."""
-        self.ready_to_drive = msg.digger_top_limit_switch
+        self.drive(msg.linear.y, msg.angular.z)
 
 
 def main(args=None):
