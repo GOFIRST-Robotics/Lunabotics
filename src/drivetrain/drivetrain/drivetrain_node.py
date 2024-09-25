@@ -1,7 +1,7 @@
-# This ROS 2 node contains code for the swerve drivetrain subsystem of the robot.
+# This ROS 2 node contains code for the drivetrain subsystem of the robot.
 # Original Author: Akshat Arinav <arina004@umn.edu> in Fall 2023
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: February 2024 by Anthony Brogni
+# Last Updated: September 2024 by Charlie & Ashton
 
 import math
 
@@ -15,66 +15,7 @@ from std_msgs.msg import Float64
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import Stop, Drive, MotorCommandSet, MotorCommandGet
-from rovr_interfaces.msg import AbsoluteEncoders
 
-
-# This class represents an individual swerve module
-class SwerveModule:
-    def __init__(self, drive_motor, turning_motor, drivetrain):
-        self.drive_motor_can_id = drive_motor
-        self.turning_motor_can_id = turning_motor
-        self.encoder_offset = 0
-        self.current_absolute_angle = None
-        self.gazebo_wheel = None
-        self.gazebo_swerve = None
-        self.prev_angle = 0.0
-        self.drivetrain = drivetrain
-
-    def set_power(self, power: float) -> None:
-        self.drivetrain.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.drive_motor_can_id, type="duty_cycle", value=power)
-        )
-
-    def set_angle(self, angle: float) -> None:
-        angle = (360 - angle) % 360
-
-        self.drivetrain.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.turning_motor_can_id,
-                type="position",
-                value=(angle - self.encoder_offset) * self.drivetrain.STEERING_MOTOR_GEAR_RATIO,
-            )
-        )
-
-    def reset(self, current_relative_angle) -> None:
-        self.encoder_offset = self.current_absolute_angle - current_relative_angle
-        self.drivetrain.get_logger().info(
-            f"CAN ID {self.turning_motor_can_id} Absolute Encoder angle offset set to: {self.encoder_offset}"
-        )
-        self.set_angle(0)  # Rotate the module to the 0 degree position
-
-    def set_state(self, power: float, angle: float) -> None:
-        self.set_angle(angle)
-        self.set_power(power)
-        if self.drivetrain.GAZEBO_SIMULATION:
-            self.publish_gazebo(power, angle)
-
-    def set_gazebo_pubs(self, wheel, swerve):
-        self.gazebo_wheel = wheel
-        self.gazebo_swerve = swerve
-
-    def publish_gazebo(self, power: float, angle: float) -> None:
-        # Convert from counterclockwise -> clockwise
-        angle = (360 - angle) % 360
-        # Convert from degrees to radians
-        rad = angle * math.pi / 180
-
-        speed = power * 5
-        self.gazebo_wheel.publish(Float64(data=speed))
-        self.gazebo_swerve.publish(Float64(data=rad))
-
-
-# This class represents the drivetrain as a whole (4 swerve modules)
 class DrivetrainNode(Node):
     def __init__(self):
         """Initialize the ROS 2 drivetrain node."""
@@ -82,58 +23,30 @@ class DrivetrainNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("FRONT_LEFT_DRIVE", 10)
-        self.declare_parameter("FRONT_LEFT_TURN", 4)
         self.declare_parameter("FRONT_RIGHT_DRIVE", 9)
-        self.declare_parameter("FRONT_RIGHT_TURN", 3)
         self.declare_parameter("BACK_LEFT_DRIVE", 7)
-        self.declare_parameter("BACK_LEFT_TURN", 6)
         self.declare_parameter("BACK_RIGHT_DRIVE", 8)
-        self.declare_parameter("BACK_RIGHT_TURN", 4)
         self.declare_parameter("HALF_WHEEL_BASE", 0.5)
         self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
-        self.declare_parameter("STEERING_MOTOR_GEAR_RATIO", 40)
-        self.declare_parameter("FRONT_LEFT_MAGNET_OFFSET", 97)
-        self.declare_parameter("FRONT_RIGHT_MAGNET_OFFSET", 873)
-        self.declare_parameter("BACK_LEFT_MAGNET_OFFSET", 50)
-        self.declare_parameter("BACK_RIGHT_MAGNET_OFFSET", 647)
-        self.declare_parameter("ABSOLUTE_ENCODER_COUNTS", 1024)
         self.declare_parameter("GAZEBO_SIMULATION", False)
 
         # Assign the ROS Parameters to member variables below #
         self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
-        self.FRONT_LEFT_TURN = self.get_parameter("FRONT_LEFT_TURN").value
         self.FRONT_RIGHT_DRIVE = self.get_parameter("FRONT_RIGHT_DRIVE").value
-        self.FRONT_RIGHT_TURN = self.get_parameter("FRONT_RIGHT_TURN").value
         self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
-        self.BACK_LEFT_TURN = self.get_parameter("BACK_LEFT_TURN").value
         self.BACK_RIGHT_DRIVE = self.get_parameter("BACK_RIGHT_DRIVE").value
-        self.BACK_RIGHT_TURN = self.get_parameter("BACK_RIGHT_TURN").value
         self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
         self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
-        self.STEERING_MOTOR_GEAR_RATIO = self.get_parameter("STEERING_MOTOR_GEAR_RATIO").value
-        self.FRONT_LEFT_MAGNET_OFFSET = self.get_parameter("FRONT_LEFT_MAGNET_OFFSET").value
-        self.FRONT_RIGHT_MAGNET_OFFSET = self.get_parameter("FRONT_RIGHT_MAGNET_OFFSET").value
-        self.BACK_LEFT_MAGNET_OFFSET = self.get_parameter("BACK_LEFT_MAGNET_OFFSET").value
-        self.BACK_RIGHT_MAGNET_OFFSET = self.get_parameter("BACK_RIGHT_MAGNET_OFFSET").value
-        self.ABSOLUTE_ENCODER_COUNTS = self.get_parameter("ABSOLUTE_ENCODER_COUNTS").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
-        self.absolute_encoders_sub = self.create_subscription(
-            AbsoluteEncoders, "absoluteEncoders", self.absolute_encoders_callback, 10
-        )
 
         if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
             self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
             self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
             self.gazebo_wheel4_pub = self.create_publisher(Float64, "wheel4/cmd_vel", 10)
-            self.gazebo_swerve1_pub = self.create_publisher(Float64, "swerve1/cmd_pos", 10)
-            self.gazebo_swerve2_pub = self.create_publisher(Float64, "swerve2/cmd_pos", 10)
-            self.gazebo_swerve3_pub = self.create_publisher(Float64, "swerve3/cmd_pos", 10)
-            self.gazebo_swerve4_pub = self.create_publisher(Float64, "swerve4/cmd_pos", 10)
-
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -141,168 +54,56 @@ class DrivetrainNode(Node):
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
-        self.srv_calibrate = self.create_service(Stop, "drivetrain/calibrate", self.calibrate_callback)
-
-        # Define timers here
-        self.absolute_angle_timer = self.create_timer(0.05, self.absolute_angle_reset)
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("FRONT_LEFT_DRIVE has been set to: " + str(self.FRONT_LEFT_DRIVE))
-        self.get_logger().info("FRONT_LEFT_TURN has been set to: " + str(self.FRONT_LEFT_TURN))
         self.get_logger().info("FRONT_RIGHT_DRIVE has been set to: " + str(self.FRONT_RIGHT_DRIVE))
-        self.get_logger().info("FRONT_RIGHT_TURN has been set to: " + str(self.FRONT_RIGHT_TURN))
         self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
-        self.get_logger().info("BACK_LEFT_TURN has been set to: " + str(self.BACK_LEFT_TURN))
         self.get_logger().info("BACK_RIGHT_DRIVE has been set to: " + str(self.BACK_RIGHT_DRIVE))
-        self.get_logger().info("BACK_RIGHT_TURN has been set to: " + str(self.BACK_RIGHT_TURN))
         self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
-        self.get_logger().info("STEERING_MOTOR_GEAR_RATIO has been set to: " + str(self.STEERING_MOTOR_GEAR_RATIO))
-        self.get_logger().info("FRONT_LEFT_MAGNET_OFFSET has been set to: " + str(self.FRONT_LEFT_MAGNET_OFFSET))
-        self.get_logger().info("FRONT_RIGHT_MAGNET_OFFSET has been set to: " + str(self.FRONT_RIGHT_MAGNET_OFFSET))
-        self.get_logger().info("BACK_LEFT_MAGNET_OFFSET has been set to: " + str(self.BACK_LEFT_MAGNET_OFFSET))
-        self.get_logger().info("BACK_RIGHT_MAGNET_OFFSET has been set to: " + str(self.BACK_RIGHT_MAGNET_OFFSET))
-        self.get_logger().info("ABSOLUTE_ENCODER_COUNTS has been set to: " + str(self.ABSOLUTE_ENCODER_COUNTS))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
 
-        # Create each swerve module using
-        self.front_left = SwerveModule(self.FRONT_LEFT_DRIVE, self.FRONT_LEFT_TURN, self)
-        self.front_right = SwerveModule(self.FRONT_RIGHT_DRIVE, self.FRONT_RIGHT_TURN, self)
-        self.back_left = SwerveModule(self.BACK_LEFT_DRIVE, self.BACK_LEFT_TURN, self)
-        self.back_right = SwerveModule(self.BACK_RIGHT_DRIVE, self.BACK_RIGHT_TURN, self)
 
         if self.GAZEBO_SIMULATION:
+            # TODO: The lines below need to be modified
             self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
             self.front_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
             self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
             self.back_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
 
-    def absolute_angle_reset(self):
-        # self.front_left was chosen arbitrarily
-        if self.front_left.current_absolute_angle is not None:
-            print("Absolute Encoder angles reset")
-
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            front_left_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN)
-            )
-            front_left_future.add_done_callback(
-                lambda future: self.front_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            front_right_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN)
-            )
-            front_right_future.add_done_callback(
-                lambda future: self.front_right.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            back_left_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN)
-            )
-            back_left_future.add_done_callback(
-                lambda future: self.back_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            back_right_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN)
-            )
-            back_right_future.add_done_callback(
-                lambda future: self.back_right.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            self.absolute_angle_timer.cancel()
-
+    
     # Define subsystem methods here
-    def drive(self, forward_power: float, horizontal_power: float, turning_power: float) -> None:
-        """This method drives the robot with the desired forward, horizontal and turning power."""
+    def drive(self, linear_power: float, turning_power: float) -> None:
+        """This method drives the robot with the desired forward and turning power."""
 
         # reverse turning direction
         turning_power *= -1
+        #TODO: check in simulation if we need this ^^^
 
-        # Do not change the angle of the modules if the robot is being told to stop
-        if abs(forward_power) < 0.05 and abs(horizontal_power) < 0.05 and abs(turning_power) < 0.05:
-            self.front_left.set_state(0.0, self.front_left.prev_angle)
-            self.front_right.set_state(0.0, self.front_right.prev_angle)
-            self.back_left.set_state(0.0, self.back_left.prev_angle)
-            self.back_right.set_state(0.0, self.back_right.prev_angle)
-            return
+        #clamp the values to -1 to 1
+        linear_power = max(-1.0, min(linear_power, 1.0))
+        turning_power = max(-1.0, min(turning_power, 1.0))
 
-        # Vector layouts = [Drive Power, Drive Direction(Degrees from forwards going counterclockwise)]
-        # Intermediate equations to simplify future expressions
-        A = horizontal_power - turning_power * self.HALF_WHEEL_BASE
-        B = horizontal_power + turning_power * self.HALF_WHEEL_BASE
-        C = forward_power - turning_power * self.HALF_TRACK_WIDTH
-        D = forward_power + turning_power * self.HALF_TRACK_WIDTH
 
-        # Gives the desired speed and angle for each module
-        # Note: Angle has range from 0 to 360 degrees to make future calculations easier
-        front_left_vector = [math.sqrt(B**2 + D**2), ((math.atan2(B, D) * 180 / math.pi) + 360) % 360]
-        front_right_vector = [math.sqrt(B**2 + C**2), ((math.atan2(B, C) * 180 / math.pi) + 360) % 360]
-        back_left_vector = [math.sqrt(A**2 + D**2), ((math.atan2(A, D) * 180 / math.pi) + 360) % 360]
-        back_right_vector = [math.sqrt(A**2 + C**2), ((math.atan2(A, C) * 180 / math.pi) + 360) % 360]
+        leftPower = linear_power - turning_power
+        rightPower = linear_power + turning_power
 
-        # Normalize wheel speeds if necessary
-        largest_power = max(
-            [abs(front_left_vector[0]), abs(front_right_vector[0]), abs(back_left_vector[0]), abs(back_right_vector[0])]
-        )
-        if largest_power > 1.0:
-            front_left_vector[0] = front_left_vector[0] / largest_power
-            front_right_vector[0] = front_right_vector[0] / largest_power
-            back_left_vector[0] = back_left_vector[0] / largest_power
-            back_right_vector[0] = back_right_vector[0] / largest_power
-
-        # Note: no module should ever have to rotate more than 90 degrees from its current angle
-        if (
-            abs(front_left_vector[1] - self.front_left.prev_angle) > 90
-            and abs(front_left_vector[1] - self.front_left.prev_angle) < 270
-        ):
-            front_left_vector[1] = (front_left_vector[1] + 180) % 360
-            # reverse speed of the module
-            front_left_vector[0] = front_left_vector[0] * -1
-        if (
-            abs(front_right_vector[1] - self.front_right.prev_angle) > 90
-            and abs(front_right_vector[1] - self.front_right.prev_angle) < 270
-        ):
-            front_right_vector[1] = (front_right_vector[1] + 180) % 360
-            # reverse speed of the module
-            front_right_vector[0] = front_right_vector[0] * -1
-        if (
-            abs(back_left_vector[1] - self.back_left.prev_angle) > 90
-            and abs(back_left_vector[1] - self.back_left.prev_angle) < 270
-        ):
-            back_left_vector[1] = (back_left_vector[1] + 180) % 360
-            # reverse speed of the module
-            back_left_vector[0] = back_left_vector[0] * -1
-        if (
-            abs(back_right_vector[1] - self.back_right.prev_angle) > 90
-            and abs(back_right_vector[1] - self.back_right.prev_angle) < 270
-        ):
-            back_right_vector[1] = (back_right_vector[1] + 180) % 360
-            # reverse speed of the module
-            back_right_vector[0] = back_right_vector[0] * -1
-
-        self.front_left.set_state(front_left_vector[0], front_left_vector[1])
-        self.front_right.set_state(front_right_vector[0], front_right_vector[1])
-        self.back_left.set_state(back_left_vector[0], back_left_vector[1])
-        self.back_right.set_state(back_right_vector[0], back_right_vector[1])
-
-        # Update the prev_angle of each module
-        self.front_left.prev_angle = front_left_vector[1]
-        self.front_right.prev_angle = front_right_vector[1]
-        self.back_left.prev_angle = back_left_vector[1]
-        self.back_right.prev_angle = back_right_vector[1]
-
+        # Desaturate the wheel speeds if needed
+        if (math.abs(leftPower) > 1.0 or math.abs(rightPower) > 1.0):
+            
+            scale_factor = 1.0/max(leftPower, rightPower)
+            leftPower *= scale_factor
+            rightPower *= scale_factor
+        
+        MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+        MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+        MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+        MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+        
     def stop(self) -> None:
         """This method stops the drivetrain."""
-        self.drive(0.0, 0.0, 0.0)
+        self.drive(0.0, 0.0)
 
     # Define service callback methods here
 
@@ -314,70 +115,15 @@ class DrivetrainNode(Node):
 
     def drive_callback(self, request, response):
         """This service request drives the robot with the specified speeds."""
-        self.drive(request.forward_power, request.horizontal_power, request.turning_power)
+        self.drive(request.forward_power, request.turning_power)
         response.success = 0  # indicates success
-        return response
-
-    def calibrate_callback(self, request, response):
-        """This service request calibrates the drivetrain."""
-        if self.front_left.current_absolute_angle is not None:
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            front_left_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.FRONT_LEFT_TURN)
-            )
-            front_left_future.add_done_callback(
-                lambda future: self.front_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            front_right_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.FRONT_RIGHT_TURN)
-            )
-            front_right_future.add_done_callback(
-                lambda future: self.front_right.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            back_left_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.BACK_LEFT_TURN)
-            )
-            back_left_future.add_done_callback(
-                lambda future: self.back_left.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            # future.result().data will contain the position of the MOTOR (not the wheel) in degrees.
-            # Divide this by the gear ratio to get the wheel position.
-            back_right_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(type="position", can_id=self.BACK_RIGHT_TURN)
-            )
-            back_right_future.add_done_callback(
-                lambda future: self.back_right.reset(future.result().data / self.STEERING_MOTOR_GEAR_RATIO)
-            )
-
-            response.success = 0  # indicates success
-        else:
-            response.success = 1  # indicates failure
         return response
 
     # Define subscriber callback methods here
 
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.y, msg.linear.x, msg.angular.z)
-
-    def absolute_encoders_callback(self, msg: AbsoluteEncoders) -> None:
-        """This method is called whenever a message is received on the absoluteEncoders topic."""
-        front_left_adjusted = (msg.front_left_encoder - self.FRONT_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        front_right_adjusted = (msg.front_right_encoder - self.FRONT_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        back_left_adjusted = (msg.back_left_encoder - self.BACK_LEFT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        back_right_adjusted = (msg.back_right_encoder - self.BACK_RIGHT_MAGNET_OFFSET) % self.ABSOLUTE_ENCODER_COUNTS
-        self.front_left.current_absolute_angle = 360 * front_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
-        self.front_right.current_absolute_angle = 360 * front_right_adjusted / self.ABSOLUTE_ENCODER_COUNTS
-        self.back_left.current_absolute_angle = 360 * back_left_adjusted / self.ABSOLUTE_ENCODER_COUNTS
-        self.back_right.current_absolute_angle = 360 * back_right_adjusted / self.ABSOLUTE_ENCODER_COUNTS
+        self.drive(msg.linear.y, msg.angular.z)
 
 
 def main(args=None):
