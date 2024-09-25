@@ -52,6 +52,7 @@ class DrivetrainNode(Node):
             self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
             self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
             self.gazebo_wheel4_pub = self.create_publisher(Float64, "wheel4/cmd_vel", 10)
+
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
@@ -68,20 +69,13 @@ class DrivetrainNode(Node):
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
 
-        if self.GAZEBO_SIMULATION:
-            # TODO: The lines below need to be modified
-            self.front_left.set_gazebo_pubs(self.gazebo_wheel1_pub, self.gazebo_swerve1_pub)
-            self.front_right.set_gazebo_pubs(self.gazebo_wheel3_pub, self.gazebo_swerve3_pub)
-            self.back_left.set_gazebo_pubs(self.gazebo_wheel4_pub, self.gazebo_swerve4_pub)
-            self.back_right.set_gazebo_pubs(self.gazebo_wheel2_pub, self.gazebo_swerve2_pub)
-
     # Define subsystem methods here
     def drive(self, linear_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
 
-        # reverse turning direction
+        # Reverse the turning direction
         turning_power *= -1
-        # TODO: check in simulation if we need this ^^^
+        # ^^ TODO: Check in simulation if we need this ^^^
 
         # clamp the values to -1 to 1
         linear_power = max(-1.0, min(linear_power, 1.0))
@@ -92,7 +86,6 @@ class DrivetrainNode(Node):
 
         # Desaturate the wheel speeds if needed
         if math.abs(leftPower) > 1.0 or math.abs(rightPower) > 1.0:
-
             scale_factor = 1.0 / max(leftPower, rightPower)
             leftPower *= scale_factor
             rightPower *= scale_factor
@@ -101,6 +94,12 @@ class DrivetrainNode(Node):
         MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
         MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
         MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+
+        if self.GAZEBO_SIMULATION:
+            self.gazebo_wheel1_pub.publish(Float64(data=leftPower))
+            self.gazebo_wheel2_pub.publish(Float64(data=leftPower))
+            self.gazebo_wheel3_pub.publish(Float64(data=rightPower))
+            self.gazebo_wheel4_pub.publish(Float64(data=rightPower))
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
