@@ -27,8 +27,8 @@ class read_serial(Node):
                 self.get_logger().fatal("Killing read_serial node")
                 self.destroy_node()
                 return
-            data = self.arduino.read(10)  # Pause until 10 bytes are read
-            decoded = struct.unpack("??", data)  # Use h for each int because arduino int is 2 bytes
+            data = self.arduino.read(2)  # Pause until 2 bytes are read
+            decoded = struct.unpack("??", data)  # Use h for integers because arduino int is 2 bytes, use ? for booleans
 
             msg = LimitSwitches()
             msg.digger_top_limit_switch = decoded[0]
