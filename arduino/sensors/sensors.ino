@@ -1,16 +1,12 @@
 // Define a struct to hold the sensor data
 struct SensorData {
-  bool diggerTopLimitSwitch;
-  bool diggerBottomLimitSwitch;
-  bool dumperTopLimitSwitch;
-  bool dumperBottomLimitSwitch;
+  bool topLimitSwitch;
+  bool bottomLimitSwitch;
 };
 
 // Define the sensor pins here
-#define DIGGER_TOP_LIMIT_SWITCH 2
-#define DIGGER_BOTTOM_LIMIT_SWITCH 3
-#define DUMPER_TOP_LIMIT_SWITCH 4
-#define DUMPER_BOTTOM_LIMIT_SWITCH 5
+#define TOP_LIMIT_SWITCH 2
+#define BOTTOM_LIMIT_SWITCH 3
 
 void setup() {
   // Initialize serial communication
