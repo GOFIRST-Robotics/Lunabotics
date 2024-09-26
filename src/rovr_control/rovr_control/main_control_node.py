@@ -23,7 +23,7 @@ from sensor_msgs.msg import Joy
 from action_msgs.msg import GoalStatus
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower, SetPosition
+from rovr_interfaces.srv import Stop, SetPower, SetPosition
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload
 from std_srvs.srv import Trigger
 
@@ -126,9 +126,9 @@ class MainControlNode(Node):
         self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
-        self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
-        self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
-        self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
+        self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
+        self.cli_lift_stop = self.create_client(Stop, "lift/stop")
+        self.cli_lift_zero = self.create_client(Stop, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
 
         # Define publishers and subscribers here
