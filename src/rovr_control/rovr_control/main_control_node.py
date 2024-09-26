@@ -23,7 +23,7 @@ from sensor_msgs.msg import Joy
 from action_msgs.msg import GoalStatus
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import Stop, Drive, MotorCommandGet, SetPower, SetPosition
+from rovr_interfaces.srv import Stop, SetPower, SetPosition
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload
 
 # Import Python Modules
@@ -125,9 +125,6 @@ class MainControlNode(Node):
         self.cli_skimmer_setPower = self.create_client(SetPower, "skimmer/setPower")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
-        self.cli_drivetrain = self.create_client(Drive, "drivetrain/drive")
-        self.cli_drivetrain_calibrate = self.create_client(Stop, "drivetrain/calibrate")
-        self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
         self.cli_lift_zero = self.create_client(Stop, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")

@@ -67,19 +67,19 @@ class DrivetrainNode(Node):
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
 
     # Define subsystem methods here
-    def drive(self, linear_power: float, turning_power: float) -> None:
+    def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
 
-        # Reverse the turning direction
+        # Reverse the turning direction # TODO: Check in simulation if we need this
         turning_power *= -1
-        # ^^ TODO: Check in simulation if we need this ^^^
 
-        # clamp the values to -1 to 1
-        linear_power = max(-1.0, min(linear_power, 1.0))
+        # Clamp the values between -1 and 1
+        forward_power = max(-1.0, min(forward_power, 1.0))
         turning_power = max(-1.0, min(turning_power, 1.0))
 
-        leftPower = linear_power - turning_power
-        rightPower = linear_power + turning_power
+        # Calculate the wheel speeds for each side of the drivetrain
+        leftPower = forward_power - turning_power
+        rightPower = forward_power + turning_power
 
         # Desaturate the wheel speeds if needed
         if math.abs(leftPower) > 1.0 or math.abs(rightPower) > 1.0:
@@ -87,11 +87,13 @@ class DrivetrainNode(Node):
             leftPower *= scale_factor
             rightPower *= scale_factor
 
+        # Send the motor commands to the motor_control_node
         MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=leftPower)
         MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
         MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
         MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
 
+        # Publish the wheel speeds to the gazebo simulation
         if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub.publish(Float64(data=leftPower))
             self.gazebo_wheel2_pub.publish(Float64(data=leftPower))
