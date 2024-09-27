@@ -12,3 +12,4 @@
     FRONT_RIGHT_TURN: 3 # CAN ID of the front right turn motor
     SKIMMER_BELT_MOTOR: 2 # CAN ID of the skimmer belt motor
     SKIMMER_LIFT_MOTOR: 1 # CAN ID of the skimmer lift motor
+    DUMPER_MOTOR: 11 # CAN ID of the dumper motor
