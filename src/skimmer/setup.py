@@ -23,7 +23,6 @@ setup(
     entry_points={
         "console_scripts": [
             "skimmer_node = skimmer.skimmer_node:main",
-            "ros_check_load = skimmer.ros_check_load:main",
         ],
     },
 )
