@@ -15,14 +15,20 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+
 from datetime import datetime
 
 from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration, FindExecutable
-from launch_ros.actions import LoadComposableNodes, Node
-from launch_ros.descriptions import ComposableNode
-from launch.conditions import UnlessCondition, IfCondition
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, ExecuteProcess, RegisterEventHandler
+from launch_ros.actions import Node
+from launch.conditions import IfCondition
+from launch.actions import (
+    IncludeLaunchDescription,
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    RegisterEventHandler,
+    SetEnvironmentVariable,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.event_handlers import OnShutdown
 
@@ -32,33 +38,15 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-
+    # Locate our config files
     config_dir = PathJoinSubstitution(["config", "sensors"])
-
-    # Config files
     config_file_camera = PathJoinSubstitution([config_dir, "zed2i.yaml"])
     config_file_common = PathJoinSubstitution([config_dir, "zed_common.yaml"])
-
-    # Option to attach the nodes to a shared component container for speed ups through intra process communication.
-    # Make sure to set the 'component_container_name' to the name of the component container you want to attach to.
-    attach_to_shared_component_container_arg = LaunchConfiguration(
-        "attach_to_shared_component_container", default=False
-    )
-    component_container_name_arg = LaunchConfiguration("component_container_name", default="realsense_container")
 
     record_svo_arg = DeclareLaunchArgument(
         "record_svo",
         default_value="False",
         description="Whether to record ZED data to an SVO file",
-    )
-
-    # If we do not attach to a shared component container we have to create our own container.
-    zed2_container = Node(
-        name=component_container_name_arg,
-        package="rclcpp_components",
-        executable="component_container_mt",
-        output="screen",
-        condition=UnlessCondition(attach_to_shared_component_container_arg),
     )
 
     # Robot State Publisher node (publishing static tfs for the camera)
@@ -71,21 +59,20 @@ def generate_launch_description():
         }.items(),
     )
 
-    load_composable_nodes = LoadComposableNodes(
-        target_container=component_container_name_arg,
-        composable_node_descriptions=[
-            # Zed2 wrapper node
-            ComposableNode(
-                package="zed_components",
-                namespace="zed2i",
-                name="zed_node",
-                plugin="stereolabs::ZedCamera",
-                parameters=[
-                    # YAML files
-                    config_file_common,  # Common parameters
-                    config_file_camera,  # Camera related parameters
-                ],
-            ),
+    # ZED Wrapper node
+    zed_wrapper_node = Node(
+        package="zed_wrapper",
+        namespace="zed2i",
+        executable="zed_wrapper",
+        name="zed_node",
+        output="screen",
+        # prefix=['xterm -e valgrind --tools=callgrind'],
+        # prefix=['xterm -e gdb -ex run --args'],
+        # prefix=['gdbserver localhost:3000'],
+        parameters=[
+            # YAML files
+            config_file_common,  # Common parameters
+            config_file_camera,  # Camera related parameters
         ],
     )
 
@@ -130,11 +117,11 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            SetEnvironmentVariable(name="RCUTILS_COLORIZED_OUTPUT", value="1"),
             record_svo_arg,
             record_svo_srv,
             stop_svo_recording,
             robot_state_publisher,
-            zed2_container,
-            load_composable_nodes,
+            zed_wrapper_node,
         ]
     )
