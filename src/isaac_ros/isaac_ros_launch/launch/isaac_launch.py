@@ -55,8 +55,6 @@ def generate_launch_description():
             [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed2i.launch.py"])]
         ),
         launch_arguments={
-            "attach_to_shared_component_container": "True",
-            "component_container_name": shared_container_name,
             "record_svo": LaunchConfiguration("record_svo"),
         }.items(),
         condition=IfCondition(LaunchConfiguration("setup_for_zed")),
