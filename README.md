@@ -96,16 +96,10 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 <details>
 <summary>How to Run Inside ISAAC ROS Container/Dev Container On Linux/Jetson</summary>
 <br>
-First, do the following before running run_dev.sh:
+First, do the following before running:
 
-```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.deepstream.user.zed.umn \n" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
-``` 
-To use Gazebo in the ISAAC ROS container, do this instead:
+First install nvidia ngc cli and make sure it is present in path
 
-```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.deepstream.user.zed.umn.gazebo \n" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
-``` 
 <details>
 <summary>Regular Container</summary>
 <br>
@@ -128,7 +122,7 @@ Alternatively, you can run this command, which will execute the printf, the echo
 <details>
 <summary>Dev Container</summary>
 <br>
-First run this command to build the container:
+Run this command to build the container:
 
 ```
 ../scripts/build_devcontainer_image.sh
