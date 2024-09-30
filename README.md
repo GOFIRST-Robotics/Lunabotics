@@ -97,8 +97,8 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 <summary>How to Run Inside ISAAC ROS Container/Dev Container On Linux/Jetson</summary>
 <br>
 First, do the following before running:
-
-First install nvidia ngc cli and make sure it is present in path
+    
+Install nvidia ngc cli and make sure it is present in path
 
 <details>
 <summary>Regular Container</summary>
