@@ -189,20 +189,20 @@ controller_server:
       # Primary controller params (DWBLocalPlanner)
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
-      min_vel_x: -2.0 # TODO: adjust this if needed (m/s)
-      min_vel_y: 0.0
-      max_vel_x: 2.0 # TODO: adjust this if needed (m/s)
-      max_vel_y: 0.0
-      max_vel_theta: 1.0 # TODO: adjust this if needed (rad/s)
-      min_speed_xy: -2.0 # TODO: adjust this if needed (m/s)
-      max_speed_xy: 2.0 # TODO: adjust this if needed (m/s)
-      min_speed_theta: -1.0 # TODO: adjust this if needed (rad/s)
-      acc_lim_x: 1.0 # TODO: adjust this if needed (m/s^2)
-      acc_lim_y: 0.0
-      acc_lim_theta: 1.0 # TODO: adjust this if needed (rad/s^2)
-      decel_lim_x: -1.0 # TODO: adjust this if needed (m/s^2)
-      decel_lim_y: 0.0
-      decel_lim_theta: -1.0 # TODO: adjust this if needed (rad/s^2)
+      min_vel_x: -0.5  # TODO: adjust this if needed (m/s)
+      min_vel_y: 0.0  # TODO: adjust this if needed (m/s)
+      max_vel_x: 0.5  # TODO: adjust this if needed (m/s)
+      max_vel_y: 0.0  # TODO: adjust this if needed (m/s)
+      max_vel_theta: 0.5  # TODO: adjust this if needed (m/s)
+      min_speed_xy: -0.5  # TODO: adjust this if needed (m/s)
+      max_speed_xy: 0.5  # TODO: adjust this if needed (m/s)
+      min_speed_theta: -0.5  # TODO: adjust this if needed (m/s)
+      acc_lim_x: 1.0  # TODO: adjust this if needed (m/s^2)
+      acc_lim_y: 0.0  # TODO: adjust this if needed (m/s^2)
+      acc_lim_theta: 1.0  # TODO: adjust this if needed (m/s^2)
+      decel_lim_x: -1.0  # TODO: adjust this if needed (m/s^2)
+      decel_lim_y: 0.0  # TODO: adjust this if needed (m/s^2)
+      decel_lim_theta: -1.0  # TODO: adjust this if needed (m/s^2)
       vx_samples: 30
       vy_samples: 10
       vtheta_samples: 20
@@ -243,12 +243,13 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.7, 0.0, 1.0]
-    min_velocity: [-0.7, 0.0, -1.0]
+    max_velocity: [1.0, 0.0, 2.0]
+    min_velocity: [-1.0, 0.0, -2.0]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    max_accel: [2.5, 0.0, 3.2]
-    max_decel: [-2.5, 0.0, -3.2]
+    max_accel: [1.0, 0.0, 2.0]
+    max_decel: [-1.0, 0.0, -2.0]
+    odom_topic: "odom"
     odom_duration: 0.1
 
 local_costmap:
