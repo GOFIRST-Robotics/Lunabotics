@@ -16,7 +16,7 @@ COPY deepstream/deepstream-7.0_7.0.0-1_amd64.deb deepstream.deb
 RUN apt-get update && apt-get install -y ./deepstream.deb && \
     rm deepstream.deb && \
     rm -rf /var/lib/apt/lists/*
-  
+
 # RUN if [ "$(uname -m)" = "x86_64" ]; then \
 #     wget --content-disposition 'https://api.ngc.nvidia.com/v2/resources/org/nvidia/deepstream/7.0/files?redirect=true&path=deepstream-7.0_7.0.0-1_amd64.deb' -O deepstream.deb; \
 #   else \
