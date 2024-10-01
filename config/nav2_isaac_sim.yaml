@@ -106,18 +106,18 @@ controller_server:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
       min_vel_x: -0.5  # TODO: adjust this if needed (m/s)
-      min_vel_y: -0.5  # TODO: adjust this if needed (m/s)
+      min_vel_y: 0.0  # TODO: adjust this if needed (m/s)
       max_vel_x: 0.5  # TODO: adjust this if needed (m/s)
-      max_vel_y: 0.5  # TODO: adjust this if needed (m/s)
+      max_vel_y: 0.0  # TODO: adjust this if needed (m/s)
       max_vel_theta: 0.5  # TODO: adjust this if needed (m/s)
       min_speed_xy: -0.5  # TODO: adjust this if needed (m/s)
       max_speed_xy: 0.5  # TODO: adjust this if needed (m/s)
       min_speed_theta: -0.5  # TODO: adjust this if needed (m/s)
       acc_lim_x: 1.0  # TODO: adjust this if needed (m/s^2)
-      acc_lim_y: 1.0  # TODO: adjust this if needed (m/s^2)
+      acc_lim_y: 0.0  # TODO: adjust this if needed (m/s^2)
       acc_lim_theta: 1.0  # TODO: adjust this if needed (m/s^2)
       decel_lim_x: -1.0  # TODO: adjust this if needed (m/s^2)
-      decel_lim_y: -1.0  # TODO: adjust this if needed (m/s^2)
+      decel_lim_y: 0.0  # TODO: adjust this if needed (m/s^2)
       decel_lim_theta: -1.0  # TODO: adjust this if needed (m/s^2)
       vx_samples: 30
       vy_samples: 30
@@ -158,12 +158,12 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [1.0, 1.0, 2.0]
-    min_velocity: [-1.0, -1.0, -2.0]
+    max_velocity: [1.0, 0.0, 2.0]
+    min_velocity: [-1.0, 0.0, -2.0]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    max_accel: [1.0, 1.0, 2.0]
-    max_decel: [-1.0, -1.0, -2.0]
+    max_accel: [1.0, 0.0, 2.0]
+    max_decel: [-1.0, 0.0, -2.0]
     odom_topic: "odom"
     odom_duration: 0.1
 
