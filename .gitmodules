@@ -5,7 +5,7 @@
 [submodule "src/zed-ros2-wrapper"]
 	path = src/zed-ros2-wrapper
 	url = https://github.com/stereolabs/zed-ros2-wrapper.git
-	branch =  master
+	branch = humble-v4.1.4
 [submodule "src/isaac_ros/isaac_ros_common"]
 	path = src/isaac_ros/isaac_ros_common
 	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common.git
