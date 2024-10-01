@@ -1,6 +1,6 @@
 #!/bin/bash
 printf 'CONFIG_DOCKER_SEARCH_DIRS="$HOME/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/../../../../docker"\n'> ~/.isaac_ros_common-config
-image_key="ros2_humble.realsense.deepstream.user.zed1.umn.gazebo"
+image_key="ros2_humble.realsense.user.zed1.umn.gazebo"
 docker_arg="-v /usr/local/zed/resources:/usr/local/zed/resources -v /ssd:/ssd -v /usr/local/zed/settings:/usr/local/zed/settings"
 if [ "$(uname -m)" = "x86_64" ]; then
     ARCH=amd64
