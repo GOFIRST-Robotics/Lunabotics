@@ -4,7 +4,7 @@ FROM ${BASE_IMAGE}
 USER root
 
 # to get list of packages rosdep install --reinstall --simulate --from-path src --ignore-src --skip-keys 'nvblox negotiated'| awk '{print $5 }'
-RUN apt-get update  && apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install -y \
     ros-humble-rclc \
     libboost-all-dev \
     python3-pytest \
@@ -30,3 +30,6 @@ RUN apt-get update  && apt-get install -y \
     libeigen3-dev \
     ros-humble-librealsense2 \
     && rm -rf /var/lib/apt/lists/*
+
+ARG USERNAME=admin
+RUN adduser ${USERNAME} dialout && adduser ${USERNAME} tty && adduser ${USERNAME} input
