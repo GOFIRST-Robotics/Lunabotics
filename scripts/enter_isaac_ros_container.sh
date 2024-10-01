@@ -13,4 +13,5 @@ if [ ! -f ${HOME}/Lunabotics/docker/deepstream/deepstream.deb ]; then
     find "${HOME}/Lunabotics/docker/deepstream" -name *.deb -type f | xargs -I f mv f ${HOME}/Lunabotics/docker/deepstream/deepstream.deb
 fi
 bash ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/build_image_layers.sh -a "ZED_SDK_MINOR=1" -a "ARCH=${ARCH}" -i "${image_key}"
+image_key="ros2_humble.realsense.deepstream.user.zed.umn.gazebo"
 bash ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/run_dev.sh -d ~/Lunabotics -i "${image_key}" -a "${docker_arg}" -v
