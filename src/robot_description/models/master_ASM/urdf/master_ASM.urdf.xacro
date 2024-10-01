@@ -150,7 +150,7 @@ Stephen Brawner (brawner@gmail.com)
   </link>
   <joint
     name="swerve1_joint"
-    type="fixed">
+    type="fixed"> <!-- fixed -->
     <origin
       xyz="-0.34701 0.55026 -0.59563"
       rpy="1.5708 0 0" />
@@ -246,7 +246,7 @@ Stephen Brawner (brawner@gmail.com)
   </link>
   <joint
     name="swerve2_joint"
-    type="fixed">
+    type="fixed"> <!-- fixed -->
     <origin
       xyz="0.34701 -0.55026 -0.59563"
       rpy="1.5708 0 3.1416" />
