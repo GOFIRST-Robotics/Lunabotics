@@ -5,12 +5,7 @@ if [ ! -f ${HOME}/Lunabotics/docker/deepstream/*/deepstream*.deb ]; then
     ngc registry resource download-version nvidia/deepstream:7.0 --dest "${HOME}/Lunabotics/docker/deepstream" --file "*.deb" || echo You need to install ngc!
 fi
 
-if [ -n "$1" ]
-then 
-    declare -a arr=($1 $2)
-else
-    declare -a arr=("$(uname -m)")
-fi
+declare -a arr=("$(uname -m)")
 
 for PLAT in "${arr[@]}"
 do
