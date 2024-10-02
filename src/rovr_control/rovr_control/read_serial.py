@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from rovr_interfaces.msg import LimitSwitches, AbsoluteEncoders
+from rovr_interfaces.msg import LimitSwitches
 
 import serial
 import struct
@@ -12,7 +12,6 @@ class read_serial(Node):
         super().__init__("read_serial")
 
         self.limitSwitchesPub = self.create_publisher(LimitSwitches, "limitSwitches", 10)
-        self.absoluteEncodersPub = self.create_publisher(AbsoluteEncoders, "absoluteEncoders", 10)
 
         try:
             self.arduino = serial.Serial("/dev/ttyACM0", 9600)
@@ -28,21 +27,13 @@ class read_serial(Node):
                 self.get_logger().fatal("Killing read_serial node")
                 self.destroy_node()
                 return
-            data = self.arduino.read(10)  # Pause until 10 bytes are read
-            decoded = struct.unpack("??hhhh", data)  # Use h for each int because arduino int is 2 bytes
+            data = self.arduino.read(2)  # Pause until 2 bytes are read
+            decoded = struct.unpack("??", data)  # Use h for integers because arduino int is 2 bytes, use ? for booleans
 
             msg = LimitSwitches()
             msg.top_limit_switch = decoded[0]
             msg.bottom_limit_switch = decoded[1]
             self.limitSwitchesPub.publish(msg)
-
-            # NOTE: swerve module 90 degree switch, the old version was decoded[2-5] in order
-            msg = AbsoluteEncoders()
-            msg.front_left_encoder = decoded[4]
-            msg.front_right_encoder = decoded[2]
-            msg.back_left_encoder = decoded[5]
-            msg.back_right_encoder = decoded[3]
-            self.absoluteEncodersPub.publish(msg)
 
 
 def main(args=None):
