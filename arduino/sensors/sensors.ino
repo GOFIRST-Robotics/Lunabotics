@@ -11,6 +11,7 @@ struct SensorData {
 #define DIGGER_BOTTOM_LIMIT_SWITCH 3
 #define DUMPER_TOP_LIMIT_SWITCH 4
 #define DUMPER_BOTTOM_LIMIT_SWITCH 5
+
 void setup() {
   // Initialize serial communication
   Serial.begin(9600);
