@@ -1,7 +1,10 @@
 // Define a struct to hold the sensor data
 struct SensorData {
-  bool topLimitSwitch;
-  bool bottomLimitSwitch;
+  bool diggerTopLimitSwitch;
+  bool diggerBottomLimitSwitch;
+  bool dumperTopLimitSwitch;
+  bool dumperBottomLimitSwitch;
+  
   uint16_t frontLeftEncoder;
   uint16_t frontRightEncoder;
   uint16_t backLeftEncoder;
@@ -13,9 +16,10 @@ struct SensorData {
 #define FRONT_RIGHT_ENCODER A1
 #define BACK_LEFT_ENCODER A2
 #define BACK_RIGHT_ENCODER A3
-#define TOP_LIMIT_SWITCH 2
-#define BOTTOM_LIMIT_SWITCH 3
-
+#define DIGGER_TOP_LIMIT_SWITCH 2
+#define DIGGER_BOTTOM_LIMIT_SWITCH 3
+#define DUMPER_TOP_LIMIT_SWITCH 4
+#define DUMPER_BOTTOM_LIMIT_SWITCH 5
 void setup() {
   // Initialize serial communication
   Serial.begin(9600);
@@ -27,8 +31,10 @@ void setup() {
   pinMode(BACK_RIGHT_ENCODER, INPUT);
 
   // Initialize the digital inputs (limit switches)
-  pinMode(TOP_LIMIT_SWITCH, INPUT_PULLUP);
-  pinMode(BOTTOM_LIMIT_SWITCH, INPUT_PULLUP);
+  pinMode(DIGGER_TOP_LIMIT_SWITCH, INPUT_PULLUP);
+  pinMode(DIGGER_BOTTOM_LIMIT_SWITCH, INPUT_PULLUP);
+  pinMode(DUMPER_TOP_LIMIT_SWITCH, INPUT_PULLUP);
+  pinMode(DUMPER_BOTTOM_LIMIT_SWITCH, INPUT_PULLUP);
 }
 
 void loop() {
@@ -42,8 +48,10 @@ void loop() {
   data.backRightEncoder = (uint16_t)analogRead(BACK_RIGHT_ENCODER);
 
   // Read from the digital inputs (limit switches)
-  data.topLimitSwitch = (bool)digitalRead(TOP_LIMIT_SWITCH);
-  data.bottomLimitSwitch = (bool)digitalRead(BOTTOM_LIMIT_SWITCH);
+  data.diggerTopLimitSwitch = (bool)digitalRead(DIGGER_TOP_LIMIT_SWITCH);
+  data.diggerBottomLimitSwitch = (bool)digitalRead(DIGGER_BOTTOM_LIMIT_SWITCH);
+  data.dumperTopLimitSwitch = (bool)digitalRead(DUMPER_TOP_LIMIT_SWITCH);
+  data.dumperBottomLimitSwitch = (bool)digitalRead(DUMPER_BOTTOM_LIMIT_SWITCH);
 
   // Send the struct over the serial bus to the Nvidia Jetson
   Serial.write((byte *)&data, sizeof(SensorData));
