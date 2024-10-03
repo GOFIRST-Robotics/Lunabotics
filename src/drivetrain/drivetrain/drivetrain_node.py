@@ -3,7 +3,6 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: September 2024 by Charlie & Ashton
 
-import math
 
 # Import the ROS 2 module
 import rclpy
@@ -70,9 +69,6 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
 
-        # Reverse the turning direction # TODO: Check in simulation if we need this
-        turning_power *= -1
-
         # Clamp the values between -1 and 1
         forward_power = max(-1.0, min(forward_power, 1.0))
         turning_power = max(-1.0, min(turning_power, 1.0))
@@ -82,8 +78,8 @@ class DrivetrainNode(Node):
         rightPower = forward_power + turning_power
 
         # Desaturate the wheel speeds if needed
-        if math.abs(leftPower) > 1.0 or math.abs(rightPower) > 1.0:
-            scale_factor = 1.0 / max(leftPower, rightPower)
+        if abs(leftPower) > 1.0 or abs(rightPower) > 1.0:
+            scale_factor = 1.0 / max(abs(leftPower), abs(rightPower))
             leftPower *= scale_factor
             rightPower *= scale_factor
 
@@ -96,9 +92,9 @@ class DrivetrainNode(Node):
         # Publish the wheel speeds to the gazebo simulation
         if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub.publish(Float64(data=leftPower))
-            self.gazebo_wheel2_pub.publish(Float64(data=leftPower))
+            self.gazebo_wheel2_pub.publish(Float64(data=rightPower))
             self.gazebo_wheel3_pub.publish(Float64(data=rightPower))
-            self.gazebo_wheel4_pub.publish(Float64(data=rightPower))
+            self.gazebo_wheel4_pub.publish(Float64(data=leftPower))
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
@@ -122,7 +118,7 @@ class DrivetrainNode(Node):
 
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
-        self.drive(msg.linear.y, msg.angular.z)
+        self.drive(msg.linear.x, msg.angular.z)
 
 
 def main(args=None):
