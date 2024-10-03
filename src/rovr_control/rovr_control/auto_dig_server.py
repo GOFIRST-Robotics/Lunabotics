@@ -75,7 +75,7 @@ class AutoDigServer(AsyncNode):
         self.cli_lift_zero.call_async(Stop.Request())
         # Wait for the lift goal to be reached
         await self.skimmer_sleep()
-
+        #TODO ALL skimmer_sleeps for Lift_zero need to be replaced with awaiting signal from limit switches/awaiting lift_zero
 
 
         # Start the skimmer belt
@@ -96,16 +96,6 @@ class AutoDigServer(AsyncNode):
         #raise lift to dumping position 
         # Wait for the lift goal to be reached
         await self.skimmer_sleep()
-
-        #dump into receptacle
-        self.cli_skimmer_setPower.call_async(SetPower.Request(power=-1*(goal_handle.request.skimmer_belt_power)))
-
-        
-        self.get_logger().info("Dumping into receptacle")
-        await self.async_sleep(12)  # Allows for task to be canceled
-        self.get_logger().info("Done storing material")
-        
-        await self.cli_skimmer_stop.call_async(Stop.Request())
 
 
         self.get_logger().info("Autonomous Digging Procedure Complete!")
