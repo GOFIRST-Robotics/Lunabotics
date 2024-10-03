@@ -13,7 +13,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import Stop, Drive, MotorCommandSet, MotorCommandGet
+from rovr_interfaces.srv import Stop, Drive, MotorCommandSet
 
 
 class DrivetrainNode(Node):
@@ -50,7 +50,6 @@ class DrivetrainNode(Node):
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
-        self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define services (methods callable from the outside) here
         self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
@@ -84,10 +83,18 @@ class DrivetrainNode(Node):
             rightPower *= scale_factor
 
         # Send the motor commands to the motor_control_node
-        MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=leftPower)
-        MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
-        MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
-        MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+        )
 
         # Publish the wheel speeds to the gazebo simulation
         if self.GAZEBO_SIMULATION:
