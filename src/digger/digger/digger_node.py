@@ -1,7 +1,7 @@
 # This ROS 2 node contains code for the digger subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
-# Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: November 2023
+# Maintainer: Charlie Parece <parec020@umn.edu>
+# Last Updated: October 2024
 
 # Import the ROS 2 Python module
 import rclpy
@@ -33,7 +33,8 @@ class DiggerNode(Node):
         self.srv_setPosition = self.create_service(SetPosition, "lift/setPosition", self.set_position_callback)
         self.srv_lift_stop = self.create_service(Trigger, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
-        self.srv_zero_lift = self.create_service(Trigger, "lift/zero", self.zero_lift_callback)
+        self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
+        self.srv_lower_lift = self.create_service(Stop, "lift/lower", self.lower_lift_callback)
 
         # Define publishers here
         self.publisher_goal_reached = self.create_publisher(Bool, "digger/goal_reached", 10)
@@ -70,6 +71,8 @@ class DiggerNode(Node):
         self.goal_threshold = 320  # in degrees of the motor # TODO: Tune this threshold if needed
         # Current state of the lift system
         self.lift_running = False
+        # Goal reached internal global
+        self.goal_reached = False
 
         # Limit Switch States
         self.top_limit_pressed = False
@@ -140,6 +143,9 @@ class DiggerNode(Node):
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
         self.lift_set_power(0.05)
 
+    def lower_lift(self) -> None:
+        self.lift_set_power(-0.05)
+
     # Define service callback methods here
     def set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
@@ -165,7 +171,9 @@ class DiggerNode(Node):
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
-        response.success = True
+        while not self.goal_reached:
+            pass
+        response.success = 0  # indicates success
         return response
 
     def stop_lift_callback(self, request, response):
@@ -183,7 +191,17 @@ class DiggerNode(Node):
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
         self.zero_lift()
-        response.success = True
+        while not self.top_limit_pressed:
+            pass
+        response.success = 0  # indicates success
+        return response
+
+    def lower_lift_callback(self, request, response):
+        """This service request reverse-zeros the lift system, putting it at the lowest point"""
+        self.lower_lift()
+        while not self.bottom_limit_pressed:
+            pass
+        response.success = 0  # indicates success
         return response
 
     # Define timer callback methods here
@@ -200,6 +218,7 @@ class DiggerNode(Node):
             <= self.goal_threshold
         )
         self.publisher_goal_reached.publish(goal_reached_msg)
+        self.goal_reached = goal_reached_msg
 
     # Define subscriber callback methods here
     def limit_switch_callback(self, limit_switches_msg):

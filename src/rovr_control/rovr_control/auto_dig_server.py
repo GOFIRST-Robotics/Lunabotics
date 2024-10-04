@@ -26,7 +26,8 @@ class AutoDigServer(AsyncNode):
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
 
-        self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
+        self.cli_lift_zero = self.create_client(Stop, "lift/zero")
+        self.cli_lift_lower = self.create_client(Stop, "lift/lower")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
@@ -72,20 +73,16 @@ class AutoDigServer(AsyncNode):
             goal_handle.abort()
             return result
 
-        # Zero the digger
-        self.cli_lift_zero.call_async(Trigger.Request())
+        # Zero the skimmer
         # Wait for the lift goal to be reached
-        await self.skimmer_sleep()
-        #TODO ALL skimmer_sleeps for Lift_zero need to be replaced with awaiting signal from limit switches/awaiting lift_zero
+        await self.cli_lift_zero.call_async(Stop.Reqest())
 
-
-        # Start the digger belt
-        self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
+        # Start the skimmer belt
+        await self.cli_skimmer_setPower.call_async(SetPower.Request(power=goal_handle.request.skimmer_belt_power))
 
         # Lower the skimmer towards the ground slowly
-        self.cli_lift_setPower.call_async(SetPower.Request(power=-0.5))
-        #ADD WAIT TIL skimmer is at bottom, so it reaches the bottom, then digs a bit longer, then moves on
-        
+        await self.cli_lift_lower.call_async(Stop.Reqest())
+
         self.get_logger().info("Auto Digging in Place")
         await self.async_sleep(3)  # Allows for task to be canceled / reaches the lower limit switch and digs for a while
         self.get_logger().info("Done Digging in Place")
@@ -93,11 +90,9 @@ class AutoDigServer(AsyncNode):
         # Stop skimming
         await self.cli_skimmer_stop.call_async(Stop.Request())
 
-        self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
-        #raise lift to dumping position 
+        await self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
+        #raise lift to dumping position
         # Wait for the lift goal to be reached
-        await self.digger_sleep()
-
 
         self.get_logger().info("Autonomous Digging Procedure Complete!")
         goal_handle.succeed()
