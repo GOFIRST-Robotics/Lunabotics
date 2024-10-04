@@ -3,13 +3,9 @@
     CAN_INTERFACE_TRANSMIT: "can0" # can0, can1, slcan0, slcan1 are common values
     CAN_INTERFACE_RECEIVE: "can0" # can0, can1, slcan0, slcan1 are common values
     BACK_LEFT_DRIVE: 7 # CAN ID of the back left drive motor
-    BACK_LEFT_TURN: 6 # CAN ID of the back left turn motor
     FRONT_LEFT_DRIVE: 10 # CAN ID of the front left drive motor
-    FRONT_LEFT_TURN: 4 # CAN ID of the front left turn motor
     BACK_RIGHT_DRIVE: 8 # CAN ID of the back right drive motor
-    BACK_RIGHT_TURN: 5 # CAN ID of the back right turn motor
     FRONT_RIGHT_DRIVE: 9 # CAN ID of the front right drive motor
-    FRONT_RIGHT_TURN: 3 # CAN ID of the front right turn motor
     SKIMMER_BELT_MOTOR: 2 # CAN ID of the skimmer belt motor
     SKIMMER_LIFT_MOTOR: 1 # CAN ID of the skimmer lift motor
     DUMPER_MOTOR: 11 # CAN ID of the dumper motor
