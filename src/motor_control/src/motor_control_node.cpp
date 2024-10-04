@@ -179,6 +179,11 @@ class MotorControlNode : public rclcpp::Node {
     RCLCPP_DEBUG(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
   }
 
+// smoothly ramp up motor speed
+  void ramp_up(uint32_t id, float percentPowerGoal) {
+    
+  }
+
   // Set the velocity of the motor in RPM (Rotations Per Minute)
   void vesc_set_velocity(uint32_t id, int rpm) {
     if (this->pid_controllers[id]) {
@@ -379,6 +384,7 @@ private:
       RCLCPP_WARN(this->get_logger(), "GET command for CAN ID %u read stale data!", request->can_id);
     }
   }
+    
 
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
