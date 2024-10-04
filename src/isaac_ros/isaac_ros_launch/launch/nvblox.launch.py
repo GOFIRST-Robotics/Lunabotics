@@ -27,14 +27,15 @@ from launch_ros.descriptions import ComposableNode
 from launch.substitutions import PathJoinSubstitution
 
 
-def getZedRemappings():
+def getZedRemappings(setup_for_zed):
     remappings = []
-    remappings.append(('camera_0/depth/image', '/zed/zed_node/depth/depth_registered'))
-    remappings.append(('camera_0/depth/camera_info', '/zed/zed_node/depth/camera_info'))
-    remappings.append(('camera_0/color/image', '/zed/zed_node/rgb/image_rect_color'))
-    remappings.append(('camera_0/color/camera_info', '/zed/zed_node/rgb/camera_info'))
-    remappings.append(('camera_0/color/camera_info', '/zed/zed_node/rgb/camera_info'))
-    remappings.append(('pose', '/zed/zed_node/pose'))
+    if setup_for_zed:
+        remappings.append(('camera_0/depth/image', '/zed/zed_node/depth/depth_registered'))
+        remappings.append(('camera_0/depth/camera_info', '/zed/zed_node/depth/camera_info'))
+        remappings.append(('camera_0/color/image', '/zed/zed_node/rgb/image_rect_color'))
+        remappings.append(('camera_0/color/camera_info', '/zed/zed_node/rgb/camera_info'))
+        remappings.append(('camera_0/color/camera_info', '/zed/zed_node/rgb/camera_info'))
+        remappings.append(('pose', '/zed/zed_node/pose'))
     return remappings
 
 
@@ -75,7 +76,7 @@ def generate_launch_description():
                 name="nvblox_node",
                 package="nvblox_ros",
                 plugin="nvblox::NvbloxNode",
-                remappings=getZedRemappings(),
+                remappings=getZedRemappings(setup_for_zed),
             )
         ],
     )
