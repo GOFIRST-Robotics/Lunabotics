@@ -29,13 +29,6 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install 
     python3-scipy \
     libeigen3-dev \
     ros-humble-librealsense2 \
-    ros-humble-ffmpeg-image-transport \
-    ros-humble-ffmpeg-encoder-decoder \
-    ros-humble-isaac-ros-nvblox \
-    ros-humble-isaac-ros-apriltag \
-    ros-humble-nvblox-rviz-plugin \
-    ros-humble-nvblox-examples-bringup \
-    ros-humble-nvblox-nav2 \
     && rm -rf /var/lib/apt/lists/*
 
 ARG USERNAME=admin
