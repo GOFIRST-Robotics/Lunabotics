@@ -3,7 +3,8 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-# to get list of packages rosdep install --reinstall --simulate --from-path src --ignore-src | awk '{print $5 }'
+# To get list of all packages needed: rosdep install --reinstall --simulate --from-path src --ignore-src | awk '{print $5 }'
+# To get list of packages currently missing run: rosdep install --simulate --from-path src --ignore-src | awk '{print $5 }'
 RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install -y \
     ros-humble-rclc \
     libboost-all-dev \
@@ -29,6 +30,9 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install 
     python3-scipy \
     libeigen3-dev \
     ros-humble-librealsense2 \
+    ros-humble-magic-enum \
+    ros-humble-ffmpeg-image-transport \
+    ros-humble-ffmpeg-encoder-decoder \
     && rm -rf /var/lib/apt/lists/*
 
 ARG USERNAME=admin
