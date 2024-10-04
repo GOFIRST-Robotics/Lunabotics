@@ -70,11 +70,12 @@ def generate_launch_description():
     load_composable_nodes = LoadComposableNodes(
         target_container=component_container_name_arg,
         composable_node_descriptions=[
-            ComposableNode(name="nvblox_node", 
-                           package="nvblox_ros", 
-                           plugin="nvblox::NvbloxNode",
-                           remappings=getZedRemappings(),
-                           )
+            ComposableNode (
+                name="nvblox_node", 
+                package="nvblox_ros", 
+                plugin="nvblox::NvbloxNode",
+                remappings=getZedRemappings(),
+            )
         ],
     )
 
