@@ -22,21 +22,9 @@ from launch.actions import GroupAction
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import LoadComposableNodes, Node
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import SetParameter, SetParametersFromFile
+from launch_ros.actions import SetParameter, SetParametersFromFile, SetRemap
 from launch_ros.descriptions import ComposableNode
 from launch.substitutions import PathJoinSubstitution
-
-
-def getZedRemappings(setup_for_zed):
-    remappings = []
-    if setup_for_zed:
-        remappings.append(('camera_0/depth/image', '/zed/zed_node/depth/depth_registered'))
-        remappings.append(('camera_0/depth/camera_info', '/zed/zed_node/depth/camera_info'))
-        remappings.append(('camera_0/color/image', '/zed/zed_node/rgb/image_rect_color'))
-        remappings.append(('camera_0/color/camera_info', '/zed/zed_node/rgb/camera_info'))
-        remappings.append(('camera_0/color/camera_info', '/zed/zed_node/rgb/camera_info'))
-        remappings.append(('pose', '/zed/zed_node/pose'))
-    return remappings
 
 
 def generate_launch_description():
@@ -76,7 +64,6 @@ def generate_launch_description():
                 name="nvblox_node",
                 package="nvblox_ros",
                 plugin="nvblox::NvbloxNode",
-                remappings=getZedRemappings(setup_for_zed),
             )
         ],
     )
@@ -89,6 +76,11 @@ def generate_launch_description():
             SetParametersFromFile(gazebo_simulation_config, condition=setup_for_gazebo),
             SetParameter(name="global_frame", value=LaunchConfiguration("global_frame", default="odom")),
             # Remappings for zed data
+            SetRemap(src=["camera_0/depth/image"], dst=["/zed/zed_node/depth/depth_registered"], condition=setup_for_zed),
+            SetRemap(src=["camera_0/depth/camera_info"], dst=["/zed/zed_node/depth/camera_info"], condition=setup_for_zed),
+            SetRemap(src=["camera_0/color/image"], dst=["/zed/zed_node/rgb/image_rect_color"], condition=setup_for_zed),
+            SetRemap(src=["camera_0/color/camera_info"], dst=["/zed/zed_node/rgb/camera_info"], condition=setup_for_zed),
+            SetRemap(src=["pose"], dst=["/zed/zed_node/pose"], condition=setup_for_zed),
             # Include the node container
             load_composable_nodes,
         ]
