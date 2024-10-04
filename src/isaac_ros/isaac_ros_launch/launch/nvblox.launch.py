@@ -72,11 +72,11 @@ def generate_launch_description():
             SetParametersFromFile(gazebo_simulation_config, condition=setup_for_gazebo),
             SetParameter(name="global_frame", value=LaunchConfiguration("global_frame", default="odom")),
             # Remappings for zed data
-            SetRemap(src=["camera_0/depth/image"], dst=["/zed/zed_node/depth/depth_registered"], condition=setup_for_zed),
-            SetRemap(src=["camera_0/depth/camera_info"], dst=["/zed/zed_node/depth/camera_info"], condition=setup_for_zed),
-            SetRemap(src=["camera_0/color/image"], dst=["/zed/zed_node/rgb/image_rect_color"], condition=setup_for_zed),
-            SetRemap(src=["camera_0/color/camera_info"], dst=["/zed/zed_node/rgb/camera_info"], condition=setup_for_zed),
-            SetRemap(src=["pose"], dst=["/zed/zed_node/pose"], condition=setup_for_zed),
+            SetRemap(src=["camera_0/depth/image"], dst=["/zed2i/zed_node/depth/depth_registered"], condition=setup_for_zed),
+            SetRemap(src=["camera_0/depth/camera_info"], dst=["/zed2i/zed_node/depth/camera_info"], condition=setup_for_zed),
+            SetRemap(src=["camera_0/color/image"], dst=["/zed2i/zed_node/rgb/image_rect_color"], condition=setup_for_zed),
+            SetRemap(src=["camera_0/color/camera_info"], dst=["/zed2i/zed_node/rgb/camera_info"], condition=setup_for_zed),
+            SetRemap(src=["pose"], dst=["/zed2i/zed_node/pose"], condition=setup_for_zed),
             # Include the node container
             load_composable_nodes,
         ]
