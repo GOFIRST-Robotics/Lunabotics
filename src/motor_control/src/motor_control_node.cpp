@@ -234,22 +234,12 @@ public:
     // Define default values for our ROS parameters below #
     this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
-    this->declare_parameter("BACK_LEFT_TURN", 4);
-    this->declare_parameter("FRONT_LEFT_TURN", 3);
-    this->declare_parameter("BACK_RIGHT_TURN", 6);
-    this->declare_parameter("FRONT_RIGHT_TURN", 5);
     this->declare_parameter("SKIMMER_LIFT_MOTOR", 1);
-    this->declare_parameter("STEERING_MOTOR_GEAR_RATIO", 40);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
-    RCLCPP_INFO(this->get_logger(), "BACK_LEFT_TURN parameter set to: %ld", this->get_parameter("BACK_LEFT_TURN").as_int());
-    RCLCPP_INFO(this->get_logger(), "FRONT_LEFT_TURN parameter set to: %ld", this->get_parameter("FRONT_LEFT_TURN").as_int());
-    RCLCPP_INFO(this->get_logger(), "BACK_RIGHT_TURN parameter set to: %ld", this->get_parameter("BACK_RIGHT_TURN").as_int());
-    RCLCPP_INFO(this->get_logger(), "FRONT_RIGHT_TURN parameter set to: %ld", this->get_parameter("FRONT_RIGHT_TURN").as_int());
     RCLCPP_INFO(this->get_logger(), "SKIMMER_LIFT_MOTOR parameter set to: %ld", this->get_parameter("SKIMMER_LIFT_MOTOR").as_int());
-    RCLCPP_INFO(this->get_logger(), "STEERING_MOTOR_GEAR_RATIO parameter set to: %ld", this->get_parameter("STEERING_MOTOR_GEAR_RATIO").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -257,18 +247,7 @@ public:
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
 
-    // Instantiate all of our PIDControllers here
-    this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()] = new PIDController(42, 0.005, 0.0, 0.0, 0.0, 10, 0.4);
-    this->pid_controllers[this->get_parameter("FRONT_LEFT_TURN").as_int()] = new PIDController(42, 0.005, 0.0, 0.0, 0.0, 10, 0.4);
-    this->pid_controllers[this->get_parameter("BACK_RIGHT_TURN").as_int()] = new PIDController(42, 0.005, 0.0, 0.0, 0.0, 10, 0.4);
-    this->pid_controllers[this->get_parameter("FRONT_RIGHT_TURN").as_int()] = new PIDController(42, 0.005, 0.0, 0.0, 0.0, 10, 0.4);
     this->pid_controllers[this->get_parameter("SKIMMER_LIFT_MOTOR").as_int()] = new PIDController(42, 0.005, 0.0, 0.0, 0.0, 20, 0.05);
-
-    // Enable continuous input for the swerve module PID controllers
-    this->pid_controllers[this->get_parameter("BACK_LEFT_TURN").as_int()]->enableContinuousInput(0, 360 * this->get_parameter("STEERING_MOTOR_GEAR_RATIO").as_int());
-    this->pid_controllers[this->get_parameter("FRONT_LEFT_TURN").as_int()]->enableContinuousInput(0, 360 * this->get_parameter("STEERING_MOTOR_GEAR_RATIO").as_int());
-    this->pid_controllers[this->get_parameter("BACK_RIGHT_TURN").as_int()]->enableContinuousInput(0, 360 * this->get_parameter("STEERING_MOTOR_GEAR_RATIO").as_int());
-    this->pid_controllers[this->get_parameter("FRONT_RIGHT_TURN").as_int()]->enableContinuousInput(0, 360 * this->get_parameter("STEERING_MOTOR_GEAR_RATIO").as_int());
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
