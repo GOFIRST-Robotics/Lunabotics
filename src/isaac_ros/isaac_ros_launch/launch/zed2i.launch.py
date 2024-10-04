@@ -62,7 +62,7 @@ def generate_launch_description():
     # ZED Wrapper node
     zed_wrapper_node = Node(
         package="zed_wrapper",
-        namespace="zed2i",
+        namespace="zed",
         executable="zed_wrapper",
         name="zed_node",
         output="screen",
