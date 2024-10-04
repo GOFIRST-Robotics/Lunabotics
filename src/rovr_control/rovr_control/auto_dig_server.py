@@ -93,9 +93,7 @@ class AutoDigServer(AsyncNode):
         # TODO: completing ticket #298 can replace this while loop with a motor ramp up service
         while elapsed < 2e9:
             self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
-            self.cli_drivetrain_drive.call_async(
-                Drive.Request(forward_power=0.0, horizontal_power=0.25e-9 * (elapsed), turning_power=0.0)
-            )
+            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.25e-9 * (elapsed), turning_power=0.0))
             self.get_logger().info("Accelerating lift and drive train")
             elapsed = self.get_clock().now().nanoseconds - start_time
             await self.async_sleep(0.1)  # Allows for task to be canceled
