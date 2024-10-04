@@ -22,7 +22,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/AutoDig.action"
   "action/AutoOffload.action"
   "action/CalibrateFieldCoordinates.action"
-  "msg/AbsoluteEncoders.msg"
   "msg/LimitSwitches.msg"
   "srv/Drive.srv"
   "srv/MotorCommandGet.srv"

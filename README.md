@@ -22,7 +22,7 @@ graph LR
             P[ZED ROS 2 Wrapper]
         end
         D[Arduino Microcontroller]
-        K[Limit Switches and Absolute Encoders]
+        K[Limit Switches]
         E[VESC Motor Controllers]
     end
     K --> D

@@ -66,9 +66,7 @@ class AutoOffloadServer(AsyncNode):
             return result
 
         # Drive backward into the berm zone
-        self.cli_drivetrain_drive.call_async(
-            Drive.Request(forward_power=0.0, horizontal_power=-0.25, turning_power=0.0)
-        )
+        self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=-0.25, turning_power=0.0))
 
         self.get_logger().info("Auto Driving")
         # drive for 10 seconds
