@@ -65,7 +65,7 @@ Visualization Manager:
           Value: false
         zed2i_camera_link:
           Value: true
-        zed2i_imu_link:
+zed2i_imu_link:
           Value: false
         zed2i_left_camera_frame:
           Value: false
@@ -83,7 +83,7 @@ Visualization Manager:
       Tree:
         map:
           odom:
-            zed2i_camera_link:
+zed2i_camera_link:
               translation_end_link:
                 frame_link:
                   swerve1_Link:
@@ -106,7 +106,7 @@ Visualization Manager:
                     {}
                 zed2i_right_camera_frame:
                   zed2i_right_camera_optical_frame:
-                    {}
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 0.5
@@ -493,7 +493,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 212; 212; 212
-    Fixed Frame: odom
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
