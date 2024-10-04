@@ -1,7 +1,7 @@
 # This ROS 2 node contains code for the skimmer subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
-# Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: November 2023
+# Maintainer: Charlie Parece <parec020@umn.edu>
+# Last Updated: October 2024
 
 # Import the ROS 2 Python module
 import rclpy
@@ -33,6 +33,7 @@ class SkimmerNode(Node):
         self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
         self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
+        self.srv_lower_lift = self.create_service(Stop, "lift/lower", self.lower_lift_callback)
 
         # Define publishers here
         self.publisher_goal_reached = self.create_publisher(Bool, "skimmer/goal_reached", 10)
@@ -69,6 +70,8 @@ class SkimmerNode(Node):
         self.goal_threshold = 320  # in degrees of the motor # TODO: Tune this threshold if needed
         # Current state of the lift system
         self.lift_running = False
+        # Goal reached internal global
+        self.goal_reached = False
 
         # Limit Switch States
         self.top_limit_pressed = False
@@ -139,6 +142,9 @@ class SkimmerNode(Node):
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
         self.lift_set_power(0.05)
 
+    def lower_lift(self) -> None:
+        self.lift_set_power(-0.05)
+
     # Define service callback methods here
     def set_power_callback(self, request, response):
         """This service request sets power to the skimmer belt."""
@@ -164,6 +170,8 @@ class SkimmerNode(Node):
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
+        while not self.goal_reached:
+            pass
         response.success = 0  # indicates success
         return response
 
@@ -182,6 +190,16 @@ class SkimmerNode(Node):
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
         self.zero_lift()
+        while not self.top_limit_pressed:
+            pass
+        response.success = 0  # indicates success
+        return response
+
+    def lower_lift_callback(self, request, response):
+        """This service request reverse-zeros the lift system, putting it at the lowest point"""
+        self.lower_lift()
+        while not self.bottom_limit_pressed:
+            pass
         response.success = 0  # indicates success
         return response
 
@@ -199,6 +217,7 @@ class SkimmerNode(Node):
             <= self.goal_threshold
         )
         self.publisher_goal_reached.publish(goal_reached_msg)
+        self.goal_reached = goal_reached_msg
 
     # Define subscriber callback methods here
     def limit_switch_callback(self, limit_switches_msg):
