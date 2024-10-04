@@ -49,7 +49,7 @@ Stephen Brawner (brawner@gmail.com)
   <joint name="base_to_translation_end" type="fixed">
     <parent link="translation_end_link"/>
     <child link="frame_link"/>
-    <origin xyz="-0.343 0.009 0.1254" rpy="0 0 0"/>
+    <origin xyz="-0.5 0 0.375" rpy="0 0 -1.57"/>
   </joint>
 
   <!-- Add a new link at the end of the translation vector -->
@@ -61,7 +61,7 @@ Stephen Brawner (brawner@gmail.com)
     </inertial>
   </link>
 
-  <!-- Connect the new link to the camera_link with only a rotation -->
+  <!-- Connect the translation_end_link to the zed2i_camera_link with only a rotation -->
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
   <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false">
     <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
@@ -70,7 +70,7 @@ Stephen Brawner (brawner@gmail.com)
   <joint name="translation_end_to_camera" type="fixed">
     <parent link="zed2i_camera_link"/>
     <child link="translation_end_link"/>
-    <origin xyz="0 0 0" rpy="0 -0.44 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
   <gazebo reference="zed2i_camera_link">
@@ -150,7 +150,7 @@ Stephen Brawner (brawner@gmail.com)
   </link>
   <joint
     name="swerve1_joint"
-    type="fixed"> <!-- fixed -->
+    type="fixed">
     <origin
       xyz="-0.34701 0.55026 -0.59563"
       rpy="1.5708 0 0" />
@@ -246,7 +246,7 @@ Stephen Brawner (brawner@gmail.com)
   </link>
   <joint
     name="swerve2_joint"
-    type="fixed"> <!-- fixed -->
+    type="fixed">
     <origin
       xyz="0.34701 -0.55026 -0.59563"
       rpy="1.5708 0 3.1416" />
@@ -536,48 +536,6 @@ Stephen Brawner (brawner@gmail.com)
       name="ignition::gazebo::systems::JointController">
       <joint_name>wheel4_joint</joint_name>
       <initial_velocity>0.0</initial_velocity>
-    </plugin>
-  </gazebo>
-
-  <!-- model/Master_ASM/joint/{jointName}/cmd_vel -->
-  <!--  ignition::msgs::Double, topic name and type for plugins -->
-  <!-- model/Master_ASM/joint/{jointName}/0//cmd_pos -->
-
-  <gazebo>
-    <plugin
-      filename="ignition-gazebo-joint-position-controller-system"
-      name="ignition::gazebo::systems::JointPositionController">
-      <joint_name>swerve1_joint</joint_name>
-      <use_velocity_commands>true</use_velocity_commands>
-      <cmd_max>15</cmd_max>
-      <cmd_min>-15</cmd_min>
-    </plugin>
-
-    <plugin
-      filename="ignition-gazebo-joint-position-controller-system"
-      name="ignition::gazebo::systems::JointPositionController">
-      <joint_name>swerve2_joint</joint_name>
-      <use_velocity_commands>true</use_velocity_commands>
-      <cmd_max>15</cmd_max>
-      <cmd_min>-15</cmd_min>
-    </plugin>
-
-    <plugin
-      filename="ignition-gazebo-joint-position-controller-system"
-      name="ignition::gazebo::systems::JointPositionController">
-      <joint_name>swerve3_joint</joint_name>
-      <use_velocity_commands>true</use_velocity_commands>
-      <cmd_max>15</cmd_max>
-      <cmd_min>-15</cmd_min>
-    </plugin>
-
-    <plugin
-      filename="ignition-gazebo-joint-position-controller-system"
-      name="ignition::gazebo::systems::JointPositionController">
-      <joint_name>swerve4_joint</joint_name>
-      <use_velocity_commands>true</use_velocity_commands>
-      <cmd_max>15</cmd_max>
-      <cmd_min>-15</cmd_min>
     </plugin>
   </gazebo>
 
