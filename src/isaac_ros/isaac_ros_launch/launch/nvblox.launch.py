@@ -22,9 +22,10 @@ from launch.actions import GroupAction
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import LoadComposableNodes, Node
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import SetParameter, SetParametersFromFile, SetRemap
+from launch_ros.actions import SetParameter, SetParametersFromFile
 from launch_ros.descriptions import ComposableNode
 from launch.substitutions import PathJoinSubstitution
+
 
 def getZedRemappings():
     remappings = []
@@ -70,9 +71,9 @@ def generate_launch_description():
     load_composable_nodes = LoadComposableNodes(
         target_container=component_container_name_arg,
         composable_node_descriptions=[
-            ComposableNode (
-                name="nvblox_node", 
-                package="nvblox_ros", 
+            ComposableNode(
+                name="nvblox_node",
+                package="nvblox_ros",
                 plugin="nvblox::NvbloxNode",
                 remappings=getZedRemappings(),
             )
@@ -87,7 +88,6 @@ def generate_launch_description():
             SetParametersFromFile(gazebo_simulation_config, condition=setup_for_gazebo),
             SetParameter(name="global_frame", value=LaunchConfiguration("global_frame", default="odom")),
             # Remappings for zed data
-            
             # Include the node container
             load_composable_nodes,
         ]
