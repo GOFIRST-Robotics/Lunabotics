@@ -4,12 +4,14 @@
 # Last Updated: September 2024
 
 # Import the ROS 2 Python module
+import time
 import rclpy
 from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, Stop
+from rovr_interfaces.msg import LimitSwitches
 
 
 class DumperNode(Node):
@@ -28,9 +30,10 @@ class DumperNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
-
+        self.declare_parameter("DUMPER_POWER", 0.5)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
+        self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
@@ -38,10 +41,24 @@ class DumperNode(Node):
         # Current state of the dumper
         self.running = False
 
+        self.limit_switch_sub = self.create_subscription(
+            LimitSwitches,
+            'limitSwitches',
+            self.limit_switch_callback,
+            10)
+
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
         self.running = True
+        if dumper_power > 0 and self.top_limit_pressed:
+            self.get_logger().warn("WARNING: Top limit switch pressed!")
+            self.stop()  # Stop the dumper
+            return
+        elif dumper_power < 0 and self.bottom_limit_pressed:
+            self.get_logger().warn("WARNING: Top limit switch pressedF!")
+            self.stop() # stop the dumper
+            return
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
         )
@@ -76,7 +93,29 @@ class DumperNode(Node):
         self.toggle(request.power)
         response.success = 0  # indicates success
         return response
+    
+    def dumper_switch_logic(self) -> None:
+        # wait for the top switch to be pressed
+        while not self.top_limit_pressed:
+            self.set_power(self.DUMPER_POWER)
+        self.stop()
+        # wait for 5 seconds to move on
+        current_time = time.time()
+        if time.time() > current_time + 5.0:
+            # wait for the bottom switch to be pressed
+            while not self.bottom_limit_pressed:
+                self.set_power(-self.DUMPER_POWER)
+            self.stop()
 
+    def limit_switch_callback(self, msg: LimitSwitches):
+        """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
+        if not self.top_limit_pressed and msg.top_limit_switch:
+            self.stop()  # Stop the lift system
+        if not self.bottom_limit_pressed and msg.bottom_limit_switch:
+            self.stop()  # Stop the lift system
+        self.top_limit_pressed = msg.top_limit_switch
+        self.bottom_limit_pressed = msg.bottom_limit_switch
+        
 
 def main(args=None):
     """The main function."""
