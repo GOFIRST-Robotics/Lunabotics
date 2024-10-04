@@ -77,6 +77,11 @@ def generate_launch_description():
             SetRemap(src=["camera_0/color/image"], dst=["/zed2i/zed_node/rgb/image_rect_color"], condition=setup_for_zed),
             SetRemap(src=["camera_0/color/camera_info"], dst=["/zed2i/zed_node/rgb/camera_info"], condition=setup_for_zed),
             SetRemap(src=["pose"], dst=["/zed2i/zed_node/pose"], condition=setup_for_zed),
+            # Remappings for gazebo sim data
+            SetRemap(src=["camera_0/depth/image"], dst=["/depth/image"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_0/depth/camera_info"], dst=["/depth/camera_info"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_0/color/image"], dst=["/color/image"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_0/color/camera_info"], dst=["/color/camera_info"], condition=setup_for_gazebo),
             # Include the node container
             load_composable_nodes,
         ]
