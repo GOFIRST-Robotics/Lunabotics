@@ -57,3 +57,5 @@ qtcreator-*
 CATKIN_IGNORE
 
 .fake
+
+docker/deepstream
