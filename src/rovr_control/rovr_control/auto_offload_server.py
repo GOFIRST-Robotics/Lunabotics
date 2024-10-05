@@ -21,8 +21,8 @@ class AutoOffloadServer(AsyncNode):
         )
 
         # TODO: This should not be needed anymore after ticket #257 is implemented!
-        self.skimmer_goal_subscription = self.create_subscription(
-            Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
+        self.digger_goal_subscription = self.create_subscription(
+            Bool, "/digger/goal_reached", self.digger_goal_callback, 10
         )
 
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
@@ -31,8 +31,8 @@ class AutoOffloadServer(AsyncNode):
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
 
-        self.cli_skimmer_setPower = self.create_client(SetPower, "skimmer/setPower")
-        self.cli_skimmer_stop = self.create_client(Stop, "skimmer/stop")
+        self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
+        self.cli_digger_stop = self.create_client(Stop, "digger/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         """This method lays out the procedure for autonomously offloading!"""
@@ -56,12 +56,12 @@ class AutoOffloadServer(AsyncNode):
             self.get_logger().error("Lift stop service not available")
             goal_handle.abort()
             return result
-        if not self.cli_skimmer_setPower.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Skimmer set power service not available")
+        if not self.cli_digger_setPower.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("digger set power service not available")
             goal_handle.abort()
             return result
-        if not self.cli_skimmer_stop.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Skimmer stop service not available")
+        if not self.cli_digger_stop.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("digger stop service not available")
             goal_handle.abort()
             return result
 
@@ -73,22 +73,22 @@ class AutoOffloadServer(AsyncNode):
         await self.async_sleep(10)  # Allows for task to be canceled
         await self.cli_drivetrain_stop.call_async(Stop.Request())
 
-        # Raise up the skimmer in preparation for dumping
+        # Raise up the digger in preparation for dumping
         self.get_logger().info("Raising the Lift!")
         self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
         # Wait for the lift goal to be reached
-        await self.skimmer_sleep()
+        await self.digger_sleep()
         if goal_handle.status != GoalStatus.STATUS_CANCELING:
             self.get_logger().info("Cancelling")
             return
 
         self.get_logger().info("Offloading")
-        self.cli_skimmer_setPower.call_async(SetPower.Request(power=goal_handle.request.skimmer_belt_power))
+        self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
         # sleep for the amount of time it takes to offload
-        time_to_offload = 1.0 / abs(goal_handle.request.skimmer_belt_power)
+        time_to_offload = 1.0 / abs(goal_handle.request.digger_belt_power)
         await self.async_sleep(time_to_offload)  # Allows for task to be canceled
 
-        await self.cli_skimmer_stop.call_async(Stop.Request())  # Stop the skimmer belt
+        await self.cli_digger_stop.call_async(Stop.Request())  # Stop the digger belt
         self.get_logger().info("Autonomous Offload Procedure Complete!")
         goal_handle.succeed()
         return result
@@ -97,11 +97,11 @@ class AutoOffloadServer(AsyncNode):
         """This method is called when the action is canceled."""
         self.get_logger().info("Goal is cancelling")
         # If lift is raising stop it
-        if not self.skimmer_goal_reached.done():
+        if not self.digger_goal_reached.done():
             self.cli_drivetrain_stop.call_async(Stop.Request())
         if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
             self.cli_drivetrain_stop.call_async(Stop.Request())
-            self.cli_skimmer_stop.call_async(Stop.Request())
+            self.cli_digger_stop.call_async(Stop.Request())
         return CancelResponse.ACCEPT
 
 
