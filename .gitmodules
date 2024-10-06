@@ -34,15 +34,3 @@
 	path = src/realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
 	branch = ros2-master
-[submodule "src/isaac_ros/isaac_ros_dnn_inference"]
-	path = src/isaac_ros/isaac_ros_dnn_inference
-	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_dnn_inference.git
-	branch = v3.1.0
-[submodule "src/isaac_ros/isaac_ros_compression"]
-	path = src/isaac_ros/isaac_ros_compression
-	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_compression.git
-	branch = v3.1.0
-[submodule "src/isaac_ros/isaac_ros_image_segmentation"]
-	path = src/isaac_ros/isaac_ros_image_segmentation
-	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_segmentation.git
-	branch = v3.1.0

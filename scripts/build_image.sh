@@ -1,4 +1,4 @@
-#!/bin/bash
+
 if [ -z "${image_key}"]; then
     image_key="ros2_humble.realsense.deepstream.user.zed.umn.gazebo"
 fi
