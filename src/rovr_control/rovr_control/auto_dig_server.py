@@ -18,8 +18,8 @@ class AutoDigServer(AsyncNode):
         )
 
         # TODO: This should not be needed anymore after ticket #257 is implemented!
-        self.skimmer_goal_subscription = self.create_subscription(
-            Bool, "/skimmer/goal_reached", self.skimmer_goal_callback, 10
+        self.digger_goal_subscription = self.create_subscription(
+            Bool, "/digger/goal_reached", self.digger_goal_callback, 10
         )
 
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
@@ -31,8 +31,8 @@ class AutoDigServer(AsyncNode):
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
 
-        self.cli_skimmer_stop = self.create_client(Stop, "skimmer/stop")
-        self.cli_skimmer_setPower = self.create_client(SetPower, "skimmer/setPower")
+        self.cli_digger_stop = self.create_client(Stop, "digger/stop")
+        self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         self.get_logger().info("Starting Autonomous Digging Procedure!")
@@ -63,23 +63,23 @@ class AutoDigServer(AsyncNode):
             self.get_logger().error("Lift zero service not available")
             goal_handle.abort()
             return result
-        if not self.cli_skimmer_setPower.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Skimmer set power service not available")
+        if not self.cli_digger_setPower.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Digger set power service not available")
             goal_handle.abort()
             return result
-        if not self.cli_skimmer_stop.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Skimmer stop service not available")
+        if not self.cli_digger_stop.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Digger stop service not available")
             goal_handle.abort()
             return result
 
-        # Zero the skimmer
+        # Zero the digger
         # Wait for the lift goal to be reached
         await self.cli_lift_zero.call_async(Stop.Reqest())
 
-        # Start the skimmer belt
-        await self.cli_skimmer_setPower.call_async(SetPower.Request(power=goal_handle.request.skimmer_belt_power))
+        # Start the digger belt
+        await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
 
-        # Lower the skimmer towards the ground slowly
+        # Lower the digger towards the ground slowly
         await self.cli_lift_lower.call_async(Stop.Reqest())
 
         self.get_logger().info("Auto Digging in Place")
@@ -87,7 +87,7 @@ class AutoDigServer(AsyncNode):
         self.get_logger().info("Done Digging in Place")
 
         # Stop skimming
-        await self.cli_skimmer_stop.call_async(Stop.Request())
+        await self.cli_digger_stop.call_async(Stop.Request())
 
         await self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
         #raise lift to dumping position
@@ -100,11 +100,11 @@ class AutoDigServer(AsyncNode):
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
         self.get_logger().info("Goal is cancelling")
-        if not self.skimmer_goal_reached.done():
+        if not self.digger_goal_reached.done():
             self.cli_drivetrain_stop.call_async(Stop.Request())
         if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
             self.cli_drivetrain_stop.call_async(Stop.Request())
-            self.cli_skimmer_stop.call_async(Stop.Request())
+            self.cli_digger_stop.call_async(Stop.Request())
         return CancelResponse.ACCEPT
 
 
