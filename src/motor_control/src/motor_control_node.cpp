@@ -196,6 +196,10 @@ class MotorControlNode : public rclcpp::Node {
     if (this->pid_controllers[id]) {
       this->pid_controllers[id]->setRotation(position);
     }
+    while( abs(this->can_data[id][2] - this->pid_controllers[id]->targTach) > 100)
+    {
+      continue;
+    }
     RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d degrees", id, position); // Print Statement
   }
 
