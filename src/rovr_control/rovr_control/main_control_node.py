@@ -61,18 +61,12 @@ class MainControlNode(Node):
         super().__init__("rovr_control")
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter(
-            "autonomous_driving_power", 0.25
-        )  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter(
-            "autonomous_field_type", "bottom"
-        )  # The type of field ("top", "bottom", "nasa")
-        self.declare_parameter(
-            "digger_lift_manual_power", 0.075
-        )  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("autonomous_field_type", "bottom")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
         self.declare_parameter("lift_digging_end_position", -3150)  # Measured in encoder counts
@@ -95,27 +89,15 @@ class MainControlNode(Node):
         )  # Convert encoder counts to degrees
 
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info(
-            "autonomous_driving_power has been set to: " + str(self.autonomous_driving_power)
-        )
+        self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
         self.get_logger().info("digger_belt_power has been set to: " + str(self.digger_belt_power))
-        self.get_logger().info(
-            "digger_lift_manual_power has been set to: " + str(self.digger_lift_manual_power)
-        )
-        self.get_logger().info(
-            "autonomous_field_type has been set to: " + str(self.autonomous_field_type)
-        )
-        self.get_logger().info(
-            "lift_dumping_position has been set to: " + str(self.lift_dumping_position)
-        )
-        self.get_logger().info(
-            "lift_digging_start_position has been set to: " + str(self.lift_digging_start_position)
-        )
-        self.get_logger().info(
-            "lift_digging_end_position has been set to: " + str(self.lift_digging_end_position)
-        )
+        self.get_logger().info("digger_lift_manual_power has been set to: " + str(self.digger_lift_manual_power))
+        self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
+        self.get_logger().info("lift_dumping_position has been set to: " + str(self.lift_dumping_position))
+        self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -233,15 +215,9 @@ class MainControlNode(Node):
 
         if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop (Arcade Drive)
-            forward_power = (
-                msg.axes[bindings.RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
-            )  # Forward power
-            turning_power = (
-                msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power
-            )  # Turning power
-            self.drive_power_publisher.publish(
-                Twist(linear=Vector3(x=forward_power), angular=Vector3(z=turning_power))
-            )
+            forward_power = msg.axes[bindings.RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
+            turning_power = msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power  # Turning power
+            self.drive_power_publisher.publish(Twist(linear=Vector3(x=forward_power), angular=Vector3(z=turning_power)))
 
             # Check if the digger button is pressed #
             if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
@@ -249,33 +225,23 @@ class MainControlNode(Node):
 
             # Check if the reverse digger button is pressed #
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.cli_digger_setPower.call_async(
-                    SetPower.Request(power=-self.digger_belt_power)
-                )
+                self.cli_digger_setPower.call_async(SetPower.Request(power=-self.digger_belt_power))
 
             # Check if the lift dumping position button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
-                self.cli_lift_setPosition.call_async(
-                    SetPosition.Request(position=self.lift_dumping_position)
-                )
+                self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))
 
             # Check if the lift digging position button is pressed #
             if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
-                self.cli_lift_setPosition.call_async(
-                    SetPosition.Request(position=self.lift_digging_start_position)
-                )
+                self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_start_position))
 
             # Manually adjust the height of the digger with the left and right triggers
             if msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(
-                    SetPower.Request(power=self.digger_lift_manual_power)
-                )
+                self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power))
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
             elif msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(
-                    SetPower.Request(power=-self.digger_lift_manual_power)
-                )
+                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Stop.Request())
 
@@ -296,16 +262,12 @@ class MainControlNode(Node):
                 self.stop_all_subsystems()
                 self.get_logger().info("Starting Apriltag Field Calibration!")
                 self.field_calibrated_handle: ClientGoalHandle = (
-                    await self.act_calibrate_field_coordinates.send_goal_async(
-                        CalibrateFieldCoordinates.Goal()
-                    )
+                    await self.act_calibrate_field_coordinates.send_goal_async(CalibrateFieldCoordinates.Goal())
                 )
                 if not self.field_calibrated_handle.accepted:
                     self.get_logger().info("Field calibration Goal rejected")
                     return
-                self.field_calibrated_handle.get_result_async().add_done_callback(
-                    self.get_result_callback
-                )
+                self.field_calibrated_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
             # Terminate the field calibration process
             else:
@@ -328,9 +290,7 @@ class MainControlNode(Node):
                     lift_digging_start_position=self.lift_digging_start_position,
                     digger_belt_power=self.digger_belt_power,
                 )
-                self.auto_dig_handle: ClientGoalHandle = await self.act_auto_dig.send_goal_async(
-                    goal
-                )
+                self.auto_dig_handle: ClientGoalHandle = await self.act_auto_dig.send_goal_async(goal)
                 self.auto_dig_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
             # Terminate the auto dig process
@@ -353,12 +313,8 @@ class MainControlNode(Node):
                     lift_dumping_position=self.lift_dumping_position,
                     digger_belt_power=self.digger_belt_power,
                 )
-                self.auto_offload_handle: ClientGoalHandle = (
-                    await self.act_auto_offload.send_goal_async(goal)
-                )
-                self.auto_offload_handle.get_result_async().add_done_callback(
-                    self.get_result_callback
-                )
+                self.auto_offload_handle: ClientGoalHandle = await self.act_auto_offload.send_goal_async(goal)
+                self.auto_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
             # Terminate the auto offload process
             else:

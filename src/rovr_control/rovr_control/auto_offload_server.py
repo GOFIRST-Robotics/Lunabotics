@@ -75,9 +75,7 @@ class AutoOffloadServer(AsyncNode):
 
         # Raise up the digger in preparation for dumping
         self.get_logger().info("Raising the Lift!")
-        self.cli_lift_setPosition.call_async(
-            SetPosition.Request(position=goal_handle.request.lift_dumping_position)
-        )
+        self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
         # Wait for the lift goal to be reached
         await self.digger_sleep()
         if goal_handle.status != GoalStatus.STATUS_CANCELING:
@@ -85,9 +83,7 @@ class AutoOffloadServer(AsyncNode):
             return
 
         self.get_logger().info("Offloading")
-        self.cli_digger_setPower.call_async(
-            SetPower.Request(power=goal_handle.request.digger_belt_power)
-        )
+        self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
         # sleep for the amount of time it takes to offload
         time_to_offload = 1.0 / abs(goal_handle.request.digger_belt_power)
         await self.async_sleep(time_to_offload)  # Allows for task to be canceled

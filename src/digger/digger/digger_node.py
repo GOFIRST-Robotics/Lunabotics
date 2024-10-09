@@ -28,25 +28,17 @@ class DiggerNode(Node):
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(SetPower, "digger/toggle", self.toggle_callback)
         self.srv_stop = self.create_service(Stop, "digger/stop", self.stop_callback)
-        self.srv_setPower = self.create_service(
-            SetPower, "digger/setPower", self.set_power_callback
-        )
-        self.srv_setPosition = self.create_service(
-            SetPosition, "lift/setPosition", self.set_position_callback
-        )
+        self.srv_setPower = self.create_service(SetPower, "digger/setPower", self.set_power_callback)
+        self.srv_setPosition = self.create_service(SetPosition, "lift/setPosition", self.set_position_callback)
         self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
-        self.srv_lift_set_power = self.create_service(
-            SetPower, "lift/setPower", self.lift_set_power_callback
-        )
+        self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
         self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
 
         # Define publishers here
         self.publisher_goal_reached = self.create_publisher(Bool, "digger/goal_reached", 10)
 
         # Define subscribers here
-        self.limit_switch_sub = self.create_subscription(
-            LimitSwitches, "limitSwitches", self.limit_switch_callback, 10
-        )
+        self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
         # Define timers here
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -92,9 +84,7 @@ class DiggerNode(Node):
         """This method sets power to the digger belt."""
         self.running = True
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                type="duty_cycle", can_id=self.DIGGER_BELT_MOTOR, value=digger_power
-            )
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_BELT_MOTOR, value=digger_power)
         )
 
     def stop(self) -> None:
@@ -199,19 +189,13 @@ class DiggerNode(Node):
     def timer_callback(self):
         """Publishes whether or not the current goal position has been reached."""
         # This service call will return a future object, that will eventually contain the position in degrees
-        future = self.cli_motor_get.call_async(
-            MotorCommandGet.Request(type="position", can_id=self.DIGGER_LIFT_MOTOR)
-        )
+        future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.DIGGER_LIFT_MOTOR))
         future.add_done_callback(self.done_callback)
 
     def done_callback(self, future):
         self.current_position_degrees = future.result().data
         goal_reached_msg = Bool(
-            data=abs(
-                self.current_goal_position
-                + self.lift_encoder_offset
-                - self.current_position_degrees
-            )
+            data=abs(self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees)
             <= self.goal_threshold
         )
         self.publisher_goal_reached.publish(goal_reached_msg)
@@ -227,15 +211,11 @@ class DiggerNode(Node):
         self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
         if self.top_limit_pressed:  # If the top limit switch is pressed
             self.lift_encoder_offset = self.current_position_degrees
-            self.get_logger().debug(
-                "Current position in degrees: " + str(self.current_position_degrees)
-            )
+            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
         elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
             self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
-            self.get_logger().debug(
-                "Current position in degrees: " + str(self.current_position_degrees)
-            )
+            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
 
 

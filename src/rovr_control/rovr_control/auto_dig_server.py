@@ -84,9 +84,7 @@ class AutoDigServer(AsyncNode):
         await self.digger_sleep()
 
         # Start the digger belt
-        self.cli_digger_setPower.call_async(
-            SetPower.Request(power=goal_handle.request.digger_belt_power)
-        )
+        self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
 
         # Drive forward while digging
         start_time = self.get_clock().now().nanoseconds
@@ -95,9 +93,7 @@ class AutoDigServer(AsyncNode):
         # TODO: completing ticket #298 can replace this while loop with a motor ramp up service
         while elapsed < 2e9:
             self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
-            self.cli_drivetrain_drive.call_async(
-                Drive.Request(forward_power=0.25e-9 * (elapsed), turning_power=0.0)
-            )
+            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.25e-9 * (elapsed), turning_power=0.0))
             self.get_logger().info("Accelerating lift and drive train")
             elapsed = self.get_clock().now().nanoseconds - start_time
             await self.async_sleep(0.1)  # Allows for task to be canceled
@@ -110,9 +106,7 @@ class AutoDigServer(AsyncNode):
         await self.cli_drivetrain_stop.call_async(Stop.Request())
         await self.cli_digger_stop.call_async(Stop.Request())
 
-        self.cli_lift_setPosition.call_async(
-            SetPosition.Request(position=goal_handle.request.lift_dumping_position)
-        )
+        self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
         # Wait for the lift goal to be reached
         await self.digger_sleep()
 
