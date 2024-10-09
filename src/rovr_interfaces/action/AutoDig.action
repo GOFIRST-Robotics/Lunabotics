@@ -1,7 +1,7 @@
 # Request
 float64 lift_dumping_position
 float64 lift_digging_start_position
-float64 skimmer_belt_power
+float64 digger_belt_power
 ---
 # Result
 ---

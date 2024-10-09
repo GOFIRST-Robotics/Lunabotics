@@ -6,5 +6,5 @@
     FRONT_LEFT_DRIVE: 10 # CAN ID of the front left drive motor
     BACK_RIGHT_DRIVE: 8 # CAN ID of the back right drive motor
     FRONT_RIGHT_DRIVE: 9 # CAN ID of the front right drive motor
-    SKIMMER_BELT_MOTOR: 2 # CAN ID of the skimmer belt motor
-    SKIMMER_LIFT_MOTOR: 1 # CAN ID of the skimmer lift motor
+    DIGGER_BELT_MOTOR: 2 # CAN ID of the digger belt motor
+    DIGGER_LIFT_MOTOR: 1 # CAN ID of the digger lift motor
