@@ -2,7 +2,7 @@ import os
 from glob import glob
 from setuptools import setup
 
-package_name = "skimmer"
+package_name = "digger"
 
 setup(
     name=package_name,
@@ -17,12 +17,12 @@ setup(
     zip_safe=True,
     maintainer="Anthony",
     maintainer_email="anthonybrog@gmail.com",
-    description="This package is for the skimmer subsystem.",
+    description="This package is for the digger subsystem.",
     license="MIT License",
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "skimmer_node = skimmer.skimmer_node:main",
+            "digger_node = digger.digger_node:main",
         ],
     },
 )
