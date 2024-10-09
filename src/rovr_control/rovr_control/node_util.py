@@ -8,8 +8,8 @@ from std_msgs.msg import Bool
 class AsyncNode(Node):
     def __init__(self, name: str):
         super().__init__(name)
-        self.skimmer_goal_reached = Future()
-        self.skimmer_goal_reached.set_result(None)
+        self.digger_goal_reached = Future()
+        self.digger_goal_reached.set_result(None)
 
         self.sleep_goal_reached = Future()
         self.sleep_goal_reached.set_result(None)
@@ -17,15 +17,15 @@ class AsyncNode(Node):
         self.timer = None
 
     # TODO: This should not be needed anymore after ticket #257 is implemented!
-    def skimmer_goal_callback(self, msg: Bool) -> None:
+    def digger_goal_callback(self, msg: Bool) -> None:
         """Update the member variable accordingly."""
         if msg.data:
-            self.skimmer_goal_reached.set_result(None)
+            self.digger_goal_reached.set_result(None)
 
     # TODO: This should not be needed anymore after ticket #257 is implemented!
-    async def skimmer_sleep(self) -> None:
-        self.skimmer_goal_reached = Future()
-        await self.skimmer_goal_reached
+    async def digger_sleep(self) -> None:
+        self.digger_goal_reached = Future()
+        await self.digger_goal_reached
 
     # Temporary measure to sleep for time without needlessly spinning
     async def async_sleep(self, seconds: float) -> None:
