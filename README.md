@@ -83,11 +83,12 @@ docker push umnrobotics/devcontainer:arm64.user.umn
 
 Then, run the following command with the devcontainer cli installed:
 ```
-docker pull umnrobotics/devcontainer:x86_64.user
-docker pull umnrobotics/devcontainer:arm64.user --platform "arm64"
+cd ~/Lunabotics
+docker pull umnrobotics/devcontainer:x86_64.user.umn
+docker pull umnrobotics/devcontainer:arm64.user.umn --platform "arm64"
 
 docker manifest rm umnrobotics/devcontainer:latest
-docker manifest create umnrobotics/devcontainer:latest --amend umnrobotics/devcontainer:arm64.user --amend umnrobotics/devcontainer:x86_64.user
+docker manifest create umnrobotics/devcontainer:latest --amend umnrobotics/devcontainer:arm64.user.umn --amend umnrobotics/devcontainer:x86_64.user.umn
 docker manifest push umnrobotics/devcontainer:latest
 
 docker buildx create --use
