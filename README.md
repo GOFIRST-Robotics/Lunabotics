@@ -96,19 +96,41 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 <details>
 <summary>How to Run Inside ISAAC ROS Container/Dev Container On Linux/Jetson</summary>
 <br>
-First, do the following before running run_dev.sh:
+First, you will need to log in to Nvidia NGC and get an API Key here: https://org.ngc.nvidia.com/setup
+<br>
+<br>
+Then install Nvidia ngc CLI and make sure it is present in path: https://org.ngc.nvidia.com/setup/installers/cli
+<br>
+<br>
+Follow the instructions on the website to install and configure ngc
+<br>
+    
+Test the ngc installation by running
+```ngc``` in a new terminal. If it doesn't work, you may need to add
+```chmod u+x ngc-cli/ngc``` to your ```~/.bashrc``` file.
+<br>
+Then log in to nvcr with the following command:
 
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.deepstream.user.zed.umn \n" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
-``` 
-To use Gazebo in the ISAAC ROS container, do this instead:
+docker login nvcr.io
 
+Username: $oauthtoken
+Password: <Your Key>
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.deepstream.user.zed.umn.gazebo \n" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
-``` 
+
+
+
 <details>
 <summary>Regular Container</summary>
 <br>
+
+Run this command to build and enter the isaac ros container
+```
+./scripts/enter_isaac_ros_container.sh
+```
+
+<details>
+<summary>If the script doesn't work, you can run it manually</summary>
 To make it so zed modules won't rerun every time you start the container, do this:
 
 ```
@@ -120,15 +142,13 @@ Then run this command:
 cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
 ../scripts/run_dev.sh ~/Lunabotics
 ```
-Alternatively, you can run this command, which will execute the printf, the echo, and the run_dev.sh script:
-```
-./scripts/enter_isaac_ros_container.sh
-```
+</details>
+
 </details>
 <details>
 <summary>Dev Container</summary>
 <br>
-First run this command to build the container:
+Run this command to build the container:
 
 ```
 ../scripts/build_devcontainer_image.sh
