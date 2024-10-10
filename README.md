@@ -69,27 +69,29 @@ If you ever need to rebuild the remote container image, first update the x86_64 
 
 ```
 cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
+docker build --build-arg="BASE_IMAGE=osrf/ros:humble-desktop" -f Dockerfile.user -t umnrobotics/devcontainer:x86_64.user .
+cd ~/Lunabotics/docker
+docker build --build-arg="BASE_IMAGE=umnrobotics/devcontainer:x86_64.user" -f Dockerfile.umn -t umnrobotics/devcontainer:x86_64.user.umn .
+docker push umnrobotics/devcontainer:x86_64.user.umn
 
-docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_bcf535ea3b9d16a854aaeb1701ab5a86" -f Dockerfile.user -t umnrobotics/isaac_ros:x86_64.ros2_humble.user .
-docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:x86_64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn .
-docker push umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-
-docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_b7e1ed6c02a6fa3c1c7392479291c035" -f Dockerfile.user -t umnrobotics/isaac_ros:arm64.ros2_humble.user --platform "arm64" .
-docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:arm64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64" .
-docker push umnrobotics/isaac_ros:arm64.ros2_humble.user.umn
+cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
+docker build --build-arg="BASE_IMAGE=osrf/ros:humble-desktop" -f Dockerfile.user -t umnrobotics/devcontainer:arm64.user --platform "arm64" .
+cd ~/Lunabotics/docker
+docker build --build-arg="BASE_IMAGE=umnrobotics/devcontainer:arm64.user" -f Dockerfile.umn -t umnrobotics/devcontainer:arm64.user.umn --platform "arm64" .
+docker push umnrobotics/devcontainer:arm64.user.umn
 ```
 
 Then, run the following command with the devcontainer cli installed:
 ```
-docker pull umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-docker pull umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64"
+docker pull umnrobotics/devcontainer:x86_64.user
+docker pull umnrobotics/devcontainer:arm64.user --platform "arm64"
 
-docker manifest rm umnrobotics/isaac_ros:latest
-docker manifest create umnrobotics/isaac_ros:latest --amend umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --amend umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-docker manifest push umnrobotics/isaac_ros:latest
+docker manifest rm umnrobotics/devcontainer:latest
+docker manifest create umnrobotics/devcontainer:latest --amend umnrobotics/devcontainer:arm64.user --amend umnrobotics/devcontainer:x86_64.user
+docker manifest push umnrobotics/devcontainer:latest
 
 docker buildx create --use
-devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:isaac_ros_devcontainer"
+devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:ros_devcontainer"
 ```
 </details>
 
