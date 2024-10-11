@@ -14,7 +14,7 @@ else
     ARCH=arm64
 fi
 
-if [ ! -f ${HOME}/Lunabotics/docker/deepstream/*/deepstream*.deb ]; then
+if [ ! -f ${HOME}/Lunabotics/docker/deepstream/deepstream*.deb ]; then
     ngc registry resource download-version nvidia/deepstream:7.0 --dest "${HOME}/Lunabotics/docker/deepstream" --file "*${ARCH}.deb" || echo You need to install ngc!
 fi
 
