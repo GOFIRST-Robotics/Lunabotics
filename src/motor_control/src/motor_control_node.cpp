@@ -188,6 +188,10 @@ class MotorControlNode : public rclcpp::Node {
 
     send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
     this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
+    while( rpm != this->can_data[id].velocity)
+    {
+      continue;
+    }
     RCLCPP_DEBUG(this->get_logger(), "Setting the velocity of CAN ID: %u to %d RPM", id, rpm); // Print Statement
   }
 
@@ -196,7 +200,7 @@ class MotorControlNode : public rclcpp::Node {
     if (this->pid_controllers[id]) {
       this->pid_controllers[id]->setRotation(position);
     }
-    while( abs(this->can_data[id][2] - this->pid_controllers[id]->targTach) > 100)
+    while( abs(this->can_data[id].tachometer - this->pid_controllers[id]->targTach) > 100)
     {
       continue;
     }
