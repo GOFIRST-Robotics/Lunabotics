@@ -17,7 +17,7 @@
 	},
 	"initializeCommand": "git config --global --add safe.directory /workspaces/Lunabotics && git reset --soft && git submodule update --init --recursive && git config --global submodule.recurse true && git pull || true",
 	"postCreateCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics/install/setup.bash' >> ~/.bashrc",
-	"postStartCommand": "sudo apt-get update && rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox'",
+	"postStartCommand": "sudo apt-get update && rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox isaac_ros_visual_slam isaac_ros_nitros_detection3_d_array_type isaac_ros_nitros_topic_tools isaac_ros_nitros nvblox_examples_bringup isaac_ros_nitros_detection2_d_array_type'",
 	// "mounts": [
 	// 	"type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix",
 	// 	"type=bind,source=${localEnv:HOME}/.Xauthority,target=/home/admin/.Xauthority",
