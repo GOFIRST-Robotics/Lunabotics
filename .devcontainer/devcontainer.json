@@ -17,7 +17,7 @@
 	},
 	"initializeCommand": "git config --global --add safe.directory '*' && git reset --soft && git submodule update --init --recursive && git config --global submodule.recurse true && git pull || true",
 	"postCreateCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics/install/setup.bash' >> ~/.bashrc && sudo apt-get update && sudo apt install git-lfs",
-	"postStartCommand": "rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox' --skip-keys 'negotiated' --skip-keys 'draco_point_cloud_transport' --skip-keys 'point_cloud_transport_plugins' --skip-keys 'ffmpeg_encoder_decoder' --skip-keys 'ffmpeg_image_transport' --skip-keys 'isaac_ros_peoplesemseg_models_install' --skip-keys 'isaac_ros_h264_decoder' --skip-keys 'isaac_ros_unet' --skip-keys 'isaac_ros_triton' --skip-keys 'isaac_ros_dnn_image_encoder' --skip-keys 'nova_carter_navigation'",
+	"postStartCommand": "rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox negotiated draco_point_cloud_transport point_cloud_transport_plugins ffmpeg_encoder_decoder ffmpeg_image_transport isaac_ros_peoplesemseg_models_install isaac_ros_h264_decoder isaac_ros_unet isaac_ros_triton isaac_ros_dnn_image_encoder nova_carter_navigation'",
 	// "mounts": [
 	// 	"type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix",
 	// 	"type=bind,source=${localEnv:HOME}/.Xauthority,target=/home/admin/.Xauthority",
