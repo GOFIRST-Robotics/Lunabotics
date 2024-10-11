@@ -75,9 +75,9 @@ docker build --build-arg="BASE_IMAGE=umnrobotics/devcontainer:x86_64.user" -f Do
 docker push umnrobotics/devcontainer:x86_64.user.umn
 
 cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
-docker build --build-arg="BASE_IMAGE=osrf/ros:humble-desktop" -f Dockerfile.user -t umnrobotics/devcontainer:arm64.user --platform "arm64" .
+docker build --build-arg="BASE_IMAGE=arm64v8/ros:humble" -f Dockerfile.user -t umnrobotics/devcontainer:arm64.user .
 cd ~/Lunabotics/docker
-docker build --build-arg="BASE_IMAGE=umnrobotics/devcontainer:arm64.user" -f Dockerfile.umn -t umnrobotics/devcontainer:arm64.user.umn --platform "arm64" .
+docker build --build-arg="BASE_IMAGE=umnrobotics/devcontainer:arm64.user" -f Dockerfile.umn -t umnrobotics/devcontainer:arm64.user.umn .
 docker push umnrobotics/devcontainer:arm64.user.umn
 ```
 
@@ -85,7 +85,7 @@ Then, run the following command with the devcontainer cli installed:
 ```
 cd ~/Lunabotics
 docker pull umnrobotics/devcontainer:x86_64.user.umn
-docker pull umnrobotics/devcontainer:arm64.user.umn --platform "arm64"
+docker pull umnrobotics/devcontainer:arm64.user.umn
 
 docker manifest rm umnrobotics/devcontainer:latest
 docker manifest create umnrobotics/devcontainer:latest --amend umnrobotics/devcontainer:arm64.user.umn --amend umnrobotics/devcontainer:x86_64.user.umn
