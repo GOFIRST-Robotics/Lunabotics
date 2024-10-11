@@ -127,7 +127,7 @@ Run this command to build and enter the isaac ros container
 To make it so zed modules won't rerun every time you start the container, do this:
 
 ```
-echo "-v /usr/local/zed/resources:/usr/local/zed/resources -v /ssd:/ssd" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
+echo "-v /usr/local/zed/resources:/usr/local/zed/resources -v /rosbags:/rosbags" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
 ```
 
 Then run this command:
