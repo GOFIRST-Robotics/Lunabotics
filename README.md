@@ -121,23 +121,6 @@ Run this command to build and enter the isaac ros container
 ./scripts/enter_isaac_ros_container.sh
 ```
 
-<details>
-<summary>If the script doesn't work, you can run it manually</summary>
-<br>
-To make it so zed modules won't rerun every time you start the container, do this:
-
-```
-echo "-v /usr/local/zed/resources:/usr/local/zed/resources -v /rosbags:/rosbags" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
-```
-
-Then run this command:
-
-```
-cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
-../scripts/run_dev.sh ~/Lunabotics
-```
-</details>
-
 </details>
 
 ## ROS 2 General Workspace Tips
