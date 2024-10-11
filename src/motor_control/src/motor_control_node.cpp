@@ -180,8 +180,21 @@ class MotorControlNode : public rclcpp::Node {
   }
 
 // smoothly ramp up motor speed
-  void ramp_up(uint32_t id, float percentPowerGoal) {
-    
+  void ramp_up(uint32_t id, float voltageGoal) {
+    float tenPercent = static_cast<float>(static_cast<float>(vesc_get_duty_cycle(id)))/10.0;
+    float onePercent = static_cast<float>(static_cast<float>(vesc_get_duty_cycle(id)))/100.0;
+    float goalMinuscurrent = voltageGoal-static_cast<float>(static_cast<float>(vesc_get_duty_cycle(id)))
+    while(abs(goalMinuscurrent) >= tenPercent) {
+      goalMinuscurrent = voltageGoal-static_cast<float>(static_cast<float>(vesc_get_duty_cycle(id)))
+      vesc_set_duty_cycle(id, static_cast<float>(vesc_get_duty_cycle(id))+(goalMinuscurrent/10));
+      sleep_for(0.1);
+    } 
+    while(abs(goalMinuscurrent) >= onePercent) {
+      goalMinuscurrent = voltageGoal-static_cast<float>(static_cast<float>(vesc_get_duty_cycle(id)))
+      vesc_set_duty_cycle(id, static_cast<float>(vesc_get_duty_cycle(id))+(goalMinuscurrent/100));
+      sleep_for(0.1);
+    }
+    vesc_set_duty_cycle(id, voltageGoal);
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
