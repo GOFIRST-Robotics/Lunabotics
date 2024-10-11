@@ -7,7 +7,12 @@ USER root
 RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install -y \
     ros-humble-rclc \
     libboost-all-dev \
+    python3-pip \
+    python3-pybind11 \
     python3-pytest \
+    python3-pytest-repeat \
+    python3-pytest-rerunfailures \
+    python3-pytest-cov \
     ros-humble-joy \
     ros-humble-ament-cmake-clang-format \
     python3-numpy \
@@ -19,7 +24,6 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install 
     ros-humble-point-cloud-transport-plugins \
     ros-humble-can-msgs \
     ros-humble-usb-cam \
-    python3-pytest \
     python3-opencv \
     python3-serial \
     python3-numpy \

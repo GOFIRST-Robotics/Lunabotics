@@ -2,7 +2,7 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
 {
 	"name": "UMN Lunabotics",
-	"image": "umnrobotics/isaac_ros",
+	"image": "umnrobotics/devcontainer",
 	"runArgs": [
 		"--privileged",
 		"--network",
@@ -12,12 +12,12 @@
 		"DISPLAY": "${localEnv:DISPLAY}",
 		"NVIDIA_VISIBLE_DEVICES": "all",
 		"NVIDIA_DRIVER_CAPABILITIES": "all",
-		"FASTFASTRTPS_DEFAULT_PROFILES_FILE": "/usr/local/share/middleware_profiles/rtps_udp_profile.xml",
+		"FASTFASTRTPS_DEFAULT_PROFILES_FILE": "/usr/local/share/middleware_profiles/rtps_udp_profile.xml"
 		// "ROS_DOMAIN_ID": "${localEnv:ROS_DOMAIN_ID}"
 	},
-	"initializeCommand": "git config --global --add safe.directory /workspaces/Lunabotics && git reset --soft && git submodule update --init --recursive && git config --global submodule.recurse true && git pull || true",
-	"postCreateCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics/install/setup.bash' >> ~/.bashrc",
-	"postStartCommand": "sudo apt-get update && rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox'",
+	"initializeCommand": "git config --global --add safe.directory '*' && git reset --soft && git submodule update --init --recursive && git config --global submodule.recurse true && git pull || true",
+	"postCreateCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics/install/setup.bash' >> ~/.bashrc && sudo apt-get update && sudo apt install git-lfs",
+	"postStartCommand": "rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox negotiated draco_point_cloud_transport point_cloud_transport_plugins ffmpeg_encoder_decoder ffmpeg_image_transport isaac_ros_peoplesemseg_models_install isaac_ros_h264_decoder isaac_ros_unet isaac_ros_triton isaac_ros_dnn_image_encoder nova_carter_navigation'",
 	// "mounts": [
 	// 	"type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix",
 	// 	"type=bind,source=${localEnv:HOME}/.Xauthority,target=/home/admin/.Xauthority",
@@ -39,7 +39,8 @@
 				"ms-python.isort",
 				"charliermarsh.ruff@prerelease",
 				"wayou.vscode-todo-highlight",
-				"ms-iot.vscode-ros@prerelease"
+				"ms-iot.vscode-ros@prerelease",
+				"ms-azuretools.vscode-docker"
 			],
 			"settings": {
 				"git.autofetch": true,
