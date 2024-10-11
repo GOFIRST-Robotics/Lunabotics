@@ -39,7 +39,8 @@
 				"ms-python.isort",
 				"charliermarsh.ruff@prerelease",
 				"wayou.vscode-todo-highlight",
-				"ms-iot.vscode-ros@prerelease"
+				"ms-iot.vscode-ros@prerelease",
+				"ms-azuretools.vscode-docker"
 			],
 			"settings": {
 				"git.autofetch": true,
