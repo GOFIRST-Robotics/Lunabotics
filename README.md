@@ -44,7 +44,7 @@ graph LR
 ## How to Run Inside Docker Container
 
 <details>
-<summary>How to Run Inside the Dev Container On Windows/Mac</summary>
+<summary>How to Run Inside the Dev Container on Windows/Mac</summary>
 <br>
 Open vscode and install the "Dev Containers" extension. Then, with vscode open, press ctrl+shift+p to open the vscode command palette and type "Clone Repository in Container Volume". Select the "Dev Containers: Clone Repository in Container Volume" option, then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository (the repository named "Lunabotics"). If you are cloning the repository directly into the container volume, you do NOT need to clone the repo locally, it will be automatically cloned into the repo.
 <br><br>
@@ -63,7 +63,7 @@ Build No GPU Tasks
 Optionally, traditional "colcon build" commands can be run in the vscode terminal instead of using the Command Palette commands above.
 </details>
 <details>
-<summary>Updating Dev Container For Windows/Mac</summary>
+<summary>Updating the Dev Container for Windows/Mac</summary>
 <br>
 If you ever need to rebuild the remote container image, first update the x86_64 and aarch64 images:
 
@@ -97,21 +97,16 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 </details>
 
 <details>
-<summary>How to Run Inside ISAAC ROS Container/Dev Container On Linux/Jetson</summary>
+<summary>How to Run Inside the ISAAC ROS Container on Linux/Jetson</summary>
 <br>
 First, you will need to log in to Nvidia NGC and get an API Key here: https://org.ngc.nvidia.com/setup
-<br>
-<br>
+
 Then install Nvidia ngc CLI and make sure it is present in path: https://org.ngc.nvidia.com/setup/installers/cli
-<br>
-<br>
-Follow the instructions on the website to install and configure ngc
-<br>
+
+Follow the instructions on the website to install and configure ngc.
     
-Test the ngc installation by running
-```ngc``` in a new terminal. If it doesn't work, you may need to add
-```chmod u+x ngc-cli/ngc``` to your ```~/.bashrc``` file.
-<br>
+Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `chmod u+x ngc-cli/ngc` to your `~/.bashrc` file.
+
 Then log in to nvcr with the following command:
 
 ```
@@ -121,12 +116,6 @@ Username: $oauthtoken
 Password: <Your Key>
 ```
 
-
-
-<details>
-<summary>Regular Container</summary>
-<br>
-
 Run this command to build and enter the isaac ros container
 ```
 ./scripts/enter_isaac_ros_container.sh
@@ -134,11 +123,13 @@ Run this command to build and enter the isaac ros container
 
 <details>
 <summary>If the script doesn't work, you can run it manually</summary>
+<br>
 To make it so zed modules won't rerun every time you start the container, do this:
 
 ```
 echo "-v /usr/local/zed/resources:/usr/local/zed/resources -v /ssd:/ssd" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
 ```
+
 Then run this command:
 
 ```
@@ -147,23 +138,6 @@ cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
 ```
 </details>
 
-</details>
-<details>
-<summary>Dev Container</summary>
-<br>
-Run this command to build the container:
-
-```
-../scripts/build_devcontainer_image.sh
-```
-
-Then use Command Palette (Ctrl + Shift + P) to open devcontainer
-```
->Dev Containers: Reopen in Container
-```
-
-</details>
-It is also worth noting that the docker buildkit doesn't respect Nvidia runtime for building which is needed for zed, so if you set up a new jetson you will need to do one of the following (https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/issues/98#issuecomment-1777711989)
 </details>
 
 ## ROS 2 General Workspace Tips
