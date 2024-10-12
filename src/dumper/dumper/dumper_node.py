@@ -26,19 +26,11 @@ class DumperNode(Node):
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(SetPower, "dumper/toggle", self.toggle_callback)
         self.srv_stop = self.create_service(Stop, "dumper/stop", self.stop_callback)
-        self.srv_setPower = self.create_service(
-            SetPower, "dumper/setPower", self.set_power_callback
-        )
+        self.srv_setPower = self.create_service(SetPower, "dumper/setPower", self.set_power_callback)
 
-        self.srv_extendDumper = self.create_service(
-            Stop, "dumper/extendDumper", self.extend_callback
-        )
-        self.srv_retractDumper = self.create_service(
-            Stop, "dumper/retractDumper", self.retract_callback
-        )
-        self.srv_dump = self.create_service(
-            Stop, "dumper/switchLogicDumper", self.dumper_switch_logic_callback
-        )
+        self.srv_extendDumper = self.create_service(Stop, "dumper/extendDumper", self.extend_callback)
+        self.srv_retractDumper = self.create_service(Stop, "dumper/retractDumper", self.retract_callback)
+        self.srv_dump = self.create_service(Stop, "dumper/switchLogicDumper", self.dumper_switch_logic_callback)
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
@@ -53,9 +45,7 @@ class DumperNode(Node):
         # Current state of the dumper
         self.running = False
 
-        self.limit_switch_sub = self.create_subscription(
-            LimitSwitches, "limitSwitches", self.limit_switch_callback, 10
-        )
+        self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
@@ -70,17 +60,13 @@ class DumperNode(Node):
             self.stop()  # stop the dumper
             return
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power
-            )
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
         )
 
     def stop(self) -> None:
         """This method stops the dumper."""
         self.running = False
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0)
-        )
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
 
     def toggle(self, dumper_power: float) -> None:
         """This method toggles the dumper."""
