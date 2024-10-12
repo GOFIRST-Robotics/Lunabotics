@@ -36,6 +36,14 @@ def generate_launch_description():
         package="digger",
         executable="digger_node",
         name="digger_node",
+        parameters=["config/dumper_config.yaml", "config/motor_control.yaml"],
+        output="screen",
+    )
+
+    dumper = Node(
+        package="dumper",
+        executable="dumper_node",
+        name="dumper_node",
         parameters=["config/motor_control.yaml"],
         output="screen",
     )
@@ -73,6 +81,7 @@ def generate_launch_description():
     ld.add_action(motor_control)
     ld.add_action(drivetrain)
     ld.add_action(digger)
+    ld.add_action(dumper)
     ld.add_action(read_serial)
     ld.add_action(can_bus)
     ld.add_action(calibrate_field_coordinate_server)
