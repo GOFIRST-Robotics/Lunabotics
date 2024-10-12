@@ -36,7 +36,7 @@ def generate_launch_description():
         package="digger",
         executable="digger_node",
         name="digger_node",
-        parameters=["config/motor_control.yaml"],
+        parameters=["config/dumper_config.yaml", "config/motor_control.yaml"],
         output="screen",
     )
 
