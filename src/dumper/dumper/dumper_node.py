@@ -30,7 +30,7 @@ class DumperNode(Node):
 
         self.srv_extendDumper = self.create_service(Stop, "dumper/extendDumper", self.extend_callback)
         self.srv_retractDumper = self.create_service(Stop, "dumper/retractDumper", self.retract_callback)
-        self.srv_dump = self.create_service(Stop, "dumper/switchLogicDumper", self.dumper_switch_logic_callback)
+        self.srv_dump = self.create_service(Stop, "dumper/dump", self.dump_callback)
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
@@ -116,18 +116,16 @@ class DumperNode(Node):
         response.success = 0
         return response
 
-    def dumper_switch_logic(self) -> None:
-        # wait for the top switch to be pressed
+    def dump(self) -> None:
+        # extend the dumper
         self.extend_dumper()
+        # wait for 5 seconds before retracting the dumper
+        time.sleep(5)
+        # retract the dumper
+        self.retract_dumper()
 
-        # wait for 5 seconds to move on
-        current_time = time.time()
-        if time.time() > current_time + 5.0:
-            # wait for the bottom switch to be pressed
-            self.retract_dumper()
-
-    def dumper_switch_logic_callback(self, request, response):
-        self.dumper_switch_logic()
+    def dump_callback(self, request, response):
+        self.dump()
         response.success = 0
         return response
 
