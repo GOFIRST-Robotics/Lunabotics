@@ -69,7 +69,6 @@ class MainControlNode(Node):
         self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
-        self.declare_parameter("lift_digging_end_position", -3150)  # Measured in encoder counts
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -84,9 +83,6 @@ class MainControlNode(Node):
         self.lift_digging_start_position = (
             self.get_parameter("lift_digging_start_position").value * 360 / 42
         )  # Convert encoder counts to degrees
-        self.lift_digging_end_position = (
-            self.get_parameter("lift_digging_end_position").value * 360 / 42
-        )  # Convert encoder counts to degrees
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
@@ -97,7 +93,6 @@ class MainControlNode(Node):
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
         self.get_logger().info("lift_dumping_position has been set to: " + str(self.lift_dumping_position))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
-        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -120,6 +115,7 @@ class MainControlNode(Node):
             self.dig_location = create_pose_stamped(6.2, -1.2, 0)
 
         # Define service clients here
+        self.cli_dumper_dump = self.create_client(Stop, "dumper/dump")
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Stop, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
@@ -227,9 +223,9 @@ class MainControlNode(Node):
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
                 self.cli_digger_setPower.call_async(SetPower.Request(power=-self.digger_belt_power))
 
-            # Check if the lift dumping position button is pressed #
+            # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
-                self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_dumping_position))
+                self.cli_dumper_dump.call_async(Stop.Request())
 
             # Check if the lift digging position button is pressed #
             if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
