@@ -8,3 +8,4 @@
     FRONT_RIGHT_DRIVE: 9 # CAN ID of the front right drive motor
     DIGGER_BELT_MOTOR: 2 # CAN ID of the digger belt motor
     DIGGER_LIFT_MOTOR: 1 # CAN ID of the digger lift motor
+    DUMPER_MOTOR: 11 # CAN ID of the dumper motor
