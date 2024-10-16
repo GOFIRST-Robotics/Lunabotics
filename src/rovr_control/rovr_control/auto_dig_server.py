@@ -1,26 +1,20 @@
 import rclpy
+from rclpy.node import Node
 from rclpy.action import ActionServer
-
-from std_msgs.msg import Bool
 
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import Drive, SetPosition, SetPower
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger
 
-from rovr_control.node_util import AsyncNode
+from asyncio import sleep
 
 
-class AutoDigServer(AsyncNode):
+class AutoDigServer(Node):
     def __init__(self):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
-        )
-
-        # TODO: This should not be needed anymore after ticket #257 is implemented!
-        self.digger_goal_subscription = self.create_subscription(
-            Bool, "/digger/goal_reached", self.digger_goal_callback, 10
         )
 
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
@@ -73,8 +67,7 @@ class AutoDigServer(AsyncNode):
             goal_handle.abort()
             return result
 
-        # Zero the skimmer
-        # Wait for the lift goal to be reached
+        # Zero the digger
         await self.cli_lift_zero.call_async(Stop.Reqest())
 
         # Start the skimmer belt
@@ -83,15 +76,15 @@ class AutoDigServer(AsyncNode):
         # Lower the skimmer towards the ground slowly
         await self.cli_lift_lower.call_async(Stop.Reqest())
 
-        self.get_logger().info("Auto Digging in Place")
-        await self.async_sleep(3)  # Allows for task to be canceled / reaches the lower limit switch and digs for a while
+        self.get_logger().info("Start of Auto Digging in Place")
+        await sleep(3)  #Stay at lowest pos for 3 seconds while digging
         self.get_logger().info("Done Digging in Place")
 
         # Stop skimming
         await self.cli_skimmer_stop.call_async(Stop.Request())
 
         await self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
-        #raise lift to dumping position
+        # raise lift to dumping position
         # Wait for the lift goal to be reached
 
         self.get_logger().info("Autonomous Digging Procedure Complete!")
@@ -101,11 +94,9 @@ class AutoDigServer(AsyncNode):
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
         self.get_logger().info("Goal is cancelling")
-        if not self.digger_goal_reached.done():
-            self.cli_drivetrain_stop.call_async(Trigger.Request())
-        if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
-            self.cli_drivetrain_stop.call_async(Trigger.Request())
-            self.cli_digger_stop.call_async(Trigger.Request())
+        self.cli_drivetrain_stop.call_async(Stop.Request())
+        self.cli_digger_stop.call_async(Stop.Request())
+        self.cli_lift_stop.call_async(Stop.Request())
         return CancelResponse.ACCEPT
 
 
