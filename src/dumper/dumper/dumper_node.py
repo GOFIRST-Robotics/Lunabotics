@@ -95,8 +95,9 @@ class DumperNode(Node):
         return response
 
     def extend_dumper(self) -> None:
+        self.set_power(self.DUMPER_POWER)
         while not self.top_limit_pressed:
-            self.set_power(self.DUMPER_POWER)
+            pass
         self.stop()
 
     def extend_callback(self, request, response):
@@ -106,8 +107,9 @@ class DumperNode(Node):
         return response
 
     def retract_dumper(self) -> None:
+        self.set_power(-self.DUMPER_POWER)
         while not self.bottom_limit_pressed:
-            self.set_power(-self.DUMPER_POWER)
+            pass
         self.stop()
 
     def retract_callback(self, request, response):
