@@ -141,6 +141,9 @@ public:
   bool isContinuousInputEnabled() {
     return this->continuous;
   }
+  int32_t getTargTach() {
+    return this->targTach;
+  }
 };
 
 class MotorControlNode : public rclcpp::Node {
@@ -200,7 +203,7 @@ class MotorControlNode : public rclcpp::Node {
     if (this->pid_controllers[id]) {
       this->pid_controllers[id]->setRotation(position);
     }
-    while( abs(this->can_data[id].tachometer - this->pid_controllers[id]->targTach) > 100)
+    while( abs(this->can_data[id].tachometer - this->pid_controllers[id]->getTargTach()) > 100)
     {
       continue;
     }
