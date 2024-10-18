@@ -148,9 +148,6 @@ class DiggerNode(Node):
         response.success = 0  # indicates success
         return response
 
-    # TODO: This method needs to be modified during the implementation of ticket #257
-    # to return a proper future indicating when the goal position has been reached
-    # so that rclpy.spin_until_future_complete() can be used to wait for the goal.
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
