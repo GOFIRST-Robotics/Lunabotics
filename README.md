@@ -44,7 +44,7 @@ graph LR
 ## How to Run Inside Docker Container
 
 <details>
-<summary>How to Run Inside the Dev Container On Windows/Mac</summary>
+<summary>How to Run Inside the Dev Container on Windows/Mac</summary>
 <br>
 Open vscode and install the "Dev Containers" extension. Then, with vscode open, press ctrl+shift+p to open the vscode command palette and type "Clone Repository in Container Volume". Select the "Dev Containers: Clone Repository in Container Volume" option, then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository (the repository named "Lunabotics"). If you are cloning the repository directly into the container volume, you do NOT need to clone the repo locally, it will be automatically cloned into the repo.
 <br><br>
@@ -63,84 +63,64 @@ Build No GPU Tasks
 Optionally, traditional "colcon build" commands can be run in the vscode terminal instead of using the Command Palette commands above.
 </details>
 <details>
-<summary>Updating Dev Container For Windows/Mac</summary>
+<summary>Updating the Dev Container for Windows/Mac</summary>
 <br>
 If you ever need to rebuild the remote container image, first update the x86_64 and aarch64 images:
 
 ```
 cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
+docker build --build-arg="BASE_IMAGE=osrf/ros:humble-desktop" -f Dockerfile.user -t umnrobotics/devcontainer:x86_64.user .
+cd ~/Lunabotics/docker
+docker build --build-arg="BASE_IMAGE=umnrobotics/devcontainer:x86_64.user" -f Dockerfile.umn -t umnrobotics/devcontainer:x86_64.user.umn .
+docker push umnrobotics/devcontainer:x86_64.user.umn
 
-docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:x86_64-ros2_humble_bcf535ea3b9d16a854aaeb1701ab5a86" -f Dockerfile.user -t umnrobotics/isaac_ros:x86_64.ros2_humble.user .
-docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:x86_64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn .
-docker push umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-
-docker build --build-arg="BASE_IMAGE=nvcr.io/nvidia/isaac/ros:aarch64-ros2_humble_b7e1ed6c02a6fa3c1c7392479291c035" -f Dockerfile.user -t umnrobotics/isaac_ros:arm64.ros2_humble.user --platform "arm64" .
-docker build --build-arg="BASE_IMAGE=umnrobotics/isaac_ros:arm64.ros2_humble.user" -f Dockerfile.umn -t umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64" .
-docker push umnrobotics/isaac_ros:arm64.ros2_humble.user.umn
+cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
+docker build --build-arg="BASE_IMAGE=arm64v8/ros:humble" -f Dockerfile.user -t umnrobotics/devcontainer:arm64.user .
+cd ~/Lunabotics/docker
+docker build --build-arg="BASE_IMAGE=umnrobotics/devcontainer:arm64.user" -f Dockerfile.umn -t umnrobotics/devcontainer:arm64.user.umn .
+docker push umnrobotics/devcontainer:arm64.user.umn
 ```
 
 Then, run the following command with the devcontainer cli installed:
 ```
-docker pull umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-docker pull umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --platform "arm64"
+cd ~/Lunabotics
+docker pull umnrobotics/devcontainer:x86_64.user.umn
+docker pull umnrobotics/devcontainer:arm64.user.umn
 
-docker manifest rm umnrobotics/isaac_ros:latest
-docker manifest create umnrobotics/isaac_ros:latest --amend umnrobotics/isaac_ros:arm64.ros2_humble.user.umn --amend umnrobotics/isaac_ros:x86_64.ros2_humble.user.umn
-docker manifest push umnrobotics/isaac_ros:latest
+docker manifest rm umnrobotics/devcontainer:latest
+docker manifest create umnrobotics/devcontainer:latest --amend umnrobotics/devcontainer:arm64.user.umn --amend umnrobotics/devcontainer:x86_64.user.umn
+docker manifest push umnrobotics/devcontainer:latest
 
 docker buildx create --use
-devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:isaac_ros_devcontainer"
+devcontainer build --push true --workspace-folder . --platform="linux/amd64,linux/arm64" --image-name "umnrobotics/ros:ros_devcontainer"
 ```
 </details>
 
 <details>
-<summary>How to Run Inside ISAAC ROS Container/Dev Container On Linux/Jetson</summary>
+<summary>How to Run Inside the ISAAC ROS Container on Linux/Jetson</summary>
 <br>
-First, do the following before running run_dev.sh:
+First, you will need to log in to Nvidia NGC and get an API Key here: https://org.ngc.nvidia.com/setup
+
+Then install Nvidia ngc CLI and make sure it is present in path: https://org.ngc.nvidia.com/setup/installers/cli
+
+Follow the instructions on the website to install and configure ngc.
+    
+Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `chmod u+x ngc-cli/ngc` to your `~/.bashrc` file.
+
+Then log in to nvcr with the following command:
 
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.deepstream.user.zed.umn \n" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
-``` 
-To use Gazebo in the ISAAC ROS container, do this instead:
+docker login nvcr.io
 
+Username: $oauthtoken
+Password: <Your Key>
 ```
-printf "CONFIG_IMAGE_KEY=ros2_humble.realsense.deepstream.user.zed.umn.gazebo \n" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_common-config 
-``` 
-<details>
-<summary>Regular Container</summary>
-<br>
-To make it so zed modules won't rerun every time you start the container, do this:
 
-```
-echo "-v /usr/local/zed/resources:/usr/local/zed/resources -v /ssd:/ssd" > ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/.isaac_ros_dev-dockerargs
-```
-Then run this command:
-
-```
-cd ~/Lunabotics/src/isaac_ros/isaac_ros_common/docker
-../scripts/run_dev.sh ~/Lunabotics
-```
-Alternatively, you can run this command, which will execute the printf, the echo, and the run_dev.sh script:
+Run this command to build and enter the isaac ros container
 ```
 ./scripts/enter_isaac_ros_container.sh
 ```
-</details>
-<details>
-<summary>Dev Container</summary>
-<br>
-First run this command to build the container:
 
-```
-../scripts/build_devcontainer_image.sh
-```
-
-Then use Command Palette (Ctrl + Shift + P) to open devcontainer
-```
->Dev Containers: Reopen in Container
-```
-
-</details>
-It is also worth noting that the docker buildkit doesn't respect Nvidia runtime for building which is needed for zed, so if you set up a new jetson you will need to do one of the following (https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common/issues/98#issuecomment-1777711989)
 </details>
 
 ## ROS 2 General Workspace Tips

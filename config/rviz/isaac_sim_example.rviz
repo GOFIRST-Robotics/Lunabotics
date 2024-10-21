@@ -70,28 +70,19 @@ Visualization Manager:
       Tree:
         odom:
           base_link:
-            camera_left_ROS_frame:
-              {}
-            camera_right_ROS_frame:
-              {}
-            camera_sensor_left:
-              {}
-            camera_sensor_right:
-              {}
-            carter_lidar:
-              {}
+            camera_left_ROS_frame: {}
+            camera_right_ROS_frame: {}
+            camera_sensor_left: {}
+            camera_sensor_right: {}
+            carter_lidar: {}
             chassis_link:
               caster_frame_base:
                 caster_swivel_left:
-                  caster_wheel_left:
-                    {}
+                  caster_wheel_left: {}
                 caster_swivel_right:
-                  caster_wheel_right:
-                    {}
-              wheel_left:
-                {}
-              wheel_right:
-                {}
+                  caster_wheel_right: {}
+              wheel_left: {}
+              wheel_right: {}
       Update Interval: 0
       Value: true
     - Alpha: 0.5
@@ -131,8 +122,7 @@ Visualization Manager:
         - Class: rviz_default_plugins/MarkerArray
           Enabled: false
           Name: Mesh Marker
-          Namespaces:
-            {}
+          Namespaces: {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -143,8 +133,7 @@ Visualization Manager:
         - Class: rviz_default_plugins/Marker
           Enabled: false
           Name: Map Slice Bounds
-          Namespaces:
-            {}
+          Namespaces: {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
