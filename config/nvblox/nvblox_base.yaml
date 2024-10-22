@@ -4,14 +4,14 @@
     voxel_size: 0.05
     use_tf_transforms: true
     # multi mapper
-    mapping_type: "static_tsdf"  # ["static_tsdf", "static_occupancy"]
+    mapping_type: "static_tsdf" # ["static_tsdf", "static_occupancy"]
     connected_mask_component_size_threshold: 2000
     # esdf settings
     compute_esdf: true
     esdf_update_rate_hz: 10.0
     esdf_2d: false
     publish_esdf_distance_slice: true
-    
+
     esdf_2d_min_height: -1.5
     esdf_2d_max_height: 1.0
     # mesh settings
@@ -44,12 +44,12 @@
     # Used for crater detection.
     # one is the floor, two is hole level
     # by going significantly above 'ground', we ignore all the noise from uneven terrain while still detecting obstacles.
-    esdf_above_ground_slice_height: 0.4  # TODO: This might need to be adjusted
-    esdf_underground_detection: -1.0  # TODO: This might need to be adjusted
-    combine_pointcloud: True
-    combine_costmap: True
-    invert_below_ground: False
-    above_ground_denoise_level: 0.5
+    # esdf_above_ground_slice_height: 0.4  # TODO: This might need to be adjusted
+    # esdf_underground_detection: -1.0  # TODO: This might need to be adjusted
+    # combine_pointcloud: True
+    # combine_costmap: True
+    # invert_below_ground: False
+    # above_ground_denoise_level: 0.5
 
     static_mapper:
       # mapper
