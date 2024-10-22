@@ -58,3 +58,4 @@ CATKIN_IGNORE
 
 .fake
 
+docker/deepstream

@@ -1,0 +1,43 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+USER root
+
+# To get list of packages currently missing run: rosdep install --simulate --from-path src --ignore-src --skip-keys "ros-humble-isaac-ros-h264-decoder ros-humble-nova-carter-navigation ros-humble-isaac-ros-dnn-image-encoder ros-humble-isaac-ros-triton ros-humble-isaac-ros-unet ros-humble-isaac-ros-peoplesemseg-models-install" | awk '{print $5 }'
+RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install -y \
+    ros-humble-rclc \
+    libboost-all-dev \
+    python3-pip \
+    python3-pybind11 \
+    python3-pytest \
+    python3-pytest-repeat \
+    python3-pytest-rerunfailures \
+    python3-pytest-cov \
+    ros-humble-joy \
+    ros-humble-ament-cmake-clang-format \
+    python3-numpy \
+    ros-humble-launch-pytest \
+    python3-tqdm \
+    python3-requests \
+    libeigen3-dev \
+    ros-humble-grid-map-rviz-plugin \
+    ros-humble-point-cloud-transport-plugins \
+    ros-humble-can-msgs \
+    ros-humble-usb-cam \
+    python3-opencv \
+    python3-serial \
+    python3-numpy \
+    libboost-all-dev \
+    python3-tqdm \
+    python3-requests \
+    python3-scipy \
+    libeigen3-dev \
+    ros-humble-librealsense2 \
+    ros-humble-magic-enum \
+    ros-humble-foxglove-msgs \
+    ros-humble-ffmpeg-image-transport \
+    ros-humble-ffmpeg-encoder-decoder \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG USERNAME=admin
+RUN adduser ${USERNAME} dialout && adduser ${USERNAME} tty && adduser ${USERNAME} input
