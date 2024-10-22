@@ -51,6 +51,9 @@
     # invert_below_ground: False
     # above_ground_denoise_level: 0.5
 
+    esdf_mode: 0
+    layer_visualization_exclusion_height_m: 5.0
+
     static_mapper:
       # mapper
       do_depth_preprocessing: false
