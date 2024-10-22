@@ -180,14 +180,19 @@ class MotorControlNode : public rclcpp::Node {
   }
 
 // smoothly ramp up motor speed
-  void ramp_up(uint32_t id, float voltageGoal, float accelerationPercent) {
-    float onePercent = can_data[id].dutyCycle/100.0;
-    float goalMinuscurrent = voltageGoal-can_data[id].dutyCycle
-    while(abs(goalMinuscurrent) >= onePercent) {
-      goalMinuscurrent = voltageGoal-can_data[id].dutyCycle
-      vesc_set_duty_cycle(id, static_cast<float>(vesc_get_duty_cycle(id))+(goalMinuscurrent/10));
-      sleep_for(0.1);
+  void accelerate_duty_cycle(uint32_t id, float voltageGoal, float accelerationPercent) {
+    float onePercent = can_data[id].dutyCycle/100.0; // one percent of the current duty cycle
+    float goalCurrentDifference = voltageGoal-can_data[id].dutyCycle; // current distance from the voltage goal
+
+    // change the dutycycle by the chosen percent of the difference every second until it is within one percent of the goal.
+    while(abs(goalCurrentDifference) >= onePercent) {
+      goalCurrentDifference = voltageGoal-can_data[id].dutyCycle;
+      vesc_set_duty_cycle(id, can_data[id].dutyCycle+(goalCurrentDifference*(accelerationPercent/100000)));
+      RCLCPP_DEBUG(this->get_logger(), "My log message %f", can_data[id].dutyCycle);
+      rclcpp::sleep_for(std::chrono::nanoseconds(1));
     } 
+    
+    // make sure the duty cycle is at exactly the goal
     vesc_set_duty_cycle(id, voltageGoal);
   }
 
