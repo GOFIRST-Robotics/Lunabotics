@@ -9,6 +9,7 @@ from tf2_ros.transform_listener import TransformListener
 from rovr_interfaces.srv import ResetOdom
 from geometry_msgs.msg import TransformStamped
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
+from sensor_msgs.msg._nav_sat_fix import NavSatFix # did I do this import correctly? did i import the right message/library/message/folder/thing
 
 import xml.etree.ElementTree as ET
 
@@ -42,6 +43,7 @@ class ApriltagNode(Node):
         self.map_transform.transform.rotation.w = 1.0
 
         self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
+        self.fusetags = self.create_publisher(NavSatFix, "/fuseapriltags", 10)
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -127,6 +129,15 @@ class ApriltagNode(Node):
         """Broadcasts the map -> odom transform"""
         self.map_transform.header.stamp = self.get_clock().now().to_msg()
         self.tf_broadcaster.sendTransform(self.map_transform)
+
+    def fusetags(self, tagvalues):
+        # the tag values I'll need: a calculation of how far we are from the tag --> how far have we travelled --> absolute pos
+        fused_pos = NavSatFix()
+        fused_pos.__slots__ = ['header - another ros message',
+                               'status - another ros message','latitude','longitude',
+                               'altitude','position_covariance',
+                               'position_covariance_type']
+        return fused_pos
 
 
 def main(args=None):
