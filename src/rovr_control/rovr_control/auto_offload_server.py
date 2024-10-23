@@ -19,10 +19,8 @@ class AutoOffloadServer(Node):
             cancel_callback=self.cancel_callback,
         )
 
-
         self.cli_dumper_stop = self.create_client(Stop, "dumper/stop")
         self.cli_dumper_dump = self.create_client(Stop, "dumper/dump")
-
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         """This method lays out the procedure for autonomously offloading!"""
@@ -38,7 +36,6 @@ class AutoOffloadServer(Node):
             self.get_logger().error("Dumper dump service not available")
             goal_handle.abort()
             return result
-
 
         await self.cli_dumper_dump.call_async(Stop.Request())  # Dump Berm
 

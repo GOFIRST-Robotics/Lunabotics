@@ -77,13 +77,15 @@ class AutoDigServer(Node):
         await self.cli_lift_lower.call_async(Stop.Reqest())
 
         self.get_logger().info("Start of Auto Digging in Place")
-        await sleep(3)  #Stay at lowest pos for 3 seconds while digging
+        await sleep(3)  # Stay at lowest pos for 3 seconds while digging
         self.get_logger().info("Done Digging in Place")
 
         # Stop skimming
         await self.cli_skimmer_stop.call_async(Stop.Request())
 
-        await self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
+        await self.cli_lift_setPosition.call_async(
+            SetPosition.Request(position=goal_handle.request.lift_dumping_position)
+        )
         # raise lift to dumping position
         # Wait for the lift goal to be reached
 
