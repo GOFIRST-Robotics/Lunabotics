@@ -283,6 +283,9 @@ Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/d
 <details>
 <summary>How to load the CAN modules at startup on Nvidia Jetson</summary>
 <br>
+
+Follow [these](https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/HR/ControllerAreaNetworkCan.html) instructions to enable CAN communication on Nvidia Jetson Orin.
+
 1: Put the following in a .conf file in /modules-load.d/
 
 ```
