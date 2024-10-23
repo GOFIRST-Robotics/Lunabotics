@@ -24,6 +24,7 @@
 #include <string>
 #include <tuple> // for tuples
 #include <vector>
+#include <cmath>
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -188,10 +189,10 @@ class MotorControlNode : public rclcpp::Node {
       this->pid_controllers[id]->isActive = false;
     }
     int32_t data = rpm;
-
+    
     send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
     this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
-    while( rpm != this->can_data[id].velocity)
+    while( std::abs(rpm-this->can_data[id].velocity) >= this->velocityThreshold)
     {
       continue;
     }
@@ -203,7 +204,7 @@ class MotorControlNode : public rclcpp::Node {
     if (this->pid_controllers[id]) {
       this->pid_controllers[id]->setRotation(position);
     }
-    while( abs(this->can_data[id].tachometer - this->pid_controllers[id]->getTargTach()) > 100)
+    while( abs(this->can_data[id].tachometer - this->pid_controllers[id]->getTargTach()) > this->tachThreshold)
     {
       continue;
     }
@@ -277,6 +278,10 @@ private:
       }
     }
   }
+  int velocityThreshold = 50;
+  //TODO: Tune this value
+  int tachThreshold = 100;
+  //TODO: Tune this value
 
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {

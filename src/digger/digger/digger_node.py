@@ -98,7 +98,7 @@ class DiggerNode(Node):
                 can_id=self.DIGGER_LIFT_MOTOR,
                 value=float(position + self.lift_encoder_offset),
             )
-        )
+        ).result()
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
