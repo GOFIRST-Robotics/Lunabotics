@@ -180,16 +180,22 @@ class MotorControlNode : public rclcpp::Node {
   }
 
 // smoothly ramp up motor speed
-  void accelerate_duty_cycle(uint32_t id, float voltageGoal, float accelerationPercent) {
-    float onePercent = can_data[id].dutyCycle/100.0; // one percent of the current duty cycle
+  void accelerate_duty_cycle(uint32_t id, float voltageGoal, float time) {
+    time = time*1000000000;
+    float start_time = rclcpp::nanoseconds().count(); // time at the start of the service
     float goalCurrentDifference = voltageGoal-can_data[id].dutyCycle; // current distance from the voltage goal
+    float original_duty_Cycle = can_data[id].dutyCycle; // the duty cycle at the start of the service
+    float updatedGoalCurrentDifference = voltageGoal-can_data[id].dutyCycle;
 
     // change the dutycycle by the chosen percent of the difference every second until it is within one percent of the goal.
-    while(abs(goalCurrentDifference) >= onePercent) {
-      goalCurrentDifference = voltageGoal-can_data[id].dutyCycle;
-      vesc_set_duty_cycle(id, can_data[id].dutyCycle+(goalCurrentDifference*(accelerationPercent/100000)));
+    while(!((updatedGoalCurrentDifference >= 0 && goalCurrentDifference < 0) || (updatedGoalCurrentDifference <= 0 && goalCurrentDifference > 0))) {
+      float time_elapsed = rclcpp::nanoseconds().count() - start_time;
+      float accel_increment = (goalCurrentDifference/time)*time_elapsed;
+      vesc_set_duty_cycle(id,  original_duty_Cycle + accel_increment);
       RCLCPP_DEBUG(this->get_logger(), "My log message %f", can_data[id].dutyCycle);
       rclcpp::sleep_for(std::chrono::nanoseconds(1));
+      updatedGoalCurrentDifference = voltageGoal-can_data[id].dutyCycle;
+
     } 
     
     // make sure the duty cycle is at exactly the goal
