@@ -151,7 +151,7 @@ class DiggerNode(Node):
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
-        #^ this should already wait due to vesc set position not returning until done
+        # ^ this should already wait due to vesc set position not returning until done
         response.success = 0  # indicates success
         return response
 
@@ -183,7 +183,7 @@ class DiggerNode(Node):
         response.success = 0  # indicates success
         return response
 
-#No more timer callback because setPos works
+    # No more timer callback because setPos works
 
     # Define subscriber callback methods here
     def limit_switch_callback(self, limit_switches_msg):
