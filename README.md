@@ -107,7 +107,6 @@ Follow the instructions on the website to install and configure ngc.
     
 Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `chmod u+x ngc-cli/ngc` to your `~/.bashrc` file.
 
-Make sure to install Cuda Drivers at this link: [here](https://developer.nvidia.com/cuda-downloads?target_os=Linux)
 Then log in to nvcr with the following command:
 
 ```
