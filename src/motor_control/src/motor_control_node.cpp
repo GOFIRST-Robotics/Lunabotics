@@ -24,6 +24,7 @@
 #include <string>
 #include <tuple> // for tuples
 #include <vector>
+#include <cmath>
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
@@ -141,6 +142,9 @@ public:
   bool isContinuousInputEnabled() {
     return this->continuous;
   }
+  int32_t getTargTach() {
+    return this->targTach;
+  }
 };
 
 class MotorControlNode : public rclcpp::Node {
@@ -185,9 +189,13 @@ class MotorControlNode : public rclcpp::Node {
       this->pid_controllers[id]->isActive = false;
     }
     int32_t data = rpm;
-
+    
     send_can(id + 0x00000300, data); // ID must be modified to signify this is a RPM command
     this->current_msg[id] = std::make_tuple(id + 0x00000300, data); // update the hashmap
+    while(abs(rpm-this->can_data[id].velocity - rpm) > this->velocityThreshold)
+    {
+      continue;
+    }
     RCLCPP_DEBUG(this->get_logger(), "Setting the velocity of CAN ID: %u to %d RPM", id, rpm); // Print Statement
   }
 
@@ -195,6 +203,10 @@ class MotorControlNode : public rclcpp::Node {
   void vesc_set_position(uint32_t id, int position) {
     if (this->pid_controllers[id]) {
       this->pid_controllers[id]->setRotation(position);
+    }
+    while(abs(this->can_data[id].tachometer - this->pid_controllers[id]->getTargTach()) > this->tachThreshold)
+    {
+      continue;
     }
     RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d degrees", id, position); // Print Statement
   }
@@ -266,6 +278,9 @@ private:
       }
     }
   }
+
+  int velocityThreshold = 50; // TODO: Tune this value
+  int tachThreshold = 100; // TODO: Tune this value
 
   // Listen for CAN status frames sent by our VESC motor controllers
   void CAN_callback(const can_msgs::msg::Frame::SharedPtr can_msg) {

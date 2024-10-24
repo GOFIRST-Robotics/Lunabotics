@@ -1,31 +1,26 @@
 import rclpy
+from rclpy.node import Node
 from rclpy.action import ActionServer
-
-from std_msgs.msg import Bool
 
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import Drive, Stop, SetPosition, SetPower
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 
-from rovr_control.node_util import AsyncNode
+from asyncio import sleep
 
 
-class AutoDigServer(AsyncNode):
+class AutoDigServer(Node):
     def __init__(self):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
         )
 
-        # TODO: This should not be needed anymore after ticket #257 is implemented!
-        self.digger_goal_subscription = self.create_subscription(
-            Bool, "/digger/goal_reached", self.digger_goal_callback, 10
-        )
-
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
 
         self.cli_lift_zero = self.create_client(Stop, "lift/zero")
+        self.cli_lift_lower = self.create_client(Stop, "lift/lower")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_lift_stop = self.create_client(Stop, "lift/stop")
@@ -72,43 +67,26 @@ class AutoDigServer(AsyncNode):
             return result
 
         # Zero the digger
-        self.cli_lift_zero.call_async(Stop.Request())
-        # Wait for the lift goal to be reached
-        await self.digger_sleep()
-
-        # Lower the digger onto the ground
-        self.cli_lift_setPosition.call_async(
-            SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
-        )
-        # Wait for the lift goal to be reached
-        await self.digger_sleep()
+        await self.cli_lift_zero.call_async(Stop.Reqest())
 
         # Start the digger belt
-        self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
+        await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
 
-        # Drive forward while digging
-        start_time = self.get_clock().now().nanoseconds
-        elapsed = self.get_clock().now().nanoseconds - start_time
-        # accelerate for 2 seconds
-        # TODO: completing ticket #298 can replace this while loop with a motor ramp up service
-        while elapsed < 2e9:
-            self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
-            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.25e-9 * (elapsed), turning_power=0.0))
-            self.get_logger().info("Accelerating lift and drive train")
-            elapsed = self.get_clock().now().nanoseconds - start_time
-            await self.async_sleep(0.1)  # Allows for task to be canceled
+        # Lower the digger towards the ground slowly
+        await self.cli_lift_lower.call_async(Stop.Reqest())
 
-        self.get_logger().info("Auto Driving")
-        await self.async_sleep(12)  # Allows for task to be canceled
-        self.get_logger().info("Done Driving")
+        self.get_logger().info("Start of Auto Digging in Place")
+        await sleep(3)  # Stay at lowest pos for 3 seconds while digging
+        self.get_logger().info("Done Digging in Place")
 
-        # Stop driving and skimming
-        await self.cli_drivetrain_stop.call_async(Stop.Request())
+        # Stop skimming
         await self.cli_digger_stop.call_async(Stop.Request())
 
-        self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
+        await self.cli_lift_setPosition.call_async(
+            SetPosition.Request(position=goal_handle.request.lift_dumping_position)
+        )
+        # raise lift to dumping position
         # Wait for the lift goal to be reached
-        await self.digger_sleep()
 
         self.get_logger().info("Autonomous Digging Procedure Complete!")
         goal_handle.succeed()
@@ -117,11 +95,9 @@ class AutoDigServer(AsyncNode):
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
         self.get_logger().info("Goal is cancelling")
-        if not self.digger_goal_reached.done():
-            self.cli_drivetrain_stop.call_async(Stop.Request())
-        if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
-            self.cli_drivetrain_stop.call_async(Stop.Request())
-            self.cli_digger_stop.call_async(Stop.Request())
+        self.cli_drivetrain_stop.call_async(Stop.Request())
+        self.cli_digger_stop.call_async(Stop.Request())
+        self.cli_lift_stop.call_async(Stop.Request())
         return CancelResponse.ACCEPT
 
 

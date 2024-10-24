@@ -1,14 +1,12 @@
 # This ROS 2 node contains code for the digger subsystem of the robot.
 # Original Author: Anthony Brogni <brogn002@umn.edu> in Fall 2023
-# Maintainer: Anthony Brogni <brogn002@umn.edu>
-# Last Updated: November 2023
+# Maintainer: Charlie Parece <parec020@umn.edu>
+# Last Updated: October 2024
 
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
 
-# Import ROS 2 formatted message types
-from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
@@ -33,15 +31,12 @@ class DiggerNode(Node):
         self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
         self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
+        self.srv_lower_lift = self.create_service(Stop, "lift/lower", self.lower_lift_callback)
 
         # Define publishers here
-        self.publisher_goal_reached = self.create_publisher(Bool, "digger/goal_reached", 10)
 
         # Define subscribers here
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
-
-        # Define timers here
-        self.timer = self.create_timer(0.1, self.timer_callback)
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DIGGER_BELT_MOTOR", 2)
@@ -59,14 +54,8 @@ class DiggerNode(Node):
 
         # Current state of the digger belt
         self.running = False
-        # Current goal position (in degrees)
-        self.current_goal_position = 0
         # Current position of the lift motor in degrees
         self.current_position_degrees = 0  # Relative encoders always initialize to 0
-        # Goal Threshold
-        # if abs(self.current_goal_position - ACTUAL VALUE) <= self.goal_threshold,
-        # then we should publish True to /digger/goal_reached
-        self.goal_threshold = 320  # in degrees of the motor # TODO: Tune this threshold if needed
         # Current state of the lift system
         self.lift_running = False
 
@@ -101,17 +90,15 @@ class DiggerNode(Node):
         else:
             self.set_power(digger_belt_power)
 
-    # TODO: This method can probably be deleted during the implementation of ticket #257
     def set_position(self, position: int) -> None:
         """This method sets the position (in degrees) of the digger."""
-        self.current_goal_position = position  # goal position should be in degrees
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
                 can_id=self.DIGGER_LIFT_MOTOR,
-                value=float(self.current_goal_position + self.lift_encoder_offset),
+                value=float(position + self.lift_encoder_offset),
             )
-        )
+        ).result()
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
@@ -139,6 +126,9 @@ class DiggerNode(Node):
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
         self.lift_set_power(0.05)
 
+    def lower_lift(self) -> None:
+        self.lift_set_power(-0.05)
+
     # Define service callback methods here
     def set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
@@ -158,12 +148,10 @@ class DiggerNode(Node):
         response.success = 0  # indicates success
         return response
 
-    # TODO: This method needs to be modified during the implementation of ticket #257
-    # to return a proper future indicating when the goal position has been reached
-    # so that rclpy.spin_until_future_complete() can be used to wait for the goal.
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
+        # ^ this should already wait due to vesc set position not returning until done
         response.success = 0  # indicates success
         return response
 
@@ -182,23 +170,20 @@ class DiggerNode(Node):
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
         self.zero_lift()
+        while not self.top_limit_pressed:
+            pass
         response.success = 0  # indicates success
         return response
 
-    # Define timer callback methods here
-    def timer_callback(self):
-        """Publishes whether or not the current goal position has been reached."""
-        # This service call will return a future object, that will eventually contain the position in degrees
-        future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.DIGGER_LIFT_MOTOR))
-        future.add_done_callback(self.done_callback)
+    def lower_lift_callback(self, request, response):
+        """This service request reverse-zeros the lift system, putting it at the lowest point"""
+        self.lower_lift()
+        while not self.bottom_limit_pressed:
+            pass
+        response.success = 0  # indicates success
+        return response
 
-    def done_callback(self, future):
-        self.current_position_degrees = future.result().data
-        goal_reached_msg = Bool(
-            data=abs(self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees)
-            <= self.goal_threshold
-        )
-        self.publisher_goal_reached.publish(goal_reached_msg)
+    # No more timer callback because setPos works
 
     # Define subscriber callback methods here
     def limit_switch_callback(self, limit_switches_msg):
