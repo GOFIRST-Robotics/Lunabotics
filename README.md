@@ -233,11 +233,10 @@ sudo ip link set can0 up type can bitrate 500000
 sudo ip link set can1 up type can bitrate 500000
 ```
 
-4: Run the command "sudo crontab -e" and put this line in the file that appears:
+4: Run the command "sudo crontab -e" and add this line to the bottom of the file that appears:
 
 ```
-@reboot sleep 5 && echo 'robot' | sudo -S sh /
-can_startup.sh 2>&1 | logger -t mycmd
+@reboot sleep 5 && echo 'robot' | sudo -S sh can_startup.sh 2>&1 | logger -t mycmd
 ```
 
 And that should work. If it doesn't and you need to read the output of the crontab, use this command:
