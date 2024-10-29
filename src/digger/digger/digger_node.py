@@ -12,7 +12,7 @@ from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
-from rovr_interfaces.srv import SetPower,SetPosition
+from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
 
