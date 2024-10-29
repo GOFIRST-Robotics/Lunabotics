@@ -4,7 +4,8 @@ from rclpy.action.server import CancelResponse, ServerGoalHandle, GoalStatus
 from std_msgs.msg import Bool
 
 from rovr_interfaces.action import AutoOffload
-from rovr_interfaces.srv import Drive, Stop, SetPosition, SetPower
+from rovr_interfaces.srv import Drive, SetPosition, SetPower
+from std_srvs.srv import Trigger
 
 from rovr_control.node_util import AsyncNode
 
@@ -26,13 +27,13 @@ class AutoOffloadServer(AsyncNode):
         )
 
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
-        self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
+        self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         # TODO: This should not be updated to used #257
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
-        self.cli_lift_stop = self.create_client(Stop, "lift/stop")
+        self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
 
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
-        self.cli_digger_stop = self.create_client(Stop, "digger/stop")
+        self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         """This method lays out the procedure for autonomously offloading!"""
@@ -71,7 +72,7 @@ class AutoOffloadServer(AsyncNode):
         self.get_logger().info("Auto Driving")
         # drive for 10 seconds
         await self.async_sleep(10)  # Allows for task to be canceled
-        await self.cli_drivetrain_stop.call_async(Stop.Request())
+        await self.cli_drivetrain_stop.call_async(Trigger.Request())
 
         # Raise up the digger in preparation for dumping
         self.get_logger().info("Raising the Lift!")
@@ -88,7 +89,7 @@ class AutoOffloadServer(AsyncNode):
         time_to_offload = 1.0 / abs(goal_handle.request.digger_belt_power)
         await self.async_sleep(time_to_offload)  # Allows for task to be canceled
 
-        await self.cli_digger_stop.call_async(Stop.Request())  # Stop the digger belt
+        await self.cli_digger_stop.call_async(Trigger.Request())  # Stop the digger belt
         self.get_logger().info("Autonomous Offload Procedure Complete!")
         goal_handle.succeed()
         return result
@@ -98,10 +99,10 @@ class AutoOffloadServer(AsyncNode):
         self.get_logger().info("Goal is cancelling")
         # If lift is raising stop it
         if not self.digger_goal_reached.done():
-            self.cli_drivetrain_stop.call_async(Stop.Request())
+            self.cli_drivetrain_stop.call_async(Trigger.Request())
         if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
-            self.cli_drivetrain_stop.call_async(Stop.Request())
-            self.cli_digger_stop.call_async(Stop.Request())
+            self.cli_drivetrain_stop.call_async(Trigger.Request())
+            self.cli_digger_stop.call_async(Trigger.Request())
         return CancelResponse.ACCEPT
 
 

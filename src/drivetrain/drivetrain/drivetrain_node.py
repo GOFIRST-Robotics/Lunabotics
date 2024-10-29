@@ -13,7 +13,8 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import Stop, Drive, MotorCommandSet
+from rovr_interfaces.srv import Drive, MotorCommandSet
+from std_srvs.srv import Trigger
 
 
 class DrivetrainNode(Node):
@@ -52,7 +53,7 @@ class DrivetrainNode(Node):
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
         # Define services (methods callable from the outside) here
-        self.srv_stop = self.create_service(Stop, "drivetrain/stop", self.stop_callback)
+        self.srv_stop = self.create_service(Trigger, "drivetrain/stop", self.stop_callback)
         self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
 
         # Print the ROS Parameters to the terminal below #
