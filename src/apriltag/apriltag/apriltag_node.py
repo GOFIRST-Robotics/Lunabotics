@@ -6,7 +6,7 @@ from tf2_ros import TransformBroadcaster, TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 
-from rovr_interfaces.srv import ResetOdom
+from std_srvs.srv import Trigger
 from geometry_msgs.msg import TransformStamped
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
 
@@ -46,7 +46,7 @@ class ApriltagNode(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        self.create_service(ResetOdom, "resetOdom", self.reset_callback)
+        self.create_service(Trigger, "resetOdom", self.reset_callback)
 
         # Create a timer to broadcast the map -> odom transform
         self.timer = self.create_timer(0.01, self.broadcast_transform)

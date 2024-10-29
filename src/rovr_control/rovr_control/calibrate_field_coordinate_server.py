@@ -5,7 +5,7 @@ from rclpy.action import ActionClient, ActionServer, CancelResponse
 from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
 from rovr_interfaces.action import CalibrateFieldCoordinates
-from rovr_interfaces.srv import ResetOdom
+from std_srvs.srv import Trigger
 from rclpy.node import Node
 from rclpy.task import Future
 
@@ -23,7 +23,7 @@ class CalibrateFieldCoordinateServer(Node):
             self.execute_callback,
             cancel_callback=self.cancel_callback,
         )
-        self.cli_set_apriltag_odometry = self.create_client(ResetOdom, "resetOdom")
+        self.cli_set_apriltag_odometry = self.create_client(Trigger, "resetOdom")
         self.future_odom = Future()
 
         self.cli_spin = ActionClient(self, Spin, "spin")
@@ -50,7 +50,7 @@ class CalibrateFieldCoordinateServer(Node):
         self.future_odom = Future()
 
         while not future_spin.done():
-            self.future_odom = self.cli_set_apriltag_odometry.call_async(ResetOdom.Request())
+            self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
             if (await self.future_odom).success is True:
                 await self.spin_handle.cancel_goal_async()
 
