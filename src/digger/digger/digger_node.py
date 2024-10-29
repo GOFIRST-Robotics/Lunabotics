@@ -10,8 +10,9 @@ from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
-from rovr_interfaces.srv import SetPower, Stop, SetPosition
+from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.msg import LimitSwitches
+from std_srvs.srv import Trigger
 
 
 class DiggerNode(Node):
@@ -25,13 +26,13 @@ class DiggerNode(Node):
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(SetPower, "digger/toggle", self.toggle_callback)
-        self.srv_stop = self.create_service(Stop, "digger/stop", self.stop_callback)
+        self.srv_stop = self.create_service(Trigger, "digger/stop", self.stop_callback)
         self.srv_setPower = self.create_service(SetPower, "digger/setPower", self.set_power_callback)
         self.srv_setPosition = self.create_service(SetPosition, "lift/setPosition", self.set_position_callback)
-        self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
+        self.srv_lift_stop = self.create_service(Trigger, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
-        self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
-        self.srv_lower_lift = self.create_service(Stop, "lift/lower", self.lower_lift_callback)
+        self.srv_zero_lift = self.create_service(Trigger, "lift/zero", self.zero_lift_callback)
+        self.srv_lower_lift = self.create_service(Trigger, "lift/lower", self.lower_lift_callback)
 
         # Define publishers here
 

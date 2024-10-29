@@ -5,7 +5,7 @@ from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, ServerGoalHandle
 
 from rovr_interfaces.action import AutoOffload
-from rovr_interfaces.srv import Stop
+from std_srvs.srv import Trigger
 
 
 class AutoOffloadServer(Node):
@@ -19,8 +19,8 @@ class AutoOffloadServer(Node):
             cancel_callback=self.cancel_callback,
         )
 
-        self.cli_dumper_stop = self.create_client(Stop, "dumper/stop")
-        self.cli_dumper_dump = self.create_client(Stop, "dumper/dump")
+        self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
+        self.cli_dumper_dump = self.create_client(Trigger, "dumper/dump")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         """This method lays out the procedure for autonomously offloading!"""
@@ -37,9 +37,9 @@ class AutoOffloadServer(Node):
             goal_handle.abort()
             return result
 
-        await self.cli_dumper_dump.call_async(Stop.Request())  # Dump Berm
+        await self.cli_dumper_dump.call_async(Trigger.Request())  # Dump Berm
 
-        await self.cli_dumper_stop.call_async(Stop.Request())  # Stop the dumper system
+        await self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper system
         self.get_logger().info("Autonomous Offload Procedure Complete!")
         goal_handle.succeed()
         return result
@@ -48,7 +48,7 @@ class AutoOffloadServer(Node):
         """This method is called when the action is canceled."""
         self.get_logger().info("Goal is cancelling")
         # If lift is raising stop it
-        self.cli_dumper_stop.call_async(Stop.Request())
+        self.cli_dumper_stop.call_async(Trigger.Request())
         return CancelResponse.ACCEPT
 
 
