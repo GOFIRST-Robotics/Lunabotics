@@ -9,9 +9,9 @@ import rclpy
 from rclpy.node import Node
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
-from rovr_interfaces.srv import SetPower, Stop
+from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from rovr_interfaces.msg import LimitSwitches
+from std_srvs.srv import Trigger
 
 
 class DumperNode(Node):
@@ -25,12 +25,12 @@ class DumperNode(Node):
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(SetPower, "dumper/toggle", self.toggle_callback)
-        self.srv_stop = self.create_service(Stop, "dumper/stop", self.stop_callback)
+        self.srv_stop = self.create_service(Trigger, "dumper/stop", self.stop_callback)
         self.srv_setPower = self.create_service(SetPower, "dumper/setPower", self.set_power_callback)
 
-        self.srv_extendDumper = self.create_service(Stop, "dumper/extendDumper", self.extend_callback)
-        self.srv_retractDumper = self.create_service(Stop, "dumper/retractDumper", self.retract_callback)
-        self.srv_dump = self.create_service(Stop, "dumper/dump", self.dump_callback)
+        self.srv_extendDumper = self.create_service(Trigger, "dumper/extendDumper", self.extend_callback)
+        self.srv_retractDumper = self.create_service(Trigger, "dumper/retractDumper", self.retract_callback)
+        self.srv_dump = self.create_service(Trigger, "dumper/dump", self.dump_callback)
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
