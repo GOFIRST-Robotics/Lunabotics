@@ -23,8 +23,9 @@ from sensor_msgs.msg import Joy
 from action_msgs.msg import GoalStatus
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import Stop, SetPower, SetPosition
+from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload
+from std_srvs.srv import Trigger
 
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
@@ -115,14 +116,14 @@ class MainControlNode(Node):
             self.dig_location = create_pose_stamped(6.2, -1.2, 0)
 
         # Define service clients here
-        self.cli_dumper_dump = self.create_client(Stop, "dumper/dump")
+        self.cli_dumper_dump = self.create_client(Trigger, "dumper/dump")
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
-        self.cli_digger_stop = self.create_client(Stop, "digger/stop")
+        self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
-        self.cli_drivetrain_stop = self.create_client(Stop, "drivetrain/stop")
-        self.cli_lift_stop = self.create_client(Stop, "lift/stop")
-        self.cli_lift_zero = self.create_client(Stop, "lift/zero")
+        self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
+        self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
+        self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
 
         # Define publishers and subscribers here
@@ -151,7 +152,7 @@ class MainControlNode(Node):
         # ----- !! BLOCKING WHILE LOOP !! ----- #
         while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
             self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        self.cli_lift_zero.call_async(Stop.Request())  # Zero the lift by slowly raising it up
+        self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
 
     # NOTE: This method is meant to find a safe digging location on the field, but it has not been tested enough yet.
     # def optimal_dig_location(self) -> list:
@@ -189,9 +190,9 @@ class MainControlNode(Node):
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_digger_stop.call_async(Stop.Request())  # Stop the digger belt
-        self.cli_drivetrain_stop.call_async(Stop.Request())  # Stop the drivetrain
-        self.cli_lift_stop.call_async(Stop.Request())  # Stop the digger lift
+        self.cli_digger_stop.call_async(Trigger.Request())  # Stop the digger belt
+        self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
+        self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -225,7 +226,7 @@ class MainControlNode(Node):
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
-                self.cli_dumper_dump.call_async(Stop.Request())
+                self.cli_dumper_dump.call_async(Trigger.Request())
 
             # Check if the lift digging position button is pressed #
             if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
@@ -235,15 +236,15 @@ class MainControlNode(Node):
             if msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
                 self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power))
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
-                self.cli_lift_stop.call_async(Stop.Request())
+                self.cli_lift_stop.call_async(Trigger.Request())
             elif msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
                 self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
-                self.cli_lift_stop.call_async(Stop.Request())
+                self.cli_lift_stop.call_async(Trigger.Request())
 
             # Check if the calibration button is pressed
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
-                self.cli_drivetrain_calibrate.call_async(Stop.Request())
+                self.cli_drivetrain_calibrate.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
