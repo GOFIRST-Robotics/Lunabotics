@@ -91,15 +91,6 @@ class DiggerNode(Node):
         else:
             self.set_power(digger_belt_power)
 
-    def set_position(self, position: int) -> None:
-        """This method sets the position (in degrees) of the digger."""
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                type="position",
-                can_id=self.DIGGER_LIFT_MOTOR,
-                value=float(position + self.lift_encoder_offset),
-            )
-        ).result()
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
@@ -149,10 +140,16 @@ class DiggerNode(Node):
         response.success = 0  # indicates success
         return response
 
-    def set_position_callback(self, request, response):
+    async def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
-        self.set_position(request.position)
-        # ^ this should already wait due to vesc set position not returning until done
+        """This method sets the position (in degrees) of the digger."""
+        await self.cli_motor_set.call_async(
+            MotorCommandSet.Request(
+                type="position",
+                can_id=self.DIGGER_LIFT_MOTOR,
+                value=float(request.position + self.lift_encoder_offset),
+            )
+        )
         response.success = 0  # indicates success
         return response
 
