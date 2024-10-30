@@ -10,11 +10,12 @@ from rclpy.node import Node
 
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import Drive, MotorCommandSet
 from std_srvs.srv import Trigger
+from rovr_interfaces.msg import LimitSwitches
 
 
 class DrivetrainNode(Node):
@@ -39,9 +40,12 @@ class DrivetrainNode(Node):
         self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
         self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
+        self.ready_to_drive = True
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
+        self.limit_switch_reader = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_top_digger, 10)
+
 
         if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
@@ -68,6 +72,9 @@ class DrivetrainNode(Node):
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
+
+        if not self.ready_to_drive: 
+            return
 
         # Clamp the values between -1 and 1
         forward_power = max(-1.0, min(forward_power, 1.0))
@@ -128,6 +135,10 @@ class DrivetrainNode(Node):
         """This method is called whenever a message is received on the cmd_vel topic."""
         self.drive(msg.linear.x, msg.angular.z)
 
+    def limit_switch_top_digger(self, msg):
+        """This service determines if the digger is raised or not."""
+        self.ready_to_drive = msg.digger_top_limit_switch 
+        
 
 def main(args=None):
     """The main function."""
