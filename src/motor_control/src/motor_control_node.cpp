@@ -180,7 +180,7 @@ class MotorControlNode : public rclcpp::Node {
   }
 
 // smoothly ramp up motor speed
-  void accelerate_duty_cycle(uint32_t id, float voltageGoal, float time) {
+  void vesc_accelerate_duty_cycle(uint32_t id, float voltageGoal, float time) {
     time = time*1000000000;
     float start_time = rclcpp::nanoseconds().count(); // time at the start of the service
     float goalCurrentDifference = voltageGoal-can_data[id].dutyCycle; // current distance from the voltage goal
@@ -351,6 +351,9 @@ private:
       response->success = 0; // indicates success
     } else if (strcmp(request->type.c_str(), "position") == 0) {
       vesc_set_position(request->can_id, request->value);
+      response->success = 0; // indicates success
+    } else if (strcmp(request->type.c_str(), "ramp_duty_cycle") == 0){
+      vesc_accelerate_duty_cycle(request->can_id, request->value, request->value2);
       response->success = 0; // indicates success
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
