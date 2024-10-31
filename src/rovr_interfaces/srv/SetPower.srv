@@ -1,4 +1,4 @@
 # This service sets power to a subsystem with 1 motor
 float32 power # duty cycle
 ---
-int32 success
+bool success
