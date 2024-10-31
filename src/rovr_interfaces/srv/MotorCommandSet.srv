@@ -3,4 +3,4 @@ string type # The type of command to send (duty_cycle, position, or velocity)
 uint32 can_id # CAN ID of the VESC
 float32 value # Value to pass to the motor_control method
 ---
-int32 success
+bool success
