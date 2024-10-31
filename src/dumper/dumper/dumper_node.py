@@ -79,19 +79,19 @@ class DumperNode(Node):
     def set_power_callback(self, request, response):
         """This service request sets power to the dumper."""
         self.set_power(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def stop_callback(self, request, response):
         """This service request stops the dumper."""
         self.stop()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def toggle_callback(self, request, response):
         """This service request toggles the dumper."""
         self.toggle(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def extend_dumper(self) -> None:
@@ -102,7 +102,7 @@ class DumperNode(Node):
     def extend_callback(self, request, response):
         """This service request extends the dumper"""
         self.extend_dumper()
-        response.success = 0
+        response.success = True
         return response
 
     def retract_dumper(self) -> None:
@@ -113,7 +113,7 @@ class DumperNode(Node):
     def retract_callback(self, request, response):
         """This service request retracts the dumper"""
         self.retract_dumper()
-        response.success = 0
+        response.success = True
         return response
 
     def dump(self) -> None:
@@ -126,7 +126,7 @@ class DumperNode(Node):
 
     def dump_callback(self, request, response):
         self.dump()
-        response.success = 0
+        response.success = True
         return response
 
     def limit_switch_callback(self, msg: LimitSwitches):
