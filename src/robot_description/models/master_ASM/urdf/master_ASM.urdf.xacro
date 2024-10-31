@@ -5,6 +5,14 @@ Stephen Brawner (brawner@gmail.com)
      For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
 
 <robot name="Master_ASM" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <link name="root_link">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </link>
+  <joint name="root_to_frame_joint" type="fixed">
+    <parent link="root_link" />
+    <child link="frame_link" />
+    <origin xyz="0 0 0" rpy="0 0 -1.5708" />
+  </joint>
   <link
     name="frame_link">
     <inertial>
@@ -45,33 +53,30 @@ Stephen Brawner (brawner@gmail.com)
     </collision>
   </link>
 
-  <!-- Connect the frame_link to the new link with only a translation -->
-  <joint name="base_to_translation_end" type="fixed">
-    <parent link="translation_end_link"/>
-    <child link="frame_link"/>
-    <origin xyz="-0.5 0 0.375" rpy="0 0 -1.57"/>
-  </joint>
-
-  <!-- Add a new link at the end of the translation vector -->
-  <link name="translation_end_link">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.001"/>
-      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
-    </inertial>
-  </link>
-
-  <!-- Connect the translation_end_link to the zed2i_camera_link with only a rotation -->
+  <!-- ZED 2i Camera -->
+  <xacro:arg name="use_zed_localization" default="true" />
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
   <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false">
     <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
     <gnss_origin></gnss_origin>
   </xacro:zed_camera>
-  <joint name="translation_end_to_camera" type="fixed">
-    <parent link="zed2i_camera_link"/>
-    <child link="translation_end_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
+  <!-- Add a joint to connect the ZED 2i Camera model to the robot -->
+  <xacro:if value="$(arg use_zed_localization)">
+    <!-- ZED Localization -> The reference link is 'zed2i_camera_link' and 'root_link' is a child -->
+    <joint name="zed2i_joint" type="fixed">
+      <parent link="zed2i_camera_link"/>
+      <child link="root_link"/>
+      <origin xyz="-0.5 0 0.375" rpy="0 0 0"/>
+    </joint>    
+  </xacro:if>
+  <xacro:unless value="$(arg use_zed_localization)">
+    <!-- NO ZED Localization -> 'zed2i_camera_link' is a child of 'root_link' -->
+    <joint name="zed2i_joint" type="fixed">
+      <parent link="root_link"/>
+      <child link="zed2i_camera_link"/>
+      <origin xyz="0.5 0 -0.375" rpy="0 0 0"/>
+    </joint>
+  </xacro:unless>
 
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
@@ -94,7 +99,6 @@ Stephen Brawner (brawner@gmail.com)
       <info_topic>/color/camera_info</info_topic>
       <gz_frame_id>zed2i_left_camera_optical_frame</gz_frame_id>
     </sensor>
-
     <sensor name="depthcamera" type="depth">
       <!-- <visualize>true</visualize> -->
       <always_on>true</always_on>
@@ -115,7 +119,6 @@ Stephen Brawner (brawner@gmail.com)
       <info_topic>/depth/camera_info</info_topic>
       <gz_frame_id>zed2i_left_camera_optical_frame</gz_frame_id>
     </sensor>
-    
   </gazebo>
 
   <link
