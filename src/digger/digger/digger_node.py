@@ -91,7 +91,6 @@ class DiggerNode(Node):
         else:
             self.set_power(digger_belt_power)
 
-
     def stop_lift(self) -> None:
         """This method stops the lift."""
         self.lift_running = False
@@ -125,19 +124,19 @@ class DiggerNode(Node):
     def set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
         self.set_power(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def stop_callback(self, request, response):
         """This service request stops the digger belt."""
         self.stop()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def toggle_callback(self, request, response):
         """This service request toggles the digger belt."""
         self.toggle(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     async def set_position_callback(self, request, response):
@@ -150,19 +149,19 @@ class DiggerNode(Node):
                 value=float(request.position + self.lift_encoder_offset),
             )
         )
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def stop_lift_callback(self, request, response):
         """This service request stops the lift system."""
         self.stop_lift()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def lift_set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
         self.lift_set_power(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def zero_lift_callback(self, request, response):
@@ -170,7 +169,7 @@ class DiggerNode(Node):
         self.zero_lift()
         while not self.top_limit_pressed:
             pass
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def lower_lift_callback(self, request, response):
@@ -178,7 +177,7 @@ class DiggerNode(Node):
         self.lower_lift()
         while not self.bottom_limit_pressed:
             pass
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     # No more timer callback because setPos works
