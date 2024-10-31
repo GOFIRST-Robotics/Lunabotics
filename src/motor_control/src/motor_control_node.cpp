@@ -322,16 +322,16 @@ private:
 
     if (strcmp(request->type.c_str(), "velocity") == 0) {
       vesc_set_velocity(request->can_id, request->value);
-      response->success = 0; // indicates success
+      response->success = true;
     } else if (strcmp(request->type.c_str(), "duty_cycle") == 0) {
       vesc_set_duty_cycle(request->can_id, request->value);
-      response->success = 0; // indicates success
+      response->success = true;
     } else if (strcmp(request->type.c_str(), "position") == 0) {
       vesc_set_position(request->can_id, request->value);
-      response->success = 0; // indicates success
+      response->success = true;
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
-      response->success = 1; // indicates failure
+      response->success = false;
     }
   }
 
@@ -352,9 +352,9 @@ private:
 
     if (data.has_value()) {
       response->data = data.value();
-      response->success = 0; // indicates success
+      response->success = true;
     } else {
-      response->success = 1; // indicates failure
+      response->success = false;
       RCLCPP_WARN(this->get_logger(), "GET command for CAN ID %u read stale data!", request->can_id);
     }
   }

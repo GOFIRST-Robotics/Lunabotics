@@ -144,19 +144,19 @@ class DiggerNode(Node):
     def set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
         self.set_power(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def stop_callback(self, request, response):
         """This service request stops the digger belt."""
         self.stop()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def toggle_callback(self, request, response):
         """This service request toggles the digger belt."""
         self.toggle(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     # TODO: This method needs to be modified during the implementation of ticket #257
@@ -165,25 +165,25 @@ class DiggerNode(Node):
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def stop_lift_callback(self, request, response):
         """This service request stops the lift system."""
         self.stop_lift()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def lift_set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
         self.lift_set_power(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
         self.zero_lift()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     # Define timer callback methods here

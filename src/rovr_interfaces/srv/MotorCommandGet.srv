@@ -2,5 +2,5 @@
 string type # The type of data to get (duty_cycle, position, or velocity) 
 uint32 can_id # CAN ID of the VESC
 ---
-int32 success
+bool success
 float32 data # The data returned by the motor_control get method
