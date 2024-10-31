@@ -20,7 +20,7 @@ class ApriltagNode(Node):
     def displayTagCallBack(self, msg):
         if not self.called:
             esdf_slice = np.frombuffer(msg.data, dtype=np.float32)
-            esdf_slice[esdf_slice==1000] = -1
+            esdf_slice[esdf_slice==1000] = -0.1
             height = msg.height
             width = msg.width
             esdf_slice = esdf_slice.reshape((height, width))
