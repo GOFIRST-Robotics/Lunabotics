@@ -44,9 +44,7 @@ class DrivetrainNode(Node):
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
-        self.limit_switch_reader = self.create_subscription(
-            LimitSwitches, "limitSwitches", self.limit_switch_top_digger, 10
-        )
+        self.limit_switch_reader = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_top_digger, 10)
 
         if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
@@ -73,9 +71,9 @@ class DrivetrainNode(Node):
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
-
         if not self.ready_to_drive:
-            return
+            self.get_logger().warn("The digger is not raised. Cannot drive.")
+            return False
 
         # Clamp the values between -1 and 1
         forward_power = max(-1.0, min(forward_power, 1.0))
@@ -111,6 +109,7 @@ class DrivetrainNode(Node):
             self.gazebo_wheel2_pub.publish(Float64(data=rightPower))
             self.gazebo_wheel3_pub.publish(Float64(data=rightPower))
             self.gazebo_wheel4_pub.publish(Float64(data=leftPower))
+        return True
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
@@ -126,8 +125,7 @@ class DrivetrainNode(Node):
 
     def drive_callback(self, request, response):
         """This service request drives the robot with the specified speeds."""
-        self.drive(request.forward_power, request.turning_power)
-        response.success = True
+        response.success = self.drive(request.forward_power, request.turning_power)
         return response
 
     # Define subscriber callback methods here
