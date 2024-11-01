@@ -9,7 +9,9 @@ from tf2_ros.transform_listener import TransformListener
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import TransformStamped
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
-from sensor_msgs.msg._nav_sat_fix import NavSatFix # did I do this import correctly? did i import the right message/library/message/folder/thing
+from sensor_msgs.msg._nav_sat_fix import (
+    NavSatFix,
+)  # did I do this import correctly? did i import the right message/library/message/folder/thing
 
 import xml.etree.ElementTree as ET
 
@@ -19,7 +21,9 @@ class ApriltagNode(Node):
         super().__init__("apriltag_node")
         current_dir = os.getcwd()
 
-        self.declare_parameter("autonomous_field_type", "bottom")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter(
+            "autonomous_field_type", "bottom"
+        )  # The type of field ("top", "bottom", "nasa")
         field_type = self.get_parameter("autonomous_field_type").value
         paths = {
             "top": "src/apriltag/apriltag/apriltag_location_ucf_top.urdf.xarco",
@@ -42,7 +46,9 @@ class ApriltagNode(Node):
         self.map_transform.transform.rotation.z = 0.0
         self.map_transform.transform.rotation.w = 1.0
 
-        self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
+        self.transforms = self.create_subscription(
+            AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10
+        )
         self.fusetags = self.create_publisher(NavSatFix, "/fuseapriltags", 10)
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
@@ -89,7 +95,9 @@ class ApriltagNode(Node):
 
             # Lookup the odom to detected tag tf from the tf buffer
             try:
-                odom_to_tag_transform = self.tf_buffer.lookup_transform("odom", f"{tag.family}:{id}", rclpy.time.Time())
+                odom_to_tag_transform = self.tf_buffer.lookup_transform(
+                    "odom", f"{tag.family}:{id}", rclpy.time.Time()
+                )
             except TransformException as ex:
                 self.get_logger().warn(f"Could not transform odom to the detected tag: {ex}")
                 return
@@ -110,7 +118,9 @@ class ApriltagNode(Node):
                     odom_to_tag_transform.transform.rotation.w,
                 ]
             ).as_quat()
-            rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
+            rotated_quaternion = (
+                current_quaternion * rotation_quaternion
+            )  # Multiply the quaternions
 
             # Update the transform with the rotated quaternion
             odom_to_tag_transform.transform.rotation.x = rotated_quaternion[0]
@@ -124,20 +134,27 @@ class ApriltagNode(Node):
             odom_to_tag_transform.transform.translation.z = 0.0
 
             self.map_to_odom_tf = odom_to_tag_transform
+            # TODO: compute our current global pose ( map -> base_link TF )
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
         self.map_transform.header.stamp = self.get_clock().now().to_msg()
         self.tf_broadcaster.sendTransform(self.map_transform)
+        # TODO: call the fusetag method with our current global pose
 
-    def fusetags(self, tagvalues):
+    def fusetag(self, tagvalues):
         # the tag values I'll need: a calculation of how far we are from the tag --> how far have we travelled --> absolute pos
         fused_pos = NavSatFix()
-        fused_pos.__slots__ = ['header - another ros message',
-                               'status - another ros message','latitude','longitude',
-                               'altitude','position_covariance',
-                               'position_covariance_type']
-        return fused_pos
+        fused_pos.__slots__ = [
+            "header - another ros message",
+            "status - another ros message",
+            "latitude",
+            "longitude",
+            "altitude",
+            "position_covariance",
+            "position_covariance_type",
+        ]
+        self.fusetags.publish(fused_pos)  # is NavSatFix a message?
 
 
 def main(args=None):
