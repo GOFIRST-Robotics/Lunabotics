@@ -180,26 +180,29 @@ class MotorControlNode : public rclcpp::Node {
   }
 
 // smoothly ramp up motor speed
-  void vesc_accelerate_duty_cycle(uint32_t id, float voltageGoal, float time) {
+  void vesc_accelerate_duty_cycle(uint32_t id, float dutyCycleGoal, float time) {
+    
+    rclcpp::Time timer = rclcpp::Time(1,1);	
     time = time*1000000000;
-    float start_time = rclcpp::nanoseconds().count(); // time at the start of the service
-    float goalCurrentDifference = voltageGoal-can_data[id].dutyCycle; // current distance from the voltage goal
+    static float start_time = timer.nanoseconds(); // time at the start of the service
+    float goalCurrentDifference = dutyCycleGoal-can_data[id].dutyCycle; // current distance from the voltage goal
     float original_duty_Cycle = can_data[id].dutyCycle; // the duty cycle at the start of the service
-    float updatedGoalCurrentDifference = voltageGoal-can_data[id].dutyCycle;
+    float updatedGoalCurrentDifference = dutyCycleGoal-can_data[id].dutyCycle;
 
     // change the dutycycle by the chosen percent of the difference every second until it is within one percent of the goal.
-    while(!((updatedGoalCurrentDifference >= 0 && goalCurrentDifference < 0) || (updatedGoalCurrentDifference <= 0 && goalCurrentDifference > 0))) {
-      float time_elapsed = rclcpp::nanoseconds().count() - start_time;
+    while(!((updatedGoalCurrentDifference >= 0 && goalCurrentDifference <= 0) || (updatedGoalCurrentDifference <= 0 && goalCurrentDifference >= 0))) {
+      float time_elapsed = timer.nanoseconds() - start_time;
       float accel_increment = (goalCurrentDifference/time)*time_elapsed;
       vesc_set_duty_cycle(id,  original_duty_Cycle + accel_increment);
-      RCLCPP_DEBUG(this->get_logger(), "My log message %f", can_data[id].dutyCycle);
-      rclcpp::sleep_for(std::chrono::nanoseconds(1));
-      updatedGoalCurrentDifference = voltageGoal-can_data[id].dutyCycle;
+      RCLCPP_INFO(this->get_logger(), "Current duty cycle set: %f", original_duty_Cycle + accel_increment);
+      RCLCPP_INFO(this->get_logger(), "time elapsed: %f", time_elapsed);
+      RCLCPP_INFO(this->get_logger(), "time: %ld",rclcpp::nanoseconds().count());
+      updatedGoalCurrentDifference = dutyCycleGoal-(original_duty_Cycle + accel_increment);
 
     } 
     
     // make sure the duty cycle is at exactly the goal
-    vesc_set_duty_cycle(id, voltageGoal);
+    vesc_set_duty_cycle(id, dutyCycleGoal);
   }
 
   // Set the velocity of the motor in RPM (Rotations Per Minute)
