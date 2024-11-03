@@ -31,6 +31,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("HALF_WHEEL_BASE", 0.5)
         self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
         self.declare_parameter("GAZEBO_SIMULATION", False)
+        self.declare_parameter("MAX_DRIVETRAIN_RPM", 10000)
 
         # Assign the ROS Parameters to member variables below #
         self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
@@ -40,6 +41,9 @@ class DrivetrainNode(Node):
         self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
         self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
+        self.MAX_DRIVETRAIN_RPM = self.get_parameter("MAX_DRIVETRAIN_RPM").value
+
+        # State variable for the drivetrain based on the digger's position
         self.ready_to_drive = True
 
         # Define publishers and subscribers here
@@ -69,6 +73,7 @@ class DrivetrainNode(Node):
         self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
         self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
+        self.get_logger().info("MAX_DRIVETRAIN_RPM has been set to: " + str(self.MAX_DRIVETRAIN_RPM))
 
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
@@ -91,18 +96,26 @@ class DrivetrainNode(Node):
             leftPower *= scale_factor
             rightPower *= scale_factor
 
-        # Send the motor commands to the motor_control_node
+        # Send velocity (not duty cycle) motor commands to the motor_control_node
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+            MotorCommandSet.Request(
+                can_id=self.FRONT_LEFT_DRIVE, type="velocity", value=leftPower * self.MAX_DRIVETRAIN_RPM
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=leftPower)
+            MotorCommandSet.Request(
+                can_id=self.BACK_LEFT_DRIVE, type="velocity", value=leftPower * self.MAX_DRIVETRAIN_RPM
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+            MotorCommandSet.Request(
+                can_id=self.FRONT_RIGHT_DRIVE, type="velocity", value=rightPower * self.MAX_DRIVETRAIN_RPM
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=rightPower)
+            MotorCommandSet.Request(
+                can_id=self.BACK_RIGHT_DRIVE, type="velocity", value=rightPower * self.MAX_DRIVETRAIN_RPM
+            )
         )
 
         # Publish the wheel speeds to the gazebo simulation
