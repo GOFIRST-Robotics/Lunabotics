@@ -44,7 +44,9 @@ class DrivetrainNode(Node):
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
-        self.limit_switch_reader = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_top_digger, 10)
+        self.limit_switch_reader = self.create_subscription(
+            LimitSwitches, "limitSwitches", self.limit_switch_callback, 10
+        )
 
         if self.GAZEBO_SIMULATION:
             self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
@@ -134,7 +136,7 @@ class DrivetrainNode(Node):
         """This method is called whenever a message is received on the cmd_vel topic."""
         self.drive(msg.linear.x, msg.angular.z)
 
-    def limit_switch_top_digger(self, msg):
+    def limit_switch_callback(self, msg):
         """This service determines if the digger is raised or not."""
         self.ready_to_drive = msg.digger_top_limit_switch
 
