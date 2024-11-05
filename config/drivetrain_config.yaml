@@ -3,3 +3,4 @@
     HALF_WHEEL_BASE: 0.55959375 # HALF of the wheelbase in meters # TODO: Update this for the 2024-2025 robot
     HALF_TRACK_WIDTH: 0.2746375 # HALF of the trackwidth in meters # TODO: Update this for the 2024-2025 robot
     GAZEBO_SIMULATION: False # Set to true if running in Gazebo
+    MAX_DRIVETRAIN_RPM: 5000 # Max RPM of the drivetrain # TODO: Determine this actual number by setting 100% duty cycle to one of our drive motors and reading the RPM
