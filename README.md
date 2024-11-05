@@ -105,7 +105,7 @@ Then install Nvidia ngc CLI and make sure it is present in path: https://org.ngc
 
 Follow the instructions on the website to install and configure ngc.
     
-Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `chmod u+x ngc-cli/ngc` to your `~/.bashrc` file.
+Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bash_profile && source ~/.bash_profile` to your `~/.bashrc` file.
 
 Then log in to nvcr with the following command:
 
@@ -115,6 +115,8 @@ docker login nvcr.io
 Username: $oauthtoken
 Password: <Your Key>
 ```
+
+Install git-lfs with `sudo apt install git-lfs`
 
 Run this command to build and enter the isaac ros container
 ```
