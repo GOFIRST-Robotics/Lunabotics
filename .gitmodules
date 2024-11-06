@@ -8,8 +8,8 @@
 	branch = humble-v4.1.4
 [submodule "src/isaac_ros/isaac_ros_common"]
 	path = src/isaac_ros/isaac_ros_common
-	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common.git
-	branch = v3.1.0
+	url = https://github.com/GOFIRST-Robotics/isaac_ros_common.git
+	branch = isaac-ros-3.1
 [submodule "src/isaac_ros/isaac_ros_nvblox"]
 	path = src/isaac_ros/isaac_ros_nvblox
 	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nvblox.git
