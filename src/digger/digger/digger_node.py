@@ -12,8 +12,9 @@ from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
-from rovr_interfaces.srv import SetPower, Stop, SetPosition
+from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.msg import LimitSwitches
+from std_srvs.srv import Trigger
 
 
 class DiggerNode(Node):
@@ -27,12 +28,12 @@ class DiggerNode(Node):
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(SetPower, "digger/toggle", self.toggle_callback)
-        self.srv_stop = self.create_service(Stop, "digger/stop", self.stop_callback)
+        self.srv_stop = self.create_service(Trigger, "digger/stop", self.stop_callback)
         self.srv_setPower = self.create_service(SetPower, "digger/setPower", self.set_power_callback)
         self.srv_setPosition = self.create_service(SetPosition, "lift/setPosition", self.set_position_callback)
-        self.srv_lift_stop = self.create_service(Stop, "lift/stop", self.stop_lift_callback)
+        self.srv_lift_stop = self.create_service(Trigger, "lift/stop", self.stop_lift_callback)
         self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
-        self.srv_zero_lift = self.create_service(Stop, "lift/zero", self.zero_lift_callback)
+        self.srv_zero_lift = self.create_service(Trigger, "lift/zero", self.zero_lift_callback)
 
         # Define publishers here
         self.publisher_goal_reached = self.create_publisher(Bool, "digger/goal_reached", 10)
@@ -143,19 +144,19 @@ class DiggerNode(Node):
     def set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
         self.set_power(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def stop_callback(self, request, response):
         """This service request stops the digger belt."""
         self.stop()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def toggle_callback(self, request, response):
         """This service request toggles the digger belt."""
         self.toggle(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     # TODO: This method needs to be modified during the implementation of ticket #257
@@ -164,25 +165,25 @@ class DiggerNode(Node):
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def stop_lift_callback(self, request, response):
         """This service request stops the lift system."""
         self.stop_lift()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def lift_set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
         self.lift_set_power(request.power)
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
         self.zero_lift()
-        response.success = 0  # indicates success
+        response.success = True
         return response
 
     # Define timer callback methods here

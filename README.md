@@ -105,7 +105,7 @@ Then install Nvidia ngc CLI and make sure it is present in path: https://org.ngc
 
 Follow the instructions on the website to install and configure ngc.
     
-Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `chmod u+x ngc-cli/ngc` to your `~/.bashrc` file.
+Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bash_profile && source ~/.bash_profile` to your `~/.bashrc` file.
 
 Then log in to nvcr with the following command:
 
@@ -115,6 +115,8 @@ docker login nvcr.io
 Username: $oauthtoken
 Password: <Your Key>
 ```
+
+Install git-lfs with `sudo apt install git-lfs`
 
 Run this command to build and enter the isaac ros container
 ```
@@ -210,19 +212,22 @@ Follow [this](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag/blob/main/d
 <details>
 <summary>How to load the CAN modules at startup on Nvidia Jetson</summary>
 <br>
-1: Put the following in a .conf file in /modules-load.d/
+
+Follow [these](https://docs.nvidia.com/jetson/archives/r36.4/DeveloperGuide/HR/ControllerAreaNetworkCan.html) instructions to enable CAN communication on Nvidia Jetson Orin.
+
+1: Put the following in the `modules.conf` file in `/etc/modules-load.d/`
 
 ```
-#Setting up the CAN bus 
+# Load the CAN bus kernel modules
 can
 can_raw
 mttcan
 #eof
 ```
 
-2: Find the file /etc/modprobe.d/denylist-mttcan.conf and either delete it or comment out the one line in it (The filename might be .../blacklist-mttcan.conf)
+2: Find the file `/etc/modprobe.d/denylist-mttcan.conf` and delete it if it exists (The filename might also be `/etc/modprobe.d/blacklist-mttcan.conf`)
 
-3: Make a script called "can_startup.sh" in the root directory for the system, with the following contents:
+3: Make a script called "can_startup.sh" in the `/root` directory of the system, with the following contents:
 ```
 #! /usr/bin/sh
 
@@ -230,17 +235,16 @@ sudo ip link set can0 up type can bitrate 500000
 sudo ip link set can1 up type can bitrate 500000
 ```
 
-4: Run the command "sudo crontab -e" and put this line in the file that appears:
+4: Run the command "sudo crontab -e" and add this line to the bottom of the file that appears:
 
 ```
-@reboot sleep 5 && echo 'robot' | sudo -S sh /
-can_startup.sh 2>&1 | logger -t mycmd
+@reboot sleep 5 && echo 'robot' | sudo -S sh can_startup.sh 2>&1 | logger -t mycmd
 ```
 
-And that should work. If it doesn't and you need to read the output of the crontab, use this command:
+And that should work! If it doesn't and you need to read the log output of the crontab, use this command:
 
 ```
-sudo grep 'mycmd' /var/log/syslog
+sudo grep -a 'mycmd' /var/log/syslog
 ```
 </details>
 
