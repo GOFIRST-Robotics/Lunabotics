@@ -83,7 +83,6 @@ class GstreamerServer:
         input.link(nvv4l2av1enc)
 
         nvv4l2av1enc.link(sink)
-        pass
 
     def run(self):
         self.pipeline.set_state(Gst.State.PLAYING)
