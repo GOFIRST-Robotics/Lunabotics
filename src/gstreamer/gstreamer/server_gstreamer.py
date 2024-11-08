@@ -65,6 +65,7 @@ class GstreamerServer:
         # format=(string)NV12, framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h265enc
         # ! rtph265pay ! udpsink host=127.0.0.1 port=5000
         nvv4l2h265enc = Gst.ElementFactory.make("nvv4l2h265enc", "nvv4l2h265enc")
+        #nvv4l2h265enc.set_property("bitrate", 1000000)
         self.pipeline.add(nvv4l2h265enc)
         input.link(nvv4l2h265enc)
 
@@ -78,7 +79,7 @@ class GstreamerServer:
         # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480, format=(string)NV12,
         # framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2av1enc ! udpsink host=127.0.0.1 port=5000
         nvv4l2av1enc = Gst.ElementFactory.make("nvv4l2av1enc", "nvv4l2av1enc")
-        nvv4l2av1enc.set_property("bitrate", 1000000)
+        #nvv4l2av1enc.set_property("bitrate", 1000000)
         self.pipeline.add(nvv4l2av1enc)
         input.link(nvv4l2av1enc)
 
