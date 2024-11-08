@@ -57,6 +57,7 @@ class ServerNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     server = ServerNode()
+    server.get_logger().info("Starting the Gstreamer server node!")
     rclpy.spin(server)
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
