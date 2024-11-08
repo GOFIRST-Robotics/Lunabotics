@@ -19,6 +19,6 @@ if [ ! -f ${HOME}/Lunabotics/docker/deepstream/deepstream*.deb ]; then
 fi
 
 find "${HOME}/Lunabotics/docker/deepstream" -name *${ARCH}.deb -type f | xargs -I f mv f ${HOME}/Lunabotics/docker/deepstream/deepstream.deb
-bash ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/build_image_layers.sh --ignore_composite_keys -a "ZED_SDK_MINOR=1" -a "ARCH=${ARCH}" -i "${PLAT}.${image_key}" -n "isaac_ros_dev-${PLAT}" || exit 1
+bash ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/build_image_layers.sh --ignore_composite_keys -a "ZED_SDK_MINOR=2" -a "ARCH=${ARCH}" -i "${PLAT}.${image_key}" -n "isaac_ros_dev-${PLAT}" || exit 1
 
 done

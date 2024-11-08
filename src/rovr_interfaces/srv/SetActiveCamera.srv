@@ -5,4 +5,4 @@ uint16 height
 uint16 framerate
 string format
 ---
-bool success
+int32 success
