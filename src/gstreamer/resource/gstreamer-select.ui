@@ -56,16 +56,6 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
-      <widget class="QPushButton" name="camera5_push_button">
-       <property name="toolTip">
-        <string>Select camera 5</string>
-       </property>
-       <property name="text">
-        <string>Conveyor Camera</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
    <item>
