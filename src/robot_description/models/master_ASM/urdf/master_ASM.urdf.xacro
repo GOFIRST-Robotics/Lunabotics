@@ -5,11 +5,11 @@ Stephen Brawner (brawner@gmail.com)
      For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
 
 <robot name="Master_ASM" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <link name="root_link">
+  <link name="base_link">
     <origin xyz="0 0 0" rpy="0 0 0" />
   </link>
-  <joint name="root_to_frame_joint" type="fixed">
-    <parent link="root_link" />
+  <joint name="base_to_frame_joint" type="fixed">
+    <parent link="base_link" />
     <child link="frame_link" />
     <origin xyz="0 0 0" rpy="0 0 -1.5708" />
   </joint>
@@ -62,17 +62,17 @@ Stephen Brawner (brawner@gmail.com)
   </xacro:zed_camera>
   <!-- Add a joint to connect the ZED 2i Camera model to the robot -->
   <xacro:if value="$(arg use_zed_localization)">
-    <!-- ZED Localization -> The reference link is 'zed2i_camera_link' and 'root_link' is a child -->
+    <!-- ZED Localization -> The reference link is 'zed2i_camera_link' and 'base_link' is a child -->
     <joint name="zed2i_joint" type="fixed">
       <parent link="zed2i_camera_link"/>
-      <child link="root_link"/>
+      <child link="base_link"/>
       <origin xyz="-0.5 0 0.375" rpy="0 0 0"/>
     </joint>    
   </xacro:if>
   <xacro:unless value="$(arg use_zed_localization)">
-    <!-- NO ZED Localization -> 'zed2i_camera_link' is a child of 'root_link' -->
+    <!-- NO ZED Localization -> 'zed2i_camera_link' is a child of 'base_link' -->
     <joint name="zed2i_joint" type="fixed">
-      <parent link="root_link"/>
+      <parent link="base_link"/>
       <child link="zed2i_camera_link"/>
       <origin xyz="0.5 0 -0.375" rpy="0 0 0"/>
     </joint>
