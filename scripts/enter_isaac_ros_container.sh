@@ -7,7 +7,7 @@ if docker images | grep -q "${image_key}"; then
     echo "Image ${image_key} already exists"
 else
     echo "Building image ${image_key}"
-    bash ~/Lunabotics/scripts/build_image.sh
+    bash ~/Lunabotics/scripts/build_image.sh ${1:-true}
 fi
 
 bash ~/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/run_dev.sh -d ~/Lunabotics -i "${image_key}" -a "${docker_arg}" -v -b
