@@ -8,10 +8,8 @@ from tf2_ros.transform_listener import TransformListener
 
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import TransformStamped
-from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
-from sensor_msgs.msg._nav_sat_fix import (
-    NavSatFix,
-)  # did I do this import correctly? did i import the right message/library/message/folder/thing
+from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray, AprilTagDetection
+from sensor_msgs.msg._nav_sat_fix import NavSatFix
 
 import xml.etree.ElementTree as ET
 
@@ -134,6 +132,15 @@ class ApriltagNode(Node):
             odom_to_tag_transform.transform.translation.z = 0.0
 
             self.map_to_odom_tf = odom_to_tag_transform
+            
+            fused_pos = NavSatFix()
+            fused_pos.header = tag.header
+            fused_pos.latitude = odom_to_tag_transform.transform.translation.x
+            fused_pos.longitude = odom_to_tag_transform.transform.translation.y
+            fused_pos.altitude = 1.0
+            fused_pos.position_covariance = tag.pose.covariance
+            
+            self.fusetags.publish(fused_pos)
             # TODO: compute our current global pose ( map -> base_link TF )
 
     def broadcast_transform(self):
@@ -159,6 +166,8 @@ class ApriltagNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
+    # print(NavSatFix())
+    # print(AprilTagDetection())
 
     node = ApriltagNode()
     node.get_logger().info("Initializing the Apriltag node!")
