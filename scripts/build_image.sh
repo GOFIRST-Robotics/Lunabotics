@@ -14,6 +14,15 @@ else
     ARCH=arm64
 fi
 
+USE_CACHED_IMAGE=${1:-true}
+if [ "${USE_CACHED_IMAGE}" = "false" ]; then
+    echo "Building image locally"
+    printf 'CONFIG_DOCKER_SEARCH_DIRS="$HOME/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/../../../../docker"\n BASE_DOCKER_REGISTRY_NAMES=""\n'> ~/.isaac_ros_common-config
+else
+    echo "Using remote image"
+    printf 'CONFIG_DOCKER_SEARCH_DIRS="$HOME/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/../../../../docker"\n BASE_DOCKER_REGISTRY_NAMES="umnrobotics/isaac_ros3.1"\n'> ~/.isaac_ros_common-config
+fi
+
 if [ ! -f ${HOME}/Lunabotics/docker/deepstream/deepstream*.deb ]; then
     ngc registry resource download-version nvidia/deepstream:7.0 --dest "${HOME}/Lunabotics/docker/deepstream" --file "*${ARCH}.deb" || echo You need to install ngc!
 fi
