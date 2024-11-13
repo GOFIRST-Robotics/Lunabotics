@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rovr_control.node_util import AsyncNode
 from rclpy.action import ActionServer
 
 from rovr_interfaces.action import AutoDig
@@ -7,10 +8,8 @@ from rovr_interfaces.srv import Drive, SetPosition, SetPower
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger
 
-from asyncio import sleep
 
-
-class AutoDigServer(Node):
+class AutoDigServer(AsyncNode):
     def __init__(self):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
@@ -28,6 +27,9 @@ class AutoDigServer(Node):
 
         self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
+
+        self.declare_parameter("dig_time", 5)
+        self.digTime = self.get_parameter("dig_time").value
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         self.get_logger().info("Starting Autonomous Digging Procedure!")
@@ -77,7 +79,7 @@ class AutoDigServer(Node):
         await self.cli_lift_lower.call_async(Stop.Reqest())
 
         self.get_logger().info("Start of Auto Digging in Place")
-        await sleep(3)  # Stay at lowest pos for 3 seconds while digging
+        await self.async_sleep(self.digTime)  # Stay at lowest pos for 3 seconds while digging
         self.get_logger().info("Done Digging in Place")
 
         # Stop skimming

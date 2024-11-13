@@ -44,7 +44,7 @@ def generate_launch_description():
         package="dumper",
         executable="dumper_node",
         name="dumper_node",
-        parameters=["config/motor_control.yaml"],
+        parameters=["config/motor_control.yaml","config/rovr_control.yaml"],
         output="screen",
     )
 
