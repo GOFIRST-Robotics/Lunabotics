@@ -35,9 +35,11 @@ class DumperNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
         self.declare_parameter("DUMPER_POWER", 0.5)
+        self.declare_parameter("dump_time", 5)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
+        self.dumpTime = self.get_parameter("dump_time").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
@@ -122,7 +124,7 @@ class DumperNode(Node):
         # extend the dumper
         self.extend_dumper()
         # wait for 5 seconds before retracting the dumper
-        time.sleep(5)
+        time.sleep(self.dumpTime)
         # retract the dumper
         self.retract_dumper()
 
