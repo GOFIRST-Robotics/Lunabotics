@@ -182,21 +182,20 @@ class MotorControlNode : public rclcpp::Node {
 // smoothly ramp up motor speed
   void vesc_accelerate_duty_cycle(uint32_t id, float dutyCycleGoal, float time) {
     
-    rclcpp::Time timer = rclcpp::Time(1,1);	
-    time = time*1000000000;
-    static float start_time = timer.nanoseconds(); // time at the start of the service
+    const auto start = std::chrono::steady_clock::now();	 // time at the start of the service
     float goalCurrentDifference = dutyCycleGoal-can_data[id].dutyCycle; // current distance from the voltage goal
     float original_duty_Cycle = can_data[id].dutyCycle; // the duty cycle at the start of the service
     float updatedGoalCurrentDifference = dutyCycleGoal-can_data[id].dutyCycle;
-
     // change the dutycycle by the chosen percent of the difference every second until it is within one percent of the goal.
     while(!((updatedGoalCurrentDifference >= 0 && goalCurrentDifference <= 0) || (updatedGoalCurrentDifference <= 0 && goalCurrentDifference >= 0))) {
-      float time_elapsed = timer.nanoseconds() - start_time;
-      float accel_increment = (goalCurrentDifference/time)*time_elapsed;
+      // timer = time.now();
+      const auto current_time = std::chrono::steady_clock::now();
+      const std::chrono::duration<double> time_elapsed = current_time - start;
+      double accel_increment = (goalCurrentDifference/time)*time_elapsed.count();
       vesc_set_duty_cycle(id,  original_duty_Cycle + accel_increment);
-      RCLCPP_INFO(this->get_logger(), "Current duty cycle set: %f", original_duty_Cycle + accel_increment);
-      RCLCPP_INFO(this->get_logger(), "time elapsed: %f", time_elapsed);
-      RCLCPP_INFO(this->get_logger(), "time: %ld",rclcpp::nanoseconds().count());
+      //RCLCPP_INFO(this->get_logger(), "Current duty cycle set: %f", original_duty_Cycle + accel_increment);
+      // RCLCPP_INFO(this->get_logger(), "time elapsed: %f", time_elapsed);
+      RCLCPP_INFO(this->get_logger(), "time: %f",time_elapsed.count());
       updatedGoalCurrentDifference = dutyCycleGoal-(original_duty_Cycle + accel_increment);
 
     } 
