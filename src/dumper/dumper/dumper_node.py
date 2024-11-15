@@ -12,7 +12,7 @@ from rclpy.node import Node
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
-import event
+from threading import Event, Thread
 
 class DumperNode(Node):
     def __init__(self):
@@ -46,8 +46,8 @@ class DumperNode(Node):
 
         # Current state of the dumper
         self.running = False
-        self.top_limit_event = event.Event()
-        self.bottom_limit_event = event.Event()
+        self.top_limit_event = Event()
+        self.bottom_limit_event = Event()
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
     # Define subsystem methods here
