@@ -97,6 +97,8 @@ class DiggerNode(Node):
     def stop_lift(self) -> None:
         """This method stops the lift."""
         self.lift_running = False
+        self.top_limit_event.set()
+        self.bottom_limit_event.set()
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=0.0)
         )
