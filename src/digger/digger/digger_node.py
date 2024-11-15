@@ -13,7 +13,7 @@ from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
-
+import event
 
 class DiggerNode(Node):
     def __init__(self):
@@ -63,6 +63,9 @@ class DiggerNode(Node):
         # Limit Switch States
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
+        self.top_limit_event = event.Event()
+        self.bottom_limit_event = event.Event()
+
 
         # Maximum value of the lift motor encoder (bottom of the lift system) IN DEGREES
         self.MAX_ENCODER_DEGREES = (
@@ -166,18 +169,24 @@ class DiggerNode(Node):
 
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
+        self.top_limit_event.clear()
         self.zero_lift()
-        while not self.top_limit_pressed and self.running:
-            pass
+        self.top_limit_event.wait()
+        #while not self.top_limit_pressed and self.running:
+            #pass
         response.success = True
+        self.top_limit_event.clear()
         return response
 
     def lower_lift_callback(self, request, response):
         """This service request reverse-zeros the lift system, putting it at the lowest point"""
+        self.bottom_limit_event.clear()
         self.lower_lift()
-        while not self.bottom_limit_pressed and self.running:
-            pass
+        self.bottom_limit_event.wait()
+        #while not self.bottom_limit_pressed and self.running:
+            #pass
         response.success = True
+        self.bottom_limit_event.clear()
         return response
 
     # No more timer callback because setPos works
@@ -192,10 +201,14 @@ class DiggerNode(Node):
         self.top_limit_pressed = limit_switches_msg.top_limit_switch
         self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
         if self.top_limit_pressed:  # If the top limit switch is pressed
+            self.top_limit_event.set()
+            self.bottom_limit_event.clear()
             self.lift_encoder_offset = self.current_position_degrees
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
         elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
+            self.bottom_limit_event.set()
+            self.top_limit_event.clear()
             self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
