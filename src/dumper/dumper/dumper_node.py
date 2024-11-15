@@ -12,7 +12,7 @@ from rclpy.node import Node
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
-
+import event
 
 class DumperNode(Node):
     def __init__(self):
@@ -46,7 +46,8 @@ class DumperNode(Node):
 
         # Current state of the dumper
         self.running = False
-
+        self.top_limit_event = event.Event()
+        self.bottom_limit_event = event.Event()
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
     # Define subsystem methods here
@@ -97,9 +98,12 @@ class DumperNode(Node):
         return response
 
     def extend_dumper(self) -> None:
+        self.top_limit_event.clear()
         self.set_power(self.DUMPER_POWER)
-        while not self.top_limit_pressed and self.running:
-            pass
+        self.top_limit_event.wait()
+        #while not self.top_limit_pressed and self.running:
+            #pass
+        self.top_limit_event.clear()
         self.stop()
 
     def extend_callback(self, request, response):
@@ -109,9 +113,12 @@ class DumperNode(Node):
         return response
 
     def retract_dumper(self) -> None:
+        self.bottom_limit_event.clear()
         self.set_power(-self.DUMPER_POWER)
-        while not self.bottom_limit_pressed and self.running:
-            pass
+        self.bottom_limit_event.wait()
+        #while not self.bottom_limit_pressed and self.running:
+            #pass
+        self.bottom_limit_event.clear()
         self.stop()
 
     def retract_callback(self, request, response):
@@ -140,7 +147,13 @@ class DumperNode(Node):
         if not self.bottom_limit_pressed and msg.bottom_limit_switch:
             self.stop()  # Stop the lift system
         self.top_limit_pressed = msg.top_limit_switch
+        if(self.top_limit_pressed):
+            self.top_limit_event.set()
+            self.bottom_limit_event.clear()
         self.bottom_limit_pressed = msg.bottom_limit_switch
+        if(self.bottom_limit_pressed):
+            self.bottom_limit_event.set()
+            self.top_limit_event.clear()
 
 
 def main(args=None):
