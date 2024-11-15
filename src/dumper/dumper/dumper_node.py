@@ -98,7 +98,7 @@ class DumperNode(Node):
 
     def extend_dumper(self) -> None:
         self.set_power(self.DUMPER_POWER)
-        while not self.top_limit_pressed:
+        while not self.top_limit_pressed and self.running:
             pass
         self.stop()
 
@@ -110,7 +110,7 @@ class DumperNode(Node):
 
     def retract_dumper(self) -> None:
         self.set_power(-self.DUMPER_POWER)
-        while not self.bottom_limit_pressed:
+        while not self.bottom_limit_pressed and self.running:
             pass
         self.stop()
 
@@ -119,7 +119,7 @@ class DumperNode(Node):
         self.retract_dumper()
         response.success = True
         return response
-
+    # NOTE: Dump is no longer used because time.sleep is not cancellable! see Auto_offload_server for dump implementation workaround 
     def dump(self) -> None:
         # extend the dumper
         self.extend_dumper()

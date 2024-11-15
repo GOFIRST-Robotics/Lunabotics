@@ -167,7 +167,7 @@ class DiggerNode(Node):
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
         self.zero_lift()
-        while not self.top_limit_pressed:
+        while not self.top_limit_pressed and self.running:
             pass
         response.success = True
         return response
@@ -175,7 +175,7 @@ class DiggerNode(Node):
     def lower_lift_callback(self, request, response):
         """This service request reverse-zeros the lift system, putting it at the lowest point"""
         self.lower_lift()
-        while not self.bottom_limit_pressed:
+        while not self.bottom_limit_pressed and self.running:
             pass
         response.success = True
         return response

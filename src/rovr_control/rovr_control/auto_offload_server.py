@@ -8,7 +8,7 @@ from rovr_interfaces.action import AutoOffload
 from std_srvs.srv import Trigger
 
 
-class AutoOffloadServer(Node):
+class AutoOffloadServer(AsyncNode):
     def __init__(self):
         super().__init__("auto_offload_server")
         self._action_server = ActionServer(
@@ -20,7 +20,13 @@ class AutoOffloadServer(Node):
         )
 
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
-        self.cli_dumper_dump = self.create_client(Trigger, "dumper/dump")
+        #self.cli_dumper_dump = self.create_client(Trigger, "dumper/dump")
+        self.cli_dumper_extend = self.create_client(Trigger, "dumper/extendDumper")
+        self.cli_dumper_retract = self.create_client(Trigger, "dumper/retractDumper")
+
+        self.declare_parameter("dump_time", 5)
+        self.dumpTime = self.get_parameter("dump_time").value
+
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         """This method lays out the procedure for autonomously offloading!"""
@@ -37,9 +43,11 @@ class AutoOffloadServer(Node):
             goal_handle.abort()
             return result
 
-        await self.cli_dumper_dump.call_async(Trigger.Request())  # Dump Berm
+        await self.cli_dumper_extend.call_async(Trigger.Request())  # Dump Berm
 
-        await self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper system
+        await self.async_sleep(self.dumpTime)
+
+        await self.cli_dumper_retract.call_async(Trigger.Request())  # Stop the dumper system
         self.get_logger().info("Autonomous Offload Procedure Complete!")
         goal_handle.succeed()
         return result
