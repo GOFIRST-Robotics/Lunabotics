@@ -85,10 +85,8 @@ class AutoDigServer(AsyncNode):
         # Stop skimming
         await self.cli_skimmer_stop.call_async(Stop.Request())
 
-        await self.cli_lift_setPosition.call_async(
-            SetPosition.Request(position=goal_handle.request.lift_dumping_position)
-        )
         # raise lift to dumping position
+        await self.cli_lift_zero.call_async(Trigger.Reqest())
         # Wait for the lift goal to be reached
 
         self.get_logger().info("Autonomous Digging Procedure Complete!")
