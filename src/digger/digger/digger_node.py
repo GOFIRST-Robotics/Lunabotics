@@ -13,7 +13,7 @@ from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
-import event
+from threading import Event, Thread
 
 class DiggerNode(Node):
     def __init__(self):
@@ -63,8 +63,8 @@ class DiggerNode(Node):
         # Limit Switch States
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
-        self.top_limit_event = event.Event()
-        self.bottom_limit_event = event.Event()
+        self.top_limit_event = Event()
+        self.bottom_limit_event = Event()
 
 
         # Maximum value of the lift motor encoder (bottom of the lift system) IN DEGREES
