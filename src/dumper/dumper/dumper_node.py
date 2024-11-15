@@ -69,6 +69,8 @@ class DumperNode(Node):
     def stop(self) -> None:
         """This method stops the dumper."""
         self.running = False
+        self.top_limit_event.set()
+        self.bottom_limit_event.set()
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
 
     def toggle(self, dumper_power: float) -> None:
