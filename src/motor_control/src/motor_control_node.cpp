@@ -192,7 +192,7 @@ class MotorControlNode : public rclcpp::Node {
       float newDutyCycle = initialDutyCycle + (dutyCycleDifference / time) * elapsedTime.count();
       vesc_set_duty_cycle(id, newDutyCycle);
       RCLCPP_DEBUG(this->get_logger(), "Current duty cycle set: %f", newDutyCycle);
-      RCLCPP_DEBUG(this->get_logger(), "Time elapsed: %f", time_elapsed.count());
+      RCLCPP_DEBUG(this->get_logger(), "Time elapsed: %f seconds", elapsedTime.count());
       dutyCycleDifference = dutyCycleGoal - newDutyCycle;
     }
 
