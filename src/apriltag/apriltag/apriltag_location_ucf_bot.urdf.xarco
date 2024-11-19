@@ -5,12 +5,9 @@
  (0,0) is the bottom right corner of the map, (4.57, 8.14) is the top left.
 -->
 
-
 <root>
-    <!--
-Tags in the starting zone.
-This assumes that we are placing 2 tags on the wall.
--->
+    <!-- Tags in the starting zone. This assumes that we are placing 2 tags on the wall. -->
+     
     <link name="base_tag_1">
         <parent link="base_link"/>
         <visual>
@@ -37,61 +34,4 @@ This assumes that we are placing 2 tags on the wall.
         </visual>
     </link>
 
-
-
-    <!--
-Tags in the berm area.
-Goes Top left, Top right, Bottom left, Bottom right from tags 3-6
--->
-    <link name="berm_tag_3">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="7.59 1.45 0.4" rpy="0 0 0"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="green">
-                <color rgba="0 1 0 1"/>
-            </material>
-        </visual>
-    </link>
-
-    <link name="berm_tag_4">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="6.09 1.45 0.4" rpy="0 0 0"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="yellow">
-                <color rgba="1 1 0 1"/>
-            </material>
-        </visual>
-    </link>
-
-    <link name="berm_tag_5">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="7.59 0.55 0.4" rpy="0 0 0"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="purple">
-                <color rgba="1 0 1 1"/>
-            </material>
-        </visual>
-    </link>
-
-    <link name="berm_tag_6">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="6.09 0.55 0.4" rpy="0 0 0"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="white">
-                <color rgba="1 1 1 1"/>
-            </material>
-        </visual>
-    </link>
 </root>

@@ -1,17 +1,14 @@
 <?xml version="1.0"?>
 <!--
  THIS IS THE NASA KSC FIELD
- TODO: These coordinates may need to be updated if official measurements are released.
+ TODO: These coordinates might need to be updated, check the official cosmic (ISU) field diagram.
  Coordinate system is in meters
  (0,0) is the bottom right corner of the map, (6.88, 5) is the top left.
 -->
 
-
 <root>
-    <!--
-Tags in the starting zone.
-This assumes that we are placing 2 tags on the wall.
--->
+    <!-- Tags in the starting zone. This assumes that we are placing 2 tags on the wall. -->
+
     <link name="base_tag_1">
         <parent link="base_link"/>
         <visual>
@@ -38,61 +35,4 @@ This assumes that we are placing 2 tags on the wall.
         </visual>
     </link>
 
-
-
-    <!--
-Tags in the berm area.
-Goes Top left, Top right, Bottom left, Bottom right from tags 3-6
--->
-    <link name="berm_tag_3">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="2.4 1 0.4" rpy="0 0 180"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="green">
-                <color rgba="0 1 0 1"/>
-            </material>
-        </visual>
-    </link>
-
-    <link name="berm_tag_4">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="0.2 1 0.4" rpy="0 0 180"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="yellow">
-                <color rgba="1 1 0 1"/>
-            </material>
-        </visual>
-    </link>
-
-    <link name="berm_tag_5">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="2.4 0.1 0.4" rpy="0 0 180"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="purple">
-                <color rgba="1 0 1 1"/>
-            </material>
-        </visual>
-    </link>
-
-    <link name="berm_tag_6">
-        <parent link="base_link"/>
-        <visual>
-            <origin xyz="0.2 0.1 0.4" rpy="0 0 180"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="white">
-                <color rgba="1 1 1 1"/>
-            </material>
-        </visual>
-    </link>
 </root>
