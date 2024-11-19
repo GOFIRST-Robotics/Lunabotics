@@ -182,18 +182,26 @@ class MotorControlNode : public rclcpp::Node {
   // Smoothly ramp the motor speed to the dutyCycleGoal over <time> seconds
   void vesc_ramp_duty_cycle(uint32_t id, float dutyCycleGoal, float time) {
     const auto start = std::chrono::steady_clock::now(); // time at the start of the service
+    std::chrono::duration<double> elapsedTime = start - start; // time elapsed since the start of the service
     float initialDutyCycle = can_data[id].dutyCycle; // initial duty cycle of the motor
-    float dutyCycleDifference = dutyCycleGoal - initialDutyCycle; // difference between the goal and initial duty cycle
+    auto lastDebugTime = start; // time of the last debug statement
 
-    // Update the duty cycle by (dutyCycleDifference / time) * elapsedTime.count() until it is within 0.01 (1%) of the goal
-    while (std::abs(dutyCycleDifference) > 0.01) {
+    // Update the duty cycle by (std::min(elapsedTime.count() / time, 1.0) * (dutyCycleGoal - initialDutyCycle)) 
+    // each iteration until the time elapsed is greater than or equal to the time parameter.
+    while (elapsedTime.count() < time) {
       const auto currentTime = std::chrono::steady_clock::now();
-      const std::chrono::duration<double> elapsedTime = currentTime - start;
-      float newDutyCycle = initialDutyCycle + (dutyCycleDifference / time) * elapsedTime.count();
+      elapsedTime = currentTime - start;
+      // This is a linear interpolation between the initial duty cycle and the goal duty cycle
+      float progress = (std::min(elapsedTime.count() / time, 1.0)); // progress is a value between 0 and 1
+      float newDutyCycle = initialDutyCycle + (progress * (dutyCycleGoal - initialDutyCycle));
       vesc_set_duty_cycle(id, newDutyCycle);
-      RCLCPP_DEBUG(this->get_logger(), "Current duty cycle set: %f", newDutyCycle);
-      RCLCPP_DEBUG(this->get_logger(), "Time elapsed: %f seconds", elapsedTime.count());
-      dutyCycleDifference = dutyCycleGoal - newDutyCycle;
+
+      // Print debug statements every 100ms
+      if ((currentTime - lastDebugTime) >= 100ms) {
+        RCLCPP_DEBUG(this->get_logger(), "Current duty cycle set: %f", newDutyCycle);
+        RCLCPP_DEBUG(this->get_logger(), "Time elapsed: %f seconds", elapsedTime.count());
+        lastDebugTime = currentTime;
+      }
     }
 
     // make sure the duty cycle ends at exactly the goal
