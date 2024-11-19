@@ -179,28 +179,24 @@ class MotorControlNode : public rclcpp::Node {
     RCLCPP_DEBUG(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
   }
 
-// smoothly ramp up motor speed
-  void vesc_accelerate_duty_cycle(uint32_t id, float dutyCycleGoal, float time) {
-    
-    const auto start = std::chrono::steady_clock::now();	 // time at the start of the service
-    float goalCurrentDifference = dutyCycleGoal-can_data[id].dutyCycle; // current distance from the voltage goal
-    float original_duty_Cycle = can_data[id].dutyCycle; // the duty cycle at the start of the service
-    float updatedGoalCurrentDifference = dutyCycleGoal-can_data[id].dutyCycle;
-    // change the dutycycle by the chosen percent of the difference every second until it is within one percent of the goal.
-    while(!((updatedGoalCurrentDifference >= 0 && goalCurrentDifference <= 0) || (updatedGoalCurrentDifference <= 0 && goalCurrentDifference >= 0))) {
-      // timer = time.now();
-      const auto current_time = std::chrono::steady_clock::now();
-      const std::chrono::duration<double> time_elapsed = current_time - start;
-      double accel_increment = (goalCurrentDifference/time)*time_elapsed.count();
-      vesc_set_duty_cycle(id,  original_duty_Cycle + accel_increment);
-      //RCLCPP_INFO(this->get_logger(), "Current duty cycle set: %f", original_duty_Cycle + accel_increment);
-      // RCLCPP_INFO(this->get_logger(), "time elapsed: %f", time_elapsed);
-      RCLCPP_INFO(this->get_logger(), "time: %f",time_elapsed.count());
-      updatedGoalCurrentDifference = dutyCycleGoal-(original_duty_Cycle + accel_increment);
+  // Smoothly ramp the motor speed to the dutyCycleGoal over <time> seconds
+  void vesc_ramp_duty_cycle(uint32_t id, float dutyCycleGoal, float time) {
+    const auto start = std::chrono::steady_clock::now(); // time at the start of the service
+    float initialDutyCycle = can_data[id].dutyCycle; // initial duty cycle of the motor
+    float dutyCycleDifference = dutyCycleGoal - initialDutyCycle; // difference between the goal and initial duty cycle
 
-    } 
-    
-    // make sure the duty cycle is at exactly the goal
+    // Update the duty cycle by (dutyCycleDifference / time) * elapsedTime.count() until it is within 0.01 (1%) of the goal
+    while (std::abs(dutyCycleDifference) > 0.01) {
+      const auto currentTime = std::chrono::steady_clock::now();
+      const std::chrono::duration<double> elapsedTime = currentTime - start;
+      float newDutyCycle = initialDutyCycle + (dutyCycleDifference / time) * elapsedTime.count();
+      vesc_set_duty_cycle(id, newDutyCycle);
+      RCLCPP_DEBUG(this->get_logger(), "Current duty cycle set: %f", newDutyCycle);
+      RCLCPP_DEBUG(this->get_logger(), "Time elapsed: %f", time_elapsed.count());
+      dutyCycleDifference = dutyCycleGoal - newDutyCycle;
+    }
+
+    // make sure the duty cycle ends at exactly the goal
     vesc_set_duty_cycle(id, dutyCycleGoal);
   }
 
@@ -355,7 +351,7 @@ private:
       vesc_set_position(request->can_id, request->value);
       response->success = true;
     } else if (strcmp(request->type.c_str(), "ramp_duty_cycle") == 0){
-      vesc_accelerate_duty_cycle(request->can_id, request->value, request->value2);
+      vesc_ramp_duty_cycle(request->can_id, request->value, request->value2);
       response->success = true;
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
@@ -386,7 +382,6 @@ private:
       RCLCPP_WARN(this->get_logger(), "GET command for CAN ID %u read stale data!", request->can_id);
     }
   }
-    
 
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
