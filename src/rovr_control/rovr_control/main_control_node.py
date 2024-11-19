@@ -70,6 +70,7 @@ class MainControlNode(Node):
         self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
+        self.declare_parameter("dumper_power", 0.5)  # The power the dumper needs to go
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
@@ -84,6 +85,7 @@ class MainControlNode(Node):
         self.lift_digging_start_position = (
             self.get_parameter("lift_digging_start_position").value * 360 / 42
         )  # Convert encoder counts to degrees
+        self.dumper_power = self.get_parameter("dumper_power").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
@@ -94,6 +96,7 @@ class MainControlNode(Node):
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
         self.get_logger().info("lift_dumping_position has been set to: " + str(self.lift_dumping_position))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+        self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -117,6 +120,8 @@ class MainControlNode(Node):
 
         # Define service clients here
         self.cli_dumper_dump = self.create_client(Trigger, "dumper/dump")
+        self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
+        self.cli_dumper_stop = self.create_client(SetPower, "dumper/stop")
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
@@ -228,9 +233,15 @@ class MainControlNode(Node):
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
                 self.cli_dumper_dump.call_async(Trigger.Request())
 
-            # Check if the lift digging position button is pressed #
-            if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
-                self.cli_lift_setPosition.call_async(SetPosition.Request(position=self.lift_digging_start_position))
+            # Manually adjust the dumper position with the left and right bumpers
+            if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
+                self.self.cli_dumper_setPower.call_async(SetPower.Request(power=self.dumper_power))
+            elif msg.buttons[bindings.RIGHT_BUMPER] == 0 and buttons[bindings.RIGHT_BUMPER] == 1:
+                self.cli_dumper_stop.call_async(Trigger.Request())
+            elif msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
+                self.self.cli_dumper_setPower.call_async(SetPower.Request(power=-self.dumper_power))
+            elif msg.buttons[bindings.LEFT_BUMPER] == 0 and buttons[bindings.LEFT_BUMPER] == 1:
+                self.cli_dumper_stop.call_async(Trigger.Request())
 
             # Manually adjust the height of the digger with the left and right triggers
             if msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
@@ -241,10 +252,6 @@ class MainControlNode(Node):
                 self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
-
-            # Check if the calibration button is pressed
-            if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
-                self.cli_drivetrain_calibrate.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
@@ -274,7 +281,7 @@ class MainControlNode(Node):
 
         # Check if the autonomous digging button is pressed
         # TODO: This autonomous action needs to be tested extensively on the physical robot!
-        if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
+        if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Check if the auto digging process is not running
             if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
                 if not self.act_auto_dig.wait_for_server(timeout_sec=1.0):
@@ -298,7 +305,7 @@ class MainControlNode(Node):
 
         # Check if the autonomous offload button is pressed
         # TODO: This autonomous action needs to be tested extensively on the physical robot!
-        if msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
+        if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             # Check if the auto offload process is not running
             if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
                 if not self.act_auto_offload.wait_for_server(timeout_sec=1.0):
