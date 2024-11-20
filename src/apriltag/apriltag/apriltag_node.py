@@ -133,6 +133,10 @@ class ApriltagNode(Node):
 
             self.map_to_odom_tf = odom_to_tag_transform
             
+            cm1 = ([0.0, 0.0, 0.0, 0.0])
+            cm2 = ([10.0, 0.0, 0.0, 0.0])
+            cm3 = ([10.0, 5.0, 0.0, 0.0])
+
             fused_pos = NavSatFix()
             fused_pos.header = tag.header
             fused_pos.latitude = odom_to_tag_transform.transform.translation.x
@@ -149,19 +153,20 @@ class ApriltagNode(Node):
         self.tf_broadcaster.sendTransform(self.map_transform)
         # TODO: call the fusetag method with our current global pose
 
-    def fusetag(self, tagvalues):
-        # the tag values I'll need: a calculation of how far we are from the tag --> how far have we travelled --> absolute pos
-        fused_pos = NavSatFix()
-        fused_pos.__slots__ = [
-            "header - another ros message",
-            "status - another ros message",
-            "latitude",
-            "longitude",
-            "altitude",
-            "position_covariance",
-            "position_covariance_type",
-        ]
-        self.fusetags.publish(fused_pos)  # is NavSatFix a message?
+    # Dont need this?
+    # def fusetag(self, tagvalues):
+    #     # the tag values I'll need: a calculation of how far we are from the tag --> how far have we travelled --> absolute pos
+    #     fused_pos = NavSatFix()
+    #     fused_pos.__slots__ = [
+    #         "header - another ros message",
+    #         "status - another ros message",
+    #         "latitude",
+    #         "longitude",
+    #         "altitude",
+    #         "position_covariance",
+    #         "position_covariance_type",
+    #     ]
+    #     self.fusetags.publish(fused_pos)  # is NavSatFix a message?
 
 
 def main(args=None):
