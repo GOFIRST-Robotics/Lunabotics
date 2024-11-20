@@ -87,6 +87,11 @@ class AutoDigServer(AsyncNode):
         # Start the digger belt
         self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
 
+        # Lower the digger towards the ground slowly
+        if not self.running:
+            print("Buckets not spinning. Dont lower")
+            return result
+
         # Drive forward while digging
         start_time = self.get_clock().now().nanoseconds
         elapsed = self.get_clock().now().nanoseconds - start_time
