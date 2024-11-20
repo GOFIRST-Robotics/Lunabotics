@@ -20,7 +20,7 @@ class ApriltagNode(Node):
         current_dir = os.getcwd()
 
         self.declare_parameter(
-            "autonomous_field_type", "bottom"
+            "autonomous_field_type", "nasa"
         )  # The type of field ("top", "bottom", "nasa")
         field_type = self.get_parameter("autonomous_field_type").value
         paths = {
@@ -138,7 +138,8 @@ class ApriltagNode(Node):
             cm3 = ([10.0, 5.0, 0.0, 0.0])
 
             fused_pos = NavSatFix()
-            fused_pos.header = tag.header
+            fused_pos.header = tag.pose.header
+            fused_pos.header.stamp = self.get_clock().now().to_msg()
             fused_pos.latitude = odom_to_tag_transform.transform.translation.x
             fused_pos.longitude = odom_to_tag_transform.transform.translation.y
             fused_pos.altitude = 1.0
@@ -172,7 +173,7 @@ class ApriltagNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     # print(NavSatFix())
-    # print(AprilTagDetection())
+    print(AprilTagDetection())
 
     node = ApriltagNode()
     node.get_logger().info("Initializing the Apriltag node!")
