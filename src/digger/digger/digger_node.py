@@ -6,7 +6,7 @@
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
-from rclpy.executor import MultiThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
