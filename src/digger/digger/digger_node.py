@@ -13,7 +13,7 @@ from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
-from threading import Event, Thread
+from concurrent.futures import Future, ThreadPoolExecutor
 
 class DiggerNode(Node):
     def __init__(self):
@@ -63,8 +63,10 @@ class DiggerNode(Node):
         # Limit Switch States
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
-        self.top_limit_event = Event()
-        self.bottom_limit_event = Event()
+        self.top_limit_event = Future()
+        self.bottom_limit_event = Future()
+        self.limitExecutor = ThreadPoolExecutor(max_workers=1)
+        #One worker bc it should only be zeroing or lifting at once
 
 
         # Maximum value of the lift motor encoder (bottom of the lift system) IN DEGREES
@@ -98,8 +100,8 @@ class DiggerNode(Node):
     def stop_lift(self) -> None:
         """This method stops the lift."""
         self.lift_running = False
-        self.top_limit_event.set()
-        self.bottom_limit_event.set()
+        self.top_limit_event.set_result(0)
+        self.bottom_limit_event.set_result(0)
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=0.0)
         )
@@ -172,24 +174,29 @@ class DiggerNode(Node):
 
     def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
-        self.top_limit_event.clear()
-        self.zero_lift()
-        self.top_limit_event.wait()
+        self.bottom_limit_event.set_result(1)
+        #Free poolExecutor Resources 
+        self.limitExecutor.submit(self.zero_lift())
+        #self.zero_lift()
+        self.top_limit_event.result()
         #while not self.top_limit_pressed and self.running:
             #pass
         response.success = True
-        self.top_limit_event.clear()
+        self.top_limit_event = Future()
         return response
 
     def lower_lift_callback(self, request, response):
         """This service request reverse-zeros the lift system, putting it at the lowest point"""
-        self.bottom_limit_event.clear()
-        self.lower_lift()
-        self.bottom_limit_event.wait()
+        self.top_limit_event.set_result(1)
+        #Free poolExecutor Resources^
+        self.limitExecutor.submit(self.lower_lift())
+        #self.bottom_limit_event.clear()
+        #self.lower_lift()
+        self.bottom_limit_event.result()
         #while not self.bottom_limit_pressed and self.running:
             #pass
         response.success = True
-        self.bottom_limit_event.clear()
+        self.bottom_limit_event = Future()
         return response
 
     # No more timer callback because setPos works
@@ -204,14 +211,14 @@ class DiggerNode(Node):
         self.top_limit_pressed = limit_switches_msg.top_limit_switch
         self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
         if self.top_limit_pressed:  # If the top limit switch is pressed
-            self.top_limit_event.set()
-            self.bottom_limit_event.clear()
+            self.top_limit_event.set_result(0)
+            #self.bottom_limit_event = Future()
             self.lift_encoder_offset = self.current_position_degrees
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
         elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
-            self.bottom_limit_event.set()
-            self.top_limit_event.clear()
+            #self.top_limit_event = Future()
+            self.bottom_limit_event.set_result(0)
             self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
             self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
