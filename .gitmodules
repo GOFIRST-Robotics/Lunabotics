@@ -34,3 +34,6 @@
 	path = src/realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
 	branch = 4.56.1
+[submodule "src/behavior_tree"]
+	path = src/behavior_tree
+	url = https://github.com/BehaviorTree/BehaviorTree.CPP
