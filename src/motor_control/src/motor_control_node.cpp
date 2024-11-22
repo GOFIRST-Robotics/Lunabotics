@@ -183,9 +183,16 @@ class MotorControlNode : public rclcpp::Node {
   void vesc_ramp_duty_cycle(uint32_t id, float dutyCycleGoal, float time) {
     const auto start = std::chrono::steady_clock::now(); // time at the start of the service
     std::chrono::duration<double> elapsedTime = start - start; // time elapsed since the start of the service
-    float initialDutyCycle = can_data[id].dutyCycle; // initial duty cycle of the motor
+    std::optional<float> initialDutyCycleOption = vesc_get_duty_cycle(id); // initial duty cycle of the motor
+    float initialDutyCycle = 0.0;
+    if (initialDutyCycleOption.has_value()) {
+      initialDutyCycle = initialDutyCycleOption.value();
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "ERROR: initialDutyCycle is NULL! Aborting vesc_ramp_duty_cycle.");
+      return;
+    }
     auto lastDebugTime = start; // time of the last debug statement
-
+    
     // Update the duty cycle by (std::min(elapsedTime.count() / time, 1.0) * (dutyCycleGoal - initialDutyCycle)) 
     // each iteration until the time elapsed is greater than or equal to the time parameter.
     while (elapsedTime.count() < time) {
@@ -313,7 +320,7 @@ private:
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0);
+      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0  / 100.0);
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
@@ -333,7 +340,7 @@ private:
     this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
 
     RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
