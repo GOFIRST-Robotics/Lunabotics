@@ -66,7 +66,7 @@ class MainControlNode(Node):
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("autonomous_field_type", "bottom")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("autonomous_field_type", "nasa")  # The type of field ("top", "bottom", "nasa")
         self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
