@@ -4,6 +4,7 @@
 # Last Updated: October 2024
 
 # Import the ROS 2 Python module
+from warnings import deprecated
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -13,7 +14,7 @@ from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
-
+from rclpy.task import Future
 
 class DiggerNode(Node):
     def __init__(self):
@@ -63,6 +64,8 @@ class DiggerNode(Node):
         # Limit Switch States
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
+        self.top_limit_event = Future()
+        self.bottom_limit_event = Future()
 
 
         # Maximum value of the lift motor encoder (bottom of the lift system) IN DEGREES
@@ -100,28 +103,6 @@ class DiggerNode(Node):
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=0.0)
         )
 
-    def lift_set_power(self, power: float) -> None:
-        """This method sets power to the lift system."""
-        self.lift_running = True
-        if power > 0 and self.top_limit_pressed:
-            self.get_logger().warn("WARNING: Top limit switch pressed!")
-            self.stop_lift()  # Stop the lift system
-            return
-        if power < 0 and self.bottom_limit_pressed:
-            self.get_logger().warn("WARNING: Bottom limit switch pressed!")
-            self.stop_lift()  # Stop the lift system
-            return
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=power)
-        )
-
-    def zero_lift(self) -> None:
-        """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
-        self.lift_set_power(0.05)
-
-    def lower_lift(self) -> None:
-        self.lift_set_power(-0.05)
-
     # Define service callback methods here
     def set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
@@ -142,8 +123,9 @@ class DiggerNode(Node):
         return response
 
     async def set_position_callback(self, request, response):
-        """This service request sets the position of the lift."""
-        """This method sets the position (in degrees) of the digger."""
+        """This service request sets the position of the lift.
+        TODO: Make sure MotorCommandSet.Request(type="position", 
+        is cancellable otherwise this will fail"""
         await self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
@@ -159,49 +141,39 @@ class DiggerNode(Node):
         self.stop_lift()
         response.success = True
         return response
-
+    
+    @deprecated
     def lift_set_power_callback(self, request, response):
         """This service request sets power to the digger belt."""
-        self.lift_set_power(request.power)
-        response.success = True
         return response
 
-    def zero_lift_callback(self, request, response):
+    async def zero_lift_callback(self, request, response):
         """This service request zeros the lift system."""
-        self.zero_lift()
-        while not self.top_limit_pressed and self.lift_running:
-            rclpy.spin_once(self)
-            self.get_logger().info("T2" + str(self.lift_running))
-        response.success = True
+        self.lift_set_power(0.05)
+        self.top_limit_event = Future()
+        self.top_limit_event.add_done_callback(self.stop_lift)
+        await self.bottom_limit_event
         return response
 
-    def lower_lift_callback(self, request, response):
+    async def lower_lift_callback(self, request, response):
         """This service request reverse-zeros the lift system, putting it at the lowest point"""
-        self.lower_lift()
-        while not self.bottom_limit_pressed and self.lift_running:
-            rclpy.spin_once(self)
-        response.success = True
-        return response
-
-    # No more timer callback because setPos works
+        if self.bottom_limit_pressed:
+            return response
+        self.lift_set_power(-0.05)
+        self.bottom_limit_event = Future()
+        self.bottom_limit_event.add_done_callback(self.stop_lift)
+        await self.bottom_limit_event
+        return self.bottom_limit_event.result()
 
     # Define subscriber callback methods here
     def limit_switch_callback(self, limit_switches_msg):
         """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
-        if not self.top_limit_pressed and limit_switches_msg.top_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        if not self.bottom_limit_pressed and limit_switches_msg.bottom_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        self.top_limit_pressed = limit_switches_msg.top_limit_switch
-        self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
-        if self.top_limit_pressed:  # If the top limit switch is pressed
-            self.lift_encoder_offset = self.current_position_degrees
-            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
-            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
-        elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
-            self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
-            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
-            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
+        if self.top_limit_pressed and not self.top_limit_event.done():
+            self.top_limit_pressed = limit_switches_msg.top_limit_switch
+            self.top_limit_event.set_result(True)
+        if self.bottom_limit_pressed and not self.top_limit_event.done():
+            self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
+            self.top_limit_event.set_result(True)
 
 
 def main(args=None):
