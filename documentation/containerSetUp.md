@@ -1,8 +1,8 @@
-# How set up our container on various OS's
+# How to Set up Our Development Container on Various OS's
+To have the best results you will need a Linux computer with a Nvidia GPU. ROS2 runs natively on the linux kernal and we use nvidia closed source packages. It is possible to run our codebase on windows with great difficultly. It is not possible to run all of our codebase on a computer without a Nvidia GPU.
 
 
 ## How to Run Inside the Dev Container on Windows/Mac 
-<br>
 Open vscode and install the "Dev Containers" extension. Then, with vscode open, press ctrl+shift+p to open the vscode command palette and type "Clone Repository in Container Volume". Select the "Dev Containers: Clone Repository in Container Volume" option, then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository (the repository named "Lunabotics"). If you are cloning the repository directly into the container volume, you do NOT need to clone the repo locally, it will be automatically cloned into the repo.
 <br><br>
 
@@ -19,8 +19,7 @@ Build No GPU Tasks
 
 Optionally, traditional "colcon build" commands can be run in the vscode terminal instead of using the Command Palette commands above.
 
-## Updating the Dev Container for Windows/Mac
-<br>
+### Updating the Dev Container for Windows/Mac
 If you ever need to rebuild the remote container image, first update the x86_64 and aarch64 images:
 
 ```
@@ -53,7 +52,8 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 
 ## How to Run Inside the ISAAC ROS Container on Linux/Jetson
 This is intruction on how to install all the needed libaries and SDKs to run the container on a computer that is running linux and has a Nvidia GPU.
-<br>
+
+In all you will need [NGC](#installing-ngc), [Git-lfs](#installing-git-lfs), CUDA SDK (and Nvidia GPU drivers),
 ### Installing NGC
 First, you will need to log in to Nvidia NGC and get an API Key [here](https://org.ngc.nvidia.com/setup){:target="_blank"}. You will need to click on "Guest Account" in the top right and log in/create account.
 
@@ -61,7 +61,7 @@ Then download Nvidia ngc CLI from this [link](https://org.ngc.nvidia.com/setup/i
 and then click the green "Download CLI" button in the top right. 
 The download will be zip file with name either ``ngccli_linux.zip`` or ``ngccli_arm64.zip``.
 
-I would recommend moving the downloaded zip file into your path (~) directory before running the following commands by
+I would recommend moving the downloaded zip file into your path (~) directory before continuing by
 ```
 cd ~/Downloads/
 mv ngccli_xxx.zip ~/
@@ -74,13 +74,12 @@ wget --content-disposition https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-ap
 chmod u+x ngc-cli/ngc
 echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bash_profile && source ~/.bash_profile
 ```
-Followed by ``ngc config set`` and inputting the API key when prompted. The other values dont matter and you should be able to just hit enter to get the default, 
+Next you need to configure ngc with ``ngc config set`` and inputting the API key when prompted. The other values dont matter and you should be able to just hit enter to get the default, 
 the only one that will need input is the org where you will need to copy the name that is listed in the choices.
 
-Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `source ~/.bash_profile` to your `~/.bashrc` file.
+Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `source ~/.bash_profile` to your `~/.bashrc` file. Just open the ``.bashrc`` file in your favorite text editor and paste the source at the bottom.
 
 Then log in to nvcr with the following command:
-
 ```
 docker login nvcr.io
 ```
