@@ -1,6 +1,10 @@
 # How to Set up Our Development Container on Various OS's
 To have the best results you will need a Linux computer with a Nvidia GPU. ROS2 runs natively on the linux kernal and we use nvidia closed source packages. It is possible to run our codebase on windows with great difficultly. It is not possible to run all of our codebase on a computer without a Nvidia GPU.
 
+Quick Links
+- [Windows/Mac](#how-to-run-inside-the-dev-container-on-windowsmac)
+  - [Updating Dev Container for Windows/Mac](#how-to-run-inside-the-dev-container-on-windowsmac)
+- [Linux with Nvidia GPU](#how-to-run-inside-the-isaac-ros-container-on-linuxjetson)
 
 ## How to Run Inside the Dev Container on Windows/Mac 
 Open vscode and install the "Dev Containers" extension. Then, with vscode open, press ctrl+shift+p to open the vscode command palette and type "Clone Repository in Container Volume". Select the "Dev Containers: Clone Repository in Container Volume" option, then select "Clone a repository from GitHub in a Container Volume". Search for and select our Lunabotics repository (the repository named "Lunabotics"). If you are cloning the repository directly into the container volume, you do NOT need to clone the repo locally, it will be automatically cloned into the repo.
@@ -53,7 +57,7 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 ## How to Run Inside the ISAAC ROS Container on Linux/Jetson
 This is intruction on how to install all the needed libaries and SDKs to run the container on a computer that is running linux and has a Nvidia GPU.
 
-In all you will need [NGC](#installing-ngc), [Git-lfs](#installing-git-lfs), CUDA SDK (and Nvidia GPU drivers),
+In all you will need [NGC](#installing-ngc), [Git-lfs](#installing-git-lfs), [CUDA SDK](#installing-cuda) (and Nvidia GPU drivers),
 ### Installing NGC
 First, you will need to log in to Nvidia NGC and get an API Key [here](https://org.ngc.nvidia.com/setup){:target="_blank"}. You will need to click on "Guest Account" in the top right and log in/create account.
 
@@ -87,7 +91,6 @@ When prompted enter ``$oauthtoken`` (you can paste that exactly) for your Userna
 and ``<Your API key>`` (replace with same API key that inputted durig ngc config set up) for your Password.
 
 ### Installing Git-LFS
-<br>
 Install git-lfs with `sudo apt install git-lfs`
 
 Run this command to build and enter the isaac ros container
@@ -95,4 +98,7 @@ Run this command to build and enter the isaac ros container
 ./scripts/enter_isaac_ros_container.sh
 ```
 
-</details>
+### Installing Cuda
+
+TDB
+
