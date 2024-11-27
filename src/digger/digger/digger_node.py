@@ -151,7 +151,7 @@ class DiggerNode(Node):
         self.lift_set_power(0.05)
         self.top_limit_event = Future()
         self.top_limit_event.add_done_callback(self.stop_lift)
-        await self.bottom_limit_event
+        await self.top_limit_event
         return response
 
     async def lower_lift_callback(self, request, response):
