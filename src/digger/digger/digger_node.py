@@ -98,6 +98,8 @@ class DiggerNode(Node):
     def stop_lift(self) -> None:
         """This method stops the lift."""
         self.lift_running = False
+        self.top_limit_event.set_result(False)
+        self.bottom_limit_event.set_result(False)
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=0.0)
         )
@@ -172,7 +174,7 @@ class DiggerNode(Node):
             self.top_limit_event.set_result(True)
         if self.bottom_limit_pressed and not self.top_limit_event.done():
             self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
-            self.top_limit_event.set_result(True)
+            self.bottom_limit_event.set_result(True)
 
 
 def main(args=None):
