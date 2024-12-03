@@ -183,6 +183,42 @@ class MotorControlNode : public rclcpp::Node {
     RCLCPP_DEBUG(this->get_logger(), "Setting the duty cycle of CAN ID: %u to %f", id, percentPower); // Print Statement
   }
 
+  // Smoothly ramp the motor speed to the dutyCycleGoal over <time> seconds
+  void vesc_ramp_duty_cycle(uint32_t id, float dutyCycleGoal, float time) {
+    const auto start = std::chrono::steady_clock::now(); // time at the start of the service
+    std::chrono::duration<double> elapsedTime = start - start; // time elapsed since the start of the service
+    std::optional<float> initialDutyCycleOption = vesc_get_duty_cycle(id); // initial duty cycle of the motor
+    float initialDutyCycle = 0.0;
+    if (initialDutyCycleOption.has_value()) {
+      initialDutyCycle = initialDutyCycleOption.value();
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "ERROR: initialDutyCycle is NULL! Aborting vesc_ramp_duty_cycle.");
+      return;
+    }
+    auto lastDebugTime = start; // time of the last debug statement
+    
+    // Update the duty cycle by (std::min(elapsedTime.count() / time, 1.0) * (dutyCycleGoal - initialDutyCycle)) 
+    // each iteration until the time elapsed is greater than or equal to the time parameter.
+    while (elapsedTime.count() < time) {
+      const auto currentTime = std::chrono::steady_clock::now();
+      elapsedTime = currentTime - start;
+      // This is a linear interpolation between the initial duty cycle and the goal duty cycle
+      float progress = (std::min(elapsedTime.count() / time, 1.0)); // progress is a value between 0 and 1
+      float newDutyCycle = initialDutyCycle + (progress * (dutyCycleGoal - initialDutyCycle));
+      vesc_set_duty_cycle(id, newDutyCycle);
+
+      // Print debug statements every 100ms
+      if ((currentTime - lastDebugTime) >= 100ms) {
+        RCLCPP_DEBUG(this->get_logger(), "Current duty cycle set: %f", newDutyCycle);
+        RCLCPP_DEBUG(this->get_logger(), "Time elapsed: %f seconds", elapsedTime.count());
+        lastDebugTime = currentTime;
+      }
+    }
+
+    // make sure the duty cycle ends at exactly the goal
+    vesc_set_duty_cycle(id, dutyCycleGoal);
+  }
+
   // Set the velocity of the motor in RPM (Rotations Per Minute)
   void vesc_set_velocity(uint32_t id, int rpm) {
     if (this->pid_controllers[id]) {
@@ -299,7 +335,7 @@ private:
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
-      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0);
+      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0  / 100.0);
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
@@ -319,7 +355,7 @@ private:
     this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
 
     RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f%%, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
@@ -343,6 +379,9 @@ private:
       response->success = true;
     } else if (strcmp(request->type.c_str(), "position") == 0) {
       vesc_set_position(request->can_id, request->value);
+      response->success = true;
+    } else if (strcmp(request->type.c_str(), "ramp_duty_cycle") == 0){
+      vesc_ramp_duty_cycle(request->can_id, request->value, request->value2);
       response->success = true;
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
