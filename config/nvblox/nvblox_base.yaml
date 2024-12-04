@@ -74,4 +74,4 @@
       mesh_integrator_min_weight: 0.0001
       mesh_integrator_weld_vertices: true
       # tsdf decay integrator
-      tsdf_decay_factor: 0.95
+      tsdf_decay_factor: 0.98
