@@ -26,13 +26,12 @@
     
     <include>
       <uri>package://ros_gz_description/models/NASA_field</uri>
-      <pose>0 0 0 0 0 0</pose>
       <static>true</static>
     </include>
 
     <include>
       <uri>package://robot_description/models/master_ASM</uri>
-      <pose>-2.2 -1.5 0.6 0 0 0</pose>
+      <pose>-2.0 -1.5 0.6 0 0 0</pose>
       <!-- Global odometer -->
       <plugin
       filename="ignition-gazebo-odometry-publisher-system"
