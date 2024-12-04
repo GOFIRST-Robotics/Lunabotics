@@ -81,7 +81,7 @@ def generate_launch_description():
     # Format as a string
     timestamp_str = now.strftime("%m-%d-%Y_%H:%M:%S")
     # Add the timestamp to the svo filename
-    svo_filename = f"/rosbags/zed_recording_{timestamp_str}.svo"
+    svo_filename = f"/rosbags/zed_recording_{timestamp_str}.svo2"
 
     record_svo_srv = ExecuteProcess(
         cmd=[
@@ -89,7 +89,7 @@ def generate_launch_description():
                 FindExecutable(name="ros2"),
                 " service call ",
                 "/zed2i/zed_node/start_svo_rec ",
-                "zed_interfaces/srv/StartSvoRec ",
+                "zed_msgs/srv/StartSvoRec ",
                 # Tune this bitrate to adjust file size
                 f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
             ]
