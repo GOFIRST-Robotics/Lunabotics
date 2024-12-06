@@ -73,28 +73,35 @@ class AutoDigServer(AsyncNode):
             return result
 
         # Zero the digger
-        await self.cli_lift_zero.call_async(Trigger.Reqest())
+        await self.cli_lift_zero.call_async(Trigger.Request())
         # Wait for the lift goal to be reached
         await self.digger_sleep()
+
+        # Lower the digger onto the ground
+        self.cli_lift_setPosition.call_async(
+            SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
+        )
+
 
         # Start the digger belt
         await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
 
-        # Lower the digger into the ground slowly
+        # Lower the digger towards the ground slowly
         if not self.running:
             self.get_logger().error("Digging buckets not spinning. Don't lower!")
             goal_handle.abort()
             return result
-        self.cli_lift_set_power.call_async(SetPower.Request(power=-0.10))
+        await self.cli_lift_set_power.call_async(SetPower.Request(-0.05)) 
+            # TODO: wait for it to reach the bottom
 
         self.get_logger().info("Start of Auto Digging in Place")
         await self.async_sleep(3)  # Stay at lowest pos for 3 seconds while digging
         self.get_logger().info("Done Digging in Place")
 
-        # Stop skimming
+        # Stop digging
         await self.cli_digger_stop.call_async(Trigger.Request())
 
-        # raise lift to dumping position
+        # raise the digger back up
         await self.cli_lift_zero.call_async(Trigger.Reqest())
         # Wait for the lift goal to be reached
         await self.digger_sleep()
