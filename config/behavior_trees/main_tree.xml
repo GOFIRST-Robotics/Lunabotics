@@ -1,7 +1,26 @@
- <root BTCPP_format="4" >
-    <BehaviorTree ID="MainTree">
-        <Sequence>
-            <Script code=" msg:='hello world' " />
-        </Sequence>
-    </BehaviorTree>
- </root>
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="MainTree">
+    <Fallback>
+      <Sequence>
+        <RetryUntilSuccessful num_attempts="5">
+          <Script code="msg:=&apos;Calibrate Field Coordinates&apos;"/>
+        </RetryUntilSuccessful>
+        <KeepRunningUntilFailure>
+          <Fallback>
+            <Sequence>
+              <Script code="msg:=&quot;Auto Dig&quot;"/>
+              <Script code="msg:=&quot;Auto Offload&quot;"/>
+            </Sequence>
+            <Script code="msg :=&quot;STUCK&quot;"/>
+          </Fallback>
+        </KeepRunningUntilFailure>
+      </Sequence>
+      <Script code="msg:=&apos;Manual Override&apos;"/>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel/>
+
+</root>
