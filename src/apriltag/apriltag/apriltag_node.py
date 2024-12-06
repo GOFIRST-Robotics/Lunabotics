@@ -68,6 +68,9 @@ class ApriltagNode(Node):
     def tagDetectionSub(self, msg):
         if len(msg.detections) == 0:
             return
+        
+        positions = []
+        rotations = []
 
         tags = msg.detections
         for tag in tags:
@@ -91,37 +94,44 @@ class ApriltagNode(Node):
             except TransformException as ex:
                 self.get_logger().warn(f"Could not transform odom to the detected tag: {ex}")
                 return
+            
+            # Extract and adjust position
+            position = [
+            odom_to_tag_transform.transform.translation.x - float(xyz[0]),
+            odom_to_tag_transform.transform.translation.y - float(xyz[1]),
+            0.0,  # Assuming 2D map
+        ]
+        positions.append(position)
 
-            odom_to_tag_transform.child_frame_id = "odom"
-            odom_to_tag_transform.header.frame_id = "map"
-            odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
+        # Extract and adjust rotation
+        rotation_quaternion = R.from_euler(
+            "xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True
+        ).as_quat()
+        current_quaternion = [
+            odom_to_tag_transform.transform.rotation.x,
+            odom_to_tag_transform.transform.rotation.y,
+            odom_to_tag_transform.transform.rotation.z,
+            odom_to_tag_transform.transform.rotation.w,
+        ]
+        rotated_quaternion = R.from_quat(current_quaternion) * R.from_quat(rotation_quaternion)
+        rotations.append(rotated_quaternion.as_quat())
 
-            # Apply a known rotation to the transform
-            rotation_quaternion = R.from_euler(
-                "xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True
-            ).as_quat()
-            current_quaternion = R.from_quat(
-                [
-                    odom_to_tag_transform.transform.rotation.x,
-                    odom_to_tag_transform.transform.rotation.y,
-                    odom_to_tag_transform.transform.rotation.z,
-                    odom_to_tag_transform.transform.rotation.w,
-                ]
-            ).as_quat()
-            rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
+        if positions and rotations:
+            # Compute the average position
+            avg_position = np.mean(positions, axis=0)
 
-            # Update the transform with the rotated quaternion
-            odom_to_tag_transform.transform.rotation.x = rotated_quaternion[0]
-            odom_to_tag_transform.transform.rotation.y = rotated_quaternion[1]
-            odom_to_tag_transform.transform.rotation.z = rotated_quaternion[2]
-            odom_to_tag_transform.transform.rotation.w = rotated_quaternion[3]
+            # Compute the average rotation
+            avg_rotation = np.mean(rotations, axis=0)
+            avg_rotation /= np.linalg.norm(avg_rotation)  # Normalize the quaternion
 
-            # Use the known map coordinates of the apriltag as an offset
-            odom_to_tag_transform.transform.translation.x -= float(xyz[0])
-            odom_to_tag_transform.transform.translation.y -= float(xyz[1])
-            odom_to_tag_transform.transform.translation.z = 0.0
-
-            self.map_to_odom_tf = odom_to_tag_transform
+            # Update the map_to_odom_tf
+            self.map_to_odom_tf.transform.translation.x = avg_position[0]
+            self.map_to_odom_tf.transform.translation.y = avg_position[1]
+            self.map_to_odom_tf.transform.translation.z = avg_position[2]
+            self.map_to_odom_tf.transform.rotation.x = avg_rotation[0]
+            self.map_to_odom_tf.transform.rotation.y = avg_rotation[1]
+            self.map_to_odom_tf.transform.rotation.z = avg_rotation[2]
+            self.map_to_odom_tf.transform.rotation.w = avg_rotation[3]
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
