@@ -28,8 +28,6 @@ class DrivetrainNode(Node):
         self.declare_parameter("FRONT_RIGHT_DRIVE", 9)
         self.declare_parameter("BACK_LEFT_DRIVE", 7)
         self.declare_parameter("BACK_RIGHT_DRIVE", 8)
-        self.declare_parameter("HALF_WHEEL_BASE", 0.5)
-        self.declare_parameter("HALF_TRACK_WIDTH", 0.5)
         self.declare_parameter("GAZEBO_SIMULATION", False)
         self.declare_parameter("MAX_DRIVETRAIN_RPM", 10000)
 
@@ -38,8 +36,6 @@ class DrivetrainNode(Node):
         self.FRONT_RIGHT_DRIVE = self.get_parameter("FRONT_RIGHT_DRIVE").value
         self.BACK_LEFT_DRIVE = self.get_parameter("BACK_LEFT_DRIVE").value
         self.BACK_RIGHT_DRIVE = self.get_parameter("BACK_RIGHT_DRIVE").value
-        self.HALF_WHEEL_BASE = self.get_parameter("HALF_WHEEL_BASE").value
-        self.HALF_TRACK_WIDTH = self.get_parameter("HALF_TRACK_WIDTH").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
         self.MAX_DRIVETRAIN_RPM = self.get_parameter("MAX_DRIVETRAIN_RPM").value
 
@@ -70,8 +66,6 @@ class DrivetrainNode(Node):
         self.get_logger().info("FRONT_RIGHT_DRIVE has been set to: " + str(self.FRONT_RIGHT_DRIVE))
         self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
         self.get_logger().info("BACK_RIGHT_DRIVE has been set to: " + str(self.BACK_RIGHT_DRIVE))
-        self.get_logger().info("HALF_WHEEL_BASE has been set to: " + str(self.HALF_WHEEL_BASE))
-        self.get_logger().info("HALF_TRACK_WIDTH has been set to: " + str(self.HALF_TRACK_WIDTH))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
         self.get_logger().info("MAX_DRIVETRAIN_RPM has been set to: " + str(self.MAX_DRIVETRAIN_RPM))
 
