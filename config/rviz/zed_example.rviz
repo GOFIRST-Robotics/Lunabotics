@@ -53,13 +53,13 @@ Visualization Manager:
           Value: true
         translation_end_link:
           Value: true
-        wheel1_Link:
+        left_front_wheel_Link:
           Value: true
-        wheel2_Link:
+        left_back_wheel_Link:
           Value: true
-        wheel3_Link:
+        right_front_wheel_Link:
           Value: true
-        wheel4_Link:
+        right_back_wheel_Link:
           Value: true
         zed2i_camera_center:
           Value: false
@@ -87,13 +87,13 @@ Visualization Manager:
               translation_end_link:
                 frame_link:
                   swerve1_Link:
-                    wheel1_Link: {}
+                    left_front_wheel_Link: {}
                   swerve2_Link:
-                    wheel2_Link: {}
+                    left_back_wheel_Link: {}
                   swerve3_Link:
-                    wheel3_Link: {}
+                    right_front_wheel_Link: {}
                   swerve4_Link:
-                    wheel4_Link: {}
+                    right_back_wheel_Link: {}
               zed2i_camera_center:
                 zed2i_left_camera_frame:
                   zed2i_imu_link: {}
@@ -428,22 +428,22 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        wheel1_Link:
+        left_front_wheel_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wheel2_Link:
+        left_back_wheel_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wheel3_Link:
+        right_front_wheel_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wheel4_Link:
+        right_back_wheel_Link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
