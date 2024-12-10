@@ -12,7 +12,7 @@ from rclpy.node import Node
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
-
+from threading import Event, Thread
 
 class DumperNode(Node):
     def __init__(self):
@@ -35,16 +35,19 @@ class DumperNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
         self.declare_parameter("DUMPER_POWER", 0.5)
+        self.declare_parameter("dump_time", 5)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
+        self.dumpTime = self.get_parameter("dump_time").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
 
         # Current state of the dumper
         self.running = False
-
+        self.top_limit_event = Event()
+        self.bottom_limit_event = Event()
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
     # Define subsystem methods here
@@ -66,6 +69,8 @@ class DumperNode(Node):
     def stop(self) -> None:
         """This method stops the dumper."""
         self.running = False
+        self.top_limit_event.set()
+        self.bottom_limit_event.set()
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
 
     def toggle(self, dumper_power: float) -> None:
@@ -95,8 +100,12 @@ class DumperNode(Node):
         return response
 
     def extend_dumper(self) -> None:
-        while not self.top_limit_pressed:
-            self.set_power(self.DUMPER_POWER)
+        self.top_limit_event.clear()
+        self.set_power(self.DUMPER_POWER)
+        self.top_limit_event.wait()
+        #while not self.top_limit_pressed and self.running:
+            #pass
+        self.top_limit_event.clear()
         self.stop()
 
     def extend_callback(self, request, response):
@@ -106,8 +115,12 @@ class DumperNode(Node):
         return response
 
     def retract_dumper(self) -> None:
-        while not self.bottom_limit_pressed:
-            self.set_power(-self.DUMPER_POWER)
+        self.bottom_limit_event.clear()
+        self.set_power(-self.DUMPER_POWER)
+        self.bottom_limit_event.wait()
+        #while not self.bottom_limit_pressed and self.running:
+            #pass
+        self.bottom_limit_event.clear()
         self.stop()
 
     def retract_callback(self, request, response):
@@ -115,12 +128,12 @@ class DumperNode(Node):
         self.retract_dumper()
         response.success = True
         return response
-
+    # NOTE: Dump is no longer used because time.sleep is not cancellable! see Auto_offload_server for dump implementation workaround 
     def dump(self) -> None:
         # extend the dumper
         self.extend_dumper()
         # wait for 5 seconds before retracting the dumper
-        time.sleep(5)
+        time.sleep(self.dumpTime)
         # retract the dumper
         self.retract_dumper()
 
@@ -136,7 +149,13 @@ class DumperNode(Node):
         if not self.bottom_limit_pressed and msg.bottom_limit_switch:
             self.stop()  # Stop the lift system
         self.top_limit_pressed = msg.top_limit_switch
+        if(self.top_limit_pressed):
+            self.top_limit_event.set()
+            self.bottom_limit_event.clear()
         self.bottom_limit_pressed = msg.bottom_limit_switch
+        if(self.bottom_limit_pressed):
+            self.bottom_limit_event.set()
+            self.top_limit_event.clear()
 
 
 def main(args=None):
