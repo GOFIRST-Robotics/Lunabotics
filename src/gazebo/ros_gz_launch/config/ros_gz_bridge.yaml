@@ -26,27 +26,6 @@
   gz_type_name: "ignition.msgs.Double"
   direction: ROS_TO_GZ
 
-- ros_topic_name: "/swerve1/cmd_pos"
-  gz_topic_name: "/model/Master_ASM/joint/swerve1_joint/0/cmd_pos"
-  ros_type_name: "std_msgs/msg/Float64"
-  gz_type_name: "ignition.msgs.Double"
-  direction: ROS_TO_GZ
-- ros_topic_name: "/swerve2/cmd_pos"
-  gz_topic_name: "/model/Master_ASM/joint/swerve2_joint/0/cmd_pos"
-  ros_type_name: "std_msgs/msg/Float64"
-  gz_type_name: "ignition.msgs.Double"
-  direction: ROS_TO_GZ
-- ros_topic_name: "/swerve3/cmd_pos"
-  gz_topic_name: "/model/Master_ASM/joint/swerve3_joint/0/cmd_pos"
-  ros_type_name: "std_msgs/msg/Float64"
-  gz_type_name: "ignition.msgs.Double"
-  direction: ROS_TO_GZ
-- ros_topic_name: "/swerve4/cmd_pos"
-  gz_topic_name: "/model/Master_ASM/joint/swerve4_joint/0/cmd_pos"
-  ros_type_name: "std_msgs/msg/Float64"
-  gz_type_name: "ignition.msgs.Double"
-  direction: ROS_TO_GZ
-
 - topic_name: "/color/image"
   ros_type_name: "sensor_msgs/msg/Image"
   gz_type_name: "ignition.msgs.Image"
