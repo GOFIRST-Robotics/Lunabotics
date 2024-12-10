@@ -26,8 +26,16 @@
   </material>
 
   <link name="base_link">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </link>
+  <joint name="base_to_frame_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="frame_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="frame_link">
     <inertial>
-      <origin rpy="0 0 0" xyz="0 0.0 0.08835894305363262"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="${chassisMass}"/>
       <xacro:box_inertia m="${chassisMass}" x="${chassisLength}" y="${chassisWidth}" z="${chassisHeight}"/>
     </inertial>
@@ -143,7 +151,7 @@
     <joint name="zed2i_joint" type="fixed">
       <parent link="zed2i_camera_link"/>
       <child link="base_link"/>
-      <origin xyz="-0.5 0 0.375" rpy="0 0 0"/>
+      <origin xyz="-0.35 0 -0.25" rpy="0 0 0"/>
     </joint>    
   </xacro:if>
   <xacro:unless value="$(arg use_zed_localization)">
@@ -151,7 +159,7 @@
     <joint name="zed2i_joint" type="fixed">
       <parent link="base_link"/>
       <child link="zed2i_camera_link"/>
-      <origin xyz="0.5 0 -0.375" rpy="0 0 0"/>
+      <origin xyz="0.35 0 0.25" rpy="0 0 0"/>
     </joint>
   </xacro:unless>
 
@@ -208,13 +216,13 @@
     <origin rpy="0 0 0" xyz="0.254 0.254 0.101276"/>
     <parent link="base_link"/>
     <child link="left_front"/>
-    <axis xyz="0.0 -1.0 0.0"/>
+    <axis xyz="0.0 1.0 0.0"/>
   </joint>
   <joint name="left_back_wheel" type="continuous">
     <origin rpy="0 0 0" xyz="-0.254 0.254 0.101276"/>
     <parent link="base_link"/>
     <child link="left_back"/>
-    <axis xyz="0.0 -1.0 0.0"/>
+    <axis xyz="0.0 1.0 0.0"/>
   </joint>
   <joint name="right_back_wheel" type="continuous">
     <origin rpy="0 0 0" xyz="-0.254 -0.254 0.101276"/>
