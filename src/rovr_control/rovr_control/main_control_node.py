@@ -31,10 +31,10 @@ from std_srvs.srv import Trigger
 from scipy.spatial.transform import Rotation as R
 
 # Import our logitech gamepad button mappings
-# from rovr_control import gamepad_constants as bindings
+from rovr_control import gamepad_constants as bindings
 
 # Uncomment the line below to use the Xbox controller mappings instead
-from rovr_control import xbox_controller_constants as bindings
+# from rovr_control import xbox_controller_constants as bindings
 
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
@@ -154,10 +154,10 @@ class MainControlNode(Node):
 
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
-        # # ----- !! BLOCKING WHILE LOOP !! ----- #
-        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        # self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
+        # ----- !! BLOCKING WHILE LOOP !! ----- #
+        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
+        self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
 
     # NOTE: This method is meant to find a safe digging location on the field, but it has not been tested enough yet.
     # def optimal_dig_location(self) -> list:
@@ -233,25 +233,25 @@ class MainControlNode(Node):
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
                 self.cli_dumper_dump.call_async(Trigger.Request())
 
-            # # Manually adjust the dumper position with the left and right bumpers
-            # if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
-            #     self.self.cli_dumper_setPower.call_async(SetPower.Request(power=self.dumper_power))
-            # elif msg.buttons[bindings.RIGHT_BUMPER] == 0 and buttons[bindings.RIGHT_BUMPER] == 1:
-            #     self.cli_dumper_stop.call_async(Trigger.Request())
-            # elif msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
-            #     self.self.cli_dumper_setPower.call_async(SetPower.Request(power=-self.dumper_power))
-            # elif msg.buttons[bindings.LEFT_BUMPER] == 0 and buttons[bindings.LEFT_BUMPER] == 1:
-            #     self.cli_dumper_stop.call_async(Trigger.Request())
+            # Manually adjust the dumper position with the left and right bumpers
+            if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
+                self.self.cli_dumper_setPower.call_async(SetPower.Request(power=self.dumper_power))
+            elif msg.buttons[bindings.RIGHT_BUMPER] == 0 and buttons[bindings.RIGHT_BUMPER] == 1:
+                self.cli_dumper_stop.call_async(Trigger.Request())
+            elif msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
+                self.self.cli_dumper_setPower.call_async(SetPower.Request(power=-self.dumper_power))
+            elif msg.buttons[bindings.LEFT_BUMPER] == 0 and buttons[bindings.LEFT_BUMPER] == 1:
+                self.cli_dumper_stop.call_async(Trigger.Request())
 
-            # # Manually adjust the height of the digger with the left and right triggers
-            # if msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
-            #     self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power))
-            # elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
-            #     self.cli_lift_stop.call_async(Trigger.Request())
-            # elif msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
-            #     self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
-            # elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
-            #     self.cli_lift_stop.call_async(Trigger.Request())
+            # Manually adjust the height of the digger with the left and right triggers
+            if msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
+                self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power))
+            elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
+                self.cli_lift_stop.call_async(Trigger.Request())
+            elif msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
+                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
+            elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
+                self.cli_lift_stop.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
