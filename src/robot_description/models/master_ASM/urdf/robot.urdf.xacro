@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<robot name="robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<robot name="robot_base" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
     <xacro:property name="chassisHeight" value="0.64"/>
     <xacro:property name="chassisLength" value="1.1"/>
@@ -12,18 +12,13 @@
 
     <xacro:property name="pretty" value="true"/>
 
+    <material name="grey">
+        <color
+        rgba="0.79216 0.81961 0.93333 1" />
+    </material>
+
     <xacro:include filename="macros.urdf.xacro" />
 
-
-    <link name="base_link">
-        <origin xyz="0 0 0" rpy="0 0 0" />
-    </link>
-
-    <joint name="base_to_frame_joint" type="fixed">
-        <parent link="base_link" />
-        <child link="frame_link" />
-        <origin xyz="0 0 0" rpy="0 0 -1.5708" />
-    </joint>
 
     <link name="frame_link">
         <inertial>
@@ -48,267 +43,40 @@
                 <box size="${chassisWidth} ${chassisLength} ${chassisHeight}"/>
             </xacro:unless>
         </geometry>
-        <material
-            name="">
-            <color
-            rgba="0.79216 0.81961 0.93333 1" />
-        </material>
-        </visual>
-        <collision>
-        <origin
-            xyz="0 0 -0.2"
-            rpy="0 0 0" />
-        <geometry>
-            <box size="0.7317 1.4254 0.6435" />
-        </geometry>
-        </collision>
-    </link>
-
-    <link name="wheel1_Link">
-        <inertial>
-        <origin
-            xyz="0 -0.115 0"
-            rpy="0 0 0" />
-        <mass
-            value="1.1372" />
-        <inertia
-            ixx="0.0059462"
-            ixy="0"
-            ixz="0"
-            iyy="0.0059468"
-            iyz="0"
-            izz="0.0072591" />
-        </inertial>
-        <visual>
-        <origin
-            xyz="0 0.115 0"
-            rpy="0 0 0" />
-        <geometry>
-            <mesh
-            filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
-        </geometry>
-        <material
-            name="">
-            <color
-            rgba="0.79216 0.81961 0.93333 1" />
-        </material>
+        <material name="grey" />
         </visual>
         <collision>
         <origin
             xyz="0 0 0"
             rpy="0 0 0" />
         <geometry>
-            <cylinder radius="0.115" length="0.2" />
+            <box size="${chassisWidth} ${chassisLength} ${chassisHeight}"/>
         </geometry>
         </collision>
     </link>
 
-    <joint
-        name="wheel1_joint"
-        type="continuous">
-        <origin
-        xyz="0 0 0"
-        rpy="1.5708 0.34561 1.5708" />
-        <parent link="frame_link" />
-        <child link="wheel1_Link" />
-        <axis
-        xyz="0 0 -1" />
-    </joint>
+    <xacro:wheel_link name="wheel1_link">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:wheel_link>
+
+    <xacro:wheel_joint wheel="wheel1" x="${chassisWidth/2+wheelWidth/3}" y="${chassisLength/2}" z="${chassisHeight/2}"/>
     
-    <link name="wheel2_Link">
-        <inertial>
-        <origin
-            xyz="0 -0.115 0"
-            rpy="0 0 0" />
-        <mass
-            value="1.1372" />
-        <inertia
-            ixx="0.0059462"
-            ixy="0"
-            ixz="0"
-            iyy="0.0059468"
-            iyz="0"
-            izz="0.0072591" />
-        </inertial>
-        <visual>
-        <origin
-            xyz="0 0.115 0"
-            rpy="0 0 0" />
-        <geometry>
-            <mesh
-            filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
-        </geometry>
-        <material
-            name="">
-            <color
-            rgba="0.79216 0.81961 0.93333 1" />
-        </material>
-        </visual>
-        <collision>
-        <origin
-            xyz="0 0 0"
-            rpy="0 0 0" />
-        <geometry>
-            <!-- <mesh
-            filename="package://Master_ASM/meshes/wheel2_Link.STL" /> -->
-            <cylinder radius="0.115" length="0.2" />
-        </geometry>
-        </collision>
-    </link>
+    <xacro:wheel_link name="wheel2_link">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:wheel_link>
 
-    <joint name="wheel2_joint"
-        type="continuous">
-        <origin
-        xyz="0 0 0"
-        rpy="1.5708 0.34561 1.5708" />
-        <parent
-        link="frame_link" />
-        <child
-        link="wheel2_Link" />
-        <axis
-        xyz="0 0 1" />
-    </joint>
-
+    <xacro:wheel_joint wheel="wheel2" x="${chassisWidth/2+wheelWidth/3}" y="-${chassisLength/2}" z="${chassisHeight/2}"/>
     
-    <link name="wheel3_Link">
-        <inertial>
-        <origin
-            xyz="0 -0.115 0"
-            rpy="0 0 0" />
-        <mass
-            value= "${wheelMass}" />
-        <inertia
-            ixx="0.0059462"
-            ixy="0"
-            ixz="0"
-            iyy="0.0059468"
-            iyz="0"
-            izz="0.0072591" />
-        </inertial>
-        <visual>
-        <origin
-            xyz="0 0.115 0"
-            rpy="0 0 0" />
-        <geometry>
-            <mesh
-            filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
-        </geometry>
-        <material
-            name="">
-            <color
-            rgba="0.79216 0.81961 0.93333 1" />
-        </material>
-        </visual>
-        <collision>
-        <origin
-            xyz="0 0 0"
-            rpy="0 0 0" />
-        <geometry>
-            <cylinder radius="0.115" length="0.2" />
-        </geometry>
-        </collision>
-    </link>
+    <xacro:wheel_link name="wheel3_link">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:wheel_link>
 
-    <joint
-        name="wheel3_joint"
-        type="continuous">
-        <origin
-        xyz="0 0 0"
-        rpy="1.5708 0.34561 1.5708" />
-        <parent
-        link="frame_link" />
-        <child
-        link="wheel3_Link" />
-        <axis
-        xyz="0 0 1" />
-    </joint>
+    <xacro:wheel_joint wheel="wheel3" x="-${chassisWidth/2+wheelWidth/3}" y="-${chassisLength/2}" z="${chassisHeight/2}"/>
     
-    <link name="wheel4_Link">
-        <inertial>
-        <origin
-            xyz="2.9097E-09 -0.115 -0.00055956"
-            rpy="0 0 0" />
-        <mass
-            value="1.1372" />
-        <inertia
-            ixx="0.0059462"
-            ixy="1.6529E-09"
-            ixz="-6.3363E-10"
-            iyy="0.0059468"
-            iyz="6.9163E-09"
-            izz="0.0072591" />
-        </inertial>
-        <visual>
-        <origin
-            xyz="0 0.115 0"
-            rpy="0 0 0" />
-        <geometry>
-            <mesh
-            filename="package://robot_description/models/master_ASM/meshes/wheel_Link.STL" />
-        </geometry>
-        <material
-            name="">
-            <color
-            rgba="0.79216 0.81961 0.93333 1" />
-        </material>
-        </visual>
-        <collision>
-        <origin
-            xyz="0 0 0"
-            rpy="0 0 0" />
-        <geometry>
-            <cylinder radius="0.115" length="0.2" />
-        </geometry>
-        </collision>
-    </link>
+    <xacro:wheel_link name="wheel4_link">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:wheel_link>
 
-    <joint name="wheel4_joint"
-        type="continuous">
-        <origin
-        xyz="0 0 0"
-        rpy="1.5708 0.34561 1.5708" />
-        <parent
-        link="frame_link" />
-        <child
-        link="wheel4_Link" />
-        <axis
-        xyz="0 0 -1" />
-    </joint>
-
-    <gazebo>
-        <plugin
-        filename="ignition-gazebo-joint-state-publisher-system"
-        name="ignition::gazebo::systems::JointStatePublisher">
-        <topic>joint_states</topic>
-        </plugin>
-
-        <plugin
-        filename="ignition-gazebo-joint-controller-system"
-        name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel1_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
-        </plugin>
-
-        <plugin
-        filename="ignition-gazebo-joint-controller-system"
-        name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel2_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
-        </plugin>
-
-        <plugin
-        filename="ignition-gazebo-joint-controller-system"
-        name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel3_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
-        </plugin>
-
-        <plugin
-        filename="ignition-gazebo-joint-controller-system"
-        name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel4_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
-        </plugin>
-    </gazebo>
+    <xacro:wheel_joint wheel="wheel4" x="-${chassisWidth/2+wheelWidth/3}" y="${chassisLength/2}" z="${chassisHeight/2}"/>
 
 </robot>

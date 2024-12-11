@@ -41,7 +41,6 @@ install(
 # Convert xarco to urdf on BUILD this is pretty bad but it works
 add_custom_target(ConvertXacro ALL
   COMMAND xacro ${CMAKE_CURRENT_SOURCE_DIR}/models/master_ASM/urdf/master_ASM.urdf.xacro > ${CMAKE_CURRENT_BINARY_DIR}/master_ASM.urdf
-  COMMAND xacro ${CMAKE_CURRENT_SOURCE_DIR}/models/master_ASM/urdf/robot.urdf.xacro > ${CMAKE_CURRENT_BINARY_DIR}/robot.urdf
   COMMENT "Generating URDF from Xacro"
 )
 
@@ -50,9 +49,6 @@ install(CODE "
   execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
     ${CMAKE_CURRENT_BINARY_DIR}/master_ASM.urdf
     ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/models/master_ASM/urdf/master_ASM.urdf)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_CURRENT_BINARY_DIR}/robot.urdf
-    ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/models/master_ASM/urdf/robot.urdf)
 ")
 
 ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in")
