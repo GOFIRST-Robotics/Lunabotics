@@ -4,7 +4,8 @@ Stephen Brawner (brawner@gmail.com)
      Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
      For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
 
-<robot name="Master_ASM" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<robot name="Complicated" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
   <link name="base_link">
     <origin xyz="0 0 0" rpy="0 0 0" />
   </link>
@@ -54,29 +55,29 @@ Stephen Brawner (brawner@gmail.com)
   </link>
 
   <!-- ZED 2i Camera -->
-  <xacro:arg name="use_zed_localization" default="true" />
+  <!-- <xacro:arg name="use_zed_localization" default="true" />
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
-  <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false">
+  <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false"> -->
     <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
-    <gnss_origin></gnss_origin>
-  </xacro:zed_camera>
+    <!-- <gnss_origin></gnss_origin>
+  </xacro:zed_camera> -->
   <!-- Add a joint to connect the ZED 2i Camera model to the robot -->
-  <xacro:if value="$(arg use_zed_localization)">
+  <!-- <xacro:if value="$(arg use_zed_localization)"> -->
     <!-- ZED Localization -> The reference link is 'zed2i_camera_link' and 'base_link' is a child -->
-    <joint name="zed2i_joint" type="fixed">
+    <!-- <joint name="zed2i_joint" type="fixed">
       <parent link="zed2i_camera_link"/>
       <child link="base_link"/>
       <origin xyz="-0.5 0 0.375" rpy="0 0 0"/>
     </joint>    
   </xacro:if>
-  <xacro:unless value="$(arg use_zed_localization)">
+  <xacro:unless value="$(arg use_zed_localization)"> -->
     <!-- NO ZED Localization -> 'zed2i_camera_link' is a child of 'base_link' -->
-    <joint name="zed2i_joint" type="fixed">
+    <!-- <joint name="zed2i_joint" type="fixed">
       <parent link="base_link"/>
       <child link="zed2i_camera_link"/>
       <origin xyz="0.5 0 -0.375" rpy="0 0 0"/>
     </joint>
-  </xacro:unless>
+  </xacro:unless> -->
 
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
