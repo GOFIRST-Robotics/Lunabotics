@@ -5,23 +5,19 @@
   gz_type_name: "gz.msgs.Clock"
   direction: BIDIRECTIONAL
 
-- ros_topic_name: "/wheel1/cmd_vel"
-  gz_topic_name: "/model/Master_ASM/joint/wheel1_joint/cmd_vel"
+- topic_name: "/left_front_wheel/cmd_vel"
   ros_type_name: "std_msgs/msg/Float64"
   gz_type_name: "ignition.msgs.Double"
   direction: ROS_TO_GZ
-- ros_topic_name: "/wheel2/cmd_vel"
-  gz_topic_name: "/model/Master_ASM/joint/wheel2_joint/cmd_vel"
+- topic_name: "/left_back_wheel/cmd_vel"
   ros_type_name: "std_msgs/msg/Float64"
   gz_type_name: "ignition.msgs.Double"
   direction: ROS_TO_GZ
-- ros_topic_name: "/wheel3/cmd_vel"
-  gz_topic_name: "/model/Master_ASM/joint/wheel3_joint/cmd_vel"
+- topic_name: "/right_front_wheel/cmd_vel"
   ros_type_name: "std_msgs/msg/Float64"
   gz_type_name: "ignition.msgs.Double"
   direction: ROS_TO_GZ
-- ros_topic_name: "/wheel4/cmd_vel"
-  gz_topic_name: "/model/Master_ASM/joint/wheel4_joint/cmd_vel"
+- topic_name: "/right_back_wheel/cmd_vel"
   ros_type_name: "std_msgs/msg/Float64"
   gz_type_name: "ignition.msgs.Double"
   direction: ROS_TO_GZ
