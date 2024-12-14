@@ -7,7 +7,7 @@
   <maintainer email="jmblixt3@gmail.com">blixt</maintainer>
   <license>MIT License</license>
 
-  <!-- <depend>zed_wrapper</depend> -->
+  <depend>zed_wrapper</depend>
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>

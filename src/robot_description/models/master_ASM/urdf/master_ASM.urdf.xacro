@@ -19,30 +19,8 @@ Stephen Brawner (brawner@gmail.com)
   </joint>
 
   <!-- ZED 2i Camera -->
-  <!-- <xacro:arg name="use_zed_localization" default="true" />
-  <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
-  <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false"> -->
-    <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
-    <!-- <gnss_origin></gnss_origin>
-  </xacro:zed_camera> -->
-  <!-- Add a joint to connect the ZED 2i Camera model to the robot -->
-  <!-- <xacro:if value="$(arg use_zed_localization)"> -->
-    <!-- ZED Localization -> The reference link is 'zed2i_camera_link' and 'base_link' is a child -->
-    <!-- <joint name="zed2i_joint" type="fixed">
-      <parent link="zed2i_camera_link"/>
-      <child link="base_link"/>
-      <origin xyz="-0.5 0 0.375" rpy="0 0 0"/>
-    </joint>    
-  </xacro:if>
-  <xacro:unless value="$(arg use_zed_localization)"> -->
-    <!-- NO ZED Localization -> 'zed2i_camera_link' is a child of 'base_link' -->
-    <!-- <joint name="zed2i_joint" type="fixed">
-      <parent link="base_link"/>
-      <child link="zed2i_camera_link"/>
-      <origin xyz="0.5 0 -0.375" rpy="0 0 0"/>
-    </joint>
-  </xacro:unless> -->
-
+  <xacro:include filename="zed.urdf.xacro" />
+ 
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
       <!-- <visualize>true</visualize> -->
@@ -97,28 +75,28 @@ Stephen Brawner (brawner@gmail.com)
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
         <joint_name>wheel1_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
+        <initial_velocity>1.0</initial_velocity>
         </plugin>
 
         <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
         <joint_name>wheel2_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
+        <initial_velocity>1.0</initial_velocity>
         </plugin>
 
         <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
         <joint_name>wheel3_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
+        <initial_velocity>1.0</initial_velocity>
         </plugin>
 
         <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
         <joint_name>wheel4_joint</joint_name>
-        <initial_velocity>0.0</initial_velocity>
+        <initial_velocity>1.0</initial_velocity>
         </plugin>
     </gazebo>
 

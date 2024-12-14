@@ -55,27 +55,19 @@
         </collision>
     </link>
 
-    <xacro:wheel_link name="wheel1_link">
-        <origin xyz="0 0 0" rpy="0 0 0" />
-    </xacro:wheel_link>
-
+    <xacro:wheel_link name="wheel1_link" />
+        
     <xacro:wheel_joint wheel="wheel1" x="${chassisWidth/2+wheelWidth/3}" y="${chassisLength/2}" z="${chassisHeight/2}"/>
     
-    <xacro:wheel_link name="wheel2_link">
-        <origin xyz="0 0 0" rpy="0 0 0" />
-    </xacro:wheel_link>
+    <xacro:wheel_link name="wheel2_link" />
 
     <xacro:wheel_joint wheel="wheel2" x="${chassisWidth/2+wheelWidth/3}" y="-${chassisLength/2}" z="${chassisHeight/2}"/>
     
-    <xacro:wheel_link name="wheel3_link">
-        <origin xyz="0 0 0" rpy="0 0 0" />
-    </xacro:wheel_link>
+    <xacro:wheel_link name="wheel3_link" />
 
     <xacro:wheel_joint wheel="wheel3" x="-${chassisWidth/2+wheelWidth/3}" y="-${chassisLength/2}" z="${chassisHeight/2}"/>
     
-    <xacro:wheel_link name="wheel4_link">
-        <origin xyz="0 0 0" rpy="0 0 0" />
-    </xacro:wheel_link>
+    <xacro:wheel_link name="wheel4_link" />
 
     <xacro:wheel_joint wheel="wheel4" x="-${chassisWidth/2+wheelWidth/3}" y="${chassisLength/2}" z="${chassisHeight/2}"/>
 
