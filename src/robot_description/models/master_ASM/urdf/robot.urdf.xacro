@@ -2,8 +2,8 @@
 
 <robot name="robot_base" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-    <xacro:property name="chassisHeight" value="0.57476257962"/>
-    <xacro:property name="chassisLength" value="1.1"/>
+    <xacro:property name="chassisHeight" value="0.66976"/>
+    <xacro:property name="chassisLength" value="1.13198"/>
     <xacro:property name="chassisWidth" value="0.5077"/>
     <xacro:property name="chassisMass" value="55"/>
     <xacro:property name="wheelWidth" value="0.11"/>
@@ -13,7 +13,7 @@
     <!-- Distance between middle - middle front back wheels 0.873175 m -->
     <!-- Distance between middle - middle Left and right wheels 0.62285 m -->
     <!-- Distance from back of chassis to middle of back wheels 0.1534125 -->
-    <!-- Distance from bottem of chassis to middle of wheels 0.0475 (below) -->
+    <!-- Distance from bottom of chassis to middle of wheels 0.11789257822 -->
 
     <xacro:property name="pretty" value="true"/>
 
