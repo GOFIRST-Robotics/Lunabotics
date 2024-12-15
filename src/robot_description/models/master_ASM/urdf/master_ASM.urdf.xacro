@@ -71,7 +71,7 @@ Stephen Brawner (brawner@gmail.com)
         <topic>joint_states</topic>
         </plugin>
 
-        <plugin
+        <!-- <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
         <joint_name>wheelFrontLeft_joint</joint_name>
@@ -97,6 +97,18 @@ Stephen Brawner (brawner@gmail.com)
         name="ignition::gazebo::systems::JointController">
         <joint_name>wheelBackRight_joint</joint_name>
         <initial_velocity>1.0</initial_velocity>
+        </plugin> -->
+
+        <plugin
+        filename="libignition-gazebo-diff-drive-system.so"
+        name="ignition::gazebo::systems::DiffDrive">
+          <left_joint>wheelFrontLeft_joint</left_joint>
+          <left_joint>wheelBackLeft_joint</left_joint>
+          <right_joint>wheelFrontRight_joint</right_joint>
+          <right_joint>wheelBackRight_joint</right_joint>
+          <wheel_separation>${chassisWidth + wheelWidth}</wheel_separation> <!-- ${chassisWidth + wheelWidth} 0.6177 -->
+          <wheel_radius>${wheelRadius}</wheel_radius> <!-- ${wheelRadius} 0.16 -->
+          <topic>cmd_vel</topic>
         </plugin>
     </gazebo>
 
