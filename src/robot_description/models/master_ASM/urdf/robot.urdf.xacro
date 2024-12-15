@@ -16,9 +16,9 @@
     <!-- Distance from bottom of chassis to middle of wheels 0.0475 -->
 
     <xacro:property name="wheelDeltaWidth" value="${(chassisWidth + wheelWidth)/2}" /> 
-    <xacro:property name="wheelDeltaBack" value="${-1 * (chassisLength/2 - 0.1534125)}" />
+    <xacro:property name="wheelDeltaBack" value="-${chassisLength/2 - 0.1534125}" />
     <xacro:property name="wheelDeltaFront" value="${wheelDeltaBack + 0.873175}" />
-    <xacro:property name="wheelDeltaHeight" value="${(chassisHeight/2 - 0.0475)}" />
+    <xacro:property name="wheelDeltaHeight" value="-${chassisHeight/2 - 0.0475}" />
 
     <xacro:property name="pretty" value="false"/>
 

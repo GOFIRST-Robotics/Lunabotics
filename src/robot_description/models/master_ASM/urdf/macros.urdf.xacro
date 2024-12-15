@@ -47,7 +47,7 @@
         name="${str(wheel) + '_joint'}"
         type="continuous">
         <origin
-            xyz="${x} ${y} -${z}"
+            xyz="${x} ${y} ${z}"
             rpy="${pi/2} 0 ${pi/2}" />
         <parent link="frame_link" />
         <child link="${str(wheel) + '_link'}" />
