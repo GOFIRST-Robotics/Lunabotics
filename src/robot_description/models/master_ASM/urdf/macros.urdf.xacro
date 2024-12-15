@@ -22,7 +22,7 @@
             <geometry>
             <xacro:if value="${pretty}">
                 <mesh
-                filename="$(find robot_description)/models/master_ASM/meshes/wheel_Link.STL" />
+                filename="../meshes/ASM_Drive_Assembly.STL" scale="0.001 0.001 0.001"/> <!-- stl is measured in mm, need m -->
             </xacro:if>
             <xacro:unless value="${pretty}">
                 <cylinder radius="${wheelRadius}" length="${wheelWidth}" />

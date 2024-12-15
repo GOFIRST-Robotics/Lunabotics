@@ -11,11 +11,16 @@
     <xacro:property name="wheelMass" value="2"/>
 
     <!-- Distance between middle - middle front back wheels 0.873175 m -->
-    <!-- Distance between middle - middle Left and right wheels 0.62285 m -->
+    <!-- Distance between middle - middle Left and right wheels 0.62285 m --> <!-- double check, bad mesaurement to middle of wheel -->
     <!-- Distance from back of chassis to middle of back wheels 0.1534125 -->
-    <!-- Distance from bottom of chassis to middle of wheels 0.11789257822 -->
+    <!-- Distance from bottom of chassis to middle of wheels 0.0475 -->
 
-    <xacro:property name="pretty" value="true"/>
+    <xacro:property name="wheelDeltaWidth" value="${(chassisWidth + wheelWidth)/2}" /> 
+    <xacro:property name="wheelDeltaBack" value="${-1 * (chassisLength/2 - 0.1534125)}" />
+    <xacro:property name="wheelDeltaFront" value="${wheelDeltaBack + 0.873175}" />
+    <xacro:property name="wheelDeltaHeight" value="${(chassisHeight/2 - 0.0475)}" />
+
+    <xacro:property name="pretty" value="false"/>
 
     <material name="grey">
         <color
@@ -42,7 +47,7 @@
         <geometry>
             <xacro:if value="${pretty}">
                 <mesh
-                filename="package://robot_description/models/master_ASM/meshes/frame_link.STL" />
+                filename="../meshes/chassis.STL" scale="0.001 0.001 0.001"/> <!-- stl is measured in mm, need m -->
             </xacro:if>
             <xacro:unless value="${pretty}">
                 <box size="${chassisWidth} ${chassisLength} ${chassisHeight}"/>
@@ -60,20 +65,20 @@
         </collision>
     </link>
 
-    <xacro:wheel_link name="wheel1_link" />
+    <xacro:wheel_link name="wheelFrontLeft_link" />
         
-    <xacro:wheel_joint wheel="wheel1" x="${chassisWidth/2+wheelWidth/3}" y="${chassisLength/2}" z="${chassisHeight/2}"/>
+    <xacro:wheel_joint wheel="wheelFrontLeft" x="-${wheelDeltaWidth}" y="${wheelDeltaFront}" z="${wheelDeltaHeight}"/>
     
-    <xacro:wheel_link name="wheel2_link" />
+    <xacro:wheel_link name="wheelFrontRight_link" />
 
-    <xacro:wheel_joint wheel="wheel2" x="${chassisWidth/2+wheelWidth/3}" y="-${chassisLength/2}" z="${chassisHeight/2}"/>
+    <xacro:wheel_joint wheel="wheelFrontRight" x="${wheelDeltaWidth}" y="${wheelDeltaFront}" z="${wheelDeltaHeight}"/>
     
-    <xacro:wheel_link name="wheel3_link" />
+    <xacro:wheel_link name="wheelBackLeft_link" />
 
-    <xacro:wheel_joint wheel="wheel3" x="-${chassisWidth/2+wheelWidth/3}" y="-${chassisLength/2}" z="${chassisHeight/2}"/>
+    <xacro:wheel_joint wheel="wheelBackLeft" x="-${wheelDeltaWidth}" y="${wheelDeltaBack}" z="${wheelDeltaHeight}"/>
     
-    <xacro:wheel_link name="wheel4_link" />
+    <xacro:wheel_link name="wheelBackRight_link" />
 
-    <xacro:wheel_joint wheel="wheel4" x="-${chassisWidth/2+wheelWidth/3}" y="${chassisLength/2}" z="${chassisHeight/2}"/>
+    <xacro:wheel_joint wheel="wheelBackRight" x="${wheelDeltaWidth}" y="${wheelDeltaBack}" z="${wheelDeltaHeight}"/>
 
 </robot>

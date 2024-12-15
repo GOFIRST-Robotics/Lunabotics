@@ -74,28 +74,28 @@ Stephen Brawner (brawner@gmail.com)
         <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel1_joint</joint_name>
+        <joint_name>wheelFrontLeft_joint</joint_name>
         <initial_velocity>1.0</initial_velocity>
         </plugin>
 
         <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel2_joint</joint_name>
+        <joint_name>wheelFrontRight_joint</joint_name>
         <initial_velocity>1.0</initial_velocity>
         </plugin>
 
         <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel3_joint</joint_name>
+        <joint_name>wheelBackLeft_joint</joint_name>
         <initial_velocity>1.0</initial_velocity>
         </plugin>
 
         <plugin
         filename="ignition-gazebo-joint-controller-system"
         name="ignition::gazebo::systems::JointController">
-        <joint_name>wheel4_joint</joint_name>
+        <joint_name>wheelBackRight_joint</joint_name>
         <initial_velocity>1.0</initial_velocity>
         </plugin>
     </gazebo>
