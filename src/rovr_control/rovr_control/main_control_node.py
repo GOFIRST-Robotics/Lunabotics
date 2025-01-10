@@ -351,7 +351,9 @@ class MainControlNode(Node):
         # If we haven't received a message in watchdog_timeout seconds
         if time_since_last_joy > self.watchdog_timeout:
             if self.connection_active:  # Only trigger once when connection is lost
-                self.get_logger().warn(f"No joystick messages received for {time_since_last_joy:.2f} seconds! Stopping the robot.")
+                self.get_logger().warn(
+                    f"No joystick messages received for {time_since_last_joy:.2f} seconds! Stopping the robot."
+                )
                 self.stop_all_subsystems()  # Stop all robot movement! (safety feature)
                 self.connection_active = False
         elif not self.connection_active:
