@@ -6,6 +6,7 @@
 
 # Import the ROS 2 module
 import rclpy
+import time
 from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -154,6 +155,15 @@ class MainControlNode(Node):
 
         self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
 
+        # Add watchdog parameters
+        self.declare_parameter("watchdog_timeout", 0.5)  # Timeout in seconds
+        self.watchdog_timeout = self.get_parameter("watchdog_timeout").value
+        self.last_joy_timestamp = time.time()
+
+        # Create timer for watchdog
+        self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
+        self.connection_active = True
+
         # ----- !! BLOCKING WHILE LOOP !! ----- #
         while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
             self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
@@ -212,6 +222,9 @@ class MainControlNode(Node):
 
     async def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
+
+        # Update watchdog timestamp
+        self.last_joy_timestamp = time.time()
 
         # PUT TELEOP CONTROLS BELOW #
 
@@ -329,6 +342,21 @@ class MainControlNode(Node):
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
+
+    def watchdog_callback(self):
+        """Check if we've received joystick messages recently"""
+        current_time = time.time()
+        time_since_last_joy = current_time - self.last_joy_timestamp
+
+        # If we haven't received a message in watchdog_timeout seconds
+        if time_since_last_joy > self.watchdog_timeout:
+            if self.connection_active:  # Only trigger once when connection is lost
+                self.get_logger().warn(f"No joystick messages received for {time_since_last_joy:.2f} seconds! Stopping the robot.")
+                self.stop_all_subsystems()  # Stop all robot movement! (safety feature)
+                self.connection_active = False
+        elif not self.connection_active:
+            self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
+            self.connection_active = True
 
 
 def main(args=None) -> None:
