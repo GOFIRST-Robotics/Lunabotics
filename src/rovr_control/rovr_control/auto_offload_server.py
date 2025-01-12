@@ -1,5 +1,4 @@
 import rclpy
-from rclpy.node import Node
 
 from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, ServerGoalHandle
@@ -8,6 +7,7 @@ from rovr_interfaces.action import AutoOffload
 from rovr_interfaces.srv import Drive
 from std_srvs.srv import Trigger
 
+from rovr_control.node_util import AsyncNode
 
 class AutoOffloadServer(AsyncNode):
     def __init__(self):
