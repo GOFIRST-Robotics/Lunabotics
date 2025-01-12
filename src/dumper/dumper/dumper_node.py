@@ -101,9 +101,9 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def extend_dumper(self) -> None:
+    async def extend_dumper(self) -> None:
         self.top_limit_event.clear()
-        self.set_power(self.DUMPER_POWER)
+        await self.set_power(self.DUMPER_POWER)
         self.top_limit_event.wait()
         #while not self.top_limit_pressed and self.running:
             #pass
@@ -116,9 +116,9 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def retract_dumper(self) -> None:
+    async def retract_dumper(self) -> None:
         self.bottom_limit_event.clear()
-        self.set_power(-self.DUMPER_POWER)
+        await self.set_power(-self.DUMPER_POWER)
         self.bottom_limit_event.wait()
         #while not self.bottom_limit_pressed and self.running:
             #pass
