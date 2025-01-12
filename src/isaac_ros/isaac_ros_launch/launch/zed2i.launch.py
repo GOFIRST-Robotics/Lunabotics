@@ -20,7 +20,7 @@ from datetime import datetime
 
 from launch import LaunchDescription
 from launch.substitutions import LaunchConfiguration, FindExecutable
-from launch_ros.actions import Node
+from launch_ros.actions import ComposableNodeContainer
 from launch.conditions import IfCondition
 from launch.actions import (
     IncludeLaunchDescription,
@@ -35,6 +35,7 @@ from launch.event_handlers import OnShutdown
 from launch.substitutions import PathJoinSubstitution
 
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.descriptions import ComposableNode
 
 
 def generate_launch_description():
@@ -59,21 +60,28 @@ def generate_launch_description():
         }.items(),
     )
 
-    # ZED Wrapper node
-    zed_wrapper_node = Node(
-        package="zed_wrapper",
+    # ZED Wrapper component
+    zed_wrapper_component = ComposableNode(
+        package="zed_components",
         namespace="zed2i",
-        executable="zed_wrapper",
+        plugin="stereolabs::ZedCamera",
         name="zed_node",
-        output="screen",
-        # prefix=['xterm -e valgrind --tools=callgrind'],
-        # prefix=['xterm -e gdb -ex run --args'],
-        # prefix=['gdbserver localhost:3000'],
         parameters=[
             # YAML files
             config_file_common,  # Common parameters
             config_file_camera,  # Camera related parameters
         ],
+        extra_arguments=[{"use_intra_process_comms": True}],
+    )
+
+    # ROS 2 Component Container
+    zed_container = ComposableNodeContainer(
+        name="zed_container",
+        namespace="zed2i",
+        package="rclcpp_components",
+        executable="component_container_isolated",
+        composable_node_descriptions=[zed_wrapper_component],
+        output="screen",
     )
 
     # Get the current date and time
@@ -122,6 +130,6 @@ def generate_launch_description():
             record_svo_srv,
             stop_svo_recording,
             robot_state_publisher,
-            zed_wrapper_node,
+            zed_container,
         ]
     )

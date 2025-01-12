@@ -8,9 +8,12 @@ joy_node:
     qos_overrides:
       /parameter_events:
         publisher:
-          depth: 1000
+          depth: 10
           durability: volatile
           history: keep_last
           reliability: reliable
+          lifespan:
+            sec: 0.5
+            nsec: 0
     sticky_buttons: false
     use_sim_time: false
