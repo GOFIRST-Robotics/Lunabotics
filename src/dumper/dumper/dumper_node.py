@@ -4,7 +4,7 @@
 # Last Updated: September 2024
 
 # Import the ROS 2 Python module
-import time
+import asyncio
 import rclpy
 from rclpy.node import Node
 
@@ -48,54 +48,56 @@ class DumperNode(Node):
         self.running = False
         self.top_limit_event = Event()
         self.bottom_limit_event = Event()
+        self.top_limit_pressed = False
+        self.bottom_limit_pressed = False
+
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
     # Define subsystem methods here
-    def set_power(self, dumper_power: float) -> None:
+    async def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
         self.running = True
         if dumper_power > 0 and self.top_limit_pressed:
             self.get_logger().warn("WARNING: Top limit switch pressed!")
-            self.stop()  # Stop the dumper
-            return
+            await self.stop()  # Stop the dumper
         elif dumper_power < 0 and self.bottom_limit_pressed:
             self.get_logger().warn("WARNING: Top limit switch pressedF!")
-            self.stop()  # stop the dumper
-            return
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
-        )
+            await self.stop()  # stop the dumper
+        else:
+            await self.cli_motor_set.call_async(
+                MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
+            )
 
-    def stop(self) -> None:
+    async def stop(self) -> None:
         """This method stops the dumper."""
         self.running = False
         self.top_limit_event.set()
         self.bottom_limit_event.set()
-        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
+        await self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
 
-    def toggle(self, dumper_power: float) -> None:
+    async def toggle(self, dumper_power: float) -> None:
         """This method toggles the dumper."""
         if self.running:
-            self.stop()
+            await self.stop()
         else:
-            self.set_power(dumper_power)
+            await self.set_power(dumper_power)
 
     # Define service callback methods here
-    def set_power_callback(self, request, response):
+    async def set_power_callback(self, request, response):
         """This service request sets power to the dumper."""
-        self.set_power(request.power)
+        await self.set_power(request.power)
         response.success = True
         return response
 
-    def stop_callback(self, request, response):
+    async def stop_callback(self, request, response):
         """This service request stops the dumper."""
-        self.stop()
+        await self.stop()
         response.success = True
         return response
 
-    def toggle_callback(self, request, response):
+    async def toggle_callback(self, request, response):
         """This service request toggles the dumper."""
-        self.toggle(request.power)
+        await self.toggle(request.power)
         response.success = True
         return response
 
@@ -108,9 +110,9 @@ class DumperNode(Node):
         self.top_limit_event.clear()
         self.stop()
 
-    def extend_callback(self, request, response):
+    async def extend_callback(self, request, response):
         """This service request extends the dumper"""
-        self.extend_dumper()
+        await self.extend_dumper()
         response.success = True
         return response
 
@@ -123,36 +125,37 @@ class DumperNode(Node):
         self.bottom_limit_event.clear()
         self.stop()
 
-    def retract_callback(self, request, response):
+    async def retract_callback(self, request, response):
         """This service request retracts the dumper"""
-        self.retract_dumper()
+        await self.retract_dumper()
         response.success = True
         return response
-    # NOTE: Dump is no longer used because time.sleep is not cancellable! see Auto_offload_server for dump implementation workaround 
-    def dump(self) -> None:
+
+    # NOTE: Dump is no longer used for autonomous because asyncio.sleep() is not cancellable! See Auto_offload_server for dump implementation workaround 
+    async def dump(self) -> None:
         # extend the dumper
-        self.extend_dumper()
+        await self.extend_dumper()
         # wait for 5 seconds before retracting the dumper
-        time.sleep(self.dumpTime)
+        await asyncio.sleep(5)  # Allows for task to be canceled
         # retract the dumper
-        self.retract_dumper()
+        await self.retract_dumper()
 
-    def dump_callback(self, request, response):
-        self.dump()
+    async def dump_callback(self, request, response):
+        await self.dump()
         response.success = True
         return response
 
-    def limit_switch_callback(self, msg: LimitSwitches):
+    async def limit_switch_callback(self, msg: LimitSwitches):
         """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
-        if not self.top_limit_pressed and msg.top_limit_switch:
+        if not self.top_limit_pressed and msg.dumper_top_limit_switch:
             self.stop()  # Stop the lift system
-        if not self.bottom_limit_pressed and msg.bottom_limit_switch:
+        if not self.bottom_limit_pressed and msg.dumper_bottom_limit_switch:
             self.stop()  # Stop the lift system
-        self.top_limit_pressed = msg.top_limit_switch
+        self.top_limit_pressed = msg.dumper_top_limit_switch
         if(self.top_limit_pressed):
             self.top_limit_event.set()
             self.bottom_limit_event.clear()
-        self.bottom_limit_pressed = msg.bottom_limit_switch
+        self.bottom_limit_pressed = msg.dumper_bottom_limit_switch
         if(self.bottom_limit_pressed):
             self.bottom_limit_event.set()
             self.top_limit_event.clear()

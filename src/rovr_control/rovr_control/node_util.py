@@ -25,7 +25,7 @@ class AsyncNode(Node):
         self.timer.cancel()
         self.timer.destroy()
 
-    def cancel_callback(self, cancel_request: ServerGoalHandle) -> None:
+    def cancel_callback(self, cancel_request: ServerGoalHandle):
         if not self.sleep_goal_reached.done():
             self.timer.cancel()
             self.timer.destroy()

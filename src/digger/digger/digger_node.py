@@ -170,11 +170,23 @@ class DiggerNode(Node):
     def limit_switch_callback(self, limit_switches_msg):
         """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
         if self.top_limit_pressed and not self.top_limit_event.done():
-            self.top_limit_pressed = limit_switches_msg.top_limit_switch
             self.top_limit_event.set_result(True)
         if self.bottom_limit_pressed and not self.top_limit_event.done():
-            self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
             self.bottom_limit_event.set_result(True)
+        if not self.top_limit_pressed and limit_switches_msg.digger_top_limit_switch:
+            self.stop_lift()  # Stop the lift system
+        if not self.bottom_limit_pressed and limit_switches_msg.digger_bottom_limit_switch:
+            self.stop_lift()  # Stop the lift system
+        self.top_limit_pressed = limit_switches_msg.digger_top_limit_switch
+        self.bottom_limit_pressed = limit_switches_msg.digger_bottom_limit_switch
+        if self.top_limit_pressed:  # If the top limit switch is pressed
+            self.lift_encoder_offset = self.current_position_degrees
+            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
+            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
+        elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
+            self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
+            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
+            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
 
 
 def main(args=None):
