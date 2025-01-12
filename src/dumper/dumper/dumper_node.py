@@ -136,12 +136,12 @@ class DumperNode(Node):
 
     async def limit_switch_callback(self, msg: LimitSwitches):
         """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
-        if not self.top_limit_pressed and msg.top_limit_switch:
+        if not self.top_limit_pressed and msg.dumper_top_limit_switch:
             await self.stop()  # Stop the lift system
-        if not self.bottom_limit_pressed and msg.bottom_limit_switch:
+        if not self.bottom_limit_pressed and msg.dumper_bottom_limit_switch:
             await self.stop()  # Stop the lift system
-        self.top_limit_pressed = msg.top_limit_switch
-        self.bottom_limit_pressed = msg.bottom_limit_switch
+        self.top_limit_pressed = msg.dumper_top_limit_switch
+        self.bottom_limit_pressed = msg.dumper_bottom_limit_switch
 
 
 def main(args=None):
