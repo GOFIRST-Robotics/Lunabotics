@@ -58,6 +58,14 @@ def create_pose_stamped(x, y, yaw):
 
 
 class MainControlNode(Node):
+    def cancel_done(self, future):
+        cancel_response = future.result()
+        if len(cancel_response.goals_canceling) > 0:
+            self.get_logger().info("Autonomous Goal successfully canceled")
+            self.end_autonomous()
+        else:
+            self.get_logger().error("Autonomous Goal failed to cancel")
+
     def __init__(self) -> None:
         """Initialize the ROS2 Node."""
         super().__init__("rovr_control")
@@ -215,9 +223,12 @@ class MainControlNode(Node):
         self.state = states["Teleop"]  # Return to Teleop mode
 
     def get_result_callback(self, future: Future):
-        goal_handle: ClientGoalHandle = future.result()
+        goal_handle = future.result()
         if goal_handle.status == GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().info("Autonomous Goal succeeded!")
+            self.end_autonomous()
+        else:
+            self.get_logger().info("Autonomous Goal failed (or terminated)!")
             self.end_autonomous()
 
     async def joystick_callback(self, msg: Joy) -> None:
@@ -270,16 +281,15 @@ class MainControlNode(Node):
 
         # Check if the Apriltag calibration button is pressed
         # TODO: This autonomous action needs to be tested on the physical robot!
-        if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
+        if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
             # Check if the field calibration process is not running
             if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
                 if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Field calibration action not available")
                     return
                 self.stop_all_subsystems()
-                self.get_logger().info("Starting Apriltag Field Calibration!")
-                self.field_calibrated_handle: ClientGoalHandle = (
-                    await self.act_calibrate_field_coordinates.send_goal_async(CalibrateFieldCoordinates.Goal())
+                self.field_calibrated_handle = await self.act_calibrate_field_coordinates.send_goal_async(
+                    CalibrateFieldCoordinates.Goal()
                 )
                 if not self.field_calibrated_handle.accepted:
                     self.get_logger().info("Field calibration Goal rejected")
@@ -289,8 +299,9 @@ class MainControlNode(Node):
             # Terminate the field calibration process
             else:
                 self.get_logger().warn("Field Calibration Terminated")
-                await self.field_calibrated_handle.cancel_goal_async()
-                self.end_autonomous()
+                # Cancel the goal
+                future = self.field_calibrated_handle.cancel_goal_async()
+                future.add_done_callback(self.cancel_done)
 
         # Check if the autonomous digging button is pressed
         # TODO: This autonomous action needs to be tested extensively on the physical robot!
@@ -301,20 +312,20 @@ class MainControlNode(Node):
                     self.get_logger().error("Auto dig action not available")
                     return
                 self.stop_all_subsystems()
-                self.get_logger().info("Starting Autonomous Digging Procedure!")
                 goal = AutoDig.Goal(
                     lift_dumping_position=self.lift_dumping_position,
                     lift_digging_start_position=self.lift_digging_start_position,
                     digger_belt_power=self.digger_belt_power,
                 )
-                self.auto_dig_handle: ClientGoalHandle = await self.act_auto_dig.send_goal_async(goal)
+                self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
                 self.auto_dig_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
             # Terminate the auto dig process
             else:
                 self.get_logger().warn("Auto Dig Terminated")
-                await self.auto_dig_handle.cancel_goal_async()
-                self.end_autonomous()
+                # Cancel the goal
+                future = self.auto_dig_handle.cancel_goal_async()
+                future.add_done_callback(self.cancel_done)
 
         # Check if the autonomous offload button is pressed
         # TODO: This autonomous action needs to be tested extensively on the physical robot!
@@ -325,19 +336,16 @@ class MainControlNode(Node):
                     self.get_logger().error("Auto offload action not available")
                     return
                 self.stop_all_subsystems()
-                self.get_logger().info("Starting Autonomous Offload Procedure!")
-                goal = AutoOffload.Goal(
-                    lift_dumping_position=self.lift_dumping_position,
-                    digger_belt_power=self.digger_belt_power,
-                )
-                self.auto_offload_handle: ClientGoalHandle = await self.act_auto_offload.send_goal_async(goal)
+                goal = AutoOffload.Goal()
+                self.auto_offload_handle = await self.act_auto_offload.send_goal_async(goal)
                 self.auto_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
             # Terminate the auto offload process
             else:
                 self.get_logger().warn("Auto Offload Terminated")
-                await self.auto_offload_handle.cancel_goal_async()
-                self.end_autonomous()
+                # Cancel the goal
+                future = self.auto_offload_handle.cancel_goal_async()
+                future.add_done_callback(self.cancel_done)
 
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
