@@ -3,6 +3,8 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: November 2023
 
+import time
+
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
@@ -161,12 +163,14 @@ class DiggerNode(Node):
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
         while not self.top_limit_pressed:
             self.lift_set_power(0.05)
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop_lift()
 
     def bottom_lift(self) -> None:
         """This method bottoms out the lift system by slowly lowering it until the bottom limit switch is pressed."""
         while not self.bottom_limit_pressed:
             self.lift_set_power(-0.05)
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop_lift()
 
     # Define service callback methods here
