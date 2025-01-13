@@ -95,10 +95,11 @@ class DiggerNode(Node):
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
 
+        # Maximum value of the lift motor encoder (bottom of the lift system) IN ENCODER COUNTS
+        self.MAX_ENCODER_COUNTS = -3600  # TODO: Tune this value on the robot!
         # Maximum value of the lift motor encoder (bottom of the lift system) IN DEGREES
-        self.MAX_ENCODER_DEGREES = (
-            -3600 * 360 / 42
-        )  # Multiply the max encoder count (-3600) by 360 and divide by 42 to get degrees
+        # Multiply the MAX_ENCODER_COUNTS by 360 and divide by 42 to get degrees
+        self.MAX_ENCODER_DEGREES = self.MAX_ENCODER_COUNTS * 360 / 42
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
