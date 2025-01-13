@@ -81,8 +81,11 @@ class CalibrateFieldCoordinateServer(Node):
 
 def main(args=None) -> None:
     rclpy.init(args=args)
+    
     calibrate_field_action_server = CalibrateFieldCoordinateServer()
     rclpy.spin(calibrate_field_action_server)
+    
+    calibrate_field_action_server.destroy_node()
     rclpy.shutdown()
 
 
