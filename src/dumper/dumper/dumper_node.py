@@ -114,6 +114,7 @@ class DumperNode(Node):
     def extend_dumper(self) -> None:
         while not self.top_limit_pressed:
             self.set_power(self.DUMPER_POWER)
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
 
     def extend_callback(self, request, response):
@@ -125,6 +126,7 @@ class DumperNode(Node):
     def retract_dumper(self) -> None:
         while not self.bottom_limit_pressed:
             self.set_power(-self.DUMPER_POWER)
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
 
     def retract_callback(self, request, response):
@@ -138,7 +140,7 @@ class DumperNode(Node):
         self.extend_dumper()
         self.get_logger().info("Dumper extended!")
         # wait for 5 seconds before retracting the dumper
-        time.sleep(5)  # Allows for task to be canceled
+        time.sleep(5)
         # retract the dumper
         self.retract_dumper()
         self.get_logger().info("Dumper retracted!")
