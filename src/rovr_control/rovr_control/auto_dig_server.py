@@ -24,6 +24,7 @@ class AutoDigServer(AsyncNode):
         )
 
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
+        self.cli_lift_bottom = self.create_client(Trigger, "lift/bottom")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
@@ -52,6 +53,10 @@ class AutoDigServer(AsyncNode):
             self.get_logger().error("Lift zero service not available")
             goal_handle.abort()
             return result
+        if not self.cli_lift_bottom.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Lift bottom service not available")
+            goal_handle.abort()
+            return result
         if not self.cli_digger_setPower.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Digger set power service not available")
             goal_handle.abort()
@@ -76,8 +81,7 @@ class AutoDigServer(AsyncNode):
             self.get_logger().error("Digging buckets not spinning. Don't lower!")
             goal_handle.abort()
             return result
-        await self.cli_lift_set_power.call_async(SetPower.Request(-0.05))
-        # TODO: wait for it to reach the bottom
+        await self.cli_lift_bottom.call_async(Trigger.Request())
 
         self.get_logger().info("Start of Auto Digging in Place")
         await self.async_sleep(3)  # Stay at lowest pos for 3 seconds while digging
