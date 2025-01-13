@@ -31,6 +31,7 @@ class CalibrateFieldCoordinateServer(Node):
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         """This method rotates until we can see apriltag(s) and then sets the map -> odom tf."""
+        self.get_logger().info("Starting Apriltag Calibration Procedure!")
         result = CalibrateFieldCoordinates.Result()
 
         # Make sure the services are available
@@ -81,8 +82,11 @@ class CalibrateFieldCoordinateServer(Node):
 
 def main(args=None) -> None:
     rclpy.init(args=args)
+
     calibrate_field_action_server = CalibrateFieldCoordinateServer()
     rclpy.spin(calibrate_field_action_server)
+
+    calibrate_field_action_server.destroy_node()
     rclpy.shutdown()
 
 
