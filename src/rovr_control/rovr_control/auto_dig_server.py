@@ -16,8 +16,6 @@ class AutoDigServer(AsyncNode):
         self._action_server = ActionServer(
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
         )
-        # Safety precaution
-        self.cancelled = False
 
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
         self.cli_lift_bottom = self.create_client(Trigger, "lift/bottom")
@@ -106,7 +104,7 @@ class AutoDigServer(AsyncNode):
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
-        self.cancelled = True
+        super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")
         self.cli_digger_stop.call_async(Trigger.Request())
         self.cli_lift_stop.call_async(Trigger.Request())

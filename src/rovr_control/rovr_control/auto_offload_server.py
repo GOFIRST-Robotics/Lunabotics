@@ -19,8 +19,6 @@ class AutoOffloadServer(AsyncNode):
             self.execute_callback,
             cancel_callback=self.cancel_callback,
         )
-        # Safety precaution
-        self.cancelled = False
 
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
@@ -89,7 +87,7 @@ class AutoOffloadServer(AsyncNode):
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
-        self.cancelled = True
+        super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")
         self.cli_drivetrain_stop.call_async(Trigger.Request())
         self.cli_dumper_stop.call_async(Trigger.Request())
