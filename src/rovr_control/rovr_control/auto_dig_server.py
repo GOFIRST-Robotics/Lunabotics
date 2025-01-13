@@ -123,8 +123,11 @@ class AutoDigServer(AsyncNode):
 
 def main(args=None) -> None:
     rclpy.init(args=args)
+
     action_server = AutoDigServer()
     rclpy.spin(action_server)
+
+    action_server.destroy_node()
     rclpy.shutdown()
 
 
