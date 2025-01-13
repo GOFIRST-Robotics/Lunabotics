@@ -125,6 +125,10 @@ class DiggerNode(Node):
 
     def set_position(self, position: int) -> None:
         """This method sets the position (in degrees) of the digger lift and waits until the goal is reached."""
+        if position < self.current_position_degrees and not self.running:
+            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.stop_lift()  # Stop the lift system
+            return
         self.get_logger().info("Setting the lift position to: " + str(position))
         self.long_service_running = True
         self.cli_motor_set.call_async(
@@ -159,6 +163,10 @@ class DiggerNode(Node):
             return
         if power < 0 and self.bottom_limit_pressed:
             self.get_logger().warn("WARNING: Bottom limit switch pressed!")
+            self.stop_lift()  # Stop the lift system
+            return
+        if power < 0 and not self.running:
+            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
             return
         self.cli_motor_set.call_async(

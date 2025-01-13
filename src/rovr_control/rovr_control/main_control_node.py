@@ -77,8 +77,8 @@ class MainControlNode(Node):
         self.declare_parameter("digger_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("autonomous_field_type", "nasa")  # The type of field ("top", "bottom", "nasa")
         self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
         self.declare_parameter("dumper_power", 0.5)  # The power the dumper needs to go
 
         # Assign the ROS Parameters to member variables below #
@@ -88,11 +88,11 @@ class MainControlNode(Node):
         self.digger_belt_power = self.get_parameter("digger_belt_power").value
         self.digger_lift_manual_power = self.get_parameter("digger_lift_manual_power").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_dumping_position = (
-            self.get_parameter("lift_dumping_position").value * 360 / 42
-        )  # Convert encoder counts to degrees
         self.lift_digging_start_position = (
             self.get_parameter("lift_digging_start_position").value * 360 / 42
+        )  # Convert encoder counts to degrees
+        self.lift_digging_end_position = (
+            self.get_parameter("lift_digging_end_position").value * 360 / 42
         )  # Convert encoder counts to degrees
         self.dumper_power = self.get_parameter("dumper_power").value
 
@@ -103,8 +103,8 @@ class MainControlNode(Node):
         self.get_logger().info("digger_belt_power has been set to: " + str(self.digger_belt_power))
         self.get_logger().info("digger_lift_manual_power has been set to: " + str(self.digger_lift_manual_power))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
-        self.get_logger().info("lift_dumping_position has been set to: " + str(self.lift_dumping_position))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
         self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
 
         # Define some initial states here
@@ -313,8 +313,8 @@ class MainControlNode(Node):
                     return
                 self.stop_all_subsystems()
                 goal = AutoDig.Goal(
-                    lift_dumping_position=self.lift_dumping_position,
                     lift_digging_start_position=self.lift_digging_start_position,
+                    lift_digging_end_position=self.lift_digging_end_position,
                     digger_belt_power=self.digger_belt_power,
                 )
                 self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
