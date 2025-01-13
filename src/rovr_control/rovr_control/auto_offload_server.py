@@ -25,8 +25,8 @@ class AutoOffloadServer(AsyncNode):
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
 
-        self.cli_dumper_extend = self.create_client(Trigger, "dumper/extend")
-        self.cli_dumper_retract = self.create_client(Trigger, "dumper/retract")
+        self.cli_dumper_extend = self.create_client(Trigger, "dumper/extendDumper")
+        self.cli_dumper_retract = self.create_client(Trigger, "dumper/retractDumper")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):

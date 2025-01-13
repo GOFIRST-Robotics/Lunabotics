@@ -114,6 +114,7 @@ class DumperNode(Node):
         return response
 
     def extend_dumper(self) -> None:
+        self.get_logger().info("Extending the dumper")
         self.extended_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
@@ -124,6 +125,7 @@ class DumperNode(Node):
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
         self.long_service_running = False
+        self.get_logger().info("Done extending the dumper")
 
     def extend_callback(self, request, response):
         """This service request extends the dumper"""
@@ -132,6 +134,7 @@ class DumperNode(Node):
         return response
 
     def retract_dumper(self) -> None:
+        self.get_logger().info("Retracting the dumper")
         self.extended_state = False
         self.long_service_running = True
         self.set_power(-self.DUMPER_POWER)
@@ -142,6 +145,7 @@ class DumperNode(Node):
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
         self.long_service_running = False
+        self.get_logger().info("Done retracting the dumper")
 
     def retract_callback(self, request, response):
         """This service request retracts the dumper"""

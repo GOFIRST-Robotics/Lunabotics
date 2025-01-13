@@ -125,6 +125,7 @@ class DiggerNode(Node):
 
     def set_position(self, position: int) -> None:
         """This method sets the position (in degrees) of the digger lift and waits until the goal is reached."""
+        self.get_logger().info("Setting the lift position to: " + str(position))
         self.long_service_running = True
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
@@ -140,6 +141,7 @@ class DiggerNode(Node):
                 break
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.long_service_running = False
+        self.get_logger().info("Done setting the lift position to: " + str(position))
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
@@ -165,6 +167,7 @@ class DiggerNode(Node):
 
     def zero_lift(self) -> None:
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
+        self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
         self.lift_set_power(0.05)
         while not self.top_limit_pressed:
@@ -174,9 +177,11 @@ class DiggerNode(Node):
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop_lift()
         self.long_service_running = False
+        self.get_logger().info("Done zeroing the lift system")
 
     def bottom_lift(self) -> None:
         """This method bottoms out the lift system by slowly lowering it until the bottom limit switch is pressed."""
+        self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
         self.lift_set_power(-0.05)
         while not self.bottom_limit_pressed:
@@ -186,6 +191,7 @@ class DiggerNode(Node):
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop_lift()
         self.long_service_running = False
+        self.get_logger().info("Done bottoming out the lift system")
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
