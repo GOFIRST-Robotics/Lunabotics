@@ -21,6 +21,11 @@ class DumperNode(Node):
         """Initialize the ROS 2 dumper node."""
         super().__init__("dumper")
 
+        self.cancel_current_srv = False
+        self.long_service_running = False
+
+        # Calling the stop service will cancel any long-running services!
+        self.stop_service_cb_group = MutuallyExclusiveCallbackGroup()
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
 
         # Define service clients here
@@ -29,10 +34,10 @@ class DumperNode(Node):
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(
-            SetPower, "dumper/toggle", self.toggle_callback, callback_group=self.service_cb_group
+            Trigger, "dumper/toggle", self.toggle_callback, callback_group=self.service_cb_group
         )
         self.srv_stop = self.create_service(
-            Trigger, "dumper/stop", self.stop_callback, callback_group=self.service_cb_group
+            Trigger, "dumper/stop", self.stop_callback, callback_group=self.stop_service_cb_group
         )
         self.srv_setPower = self.create_service(
             SetPower, "dumper/setPower", self.set_power_callback, callback_group=self.service_cb_group
@@ -43,9 +48,6 @@ class DumperNode(Node):
         )
         self.srv_retractDumper = self.create_service(
             Trigger, "dumper/retractDumper", self.retract_callback, callback_group=self.service_cb_group
-        )
-        self.srv_dump = self.create_service(
-            Trigger, "dumper/dump", self.dump_callback, callback_group=self.service_cb_group
         )
 
         # Define default values for our ROS parameters below #
@@ -59,7 +61,7 @@ class DumperNode(Node):
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
 
         # Current state of the dumper
-        self.running = False
+        self.extended_state = False
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
 
@@ -68,7 +70,6 @@ class DumperNode(Node):
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
-        self.running = True
         if dumper_power > 0 and self.top_limit_pressed:
             self.get_logger().warn("WARNING: Top limit switch pressed!")
             self.stop()  # Stop the dumper
@@ -82,15 +83,14 @@ class DumperNode(Node):
 
     def stop(self) -> None:
         """This method stops the dumper."""
-        self.running = False
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
 
-    def toggle(self, dumper_power: float) -> None:
+    def toggle(self) -> None:
         """This method toggles the dumper."""
-        if self.running:
-            self.stop()
+        if not self.extended_state:
+            self.extend_dumper()
         else:
-            self.set_power(dumper_power)
+            self.retract_dumper()
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -101,21 +101,29 @@ class DumperNode(Node):
 
     def stop_callback(self, request, response):
         """This service request stops the dumper."""
+        if self.long_service_running:
+            self.cancel_current_srv = True
         self.stop()
         response.success = True
         return response
 
     def toggle_callback(self, request, response):
         """This service request toggles the dumper."""
-        self.toggle(request.power)
+        self.toggle()
         response.success = True
         return response
 
     def extend_dumper(self) -> None:
+        self.extended_state = True
+        self.long_service_running = True
+        self.set_power(self.DUMPER_POWER)
         while not self.top_limit_pressed:
-            self.set_power(self.DUMPER_POWER)
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
+        self.long_service_running = False
 
     def extend_callback(self, request, response):
         """This service request extends the dumper"""
@@ -124,29 +132,20 @@ class DumperNode(Node):
         return response
 
     def retract_dumper(self) -> None:
+        self.extended_state = False
+        self.long_service_running = True
+        self.set_power(-self.DUMPER_POWER)
         while not self.bottom_limit_pressed:
-            self.set_power(-self.DUMPER_POWER)
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
+        self.long_service_running = False
 
     def retract_callback(self, request, response):
         """This service request retracts the dumper"""
         self.retract_dumper()
-        response.success = True
-        return response
-
-    def dump(self) -> None:
-        # extend the dumper
-        self.extend_dumper()
-        self.get_logger().info("Dumper extended!")
-        # wait for 5 seconds before retracting the dumper
-        time.sleep(5)
-        # retract the dumper
-        self.retract_dumper()
-        self.get_logger().info("Dumper retracted!")
-
-    def dump_callback(self, request, response):
-        self.dump()
         response.success = True
         return response
 

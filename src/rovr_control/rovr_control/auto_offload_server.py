@@ -25,7 +25,8 @@ class AutoOffloadServer(AsyncNode):
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
 
-        self.cli_dumper_dump = self.create_client(Trigger, "dumper/dump")
+        self.cli_dumper_extend = self.create_client(Trigger, "dumper/extend")
+        self.cli_dumper_retract = self.create_client(Trigger, "dumper/retract")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
@@ -43,8 +44,12 @@ class AutoOffloadServer(AsyncNode):
             self.get_logger().error("Drivetrain stop service not available")
             goal_handle.abort()
             return result
-        if not self.cli_dumper_dump.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Dumper dump service not available")
+        if not self.cli_dumper_extend.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Dumper extend service not available")
+            goal_handle.abort()
+            return result
+        if not self.cli_dumper_retract.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Dumper retract service not available")
             goal_handle.abort()
             return result
         if not self.cli_dumper_stop.wait_for_service(timeout_sec=1.0):
@@ -65,7 +70,13 @@ class AutoOffloadServer(AsyncNode):
         # Dump the material
         if not self.cancelled:
             self.get_logger().info("Auto Dumping")
-            await self.cli_dumper_dump.call_async(Trigger.Request())
+            await self.cli_dumper_extend.call_async(Trigger.Request())
+        if not self.cancelled:
+            # wait for 5 seconds before retracting the dumper
+            await self.async_sleep(5)  # Allows for task to be canceled
+        if not self.cancelled:
+            # retract the dumper
+            await self.cli_dumper_retract.call_async(Trigger.Request())
 
         if not self.cancelled:
             self.get_logger().info("Autonomous Offload Procedure Complete!")

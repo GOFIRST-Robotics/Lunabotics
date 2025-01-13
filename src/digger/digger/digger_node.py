@@ -25,6 +25,11 @@ class DiggerNode(Node):
         """Initialize the ROS 2 digger node."""
         super().__init__("digger")
 
+        self.cancel_current_srv = False
+        self.long_service_running = False
+
+        # Calling the lift_stop service will cancel any long-running lift services!
+        self.stop_lift_cb_group = MutuallyExclusiveCallbackGroup()
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
 
         # Define service clients here
@@ -45,7 +50,7 @@ class DiggerNode(Node):
             SetPosition, "lift/setPosition", self.set_position_callback, callback_group=self.service_cb_group
         )
         self.srv_lift_stop = self.create_service(
-            Trigger, "lift/stop", self.stop_lift_callback, callback_group=self.service_cb_group
+            Trigger, "lift/stop", self.stop_lift_callback, callback_group=self.stop_lift_cb_group
         )
         self.srv_lift_set_power = self.create_service(
             SetPower, "lift/setPower", self.lift_set_power_callback, callback_group=self.service_cb_group
@@ -119,6 +124,7 @@ class DiggerNode(Node):
 
     def set_position(self, position: int) -> None:
         """This method sets the position (in degrees) of the digger lift and waits until the goal is reached."""
+        self.long_service_running = True
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
@@ -128,7 +134,11 @@ class DiggerNode(Node):
         )
         # Wait until the goal position goal is reached to return
         while abs(position + self.lift_encoder_offset - self.current_position_degrees) > self.goal_threshold:
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
+        self.long_service_running = False
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
@@ -154,17 +164,27 @@ class DiggerNode(Node):
 
     def zero_lift(self) -> None:
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
+        self.long_service_running = True
+        self.lift_set_power(0.05)
         while not self.top_limit_pressed:
-            self.lift_set_power(0.05)
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop_lift()
+        self.long_service_running = False
 
     def bottom_lift(self) -> None:
         """This method bottoms out the lift system by slowly lowering it until the bottom limit switch is pressed."""
+        self.long_service_running = True
+        self.lift_set_power(-0.05)
         while not self.bottom_limit_pressed:
-            self.lift_set_power(-0.05)
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop_lift()
+        self.long_service_running = False
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -193,6 +213,8 @@ class DiggerNode(Node):
 
     def stop_lift_callback(self, request, response):
         """This service request stops the lift system."""
+        if self.long_service_running:
+            self.cancel_current_srv = True
         self.stop_lift()
         response.success = True
         return response
