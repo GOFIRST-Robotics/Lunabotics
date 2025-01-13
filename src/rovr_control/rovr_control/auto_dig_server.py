@@ -65,6 +65,8 @@ class AutoDigServer(AsyncNode):
         self.cli_lift_setPosition.call_async(
             SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
         )
+        # Wait for the lift position goal to be reached
+        await self.digger_sleep()
 
         # Start the digger belt
         await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
@@ -84,10 +86,8 @@ class AutoDigServer(AsyncNode):
         # Stop digging
         await self.cli_digger_stop.call_async(Trigger.Request())
 
-        # raise the digger back up
+        # Raise the digger back up using the lift
         await self.cli_lift_zero.call_async(Trigger.Reqest())
-        # Wait for the lift goal to be reached
-        await self.digger_sleep()
 
         self.get_logger().info("Autonomous Digging Procedure Complete!")
         goal_handle.succeed()

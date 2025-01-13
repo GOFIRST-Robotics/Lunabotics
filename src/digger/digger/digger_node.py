@@ -6,6 +6,8 @@
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
 from std_msgs.msg import Bool
@@ -22,18 +24,37 @@ class DiggerNode(Node):
         """Initialize the ROS 2 digger node."""
         super().__init__("digger")
 
+        self.service_cb_group = MutuallyExclusiveCallbackGroup()
+
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define services (methods callable from the outside) here
-        self.srv_toggle = self.create_service(SetPower, "digger/toggle", self.toggle_callback)
-        self.srv_stop = self.create_service(Trigger, "digger/stop", self.stop_callback)
-        self.srv_setPower = self.create_service(SetPower, "digger/setPower", self.set_power_callback)
-        self.srv_setPosition = self.create_service(SetPosition, "lift/setPosition", self.set_position_callback)
-        self.srv_lift_stop = self.create_service(Trigger, "lift/stop", self.stop_lift_callback)
-        self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
-        self.srv_zero_lift = self.create_service(Trigger, "lift/zero", self.zero_lift_callback)
+        self.srv_toggle = self.create_service(
+            SetPower, "digger/toggle", self.toggle_callback, callback_group=self.service_cb_group
+        )
+        self.srv_stop = self.create_service(
+            Trigger, "digger/stop", self.stop_callback, callback_group=self.service_cb_group
+        )
+        self.srv_setPower = self.create_service(
+            SetPower, "digger/setPower", self.set_power_callback, callback_group=self.service_cb_group
+        )
+        self.srv_setPosition = self.create_service(
+            SetPosition, "lift/setPosition", self.set_position_callback, callback_group=self.service_cb_group
+        )
+        self.srv_lift_stop = self.create_service(
+            Trigger, "lift/stop", self.stop_lift_callback, callback_group=self.service_cb_group
+        )
+        self.srv_lift_set_power = self.create_service(
+            SetPower, "lift/setPower", self.lift_set_power_callback, callback_group=self.service_cb_group
+        )
+        self.srv_zero_lift = self.create_service(
+            Trigger, "lift/zero", self.zero_lift_callback, callback_group=self.service_cb_group
+        )
+        self.srv_bottom_lift = self.create_service(
+            Trigger, "lift/bottom", self.bottom_lift_callback, callback_group=self.service_cb_group
+        )
 
         # Define publishers here
         self.publisher_goal_reached = self.create_publisher(Bool, "digger/goal_reached", 10)
@@ -138,7 +159,15 @@ class DiggerNode(Node):
 
     def zero_lift(self) -> None:
         """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
-        self.lift_set_power(0.05)
+        while not self.top_limit_pressed:
+            self.lift_set_power(0.05)
+        self.stop_lift()
+
+    def bottom_lift(self) -> None:
+        """This method bottoms out the lift system by slowly lowering it until the bottom limit switch is pressed."""
+        while not self.bottom_limit_pressed:
+            self.lift_set_power(-0.05)
+        self.stop_lift()
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -186,6 +215,12 @@ class DiggerNode(Node):
         response.success = True
         return response
 
+    def bottom_lift_callback(self, request, response):
+        """This service request bottoms out the lift system."""
+        self.bottom_lift()
+        response.success = True
+        return response
+
     # Define timer callback methods here
     def timer_callback(self):
         """Publishes whether or not the current goal position has been reached."""
@@ -225,8 +260,11 @@ def main(args=None):
     rclpy.init(args=args)
 
     node = DiggerNode()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
     node.get_logger().info("Initializing the Digger subsystem!")
-    rclpy.spin(node)
+    executor.spin()
 
     node.destroy_node()
     rclpy.shutdown()
