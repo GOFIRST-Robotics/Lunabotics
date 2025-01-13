@@ -1,38 +1,21 @@
 <?xml version="1.0"?>
 <!--
- THIS IS THE NASA KSC FIELD
- TODO: These coordinates might need to be updated, check the official cosmic (ISU) field diagram.
- Coordinate system is in meters
- (0,0) is the bottom right corner of the map, (6.88, 5) is the top left.
+ THIS IS FOR THE NASA KSC FIELD and the Collegiate Space Mining Competition (CoSMiC)
+ Coordinate system is in meters and degrees
+ (0,0) is the bottom left corner of the map (starting zone) and (6.88, 5) is the top right corner.
 -->
 
 <root>
     <!-- Tags in the starting zone. This assumes that we are placing 2 tags on the wall. -->
-
     <link name="base_tag_1">
-        <parent link="base_link"/>
         <visual>
-            <origin xyz="6.88 1 0.4" rpy="0 0 0"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="blue">
-                <color rgba="0 0 1 1"/>
-            </material>
+            <origin xyz="0.0 1 0.4" rpy="0 0 180"/>
         </visual>
     </link>
 
     <link name="base_tag_2">
-        <parent link="base_link"/>
         <visual>
-            <origin xyz="6.88 1.2159 0.4" rpy="0 0 0"/>
-            <geometry>
-                <box size="0.1 0.1 0.1"/>
-            </geometry>
-            <material name="red">
-                <color rgba="1 0 0 1"/>
-            </material>
+            <origin xyz="0.0 1.2159 0.4" rpy="0 0 180"/>
         </visual>
     </link>
-
 </root>
