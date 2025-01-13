@@ -13,11 +13,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.client import Future
 from rclpy.node import Node
 
-# Provides a “navigation as a library” capability
-from nav2_simple_commander.robot_navigator import (
-    BasicNavigator,
-)
-
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from sensor_msgs.msg import Joy
@@ -77,8 +72,8 @@ class MainControlNode(Node):
         self.declare_parameter("digger_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("autonomous_field_type", "nasa")  # The type of field ("top", "bottom", "nasa")
         self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("lift_dumping_position", -1000)  # Measured in encoder counts
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
         self.declare_parameter("dumper_power", 0.5)  # The power the dumper needs to go
 
         # Assign the ROS Parameters to member variables below #
@@ -88,11 +83,11 @@ class MainControlNode(Node):
         self.digger_belt_power = self.get_parameter("digger_belt_power").value
         self.digger_lift_manual_power = self.get_parameter("digger_lift_manual_power").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_dumping_position = (
-            self.get_parameter("lift_dumping_position").value * 360 / 42
-        )  # Convert encoder counts to degrees
         self.lift_digging_start_position = (
             self.get_parameter("lift_digging_start_position").value * 360 / 42
+        )  # Convert encoder counts to degrees
+        self.lift_digging_end_position = (
+            self.get_parameter("lift_digging_end_position").value * 360 / 42
         )  # Convert encoder counts to degrees
         self.dumper_power = self.get_parameter("dumper_power").value
 
@@ -103,34 +98,17 @@ class MainControlNode(Node):
         self.get_logger().info("digger_belt_power has been set to: " + str(self.digger_belt_power))
         self.get_logger().info("digger_lift_manual_power has been set to: " + str(self.digger_lift_manual_power))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
-        self.get_logger().info("lift_dumping_position has been set to: " + str(self.lift_dumping_position))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
         self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
 
         # Define some initial states here
         self.state = states["Teleop"]
 
-        self.DANGER_THRESHOLD = 1
-        self.REAL_DANGER_THRESHOLD = 100
-
-        # Define important map locations
-        if self.autonomous_field_type == "top":
-            # TODO: Test the below location in simulation:
-            self.autonomous_berm_location = create_pose_stamped(7.25, -3.2, 90)
-            self.dig_location = create_pose_stamped(6.2, -1.2, 0)
-        elif self.autonomous_field_type == "bottom":
-            self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
-            self.dig_location = create_pose_stamped(6.2, -3.2, 270)
-        elif self.autonomous_field_type == "nasa":
-            # TODO: Test the below location in simulation:
-            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)
-            # TODO: Test the below location in simulation:
-            self.dig_location = create_pose_stamped(6.2, -1.2, 0)
-
         # Define service clients here
-        self.cli_dumper_dump = self.create_client(Trigger, "dumper/dump")
+        self.cli_dumper_toggle = self.create_client(Trigger, "dumper/toggle")
         self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
-        self.cli_dumper_stop = self.create_client(SetPower, "dumper/stop")
+        self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
@@ -161,8 +139,6 @@ class MainControlNode(Node):
         self.auto_dig_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
 
-        self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
-
         # Add watchdog parameters
         self.declare_parameter("watchdog_timeout", 0.5)  # Timeout in seconds
         self.watchdog_timeout = self.get_parameter("watchdog_timeout").value
@@ -176,40 +152,6 @@ class MainControlNode(Node):
         while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
             self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
         self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
-
-    # NOTE: This method is meant to find a safe digging location on the field, but it has not been tested enough yet.
-    # def optimal_dig_location(self) -> list:
-    #     available_dig_spots = []
-    #     try:
-    #         costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
-    #         resolution = costmap.getResolution()
-    #         print(resolution)
-    #         # NEEDED MEASUREMENTS:
-    #         robot_width = 1.749 / 2
-    #         robot_width_pixels = robot_width // resolution
-    #         danger_threshold, real_danger_threshold = 50, 150
-    #         dig_zone_depth, dig_zone_start, dig_zone_end = 2.57, 4.07, 8.14
-    #         dig_zone_border_y = 2.0
-    #         while len(available_dig_spots) == 0:
-    #             if danger_threshold > real_danger_threshold:
-    #                 self.get_logger().warn("No safe digging spots available. Switch to manual control.")
-    #                 return None
-    #             i = dig_zone_start + robot_width
-    #             while i <= dig_zone_end - robot_width:
-    #                 if (
-    #                     costmap.getDigCost(i, dig_zone_border_y, robot_width_pixels, dig_zone_depth)
-    #                     <= self.DANGER_THRESHOLD
-    #                 ):
-    #                     available_dig_spots.append(create_pose_stamped(i, -dig_zone_border_y, 270))
-    #                     i += robot_width
-    #                 else:
-    #                     i += resolution
-    #             if len(available_dig_spots) > 0:
-    #                 return available_dig_spots
-    #             danger_threshold += 5
-    #     except Exception as e:
-    #         self.get_logger().error(f"Error in optimal_dig_location: {e} on line {sys.exc_info()[-1].tb_lineno}")
-    #         return None
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -251,11 +193,12 @@ class MainControlNode(Node):
 
             # Check if the reverse digger button is pressed #
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.cli_digger_setPower.call_async(SetPower.Request(power=-self.digger_belt_power))
+                self.cli_digger_toggle.call_async(SetPower.Request(power=-self.digger_belt_power))
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
-                self.cli_dumper_dump.call_async(Trigger.Request())
+                self.cli_dumper_stop.call_async(Trigger.Request())  # Stop whatever the dumper is doing
+                self.cli_dumper_toggle.call_async(Trigger.Request())  # Toggle the dumper (extended or retracted)
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
@@ -313,8 +256,8 @@ class MainControlNode(Node):
                     return
                 self.stop_all_subsystems()
                 goal = AutoDig.Goal(
-                    lift_dumping_position=self.lift_dumping_position,
                     lift_digging_start_position=self.lift_digging_start_position,
+                    lift_digging_end_position=self.lift_digging_end_position,
                     digger_belt_power=self.digger_belt_power,
                 )
                 self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
@@ -377,7 +320,6 @@ def main(args=None) -> None:
     rclpy.spin(main_node)  # Spin the node
 
     # Clean up and shutdown
-    main_node.nav2.lifecycleShutdown()
     main_node.destroy_node()
     rclpy.shutdown()
 
