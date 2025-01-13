@@ -19,6 +19,8 @@ class AutoOffloadServer(AsyncNode):
             self.execute_callback,
             cancel_callback=self.cancel_callback,
         )
+        # Safety precaution
+        self.cancelled = False
 
         self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
@@ -27,6 +29,7 @@ class AutoOffloadServer(AsyncNode):
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
+        self.cancelled = False  # Reset cancelled flag at the start of the goal
         """This method lays out the procedure for autonomously offloading!"""
         self.get_logger().info("Starting Autonomous Offload Procedure!")
         result = AutoOffload.Result()
@@ -50,27 +53,35 @@ class AutoOffloadServer(AsyncNode):
             return result
 
         # Drive backward into the berm zone
-        self.get_logger().info("Auto Driving")
-        await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=-0.25, turning_power=0.0))
+        if not self.cancelled:
+            self.get_logger().info("Auto Driving")
+            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=-0.25, turning_power=0.0))
 
         # drive for 10 seconds
-        await self.async_sleep(10)  # Allows for task to be canceled
-        await self.cli_drivetrain_stop.call_async(Trigger.Request())
+        if not self.cancelled:
+            await self.async_sleep(10)  # Allows for task to be canceled
+            await self.cli_drivetrain_stop.call_async(Trigger.Request())
 
         # Dump the material
-        self.get_logger().info("Auto Dumping")
-        await self.cli_dumper_dump.call_async(Trigger.Request())
+        if not self.cancelled:
+            self.get_logger().info("Auto Dumping")
+            await self.cli_dumper_dump.call_async(Trigger.Request())
 
-        self.get_logger().info("Autonomous Offload Procedure Complete!")
-        goal_handle.succeed()
-        return result
+        if not self.cancelled:
+            self.get_logger().info("Autonomous Offload Procedure Complete!")
+            goal_handle.succeed()
+            return result
+        else:
+            self.get_logger().info("Goal was cancelled")
+            goal_handle.abort()
+            return result
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
+        self.cancelled = True
         self.get_logger().info("Goal is cancelling")
-        if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
-            self.cli_drivetrain_stop.call_async(Trigger.Request())
-            self.cli_dumper_stop.call_async(Trigger.Request())
+        self.cli_drivetrain_stop.call_async(Trigger.Request())
+        self.cli_dumper_stop.call_async(Trigger.Request())
         return CancelResponse.ACCEPT
 
 
