@@ -2,8 +2,6 @@ from rclpy.action.server import CancelResponse, ServerGoalHandle
 from rclpy.node import Node
 from rclpy.task import Future
 
-from std_msgs.msg import Bool
-
 
 class AsyncNode(Node):
     def __init__(self, name: str):
