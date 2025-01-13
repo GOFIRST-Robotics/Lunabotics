@@ -4,7 +4,7 @@ from rclpy.action import ActionServer
 from std_msgs.msg import Bool
 
 from rovr_interfaces.action import AutoDig
-from rovr_interfaces.srv import Drive, SetPosition, SetPower
+from rovr_interfaces.srv import SetPosition, SetPower
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger
 
@@ -23,9 +23,6 @@ class AutoDigServer(AsyncNode):
             Bool, "/digger/goal_reached", self.digger_goal_callback, 10
         )
 
-        self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
-        self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
-
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
@@ -39,14 +36,6 @@ class AutoDigServer(AsyncNode):
         result = AutoDig.Result()
 
         # Make sure the services are available
-        if not self.cli_drivetrain_drive.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Drivetrain drive service not available")
-            goal_handle.abort()
-            return result
-        if not self.cli_drivetrain_stop.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Drivetrain stop service not available")
-            goal_handle.abort()
-            return result
         if not self.cli_lift_setPosition.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Lift set position service not available")
             goal_handle.abort()
@@ -72,12 +61,7 @@ class AutoDigServer(AsyncNode):
             goal_handle.abort()
             return result
 
-        # Zero the digger
-        await self.cli_lift_zero.call_async(Trigger.Request())
-        # Wait for the lift goal to be reached
-        await self.digger_sleep()
-
-        # Lower the digger onto the ground
+        # Lower the digger so that it is just above the ground
         self.cli_lift_setPosition.call_async(
             SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
         )
@@ -112,10 +96,7 @@ class AutoDigServer(AsyncNode):
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
         self.get_logger().info("Goal is cancelling")
-        if not self.digger_goal_reached.done():
-            self.cli_drivetrain_stop.call_async(Trigger.Request())
         if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
-            self.cli_drivetrain_stop.call_async(Trigger.Request())
             self.cli_digger_stop.call_async(Trigger.Request())
         return CancelResponse.ACCEPT
 
