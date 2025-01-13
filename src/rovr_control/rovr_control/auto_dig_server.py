@@ -1,10 +1,9 @@
 import rclpy
 from rclpy.action import ActionServer
 
-from std_msgs.msg import Bool
 
 from rovr_interfaces.action import AutoDig
-from rovr_interfaces.srv import Drive, SetPosition, SetPower
+from rovr_interfaces.srv import SetPosition, SetPower
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger
 
@@ -18,15 +17,8 @@ class AutoDigServer(AsyncNode):
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
         )
 
-        # TODO: This should not be needed anymore after ticket #257 is implemented!
-        self.digger_goal_subscription = self.create_subscription(
-            Bool, "/digger/goal_reached", self.digger_goal_callback, 10
-        )
-
-        self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
-        self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
-
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
+        self.cli_lift_bottom = self.create_client(Trigger, "lift/bottom")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
@@ -35,18 +27,11 @@ class AutoDigServer(AsyncNode):
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
+        self.cancelled = False  # Reset cancelled flag at the start of the goal
         self.get_logger().info("Starting Autonomous Digging Procedure!")
         result = AutoDig.Result()
 
         # Make sure the services are available
-        if not self.cli_drivetrain_drive.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Drivetrain drive service not available")
-            goal_handle.abort()
-            return result
-        if not self.cli_drivetrain_stop.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Drivetrain stop service not available")
-            goal_handle.abort()
-            return result
         if not self.cli_lift_setPosition.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Lift set position service not available")
             goal_handle.abort()
@@ -63,6 +48,10 @@ class AutoDigServer(AsyncNode):
             self.get_logger().error("Lift zero service not available")
             goal_handle.abort()
             return result
+        if not self.cli_lift_bottom.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Lift bottom service not available")
+            goal_handle.abort()
+            return result
         if not self.cli_digger_setPower.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Digger set power service not available")
             goal_handle.abort()
@@ -72,64 +61,71 @@ class AutoDigServer(AsyncNode):
             goal_handle.abort()
             return result
 
-        # Zero the digger
-        self.cli_lift_zero.call_async(Trigger.Request())
-        # Wait for the lift goal to be reached
-        await self.digger_sleep()
-
-        # Lower the digger onto the ground
-        self.cli_lift_setPosition.call_async(
-            SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
-        )
-        # Wait for the lift goal to be reached
-        await self.digger_sleep()
-
         # Start the digger belt
-        self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
+        if not self.cancelled:
+            self.get_logger().info("Starting the digger belt")
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
 
-        # Drive forward while digging
-        start_time = self.get_clock().now().nanoseconds
-        elapsed = self.get_clock().now().nanoseconds - start_time
-        # accelerate for 2 seconds
-        # TODO: completing ticket #298 can replace this while loop with a motor ramp up service
-        while elapsed < 2e9:
-            self.cli_lift_set_power.call_async(SetPower.Request(power=-0.05e-9 * (elapsed)))
-            self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=0.25e-9 * (elapsed), turning_power=0.0))
-            self.get_logger().info("Accelerating lift and drive train")
-            elapsed = self.get_clock().now().nanoseconds - start_time
-            await self.async_sleep(0.1)  # Allows for task to be canceled
+        # Lower the digger so that it is just above the ground (get to this position fast)
+        if not self.cancelled:
+            self.get_logger().info("Lowering the digger to the starting position")
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
+            )
 
-        self.get_logger().info("Auto Driving")
-        await self.async_sleep(12)  # Allows for task to be canceled
-        self.get_logger().info("Done Driving")
+        # Lower the digger into the ground slowly
+        if not self.cancelled:
+            self.get_logger().info("Lowering the digger into the ground")
+            await self.cli_lift_bottom.call_async(Trigger.Request())
 
-        # Stop driving and skimming
-        await self.cli_drivetrain_stop.call_async(Trigger.Request())
-        await self.cli_digger_stop.call_async(Trigger.Request())
+        # Stay at the lowest position for 5 seconds while digging
+        if not self.cancelled:
+            self.get_logger().info("Start of Auto Digging in Place")
+            await self.async_sleep(5)
+            self.get_logger().info("Done Digging in Place")
 
-        self.cli_lift_setPosition.call_async(SetPosition.Request(position=goal_handle.request.lift_dumping_position))
-        # Wait for the lift goal to be reached
-        await self.digger_sleep()
+        # Stop digging
+        if not self.cancelled:
+            self.get_logger().info("Stopping the digger belt")
+            await self.cli_digger_stop.call_async(Trigger.Request())
 
-        self.get_logger().info("Autonomous Digging Procedure Complete!")
-        goal_handle.succeed()
-        return result
+        # Raise the digger back up using the lift (get to this position fast)
+        if not self.cancelled:
+            self.get_logger().info("Raising the digger to the ending position")
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=goal_handle.request.lift_digging_end_position)
+            )
+
+        # Raise the digger the rest of the way slowly
+        if not self.cancelled:
+            self.get_logger().info("Raising the digger up to the top")
+            await self.cli_lift_zero.call_async(Trigger.Request())
+
+        if not self.cancelled:
+            self.get_logger().info("Autonomous Digging Procedure Complete!")
+            goal_handle.succeed()
+            return result
+        else:
+            self.get_logger().info("Goal was cancelled")
+            goal_handle.abort()
+            return result
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
+        super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")
-        if not self.digger_goal_reached.done():
-            self.cli_drivetrain_stop.call_async(Trigger.Request())
-        if super().cancel_callback(cancel_request) == CancelResponse.ACCEPT:
-            self.cli_drivetrain_stop.call_async(Trigger.Request())
-            self.cli_digger_stop.call_async(Trigger.Request())
+        self.cli_digger_stop.call_async(Trigger.Request())
+        self.cli_lift_stop.call_async(Trigger.Request())
         return CancelResponse.ACCEPT
 
 
 def main(args=None) -> None:
     rclpy.init(args=args)
+
     action_server = AutoDigServer()
     rclpy.spin(action_server)
+
+    action_server.destroy_node()
     rclpy.shutdown()
 
 
