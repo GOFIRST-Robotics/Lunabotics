@@ -84,7 +84,7 @@ class AutoDigServer(AsyncNode):
         await self.cli_lift_bottom.call_async(Trigger.Request())
 
         self.get_logger().info("Start of Auto Digging in Place")
-        await self.async_sleep(3)  # Stay at lowest pos for 3 seconds while digging
+        await self.async_sleep(5)  # Stay at the lowest position for 5 seconds while digging
         self.get_logger().info("Done Digging in Place")
 
         # Stop digging
