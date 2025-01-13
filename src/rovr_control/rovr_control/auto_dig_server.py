@@ -1,7 +1,6 @@
 import rclpy
 from rclpy.action import ActionServer
 
-from std_msgs.msg import Bool
 
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import SetPosition, SetPower
@@ -16,11 +15,6 @@ class AutoDigServer(AsyncNode):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
-        )
-
-        # TODO: This should not be needed anymore after ticket #257 is implemented!
-        self.digger_goal_subscription = self.create_subscription(
-            Bool, "/digger/goal_reached", self.digger_goal_callback, 10
         )
 
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
@@ -70,8 +64,6 @@ class AutoDigServer(AsyncNode):
         self.cli_lift_setPosition.call_async(
             SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
         )
-        # Wait for the lift position goal to be reached
-        await self.digger_sleep()
 
         # Start the digger belt
         await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))

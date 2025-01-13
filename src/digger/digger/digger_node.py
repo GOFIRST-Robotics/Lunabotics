@@ -12,7 +12,6 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
-from std_msgs.msg import Bool
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
@@ -58,9 +57,6 @@ class DiggerNode(Node):
             Trigger, "lift/bottom", self.bottom_lift_callback, callback_group=self.service_cb_group
         )
 
-        # Define publishers here
-        self.publisher_goal_reached = self.create_publisher(Bool, "digger/goal_reached", 10)
-
         # Define subscribers here
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
 
@@ -83,14 +79,10 @@ class DiggerNode(Node):
 
         # Current state of the digger belt
         self.running = False
-        # Current goal position (in degrees)
-        self.current_goal_position = 0
         # Current position of the lift motor in degrees
         self.current_position_degrees = 0  # Relative encoders always initialize to 0
         # Goal Threshold
-        # if abs(self.current_goal_position - ACTUAL VALUE) <= self.goal_threshold,
-        # then we should publish True to /digger/goal_reached
-        self.goal_threshold = 320  # in degrees of the motor # TODO: Tune this threshold if needed
+        self.goal_threshold = 180  # in degrees of the motor # TODO: Tune this threshold value if needed
         # Current state of the lift system
         self.lift_running = False
 
@@ -125,17 +117,18 @@ class DiggerNode(Node):
         else:
             self.set_power(digger_belt_power)
 
-    # TODO: This method can probably be deleted during the implementation of ticket #257
     def set_position(self, position: int) -> None:
-        """This method sets the position (in degrees) of the digger."""
-        self.current_goal_position = position  # goal position should be in degrees
+        """This method sets the position (in degrees) of the digger lift and waits until the goal is reached."""
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
                 can_id=self.DIGGER_LIFT_MOTOR,
-                value=float(self.current_goal_position + self.lift_encoder_offset),
+                value=float(position + self.lift_encoder_offset),
             )
         )
+        # Wait until the goal position goal is reached to return
+        while abs(position + self.lift_encoder_offset - self.current_position_degrees) > self.goal_threshold:
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
@@ -192,9 +185,6 @@ class DiggerNode(Node):
         response.success = True
         return response
 
-    # TODO: This method needs to be modified during the implementation of ticket #257
-    # to return a proper future indicating when the goal position has been reached
-    # so that rclpy.spin_until_future_complete() can be used to wait for the goal.
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
@@ -234,11 +224,6 @@ class DiggerNode(Node):
 
     def done_callback(self, future):
         self.current_position_degrees = future.result().data
-        goal_reached_msg = Bool(
-            data=abs(self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees)
-            <= self.goal_threshold
-        )
-        self.publisher_goal_reached.publish(goal_reached_msg)
 
     # Define subscriber callback methods here
     def limit_switch_callback(self, limit_switches_msg):
