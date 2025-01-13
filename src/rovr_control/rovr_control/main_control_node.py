@@ -130,7 +130,7 @@ class MainControlNode(Node):
         # Define service clients here
         self.cli_dumper_toggle = self.create_client(Trigger, "dumper/toggle")
         self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
-        self.cli_dumper_stop = self.create_client(SetPower, "dumper/stop")
+        self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
@@ -255,7 +255,8 @@ class MainControlNode(Node):
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
-                self.cli_dumper_toggle.call_async(Trigger.Request())
+                self.cli_dumper_stop.call_async(Trigger.Request())  # Stop whatever the dumper is doing
+                self.cli_dumper_toggle.call_async(Trigger.Request())  # Toggle the dumper (extended or retracted)
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:

@@ -74,7 +74,7 @@ class DumperNode(Node):
             self.get_logger().warn("WARNING: Top limit switch pressed!")
             self.stop()  # Stop the dumper
         elif dumper_power < 0 and self.bottom_limit_pressed:
-            self.get_logger().warn("WARNING: Top limit switch pressedF!")
+            self.get_logger().warn("WARNING: Bottom limit switch pressed!")
             self.stop()  # stop the dumper
         else:
             self.cli_motor_set.call_async(
