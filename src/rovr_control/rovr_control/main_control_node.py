@@ -13,11 +13,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.client import Future
 from rclpy.node import Node
 
-# Provides a “navigation as a library” capability
-from nav2_simple_commander.robot_navigator import (
-    BasicNavigator,
-)
-
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from sensor_msgs.msg import Joy
@@ -161,8 +156,6 @@ class MainControlNode(Node):
         self.auto_dig_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
 
-        self.nav2 = BasicNavigator()  # Instantiate the BasicNavigator class
-
         # Add watchdog parameters
         self.declare_parameter("watchdog_timeout", 0.5)  # Timeout in seconds
         self.watchdog_timeout = self.get_parameter("watchdog_timeout").value
@@ -176,40 +169,6 @@ class MainControlNode(Node):
         while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
             self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
         self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
-
-    # NOTE: This method is meant to find a safe digging location on the field, but it has not been tested enough yet.
-    # def optimal_dig_location(self) -> list:
-    #     available_dig_spots = []
-    #     try:
-    #         costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
-    #         resolution = costmap.getResolution()
-    #         print(resolution)
-    #         # NEEDED MEASUREMENTS:
-    #         robot_width = 1.749 / 2
-    #         robot_width_pixels = robot_width // resolution
-    #         danger_threshold, real_danger_threshold = 50, 150
-    #         dig_zone_depth, dig_zone_start, dig_zone_end = 2.57, 4.07, 8.14
-    #         dig_zone_border_y = 2.0
-    #         while len(available_dig_spots) == 0:
-    #             if danger_threshold > real_danger_threshold:
-    #                 self.get_logger().warn("No safe digging spots available. Switch to manual control.")
-    #                 return None
-    #             i = dig_zone_start + robot_width
-    #             while i <= dig_zone_end - robot_width:
-    #                 if (
-    #                     costmap.getDigCost(i, dig_zone_border_y, robot_width_pixels, dig_zone_depth)
-    #                     <= self.DANGER_THRESHOLD
-    #                 ):
-    #                     available_dig_spots.append(create_pose_stamped(i, -dig_zone_border_y, 270))
-    #                     i += robot_width
-    #                 else:
-    #                     i += resolution
-    #             if len(available_dig_spots) > 0:
-    #                 return available_dig_spots
-    #             danger_threshold += 5
-    #     except Exception as e:
-    #         self.get_logger().error(f"Error in optimal_dig_location: {e} on line {sys.exc_info()[-1].tb_lineno}")
-    #         return None
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -378,7 +337,6 @@ def main(args=None) -> None:
     rclpy.spin(main_node)  # Spin the node
 
     # Clean up and shutdown
-    main_node.nav2.lifecycleShutdown()
     main_node.destroy_node()
     rclpy.shutdown()
 
