@@ -60,19 +60,18 @@ class AutoDigServer(AsyncNode):
             goal_handle.abort()
             return result
 
+        # Start the digger belt
+        self.get_logger().info("Starting the digger belt")
+        await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
+
         # Lower the digger so that it is just above the ground
-        self.cli_lift_setPosition.call_async(
+        self.get_logger().info("Lowering the digger to the starting position")
+        await self.cli_lift_setPosition.call_async(
             SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
         )
 
-        # Start the digger belt
-        await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
-
         # Lower the digger towards the ground slowly
-        if not self.running:
-            self.get_logger().error("Digging buckets not spinning. Don't lower!")
-            goal_handle.abort()
-            return result
+        self.get_logger().info("Lowering the digger into the ground")
         await self.cli_lift_bottom.call_async(Trigger.Request())
 
         self.get_logger().info("Start of Auto Digging in Place")
@@ -80,10 +79,12 @@ class AutoDigServer(AsyncNode):
         self.get_logger().info("Done Digging in Place")
 
         # Stop digging
+        self.get_logger().info("Stopping the digger belt")
         await self.cli_digger_stop.call_async(Trigger.Request())
 
         # Raise the digger back up using the lift
-        await self.cli_lift_zero.call_async(Trigger.Reqest())
+        self.get_logger().info("Raising the digger back up")
+        await self.cli_lift_zero.call_async(Trigger.Request())
 
         self.get_logger().info("Autonomous Digging Procedure Complete!")
         goal_handle.succeed()
