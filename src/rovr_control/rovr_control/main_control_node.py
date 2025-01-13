@@ -105,23 +105,6 @@ class MainControlNode(Node):
         # Define some initial states here
         self.state = states["Teleop"]
 
-        self.DANGER_THRESHOLD = 1
-        self.REAL_DANGER_THRESHOLD = 100
-
-        # Define important map locations
-        if self.autonomous_field_type == "top":
-            # TODO: Test the below location in simulation:
-            self.autonomous_berm_location = create_pose_stamped(7.25, -3.2, 90)
-            self.dig_location = create_pose_stamped(6.2, -1.2, 0)
-        elif self.autonomous_field_type == "bottom":
-            self.autonomous_berm_location = create_pose_stamped(7.25, -1.4, 270)
-            self.dig_location = create_pose_stamped(6.2, -3.2, 270)
-        elif self.autonomous_field_type == "nasa":
-            # TODO: Test the below location in simulation:
-            self.autonomous_berm_location = create_pose_stamped(1.3, -0.6, 90)
-            # TODO: Test the below location in simulation:
-            self.dig_location = create_pose_stamped(6.2, -1.2, 0)
-
         # Define service clients here
         self.cli_dumper_toggle = self.create_client(Trigger, "dumper/toggle")
         self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
