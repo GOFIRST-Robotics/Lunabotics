@@ -57,6 +57,8 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 ## How to Run Inside the ISAAC ROS Container on Linux/Jetson
 This is intruction on how to install all the needed libaries and SDKs to run the container on a computer that is running linux and has a Nvidia GPU.
 
+Here is nvidia's steps, https://nvidia-isaac-ros.github.io/getting_started/dev_env_setup.html but everything should also be covered here
+
 In all you will need [NGC](#installing-ngc), [Git-lfs](#installing-git-lfs), [CUDA SDK](#installing-cuda) (and Nvidia GPU drivers),
 ### Installing NGC
 First, you will need to log in to Nvidia NGC and get an API Key [here](https://org.ngc.nvidia.com/setup){:target="_blank"}. You will need to click on "Guest Account" in the top right and log in/create account.
