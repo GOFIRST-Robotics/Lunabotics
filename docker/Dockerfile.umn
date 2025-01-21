@@ -37,8 +37,4 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install 
     ros-humble-foxglove-msgs \
     ros-humble-ffmpeg-image-transport \
     ros-humble-ffmpeg-encoder-decoder \
-    ros-humble-zed-msgs \
     && rm -rf /var/lib/apt/lists/*
-
-ARG USERNAME=admin
-RUN adduser ${USERNAME} dialout && adduser ${USERNAME} tty && adduser ${USERNAME} input

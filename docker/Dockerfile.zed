@@ -1,0 +1,10 @@
+ARG BASE_IMAGE
+ARG PLATFORM
+FROM ${BASE_IMAGE}
+
+RUN --mount=type=bind,source=zed/install-zed.sh,target=/tmp/install-zed.sh \
+    /tmp/install-zed.sh 
+
+RUN --mount=type=cache,target=/var/cache/apt apt-get update && apt-get install -y \
+    ros-humble-zed-msgs \
+    && rm -rf /var/lib/apt/lists/*
