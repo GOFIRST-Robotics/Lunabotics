@@ -78,12 +78,10 @@ You can follow the instructions on the website to install and configure ngc, but
 ```
 wget --content-disposition https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.53.0/files/ngccli_linux.zip -O ngccli_linux.zip && unzip ngccli_linux.zip
 chmod u+x ngc-cli/ngc
-echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bash_profile && source ~/.bash_profile
+echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bashrc && source ~/.bashrc
 ```
 Next you need to configure ngc with ``ngc config set`` and inputting the API key when prompted. The other values dont matter and you should be able to just hit enter to get the default, 
 the only one that will need input is the org where you will need to copy the name that is listed in the choices.
-
-Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `source ~/.bash_profile` to your `~/.bashrc` file. Just open the ``.bashrc`` file in your favorite text editor and paste the source at the bottom.
 
 Then log in to nvcr with the following command:
 ```
