@@ -6,10 +6,10 @@ fi
 PLATFORM="$(uname -m)"
 
 #Write the config file for the build_image_layers.sh script
-printf 'CONFIG_DOCKER_SEARCH_DIRS="$HOME/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/../../../../docker"\nBASE_DOCKER_REGISTRY_NAMES=("nvcr.io/nvidia/isaac/ros" "umnrobotics/isaac_ros3.2")\n'> ~/.isaac_ros_common-config
+printf 'CONFIG_DOCKER_SEARCH_DIRS="$HOME/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/../../../../docker"\nBASE_DOCKER_REGISTRY_NAMES=("umnrobotics/isaac_ros3.2" "nvcr.io/nvidia/isaac/ros")\n'> ~/.isaac_ros_common-config
 
-USE_CACHED_IMAGE=${1:-true}
-if [ "${USE_CACHED_IMAGE}" = "false" ]; then
+USE_REMOTE_IMAGE=${1:-true}
+if [ "${USE_REMOTE_IMAGE}" = "false" ]; then
     echo "Building image locally"
     #Does not attempt to pull the image from remote
     echo "SKIP_REGISTRY_CHECK=1" >> ~/.isaac_ros_common-config
