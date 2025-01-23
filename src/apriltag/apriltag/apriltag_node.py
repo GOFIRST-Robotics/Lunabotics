@@ -47,7 +47,7 @@ class ApriltagNode(Node):
         )
         self.fusetags = self.create_publisher(NavSatFix, "/fuseapriltags", 10)
         self.tf_broadcaster = TransformBroadcaster(self)
-        self.tf_buffer = Buffer()
+        self.tf_buffer = Buffer(cache_time=rclpy.duration.Duration())
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.create_service(Trigger, "resetOdom", self.reset_callback)
