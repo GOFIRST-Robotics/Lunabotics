@@ -304,6 +304,7 @@ private:
         send_can(std::get<0>(this->current_msg[motorId]), std::get<1>(this->current_msg[motorId]));
       }
     }
+    // TODO: This is one potential spot to put the new position syncing code (choose one of the two)
   }
 
   // Listen for CAN status frames sent by our VESC motor controllers
@@ -335,6 +336,8 @@ private:
         int32_t data = PIDResult * 100000; // Convert from percent power to a signed 32-bit integer
         send_can(motorId + 0x00000000, data); // ID does NOT need to be modified to signify this is a duty cycle command
       }
+
+      // TODO: This is one potential spot to put the new position syncing code (choose one of the two)
 
       break;
     }
