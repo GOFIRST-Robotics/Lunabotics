@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import rclpy
 from scipy.spatial.transform import Rotation as R
 from rclpy.node import Node
@@ -47,7 +48,7 @@ class ApriltagNode(Node):
         )
         self.fusetags = self.create_publisher(NavSatFix, "/fuseapriltags", 10)
         self.tf_broadcaster = TransformBroadcaster(self)
-        self.tf_buffer = Buffer(cache_time=rclpy.duration.Duration())
+        self.tf_buffer = Buffer(cache_time=rclpy.duration.Duration(seconds=1))
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.create_service(Trigger, "resetOdom", self.reset_callback)
@@ -130,18 +131,13 @@ class ApriltagNode(Node):
             odom_to_tag_transform.transform.translation.z = 0.0
 
             self.map_to_odom_tf = odom_to_tag_transform
-            
-            cm1 = ([0.0, 0.0, 0.0, 0.0])
-            cm2 = ([10.0, 0.0, 0.0, 0.0])
-            cm3 = ([10.0, 5.0, 0.0, 0.0])
 
             fused_pos = NavSatFix()
             fused_pos.header = tag.pose.header
             fused_pos.header.stamp = self.get_clock().now().to_msg()
             fused_pos.latitude = odom_to_tag_transform.transform.translation.x
             fused_pos.longitude = odom_to_tag_transform.transform.translation.y
-            fused_pos.altitude = 1.0
-            fused_pos.position_covariance = tag.pose.covariance
+            fused_pos.position_covariance = (np.reshape(np.array(tag.pose.pose.covariance),(6,6))[:3, :3]).flatten()
             
             self.fusetags.publish(fused_pos)
             # TODO: compute our current global pose ( map -> base_link TF )
