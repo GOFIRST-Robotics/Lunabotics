@@ -121,7 +121,6 @@ class ApriltagNode(Node):
                         0.0,  # Assuming a 2D map
                     ]
                 )
-                cumulative_position += position
 
                 # Apply a known rotation to the transform
                 rotation_quaternion = R.from_euler(
@@ -136,6 +135,10 @@ class ApriltagNode(Node):
                     ]
                 ).as_quat()
                 rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
+
+                # Apply the rotation to the position before adding it to the cumulative sum
+                # Then, we can just average the positions and use an identity quaternion for the rotation
+                cumulative_position += R.from_quat(rotated_quaternion).apply(position)
                 tag_count += 1
 
             if tag_count > 0:
@@ -146,17 +149,12 @@ class ApriltagNode(Node):
                 self.map_to_odom_tf.transform.translation.x = avg_position[0]
                 self.map_to_odom_tf.transform.translation.y = avg_position[1]
                 self.map_to_odom_tf.transform.translation.z = avg_position[2]
-                self.map_to_odom_tf.transform.rotation.x = rotated_quaternion[0]
-                self.map_to_odom_tf.transform.rotation.y = rotated_quaternion[1]
-                self.map_to_odom_tf.transform.rotation.z = rotated_quaternion[2]
-                self.map_to_odom_tf.transform.rotation.w = rotated_quaternion[3]
-
-                # TODO: Only position is being averaged right now, for quaternions look into https://en.wikipedia.org/wiki/Slerp
-                # # or maybe apply the rotations to the translation vectors then average all of them and use a identity quaternion
-                # as the rotation of the TF and the translation of the TF will have all the info we need
+                self.map_to_odom_tf.transform.rotation.x = 0.0
+                self.map_to_odom_tf.transform.rotation.y = 0.0
+                self.map_to_odom_tf.transform.rotation.z = 0.0
+                self.map_to_odom_tf.transform.rotation.w = 1.0
 
                 self.map_to_odom_tf.header.stamp = self.get_clock().now().to_msg()
-                self.postTransform(self.map_to_odom_tf)
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
