@@ -96,7 +96,7 @@ class ApriltagNode(Node):
         if len(msg.detections) > 0:
             tags = msg.detections
             # Initialize cumulative sums and counter
-            cumulative_position = np.zeros(3)  # For x, y, z
+            cumulative_position = np.zeros(3, None)
             tag_count = 0
             for tag in tags:
                 # Extract the id of the detected tag
@@ -104,16 +104,16 @@ class ApriltagNode(Node):
                 # Extract the known map coordinates of the detected tag
                 xyz, rpy = self.apriltag_map_coords[id]
 
-                # Lookup the odom to detected tag transform
+                # Lookup the odom to detected tag tf from the tf buffer
                 try:
                     odom_to_tag_transform = self.tf_buffer.lookup_transform(
                         "odom", f"{tag.family}:{id}", rclpy.time.Time()
                     )
                 except TransformException as ex:
-                    self.get_logger().warn(f"Could not transform odom to detected tag: {ex}")
+                    self.get_logger().warn(f"Could not transform odom to the detected tag: {ex}")
                     continue
 
-                # Adjust position
+                # Use the known map coordinates of the apriltag as an offset
                 position = np.array(
                     [
                         odom_to_tag_transform.transform.translation.x - xyz[0],
@@ -123,18 +123,19 @@ class ApriltagNode(Node):
                 )
                 cumulative_position += position
 
-                # Adjust rotation
-                rotation_quaternion = R.from_euler("xyz", rpy, degrees=True).as_quat()
-                current_quaternion = np.array(
+                # Apply a known rotation to the transform
+                rotation_quaternion = R.from_euler(
+                    "xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True
+                ).as_quat()
+                current_quaternion = R.from_quat(
                     [
                         odom_to_tag_transform.transform.rotation.x,
                         odom_to_tag_transform.transform.rotation.y,
                         odom_to_tag_transform.transform.rotation.z,
                         odom_to_tag_transform.transform.rotation.w,
                     ]
-                )
-                rotated_quaternion = (R.from_quat(current_quaternion) * R.from_quat(rotation_quaternion)).as_quat()
-
+                ).as_quat()
+                rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
                 tag_count += 1
 
             if tag_count > 0:
