@@ -28,6 +28,30 @@ class ApriltagNode(Node):
         relative_path = paths[field_type]
         self.file_path = os.path.join(current_dir, relative_path)
 
+        # Get the root of the XML tree for the current field type
+        try:
+            tree = ET.parse(self.file_path)
+            self.xml_root = tree.getroot()
+        except ET.ParseError as e:
+            self.get_logger().warn(f"Error parsing XML: {e}")
+
+        # Iterate through all apriltags in the XML tree and store their known map coordinates
+        self.apriltag_map_coords = {}
+        for link in self.xml_root.findall(".//link"):
+            tag_id = int(link.attrib["name"].split("_")[-1])
+
+            # Extract known map coordinates of the tag
+            xyz_elements = link.findall(".//origin[@xyz]")
+            xyz_values = [element.attrib["xyz"] for element in xyz_elements]
+            xyz = [float(coord) for coord in xyz_values[0].split(" ")]
+
+            # Extract known map orientation of the tag
+            rpy_elements = link.findall(".//origin[@rpy]")
+            rpy_values = [element.attrib["rpy"] for element in rpy_elements]
+            rpy = [float(angle) for angle in rpy_values[0].split(" ")]
+
+            self.apriltag_map_coords[tag_id] = (xyz, rpy)
+
         self.map_to_odom_tf = None
 
         self.map_transform = TransformStamped()
@@ -66,62 +90,51 @@ class ApriltagNode(Node):
         return False
 
     def tagDetectionSub(self, msg):
-        if len(msg.detections) == 0:
-            return
+        if len(msg.detections) > 0:
+            tags = msg.detections
+            for tag in tags:
+                # Extract the id of the detected tag
+                id = tag.id
+                # Extract the known map coordinates of the detected tag
+                xyz, rpy = self.apriltag_map_coords[id]
 
-        tags = msg.detections
-        for tag in tags:
-            id = tag.id
-            tree = ET.parse(self.file_path)
-            root = tree.getroot()
+                # Lookup the odom to detected tag tf from the tf buffer
+                try:
+                    odom_to_tag_transform = self.tf_buffer.lookup_transform("odom", f"{tag.family}:{id}", rclpy.time.Time())
+                except TransformException as ex:
+                    self.get_logger().warn(f"Could not transform odom to the detected tag: {ex}")
+                    return
 
-            link = root[id - 1]  # assumes tag 1 = home 1, tag 2 = home 2, 3 = berm 1 etc.
+                odom_to_tag_transform.child_frame_id = "odom"
+                odom_to_tag_transform.header.frame_id = "map"
 
-            xyz_elements = link.findall(".//origin[@xyz]")
-            xyz_values = [element.attrib["xyz"] for element in xyz_elements]
-            xyz = xyz_values[0].split(" ")
+                # Apply a known rotation to the transform
+                rotation_quaternion = R.from_euler(
+                    "xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True
+                ).as_quat()
+                current_quaternion = R.from_quat(
+                    [
+                        odom_to_tag_transform.transform.rotation.x,
+                        odom_to_tag_transform.transform.rotation.y,
+                        odom_to_tag_transform.transform.rotation.z,
+                        odom_to_tag_transform.transform.rotation.w,
+                    ]
+                ).as_quat()
+                rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
 
-            rpy_elements = link.findall(".//origin[@rpy]")
-            rpy_values = [element.attrib["rpy"] for element in rpy_elements]
-            rpy = rpy_values[0].split(" ")
+                # Update the transform with the rotated quaternion
+                odom_to_tag_transform.transform.rotation.x = rotated_quaternion[0]
+                odom_to_tag_transform.transform.rotation.y = rotated_quaternion[1]
+                odom_to_tag_transform.transform.rotation.z = rotated_quaternion[2]
+                odom_to_tag_transform.transform.rotation.w = rotated_quaternion[3]
 
-            # Lookup the odom to detected tag tf from the tf buffer
-            try:
-                odom_to_tag_transform = self.tf_buffer.lookup_transform("odom", f"{tag.family}:{id}", rclpy.time.Time())
-            except TransformException as ex:
-                self.get_logger().warn(f"Could not transform odom to the detected tag: {ex}")
-                return
+                # Use the known map coordinates of the apriltag as an offset
+                odom_to_tag_transform.transform.translation.x -= float(xyz[0])
+                odom_to_tag_transform.transform.translation.y -= float(xyz[1])
+                odom_to_tag_transform.transform.translation.z = 0.0
 
-            odom_to_tag_transform.child_frame_id = "odom"
-            odom_to_tag_transform.header.frame_id = "map"
-            odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
-
-            # Apply a known rotation to the transform
-            rotation_quaternion = R.from_euler(
-                "xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True
-            ).as_quat()
-            current_quaternion = R.from_quat(
-                [
-                    odom_to_tag_transform.transform.rotation.x,
-                    odom_to_tag_transform.transform.rotation.y,
-                    odom_to_tag_transform.transform.rotation.z,
-                    odom_to_tag_transform.transform.rotation.w,
-                ]
-            ).as_quat()
-            rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
-
-            # Update the transform with the rotated quaternion
-            odom_to_tag_transform.transform.rotation.x = rotated_quaternion[0]
-            odom_to_tag_transform.transform.rotation.y = rotated_quaternion[1]
-            odom_to_tag_transform.transform.rotation.z = rotated_quaternion[2]
-            odom_to_tag_transform.transform.rotation.w = rotated_quaternion[3]
-
-            # Use the known map coordinates of the apriltag as an offset
-            odom_to_tag_transform.transform.translation.x -= float(xyz[0])
-            odom_to_tag_transform.transform.translation.y -= float(xyz[1])
-            odom_to_tag_transform.transform.translation.z = 0.0
-
-            self.map_to_odom_tf = odom_to_tag_transform
+                odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
+                self.map_to_odom_tf = odom_to_tag_transform
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
