@@ -4,8 +4,8 @@ struct SensorData {
   bool diggerBottomLimitSwitch;
   bool dumperTopLimitSwitch;
   bool dumperBottomLimitSwitch;
-  int leftMotorPotentiometer;   // New field for the left motor potentiometer value
-  int rightMotorPotentiometer;  // New field for the right motor potentiometer value
+  int leftMotorPotentiometer;
+  int rightMotorPotentiometer;
 };
 
 // Define the sensor pins here
@@ -13,10 +13,8 @@ struct SensorData {
 #define DIGGER_BOTTOM_LIMIT_SWITCH 3
 #define DUMPER_TOP_LIMIT_SWITCH 4
 #define DUMPER_BOTTOM_LIMIT_SWITCH 5
-
-// Define the analog pins for the potentiometers
-#define LEFT_MOTOR_POT_PIN A0 //TODO: Don't no actual number of pin
-#define RIGHT_MOTOR_POT_PIN A1
+#define LEFT_MOTOR_POT_PIN A0 // TODO: We don't know the actual number of pin yet
+#define RIGHT_MOTOR_POT_PIN A1 // TODO: We don't know the actual number of pin yet
 
 void setup() {
   // Initialize serial communication
