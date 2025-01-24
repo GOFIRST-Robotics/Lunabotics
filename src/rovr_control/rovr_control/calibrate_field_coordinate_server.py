@@ -38,10 +38,14 @@ class CalibrateFieldCoordinateServer(Node):
         if not self.cli_set_apriltag_odometry.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Apriltag odom service not available")
             goal_handle.abort()
+            result.error_message = "Apriltag odom service not available"
+            result.success = False
             return result
         if not self.cli_spin.wait_for_server(timeout_sec=1.0):
             self.get_logger().error("Nav2 service not available")
             goal_handle.abort()
+            result.error_message = "Nav2 service not available"
+            result.success = False
             return result
 
         # Spin around to find the apriltag
@@ -58,16 +62,21 @@ class CalibrateFieldCoordinateServer(Node):
         if self.spin_handle.status == GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().warn("Failed to find apriltag")
             goal_handle.abort()
+            result.error_message = "Failed to find apriltag"
+            result.success = False
             return result
 
         if not self.cli_spin.wait_for_server(timeout_sec=1.0):
             self.get_logger().error("Apriltag odom service not available")
             goal_handle.abort()
+            result.error_message = "Apriltag odom service not available"
+            result.success = False
             return result
         spin_goal = Spin.Goal(target_yaw=math.pi)
         self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(spin_goal)
         await self.spin_handle.get_result_async()
         goal_handle.succeed()
+        result.success = True
         return result
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
