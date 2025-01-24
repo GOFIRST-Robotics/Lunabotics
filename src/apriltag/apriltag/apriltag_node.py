@@ -100,7 +100,9 @@ class ApriltagNode(Node):
 
                 # Lookup the odom to detected tag tf from the tf buffer
                 try:
-                    odom_to_tag_transform = self.tf_buffer.lookup_transform("odom", f"{tag.family}:{id}", rclpy.time.Time())
+                    odom_to_tag_transform = self.tf_buffer.lookup_transform(
+                        "odom", f"{tag.family}:{id}", rclpy.time.Time()
+                    )
                 except TransformException as ex:
                     self.get_logger().warn(f"Could not transform odom to the detected tag: {ex}")
                     return
