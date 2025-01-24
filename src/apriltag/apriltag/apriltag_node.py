@@ -147,9 +147,6 @@ class ApriltagNode(Node):
                 fused_pos.latitude = odom_to_tag_transform.transform.translation.x
                 fused_pos.longitude = odom_to_tag_transform.transform.translation.y
                 fused_pos.position_covariance = (np.reshape(np.array(tag.pose.pose.covariance), (6, 6))[:3, :3]).flatten()
-
-                self.map_to_odom_tf = odom_to_tag_transform
-
                 self.fusetags.publish(fused_pos)
 
     def broadcast_transform(self):
