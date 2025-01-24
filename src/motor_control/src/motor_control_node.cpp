@@ -54,6 +54,9 @@ struct MotorData {
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
 };
 
+// Max allowed position difference between linear actuators pushing digger into ground
+int maxPosDiff = 30;
+
 class PIDController {
 private:
   int COUNTS_PER_REVOLUTION; // How many encoder counts for one 360 degree rotation
