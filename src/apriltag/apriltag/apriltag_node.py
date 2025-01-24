@@ -29,7 +29,9 @@ class ApriltagNode(Node):
         relative_path = paths[field_type]
         self.file_path = os.path.join(current_dir, relative_path)
 
-        self.map_to_odom_tf = None
+        self.map_to_odom_tf = TransformStamped()
+        self.map_to_odom_tf.child_frame_id = "odom"
+        self.map_to_odom_tf.header.frame_id = "map"
 
         self.map_transform = TransformStamped()
         self.map_transform.child_frame_id = "odom"
@@ -65,19 +67,6 @@ class ApriltagNode(Node):
             self.map_transform = tag
             return True
         return False
-    
-    def average_quaternions(self, quaternions):
-        # Stack quaternions into a matrix
-        q_matrix = np.array(quaternions)
-        
-        # Compute the mean of the quaternions as if they are points in 4D space
-        q_mean = np.mean(q_matrix, axis=0)
-        
-        # Normalize the resulting quaternion
-        q_mean /= np.linalg.norm(q_mean)
-        
-        return q_mean
-
 
     def tagDetectionSub(self, msg):
         if len(msg.detections) == 0:
@@ -85,7 +74,6 @@ class ApriltagNode(Node):
 
         # Initialize cumulative sums and counter
         cumulative_position = np.zeros(3)  # For x, y, z
-        cumulative_quaternions = []  # List to store quaternions
         tag_count = 0
 
         for tag in msg.detections:
@@ -115,23 +103,26 @@ class ApriltagNode(Node):
                 continue
 
             # Adjust position
-            position = np.array([
-                odom_to_tag_transform.transform.translation.x - xyz[0],
-                odom_to_tag_transform.transform.translation.y - xyz[1],
-                0.0,  # Assuming a 2D map
-            ])
+            position = np.array(
+                [
+                    odom_to_tag_transform.transform.translation.x - xyz[0],
+                    odom_to_tag_transform.transform.translation.y - xyz[1],
+                    0.0,  # Assuming a 2D map
+                ]
+            )
             cumulative_position += position
 
             # Adjust rotation
             rotation_quaternion = R.from_euler("xyz", rpy, degrees=True).as_quat()
-            current_quaternion = np.array([
-                odom_to_tag_transform.transform.rotation.x,
-                odom_to_tag_transform.transform.rotation.y,
-                odom_to_tag_transform.transform.rotation.z,
-                odom_to_tag_transform.transform.rotation.w,
-            ])
+            current_quaternion = np.array(
+                [
+                    odom_to_tag_transform.transform.rotation.x,
+                    odom_to_tag_transform.transform.rotation.y,
+                    odom_to_tag_transform.transform.rotation.z,
+                    odom_to_tag_transform.transform.rotation.w,
+                ]
+            )
             rotated_quaternion = (R.from_quat(current_quaternion) * R.from_quat(rotation_quaternion)).as_quat()
-            cumulative_quaternions.append(rotated_quaternion)
 
             tag_count += 1
 
@@ -139,18 +130,21 @@ class ApriltagNode(Node):
             # Compute the average position
             avg_position = cumulative_position / tag_count
 
-            # Compute the average rotation using the helper function
-            avg_rotation = self.average_quaternions(cumulative_quaternions)
-
             # Update the map_to_odom_tf with the averages
             self.map_to_odom_tf.transform.translation.x = avg_position[0]
             self.map_to_odom_tf.transform.translation.y = avg_position[1]
             self.map_to_odom_tf.transform.translation.z = avg_position[2]
-            self.map_to_odom_tf.transform.rotation.x = avg_rotation[0]
-            self.map_to_odom_tf.transform.rotation.y = avg_rotation[1]
-            self.map_to_odom_tf.transform.rotation.z = avg_rotation[2]
-            self.map_to_odom_tf.transform.rotation.w = avg_rotation[3]
+            self.map_to_odom_tf.transform.rotation.x = rotated_quaternion[0]
+            self.map_to_odom_tf.transform.rotation.y = rotated_quaternion[1]
+            self.map_to_odom_tf.transform.rotation.z = rotated_quaternion[2]
+            self.map_to_odom_tf.transform.rotation.w = rotated_quaternion[3]
 
+            # TODO: Only position is being averaged right now, for quaternions look into https://en.wikipedia.org/wiki/Slerp
+            # # or maybe apply the rotations to the translation vectors then average all of them and use a identity quaternion
+            # as the rotation of the TF and the translation of the TF will have all the info we need
+
+            self.map_to_odom_tf.header.stamp = self.get_clock().now().to_msg()
+            self.postTransform(self.map_to_odom_tf)
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
