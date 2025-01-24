@@ -1,5 +1,7 @@
 # Request
 ---
 # Result
+bool success
+string error_message
 ---
 # Feedback
