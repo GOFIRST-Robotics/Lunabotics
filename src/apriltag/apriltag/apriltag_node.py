@@ -148,6 +148,8 @@ class ApriltagNode(Node):
                 fused_pos.longitude = odom_to_tag_transform.transform.translation.y
                 fused_pos.position_covariance = (np.reshape(np.array(tag.pose.pose.covariance), (6, 6))[:3, :3]).flatten()
 
+                self.map_to_odom_tf = odom_to_tag_transform
+
                 self.fusetags.publish(fused_pos)
 
     def broadcast_transform(self):
@@ -159,7 +161,7 @@ class ApriltagNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     # print(NavSatFix())
-    print(AprilTagDetection())
+    # print(AprilTagDetection())
 
     node = ApriltagNode()
     node.get_logger().info("Initializing the Apriltag node!")
