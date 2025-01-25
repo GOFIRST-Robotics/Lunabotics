@@ -80,8 +80,6 @@ class DiggerNode(Node):
         self.get_logger().info("DIGGER_BELT_MOTOR has been set to: " + str(self.DIGGER_BELT_MOTOR))
         self.get_logger().info("DIGGER_LIFT_MOTOR has been set to: " + str(self.DIGGER_LIFT_MOTOR))
 
-        self.lift_encoder_offset = 0  # measured in degrees
-
         # Current state of the digger belt
         self.running = False
         # Current position of the lift motor in degrees
@@ -94,12 +92,6 @@ class DiggerNode(Node):
         # Limit Switch States
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
-
-        # Maximum value of the lift motor encoder (bottom of the lift system) IN ENCODER COUNTS
-        self.MAX_ENCODER_COUNTS = -3600  # TODO: Tune this value on the robot!
-        # Maximum value of the lift motor encoder (bottom of the lift system) IN DEGREES
-        # Multiply the MAX_ENCODER_COUNTS by 360 and divide by 42 to get degrees
-        self.MAX_ENCODER_DEGREES = self.MAX_ENCODER_COUNTS * 360 / 42
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
@@ -135,11 +127,11 @@ class DiggerNode(Node):
             MotorCommandSet.Request(
                 type="position",
                 can_id=self.DIGGER_LIFT_MOTOR,
-                value=float(position + self.lift_encoder_offset),
+                value=float(position),
             )
         )
         # Wait until the goal position goal is reached to return
-        while abs(position + self.lift_encoder_offset - self.current_position_degrees) > self.goal_threshold:
+        while abs(position - self.current_position_degrees) > self.goal_threshold:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -272,13 +264,9 @@ class DiggerNode(Node):
         self.top_limit_pressed = limit_switches_msg.digger_top_limit_switch
         self.bottom_limit_pressed = limit_switches_msg.digger_bottom_limit_switch
         if self.top_limit_pressed:  # If the top limit switch is pressed
-            self.lift_encoder_offset = self.current_position_degrees
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
-            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
         elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
-            self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
-            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
 
 
 def main(args=None):
