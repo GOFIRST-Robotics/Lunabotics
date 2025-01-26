@@ -7,9 +7,6 @@ class AsyncNode(Node):
     def __init__(self, name: str):
         super().__init__(name)
 
-        # Safety precaution
-        self.cancelled = False
-
         self.sleep_goal_reached = Future()
         self.sleep_goal_reached.set_result(None)
 
@@ -29,7 +26,6 @@ class AsyncNode(Node):
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
-        self.cancelled = True
         if not self.sleep_goal_reached.done():
             self.timer.cancel()
             self.timer.destroy()
