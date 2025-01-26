@@ -11,6 +11,7 @@ from geometry_msgs.msg import TransformStamped
 from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray
 
 import xml.etree.ElementTree as ET
+import numpy as np
 
 
 class ApriltagNode(Node):
@@ -52,7 +53,9 @@ class ApriltagNode(Node):
 
             self.apriltag_map_coords[tag_id] = (xyz, rpy)
 
-        self.map_to_odom_tf = None
+        self.map_to_odom_tf = TransformStamped()
+        self.map_to_odom_tf.child_frame_id = "odom"
+        self.map_to_odom_tf.header.frame_id = "map"
 
         self.map_transform = TransformStamped()
         self.map_transform.child_frame_id = "odom"
@@ -92,6 +95,9 @@ class ApriltagNode(Node):
     def tagDetectionSub(self, msg):
         if len(msg.detections) > 0:
             tags = msg.detections
+            # Initialize cumulative sums and counter
+            cumulative_position = np.zeros(3, None)
+            tag_count = 0
             for tag in tags:
                 # Extract the id of the detected tag
                 id = tag.id
@@ -105,10 +111,16 @@ class ApriltagNode(Node):
                     )
                 except TransformException as ex:
                     self.get_logger().warn(f"Could not transform odom to the detected tag: {ex}")
-                    return
+                    continue
 
-                odom_to_tag_transform.child_frame_id = "odom"
-                odom_to_tag_transform.header.frame_id = "map"
+                # Use the known map coordinates of the apriltag as an offset
+                position = np.array(
+                    [
+                        odom_to_tag_transform.transform.translation.x - xyz[0],
+                        odom_to_tag_transform.transform.translation.y - xyz[1],
+                        0.0,  # Assuming a 2D map
+                    ]
+                )
 
                 # Apply a known rotation to the transform
                 rotation_quaternion = R.from_euler(
@@ -124,19 +136,25 @@ class ApriltagNode(Node):
                 ).as_quat()
                 rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
 
-                # Update the transform with the rotated quaternion
-                odom_to_tag_transform.transform.rotation.x = rotated_quaternion[0]
-                odom_to_tag_transform.transform.rotation.y = rotated_quaternion[1]
-                odom_to_tag_transform.transform.rotation.z = rotated_quaternion[2]
-                odom_to_tag_transform.transform.rotation.w = rotated_quaternion[3]
+                # Apply the rotation to the position before adding it to the cumulative sum
+                # Then, we can just average the positions and use an identity quaternion for the rotation
+                cumulative_position += R.from_quat(rotated_quaternion).apply(position)
+                tag_count += 1
 
-                # Use the known map coordinates of the apriltag as an offset
-                odom_to_tag_transform.transform.translation.x -= float(xyz[0])
-                odom_to_tag_transform.transform.translation.y -= float(xyz[1])
-                odom_to_tag_transform.transform.translation.z = 0.0
+            if tag_count > 0:
+                # Compute the average position
+                avg_position = cumulative_position / tag_count
 
-                odom_to_tag_transform.header.stamp = self.get_clock().now().to_msg()
-                self.map_to_odom_tf = odom_to_tag_transform
+                # Update the map_to_odom_tf with the averages
+                self.map_to_odom_tf.transform.translation.x = avg_position[0]
+                self.map_to_odom_tf.transform.translation.y = avg_position[1]
+                self.map_to_odom_tf.transform.translation.z = avg_position[2]
+                self.map_to_odom_tf.transform.rotation.x = 0.0
+                self.map_to_odom_tf.transform.rotation.y = 0.0
+                self.map_to_odom_tf.transform.rotation.z = 0.0
+                self.map_to_odom_tf.transform.rotation.w = 1.0
+
+                self.map_to_odom_tf.header.stamp = self.get_clock().now().to_msg()
 
     def broadcast_transform(self):
         """Broadcasts the map -> odom transform"""
