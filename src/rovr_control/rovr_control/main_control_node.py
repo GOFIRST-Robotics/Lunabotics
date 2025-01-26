@@ -158,6 +158,7 @@ class MainControlNode(Node):
         self.cli_digger_stop.call_async(Trigger.Request())  # Stop the digger belt
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
+        self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
