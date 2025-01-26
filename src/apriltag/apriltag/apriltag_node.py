@@ -159,6 +159,8 @@ class ApriltagNode(Node):
 
                 self.map_to_odom_tf.header.stamp = self.get_clock().now().to_msg()
 
+                # TODO: I think we should be publishing map->base_link here instead of map->odom
+                # since NavSatFix is supposed to be a global position estimate of the robot
                 fused_pos = NavSatFix()
                 fused_pos.header = tag.pose.header
                 fused_pos.header.stamp = self.get_clock().now().to_msg()
