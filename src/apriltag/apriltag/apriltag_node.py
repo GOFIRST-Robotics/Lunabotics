@@ -2,6 +2,7 @@ import os
 import numpy as np
 import rclpy
 from scipy.spatial.transform import Rotation as R
+
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster, TransformException
 from tf2_ros.buffer import Buffer
@@ -13,7 +14,6 @@ from isaac_ros_apriltag_interfaces.msg import AprilTagDetectionArray, AprilTagDe
 from sensor_msgs.msg._nav_sat_fix import NavSatFix
 
 import xml.etree.ElementTree as ET
-import numpy as np
 
 
 class ApriltagNode(Node):
