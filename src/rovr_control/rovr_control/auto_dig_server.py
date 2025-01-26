@@ -27,7 +27,6 @@ class AutoDigServer(AsyncNode):
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
-        self.cancelled = False  # Reset cancelled flag at the start of the goal
         self.get_logger().info("Starting Autonomous Digging Procedure!")
         result = AutoDig.Result()
 
@@ -62,52 +61,52 @@ class AutoDigServer(AsyncNode):
             return result
 
         # Start the digger belt
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Starting the digger belt")
             await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
 
         # Lower the digger so that it is just above the ground (get to this position fast)
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Lowering the digger to the starting position")
             await self.cli_lift_setPosition.call_async(
                 SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
             )
 
         # Lower the digger into the ground slowly
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Lowering the digger into the ground")
             await self.cli_lift_bottom.call_async(Trigger.Request())
 
         # Stay at the lowest position for 5 seconds while digging
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Start of Auto Digging in Place")
             await self.async_sleep(5)
             self.get_logger().info("Done Digging in Place")
 
         # Stop digging
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Stopping the digger belt")
             await self.cli_digger_stop.call_async(Trigger.Request())
 
         # Raise the digger back up using the lift (get to this position fast)
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Raising the digger to the ending position")
             await self.cli_lift_setPosition.call_async(
                 SetPosition.Request(position=goal_handle.request.lift_digging_end_position)
             )
 
         # Raise the digger the rest of the way slowly
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Raising the digger up to the top")
             await self.cli_lift_zero.call_async(Trigger.Request())
 
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Autonomous Digging Procedure Complete!")
             goal_handle.succeed()
             return result
         else:
             self.get_logger().info("Goal was cancelled")
-            goal_handle.abort()
+            goal_handle.canceled()
             return result
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):

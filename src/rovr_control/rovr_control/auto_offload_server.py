@@ -28,7 +28,6 @@ class AutoOffloadServer(AsyncNode):
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
-        self.cancelled = False  # Reset cancelled flag at the start of the goal
         """This method lays out the procedure for autonomously offloading!"""
         self.get_logger().info("Starting Autonomous Offload Procedure!")
         result = AutoOffload.Result()
@@ -56,33 +55,33 @@ class AutoOffloadServer(AsyncNode):
             return result
 
         # Drive backward into the berm zone
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Auto Driving")
             await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=-0.25, turning_power=0.0))
 
         # drive for 10 seconds
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             await self.async_sleep(10)  # Allows for task to be canceled
             await self.cli_drivetrain_stop.call_async(Trigger.Request())
 
         # Dump the material
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Auto Dumping")
             await self.cli_dumper_extend.call_async(Trigger.Request())
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             # wait for 5 seconds before retracting the dumper
             await self.async_sleep(5)  # Allows for task to be canceled
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             # retract the dumper
             await self.cli_dumper_retract.call_async(Trigger.Request())
 
-        if not self.cancelled:
+        if not goal_handle.is_cancel_requested:
             self.get_logger().info("Autonomous Offload Procedure Complete!")
             goal_handle.succeed()
             return result
         else:
             self.get_logger().info("Goal was cancelled")
-            goal_handle.abort()
+            goal_handle.canceled()
             return result
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
