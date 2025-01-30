@@ -291,6 +291,8 @@ public:
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
     // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
+
+    potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>(" ", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
   }
 
 private:
@@ -347,6 +349,19 @@ private:
 
     RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
     RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+  }
+
+  void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers::SharedPtr msg) {
+    error = msg.left_motor_pot - msg.right_motor_pot;
+    if (abs(error) > maxPosDiff) {
+      vesc_set_duty_cycle(0, 0.0);//need ID
+      vesc_set_duty_cycle(0, 0.0);//need ID
+    }
+    else{
+      float pvalue = 0.0;
+      float speed_adjustment = error*pvalue;
+      //adjust left and right motor speed
+    }
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
@@ -407,6 +422,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
+  rclcpp::Subscription<rovr_interfaces::msg::Potentiometers>::SharedPtr potentiometer_sub; 
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
 };
