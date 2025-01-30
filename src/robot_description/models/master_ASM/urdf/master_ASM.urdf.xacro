@@ -53,31 +53,51 @@ Stephen Brawner (brawner@gmail.com)
     </collision>
   </link>
 
-  <!-- ZED 2i Camera -->
+  <xacro:arg name="zed2i_front" />
+  <xacro:arg name="zed2i_rear" />
+  <xacro:arg name="zed2i" />
+  <xacro:arg name="zed2i" />
   <xacro:arg name="use_zed_localization" default="true" />
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
-  <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false">
-    <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
-    <gnss_origin></gnss_origin>
-  </xacro:zed_camera>
-  <!-- Add a joint to connect the ZED 2i Camera model to the robot -->
+   <!-- Add the first ZED Camera -->  
+  <xacro:zed_camera name="zed2i_front" model="zed2i" />
+  <!-- Add the second ZED Camera -->
+  <xacro:zed_camera name="zed2i_rear" model="zed2i" />
+
   <xacro:if value="$(arg use_zed_localization)">
-    <!-- ZED Localization -> The reference link is 'zed2i_camera_link' and 'base_link' is a child -->
-    <joint name="zed2i_joint" type="fixed">
-      <parent link="zed2i_camera_link"/>
+    <!-- ZED Localization -> The reference link is '$(arg camera_name_1)_camera_link' and 'base_link' is a child -->
+    <joint name="zed2i_front_joint" type="fixed">
+      <parent link="zed2i_front_camera_link"/>
       <child link="base_link"/>
-      <origin xyz="-0.5 0 0.375" rpy="0 0 0"/>
+      <origin
+        xyz="-0.12 0.0 -0.25"
+        rpy="0 0 0"
+      />
     </joint>    
   </xacro:if>
   <xacro:unless value="$(arg use_zed_localization)">
-    <!-- NO ZED Localization -> 'zed2i_camera_link' is a child of 'base_link' -->
-    <joint name="zed2i_joint" type="fixed">
+    <!-- NO ZED Localization -> '$(arg camera_name)_camera_link' is a child of 'base_link' -->
+    <joint name="zed2i_front_joint" type="fixed">
       <parent link="base_link"/>
-      <child link="zed2i_camera_link"/>
-      <origin xyz="0.5 0 -0.375" rpy="0 0 0"/>
+      <child link="zed2i_front_camera_link"/>
+      <origin
+        xyz="0.12 0.0 0.25"
+        rpy="0 0 0"
+      />
     </joint>
   </xacro:unless>
+  
+   <joint name="zed2i_rear_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="zed2i_rear_camera_link"/>
+    <origin
+      xyz="-0.12 0.0 0.25"
+      rpy="0 0 ${M_PI}"
+    />
+  </joint>
 
+
+  <!-- THIS STILL NEEDS TO CHANGE :)) -->
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
       <!-- <visualize>true</visualize> -->
