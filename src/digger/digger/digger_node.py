@@ -16,7 +16,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.msg import LimitSwitches
+from rovr_interfaces.msg import LimitSwitches, Potentiometers
 from std_srvs.srv import Trigger
 
 
@@ -64,28 +64,31 @@ class DiggerNode(Node):
 
         # Define subscribers here
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
-
-        # Define timers here
-        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter("DIGGER_BELT_MOTOR", 2)
-        self.declare_parameter("DIGGER_LIFT_MOTOR", 1)
+        self.declare_parameter("DIGGER_MOTOR", 3)
+        self.declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2)
+        self.declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1)
 
         # Assign the ROS Parameters to member variables below #
-        self.DIGGER_BELT_MOTOR = self.get_parameter("DIGGER_BELT_MOTOR").value
-        self.DIGGER_LIFT_MOTOR = self.get_parameter("DIGGER_LIFT_MOTOR").value
+        self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
+        self.DIGGER_LEFT_LINEAR_ACTUATOR = self.get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").value
+        self.DIGGER_RIGHT_LINEAR_ACTUATOR = self.get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").value
 
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info("DIGGER_BELT_MOTOR has been set to: " + str(self.DIGGER_BELT_MOTOR))
-        self.get_logger().info("DIGGER_LIFT_MOTOR has been set to: " + str(self.DIGGER_LIFT_MOTOR))
+        self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
+        self.get_logger().info("DIGGER_LEFT_LINEAR_ACTUATOR has been set to: " + str(self.DIGGER_LEFT_LINEAR_ACTUATOR))
+        self.get_logger().info(
+            "DIGGER_RIGHT_LINEAR_ACTUATOR has been set to: " + str(self.DIGGER_RIGHT_LINEAR_ACTUATOR)
+        )
 
         # Current state of the digger belt
         self.running = False
-        # Current position of the lift motor in degrees
-        self.current_position_degrees = 0  # Relative encoders always initialize to 0
+        # Current position of the lift motor in potentiometer units (0 to 1023)
+        self.current_lift_position = None  # We don't know the current position yet
         # Goal Threshold
-        self.goal_threshold = 180  # in degrees of the motor # TODO: Tune this threshold value if needed
+        self.goal_threshold = 2  # in potentiometer units (0 to 1023) # TODO: Tune this threshold value if needed
         # Current state of the lift system
         self.lift_running = False
 
@@ -98,15 +101,13 @@ class DiggerNode(Node):
         """This method sets power to the digger belt."""
         self.running = True
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_BELT_MOTOR, value=digger_power)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=digger_power)
         )
 
     def stop(self) -> None:
         """This method stops the digger belt."""
         self.running = False
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_BELT_MOTOR, value=0.0)
-        )
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=0.0))
 
     def toggle(self, digger_belt_power: float) -> None:
         """This method toggles the digger belt."""
@@ -116,22 +117,33 @@ class DiggerNode(Node):
             self.set_power(digger_belt_power)
 
     def set_position(self, position: int) -> None:
-        """This method sets the position (in degrees) of the digger lift and waits until the goal is reached."""
-        if position < self.current_position_degrees and not self.running:
+        """This method sets the position (in potentiometer units) of the digger lift and waits until the goal is reached."""
+        if position > self.current_lift_position and not self.running:
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
             return
         self.get_logger().info("Setting the lift position to: " + str(position))
         self.long_service_running = True
+        # TODO: Instead of using the normal VESC srvs on both motors here,
+        # invent a new srv in the motor_control_node that sets the position of
+        # both motors at once and can be used in conjunction with the
+        # Potentiometer_callback being worked on in that node???
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
-                can_id=self.DIGGER_LIFT_MOTOR,
+                can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR,
+                value=float(position),
+            )
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(
+                type="position",
+                can_id=self.DIGGER_RIGHT_LINEAR_ACTUATOR,
                 value=float(position),
             )
         )
         # Wait until the goal position goal is reached to return
-        while abs(position - self.current_position_degrees) > self.goal_threshold:
+        while abs(position - self.current_lift_position) > self.goal_threshold:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -143,7 +155,10 @@ class DiggerNode(Node):
         """This method stops the lift."""
         self.lift_running = False
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=0.0)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR, value=0.0)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_RIGHT_LINEAR_ACTUATOR, value=0.0)
         )
 
     def lift_set_power(self, power: float) -> None:
@@ -161,8 +176,15 @@ class DiggerNode(Node):
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
             return
+        # TODO: Instead of using the normal VESC srvs on both motors here,
+        # invent a new srv in the motor_control_node that sets the duty cycle of
+        # both motors at once and can be used in conjunction with the
+        # Potentiometer_callback being worked on in that node???
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=power)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR, value=power)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_RIGHT_LINEAR_ACTUATOR, value=power)
         )
 
     def zero_lift(self) -> None:
@@ -244,15 +266,17 @@ class DiggerNode(Node):
         response.success = True
         return response
 
-    # Define timer callback methods here
-    def timer_callback(self):
-        """Publishes whether or not the current goal position has been reached."""
-        # This service call will return a future object, that will eventually contain the position in degrees
-        future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.DIGGER_LIFT_MOTOR))
-        future.add_done_callback(self.done_callback)
-
-    def done_callback(self, future):
-        self.current_position_degrees = future.result().data
+    # Define the subscriber callback for the potentiometers topic
+    def pot_callback(self, msg: Potentiometers):
+        """Helps us know whether or not the current goal position has been reached."""
+        # Should use the same threshold that is being used in the motor_coontrol_node
+        if abs(msg.left_motor_pot - msg.right_motor_pot) > 30:
+            self.get_logger().error("ERROR: The two potentiometer values are too far apart!")
+            self.current_lift_position = None  # We don't know the current position anymore
+            self.stop_lift()  # Stop the lift system
+        else:
+            # Average the two potentiometer values
+            self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
 
     # Define subscriber callback methods here
     def limit_switch_callback(self, limit_switches_msg):
@@ -263,10 +287,6 @@ class DiggerNode(Node):
             self.stop_lift()  # Stop the lift system
         self.top_limit_pressed = limit_switches_msg.digger_top_limit_switch
         self.bottom_limit_pressed = limit_switches_msg.digger_bottom_limit_switch
-        if self.top_limit_pressed:  # If the top limit switch is pressed
-            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
-        elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
-            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
 
 
 def main(args=None):

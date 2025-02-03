@@ -268,20 +268,20 @@ public:
     // Define default values for our ROS parameters below #
     this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
-    this->declare_parameter("DIGGER_LIFT_MOTOR", 1);
+    this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2);
+    this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
-    RCLCPP_INFO(this->get_logger(), "DIGGER_LIFT_MOTOR parameter set to: %ld", this->get_parameter("DIGGER_LIFT_MOTOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_LEFT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
-
-    this->pid_controllers[this->get_parameter("DIGGER_LIFT_MOTOR").as_int()] = new PIDController(42, 0.005, 0.0, 0.0, 0.0, 20, 0.05);
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -292,7 +292,7 @@ public:
     // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
 
-    potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>(" ", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
+    potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
   }
 
 private:
@@ -351,13 +351,18 @@ private:
   void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers::SharedPtr msg) {
     error = msg.left_motor_pot - msg.right_motor_pot;
     if (abs(error) > maxPosDiff) {
-      vesc_set_duty_cycle(0, 0.0);//need ID
-      vesc_set_duty_cycle(0, 0.0);//need ID
+      // Stop both motors!
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      // Log an error message
+      RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
     else{
-      float pvalue = 0.0;
-      float speed_adjustment = error*pvalue;
-      //adjust left and right motor speed
+      float kP = 0.0333; // TODO: This will need to be tuned on the real robot!
+      float speed_adjustment = error * kP;
+      // TODO: adjust the current left and right motor speed based on speed_adjustment
+      // TODO: The above will require us knowing what we are currently trying to run the motors at
+      // TODO: The above will need to consider position control as well as duty cycle control
     }
   }
 
