@@ -33,9 +33,11 @@
   <exec_depend>ros2socketcan_bridge</exec_depend>
   <exec_depend>python3-serial</exec_depend>
   <exec_depend>nav2_simple_commander</exec_depend>
+  <exec_depend>behavior_tree</exec_depend>
+  <exec_depend>behaviortree_ros2</exec_depend>
 
   <export>
-    <build_type>ament_python</build_type>
     <build_type>ament_cmake</build_type>
+    <build_type>ament_python</build_type>
   </export>
 </package>
