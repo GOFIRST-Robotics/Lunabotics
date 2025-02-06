@@ -55,19 +55,23 @@ Stephen Brawner (brawner@gmail.com)
 
   <xacro:arg name="use_zed_localization" default="true" />
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
+
    <!-- Add the first ZED Camera -->  
-  <xacro:zed_camera name="zed2i_front" model="zed2i" enable_gnss="false">
+  <xacro:zed_camera name="zed2i" model="zed2i" enable_gnss="false">
     <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
     <gnss_origin></gnss_origin>
+  </xacro:zed_camera>
+
   <!-- Add the second ZED Camera -->
   <xacro:zed_camera name="zed2i_rear" model="zed2i" enable_gnss="false">
     <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
     <gnss_origin></gnss_origin>
+  </xacro:zed_camera>
 
   <xacro:if value="$(arg use_zed_localization)">
     <!-- ZED Localization -> The reference link is '$(arg camera_name_1)_camera_link' and 'base_link' is a child -->
-    <joint name="zed2i_front_joint" type="fixed">
-      <parent link="zed2i_front_camera_link"/>
+    <joint name="zed2i_joint" type="fixed">
+      <parent link="zed2i_camera_link"/>
       <child link="base_link"/>
       <origin
         xyz="-0.12 0.0 -0.25"
@@ -77,9 +81,9 @@ Stephen Brawner (brawner@gmail.com)
   </xacro:if>
   <xacro:unless value="$(arg use_zed_localization)">
     <!-- NO ZED Localization -> '$(arg camera_name)_camera_link' is a child of 'base_link' -->
-    <joint name="zed2i_front_joint" type="fixed">
+    <joint name="zed2i_joint" type="fixed">
       <parent link="base_link"/>
-      <child link="zed2i_front_camera_link"/>
+      <child link="zed2i_camera_link"/>
       <origin
         xyz="0.12 0.0 0.25"
         rpy="0 0 0"
@@ -87,7 +91,7 @@ Stephen Brawner (brawner@gmail.com)
     </joint>
   </xacro:unless>
   
-   <joint name="zed2i_rear_joint" type="fixed">
+  <joint name="zed2i_rear_joint" type="fixed">
     <parent link="base_link"/>
     <child link="zed2i_rear_camera_link"/>
     <origin
@@ -96,11 +100,8 @@ Stephen Brawner (brawner@gmail.com)
     />
   </joint>
 
-
-  <!-- THIS STILL NEEDS TO CHANGE :)) -->
   <gazebo reference="zed2i_camera_link">
     <sensor name="camera" type="camera">
-      <!-- <visualize>true</visualize> -->
       <always_on>true</always_on>
       <update_rate>30</update_rate>
       <camera>
@@ -120,7 +121,6 @@ Stephen Brawner (brawner@gmail.com)
       <gz_frame_id>zed2i_left_camera_optical_frame</gz_frame_id>
     </sensor>
     <sensor name="depthcamera" type="depth">
-      <!-- <visualize>true</visualize> -->
       <always_on>true</always_on>
       <update_rate>30</update_rate>
       <camera>
@@ -140,6 +140,48 @@ Stephen Brawner (brawner@gmail.com)
       <gz_frame_id>zed2i_left_camera_optical_frame</gz_frame_id>
     </sensor>
   </gazebo>
+
+  <!-- TODO: Test if this works in Gazebo (both ZEDs) -->
+  <!-- <gazebo reference="zed2i_rear_camera_link">
+    <sensor name="camera_rear" type="camera">
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+      <camera>
+        <horizontal_fov>1.91986218</horizontal_fov> 
+        <image>
+          <format>R8G8B8</format>
+          <width>1280</width>
+          <height>720</height>
+        </image>
+        <clip>
+          <near>0.3</near>
+          <far>5.0</far>
+        </clip>
+      </camera>
+      <topic>/color/image_rear</topic>
+      <info_topic>/color/camera_info_rear</info_topic>
+      <gz_frame_id>zed2i_rear_left_camera_optical_frame</gz_frame_id>
+    </sensor>
+    <sensor name="depthcamera_rear" type="depth">
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+      <camera>
+        <horizontal_fov>1.91986218</horizontal_fov> 
+        <image>
+          <format>R8G8B8</format>
+          <width>1280</width>
+          <height>720</height>
+        </image>
+        <clip>
+          <near>0.3</near>
+          <far>20.0</far>
+        </clip>
+      </camera>
+      <topic>/depth/image_rear</topic>
+      <info_topic>/depth/camera_info_rear</info_topic>
+      <gz_frame_id>zed2i_rear_left_camera_optical_frame</gz_frame_id>
+    </sensor>
+  </gazebo> -->
 
   <link
     name="swerve1_Link">

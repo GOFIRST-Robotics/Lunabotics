@@ -65,14 +65,12 @@ def generate_launch_description():
         package="zed_components",
         namespace="zed2i",
         plugin="stereolabs::ZedCamera",
-        name="zed_node_front",
+        name="zed_node",
         parameters=[
             # YAML files
             config_file_common,  # Common parameters
             config_file_camera,  # Camera related parameters
-            {
-                'serial_number': 38536461
-            },
+            {"serial_number": 38536461},
         ],
         extra_arguments=[{"use_intra_process_comms": True}],
     )
@@ -87,13 +85,10 @@ def generate_launch_description():
             # YAML files
             config_file_common,  # Common parameters
             config_file_camera,  # Camera related parameters
-            {
-                'serial_number': 32113890
-            },
+            {"serial_number": 32113890},
         ],
         extra_arguments=[{"use_intra_process_comms": True}],
     )
-
 
     # ROS 2 Component Container
     zed_container = ComposableNodeContainer(
@@ -118,7 +113,7 @@ def generate_launch_description():
             [
                 FindExecutable(name="ros2"),
                 " service call ",
-                "/zed2i/zed_node_front/start_svo_rec ",
+                "/zed2i/zed_node/start_svo_rec ",
                 "zed_msgs/srv/StartSvoRec ",
                 # Tune this bitrate to adjust file size
                 f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
@@ -135,7 +130,7 @@ def generate_launch_description():
                     [
                         FindExecutable(name="ros2"),
                         " service call ",
-                        "/zed2i/zed_node_front/stop_svo_rec ",
+                        "/zed2i/zed_node/stop_svo_rec ",
                         "std_srvs/srv/Trigger ",
                     ]
                 ],
@@ -185,7 +180,7 @@ def generate_launch_description():
             record_svo_srv_front,
             stop_svo_recording_front,
             record_svo_srv_rear,
-            stop_svo_recording_rear,       
+            stop_svo_recording_rear,
             robot_state_publisher,
             zed_container,
         ]
