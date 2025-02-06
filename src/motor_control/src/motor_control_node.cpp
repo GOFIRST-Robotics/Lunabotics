@@ -15,6 +15,7 @@
 // Import custom ROS 2 interfaces
 #include "rovr_interfaces/srv/motor_command_get.hpp"
 #include "rovr_interfaces/srv/motor_command_set.hpp"
+#include "rovr_interfaces/msg/potentiometers.hpp"
 
 // Import Native C++ Libraries
 #include <chrono>
@@ -348,8 +349,8 @@ private:
     RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
-  void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers::SharedPtr msg) {
-    error = msg.left_motor_pot - msg.right_motor_pot;
+  void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers msg) {
+    int error = msg.left_motor_pot - msg.right_motor_pot;
     if (abs(error) > maxPosDiff) {
       // Stop both motors!
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
@@ -361,6 +362,8 @@ private:
       float kP = 0.0333; // TODO: This will need to be tuned on the real robot!
       float speed_adjustment = error * kP;
       // TODO: adjust the current left and right motor speed based on speed_adjustment
+      vesc_set_velocity(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), (vesc_get_velocity(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()).value())-speed_adjustment);
+      vesc_set_velocity(this->get_parameter("DIGGER_RIGHT_LINEAT_ACTUATOR").as_int(), (vesc_get_velocity(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()).value())+speed_adjustment);
       // TODO: The above will require us knowing what we are currently trying to run the motors at
       // TODO: The above will need to consider position control as well as duty cycle control
     }
