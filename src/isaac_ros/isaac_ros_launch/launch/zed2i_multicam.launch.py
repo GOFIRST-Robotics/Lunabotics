@@ -71,7 +71,7 @@ def generate_launch_description():
             config_file_common,  # Common parameters
             config_file_camera,  # Camera related parameters
             {
-                'serial_number': 0
+                'serial_number': 38536461
             },
         ],
         extra_arguments=[{"use_intra_process_comms": True}],
@@ -88,7 +88,7 @@ def generate_launch_description():
             config_file_common,  # Common parameters
             config_file_camera,  # Camera related parameters
             {
-                'serial_number': 0
+                'serial_number': 32113890
             },
         ],
         extra_arguments=[{"use_intra_process_comms": True}],

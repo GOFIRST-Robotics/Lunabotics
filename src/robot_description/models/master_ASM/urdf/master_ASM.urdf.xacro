@@ -53,16 +53,16 @@ Stephen Brawner (brawner@gmail.com)
     </collision>
   </link>
 
-  <xacro:arg name="zed2i_front" />
-  <xacro:arg name="zed2i_rear" />
-  <xacro:arg name="zed2i" />
-  <xacro:arg name="zed2i" />
   <xacro:arg name="use_zed_localization" default="true" />
   <xacro:include filename="$(find zed_wrapper)/urdf/zed_macro.urdf.xacro" />
    <!-- Add the first ZED Camera -->  
-  <xacro:zed_camera name="zed2i_front" model="zed2i" />
+  <xacro:zed_camera name="zed2i_front" model="zed2i" enable_gnss="false">
+    <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
+    <gnss_origin></gnss_origin>
   <!-- Add the second ZED Camera -->
-  <xacro:zed_camera name="zed2i_rear" model="zed2i" />
+  <xacro:zed_camera name="zed2i_rear" model="zed2i" enable_gnss="false">
+    <!-- This block is required even if enable_gnss="false" for some reason, but you can leave it empty -->
+    <gnss_origin></gnss_origin>
 
   <xacro:if value="$(arg use_zed_localization)">
     <!-- ZED Localization -> The reference link is '$(arg camera_name_1)_camera_link' and 'base_link' is a child -->
