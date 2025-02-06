@@ -4,5 +4,7 @@ float64 lift_digging_end_position
 float64 digger_belt_power
 ---
 # Result
+bool success
+string error_message
 ---
 # Feedback
