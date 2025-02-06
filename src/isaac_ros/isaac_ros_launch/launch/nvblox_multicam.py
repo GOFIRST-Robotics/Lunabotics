@@ -84,12 +84,34 @@ def generate_launch_description():
             SetRemap(
                 src=["camera_0/color/camera_info"], dst=["/zed2i/zed_node/rgb/camera_info"], condition=setup_for_zed
             ),
+            SetRemap(
+                src=["camera_1/depth/image"],
+                dst=["/zed2i/zed_node_rear/depth/depth_registered"],
+                condition=setup_for_zed,
+            ),
+            SetRemap(
+                src=["camera_1/depth/camera_info"],
+                dst=["/zed2i/zed_node_rear/depth/camera_info"],
+                condition=setup_for_zed,
+            ),
+            SetRemap(
+                src=["camera_1/color/image"], dst=["/zed2i/zed_node_rear/rgb/image_rect_color"], condition=setup_for_zed
+            ),
+            SetRemap(
+                src=["camera_1/color/camera_info"],
+                dst=["/zed2i/zed_node_rear/rgb/camera_info"],
+                condition=setup_for_zed,
+            ),
             SetRemap(src=["pose"], dst=["/zed2i/zed_node/pose"], condition=setup_for_zed),
             # Remappings for gazebo sim data
             SetRemap(src=["camera_0/depth/image"], dst=["/depth/image"], condition=setup_for_gazebo),
             SetRemap(src=["camera_0/depth/camera_info"], dst=["/depth/camera_info"], condition=setup_for_gazebo),
             SetRemap(src=["camera_0/color/image"], dst=["/color/image"], condition=setup_for_gazebo),
-            SetRemap(src=["camera_0/color/camera_info"], dst=["/color/camera_info"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_0/color/camera_info"], dst=["/color/camera_info_rear"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_1/depth/image"], dst=["/depth/image_rear"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_1/depth/camera_info"], dst=["/depth/camera_info_rear"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_1/color/image"], dst=["/color/image_rear"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_1/color/camera_info"], dst=["/color/camera_info_rear"], condition=setup_for_gazebo),
             # Include the node container
             load_composable_nodes,
         ]
