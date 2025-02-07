@@ -13,8 +13,7 @@ class CalibrateFieldCoordinateAction : public BT::RosActionNode<CalibrateFieldCo
         : RosActionNode<CalibrateFieldCoordinate>(name, conf, params)
         {}
 
-        BT::NodeStatus onResultReceived(const WrappedResult& wr) override
-        {
+        BT::NodeStatus onResultReceived(const WrappedResult& wr) override {
             if (wr.result->success) {
                 return BT::NodeStatus::SUCCESS;
             }
@@ -23,4 +22,9 @@ class CalibrateFieldCoordinateAction : public BT::RosActionNode<CalibrateFieldCo
         }
 };
 
-//https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Writing-A-Simple-Cpp-Service-And-Client.html#write-the-client-node
+int main() {
+    BT::BehaviorTreeFactory factory;
+    factory.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinate"); // "MyAction" is the name used in the BT XML
+
+    return 0;
+}
