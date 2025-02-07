@@ -110,7 +110,7 @@ class DiggerNode(Node):
             self.set_power(digger_belt_power)
 
     def set_position(self, position: int) -> None:
-        """This method sets the position (in potentiometer units) of the digger lift and waits until the goal is reached."""
+        """This method sets the position of the digger lift and waits until the goal is reached."""
         if position > self.current_lift_position and not self.running:
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
