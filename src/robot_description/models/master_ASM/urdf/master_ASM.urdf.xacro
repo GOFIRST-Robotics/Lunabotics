@@ -88,7 +88,7 @@ Stephen Brawner (brawner@gmail.com)
   <joint name="zed2i_rear_joint" type="fixed">
     <parent link="base_link"/>
     <child link="zed2i_rear_camera_link"/>
-    <origin xyz="0.5 0 -0.375" rpy="0 0 ${M_PI}"/>
+    <origin xyz="-0.5 0 -0.375" rpy="0 0 ${M_PI}"/>
   </joint>
 
   <gazebo reference="zed2i_camera_link">
@@ -132,8 +132,7 @@ Stephen Brawner (brawner@gmail.com)
     </sensor>
   </gazebo>
 
-  <!-- TODO: Test if this works in Gazebo (both ZEDs) -->
-  <!-- <gazebo reference="zed2i_rear_camera_link">
+  <gazebo reference="zed2i_rear_camera_link">
     <sensor name="camera_rear" type="camera">
       <always_on>true</always_on>
       <update_rate>30</update_rate>
@@ -172,7 +171,7 @@ Stephen Brawner (brawner@gmail.com)
       <info_topic>/depth/camera_info_rear</info_topic>
       <gz_frame_id>zed2i_rear_left_camera_optical_frame</gz_frame_id>
     </sensor>
-  </gazebo> -->
+  </gazebo>
 
   <link
     name="swerve1_Link">
