@@ -14,9 +14,9 @@ from nav2_common.launch import RewrittenYaml
 def generate_launch_description():
 
     # Launch Configurations
-    setup_for_zed = LaunchConfiguration("setup_for_zed", default="False")
+    setup_for_zed = LaunchConfiguration("setup_for_zed", default="True")
     use_nvblox = LaunchConfiguration("use_nvblox", default="True")
-    zed_multicam = LaunchConfiguration("zed_multicam", default="False")
+    zed_multicam = LaunchConfiguration("zed_multicam", default="True")
 
     # Launch Arguments
     run_rviz_arg = DeclareLaunchArgument("run_rviz_robot", default_value="True", description="Whether to start RVIZ")
@@ -42,7 +42,7 @@ def generate_launch_description():
     )
     zed_multicam_arg = DeclareLaunchArgument(
         "zed_multicam",
-        default_value="False",
+        default_value="True",
         description="Whether to use two ZED cameras",
     )
 
@@ -67,11 +67,11 @@ def generate_launch_description():
         launch_arguments={
             "record_svo": LaunchConfiguration("record_svo"),
         }.items(),
-        condition=IfCondition(PythonExpression([setup_for_zed, " and ", not zed_multicam])),
+        condition=IfCondition(PythonExpression([setup_for_zed, " and not ", zed_multicam])),
     )
     zed_multicam_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed_multicam.launch.py"])]
+            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed2i_multicam.launch.py"])]
         ),
         launch_arguments={
             "record_svo": LaunchConfiguration("record_svo"),
@@ -99,7 +99,7 @@ def generate_launch_description():
             "attach_to_shared_component_container": "True",
             "component_container_name": shared_container_name,
         }.items(),
-        condition=IfCondition(PythonExpression([use_nvblox, " and ", not zed_multicam])),
+        condition=IfCondition(PythonExpression([use_nvblox, " and not ", zed_multicam])),
     )
     nvblox_multicam_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
