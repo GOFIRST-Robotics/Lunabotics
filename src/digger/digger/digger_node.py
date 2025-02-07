@@ -35,6 +35,7 @@ class DiggerNode(Node):
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
+        self.cli_digger_lift_set = self.create_client(MotorCommandSet, "digger_lift/set")
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(
@@ -68,20 +69,12 @@ class DiggerNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DIGGER_MOTOR", 3)
-        self.declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2)
-        self.declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1)
 
         # Assign the ROS Parameters to member variables below #
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
-        self.DIGGER_LEFT_LINEAR_ACTUATOR = self.get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").value
-        self.DIGGER_RIGHT_LINEAR_ACTUATOR = self.get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
-        self.get_logger().info("DIGGER_LEFT_LINEAR_ACTUATOR has been set to: " + str(self.DIGGER_LEFT_LINEAR_ACTUATOR))
-        self.get_logger().info(
-            "DIGGER_RIGHT_LINEAR_ACTUATOR has been set to: " + str(self.DIGGER_RIGHT_LINEAR_ACTUATOR)
-        )
 
         # Current state of the digger belt
         self.running = False
@@ -124,17 +117,10 @@ class DiggerNode(Node):
             return
         self.get_logger().info("Setting the lift position to: " + str(position))
         self.long_service_running = True
-        # TODO: Instead of using the normal VESC srvs on both motors here,
-        # invent a new srv in the motor_control_node that sets the position of
-        # both motors at once and can be used in conjunction with the
-        # Potentiometer_callback being worked on in that node???
-        self.cli_motor_set.call_async(
+        self.cli_digger_lift_set.call_async(
             MotorCommandSet.Request(
-                type="set_digger",
-                can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR,
-                can_id2=self.DIGGER_RIGHT_LINEAR_ACTUATOR,
+                type="position",
                 value=float(position),
-                duty_cycle=False,
             )
         )
         # Wait until the goal position goal is reached to return
@@ -149,11 +135,11 @@ class DiggerNode(Node):
     def stop_lift(self) -> None:
         """This method stops the lift."""
         self.lift_running = False
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR, value=0.0)
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_RIGHT_LINEAR_ACTUATOR, value=0.0)
+        self.cli_digger_lift_set.call_async(
+            MotorCommandSet.Request(
+                type="duty_cycle",
+                value=0.0,
+            )
         )
 
     def lift_set_power(self, power: float) -> None:
@@ -171,17 +157,10 @@ class DiggerNode(Node):
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
             return
-        # TODO: Instead of using the normal VESC srvs on both motors here,
-        # invent a new srv in the motor_control_node that sets the duty cycle of
-        # both motors at once and can be used in conjunction with the
-        # Potentiometer_callback being worked on in that node???
-        self.cli_motor_set.call_async(
+        self.cli_digger_lift_set.call_async(
             MotorCommandSet.Request(
-                type="set_digger",
-                can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR,
-                can_id2=self.DIGGER_RIGHT_LINEAR_ACTUATOR,
+                type="duty_cycle",
                 value=power,
-                duty_cycle=True,
             )
         )
 

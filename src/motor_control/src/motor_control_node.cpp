@@ -55,6 +55,12 @@ struct MotorData {
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
 };
 
+// Define a struct to store the current digger lift goal
+struct DiggerLiftGoal {
+  std::string type;
+  float value;
+};
+
 // Max allowed position difference between linear actuators pushing digger into ground
 int maxPosDiff = 30;
 
@@ -239,25 +245,18 @@ class MotorControlNode : public rclcpp::Node {
     RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d degrees", id, position); // Print Statement
   }
 
-  void vesc_set_digger(uint32_t idLeft, uint32_t idRight, float position, bool duty_cycle) {
-    int error = left_pot-right_pot; //need to get real error value
-    float kP = 0.0333; // TODO: This will need to be tuned on the real robot!
-    float speed_adjustment = error * kP;
-    if (abs(error) > maxPosDiff) {
-      // Stop both motors!
-      vesc_set_duty_cycle(idLeft, 0.0);
-      vesc_set_duty_cycle(idRight, 0.0);
-      // Log an error message
-      RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
+  void set_digger_lift_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request,
+                    std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
+    // Update the current digger lift goal
+    this->digger_lift_goal = { request->type, request->value };
+
+    // Set the digger lift motors to the new duty cycle
+    if (this->digger_lift_goal.type.c_str() == "duty_cycle") {
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
     }
-    else if (duty_cycle) {
-      vesc_set_duty_cycle(idLeft, (vesc_get_duty_cycle(idLeft).value())-speed_adjustment);
-      vesc_set_duty_cycle(idRight, (vesc_get_duty_cycle(idRight).value())+speed_adjustment);
-    }
-    else {
-      vesc_set_position(idLeft, position);
-      vesc_set_position(idRight, position);
-    }
+
+    response->success = true;
   }
 
   // Get the motor controller's current duty cycle command
@@ -304,6 +303,8 @@ public:
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
+    srv_set_digger_lift = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
+        "digger_lift/set", std::bind(&MotorControlNode::set_digger_lift_callback, this, _1, _2));
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -315,6 +316,9 @@ public:
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
 
     potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
+
+    // Initialize the current digger lift goal
+    this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
   }
 
 private:
@@ -371,17 +375,38 @@ private:
   }
 
   void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers msg) {
-    left_pot = msg.left_motor_pot;
-    right_pot = msg.right_motor_pot;
+    float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
+    int error = msg.left_motor_pot - msg.right_motor_pot;
+    float speed_adjustment = error * kP;
+    if (abs(error) > maxPosDiff) {
+      // Stop both motors!
+      this->digger_lift_goal = { "duty_cycle", 0.0 };
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      // Log an error message
+      RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
+    }
+    else if (this->digger_lift_goal.type.c_str() == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
+    }
+    else if (this->digger_lift_goal.type.c_str() == "position") {
+      int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
+      int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
+
+      left_controller_output = kP * left_error;
+      right_controller_output = kP * right_error;
+
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment);
+    } else{
+      RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
+    }
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
   std::map<uint32_t, MotorData> can_data;
   std::map<uint32_t, PIDController*> pid_controllers;
-
-  // Initialize variables to store potentiometer data
-  float left_pot;
-  float right_pot;
 
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
@@ -404,9 +429,6 @@ private:
       response->success = true;
     } else if (strcmp(request->type.c_str(), "ramp_duty_cycle") == 0){
       vesc_ramp_duty_cycle(request->can_id, request->value, request->value2);
-      response->success = true;
-    } else if (strcmp(request->type.c_str(), "set_digger")){
-      vesc_set_digger(request->can_id, request->can_id2, request->value, request->duty_cycle);
       response->success = true;
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor SET command type: '%s'", request->type.c_str());
@@ -444,6 +466,7 @@ private:
   rclcpp::Subscription<rovr_interfaces::msg::Potentiometers>::SharedPtr potentiometer_sub; 
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
+  rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_set_digger_lift;
 };
 
 // Main method for the node
