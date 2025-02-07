@@ -130,16 +130,11 @@ class DiggerNode(Node):
         # Potentiometer_callback being worked on in that node???
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
-                type="position",
+                type="set_digger",
                 can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR,
+                can_id2=self.DIGGER_RIGHT_LINEAR_ACTUATOR,
                 value=float(position),
-            )
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                type="position",
-                can_id=self.DIGGER_RIGHT_LINEAR_ACTUATOR,
-                value=float(position),
+                duty_cycle=False,
             )
         )
         # Wait until the goal position goal is reached to return
@@ -181,10 +176,13 @@ class DiggerNode(Node):
         # both motors at once and can be used in conjunction with the
         # Potentiometer_callback being worked on in that node???
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR, value=power)
-        )
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_RIGHT_LINEAR_ACTUATOR, value=power)
+            MotorCommandSet.Request(
+                type="set_digger",
+                can_id=self.DIGGER_LEFT_LINEAR_ACTUATOR,
+                can_id2=self.DIGGER_RIGHT_LINEAR_ACTUATOR,
+                value=power,
+                duty_cycle=True,
+            )
         )
 
     def zero_lift(self) -> None:

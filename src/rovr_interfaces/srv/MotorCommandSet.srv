@@ -1,7 +1,9 @@
 # This service sends a command to the motor_control_node to execute a motor_control SET method
-string type # The type of command to send (ramp_duty_cycle, duty_cycle, position, or velocity) 
+string type # The type of command to send (ramp_duty_cycle, duty_cycle, position, set_digger, or velocity) 
 uint32 can_id # CAN ID of the VESC
+uint32 can_id2 # CAN ID of the 2nd VESC
 float32 value # Value to pass to the motor_control method
 float32 value2 # Second value to pass to the motor_control method
+bool duty_cycle # true if using duty_cycle false if using position control
 ---
 bool success
