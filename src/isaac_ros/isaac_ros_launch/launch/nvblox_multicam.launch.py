@@ -107,7 +107,7 @@ def generate_launch_description():
             SetRemap(src=["camera_0/depth/image"], dst=["/depth/image"], condition=setup_for_gazebo),
             SetRemap(src=["camera_0/depth/camera_info"], dst=["/depth/camera_info"], condition=setup_for_gazebo),
             SetRemap(src=["camera_0/color/image"], dst=["/color/image"], condition=setup_for_gazebo),
-            SetRemap(src=["camera_0/color/camera_info"], dst=["/color/camera_info_rear"], condition=setup_for_gazebo),
+            SetRemap(src=["camera_0/color/camera_info"], dst=["/color/camera_info"], condition=setup_for_gazebo),
             SetRemap(src=["camera_1/depth/image"], dst=["/depth/image_rear"], condition=setup_for_gazebo),
             SetRemap(src=["camera_1/depth/camera_info"], dst=["/depth/camera_info_rear"], condition=setup_for_gazebo),
             SetRemap(src=["camera_1/color/image"], dst=["/color/image_rear"], condition=setup_for_gazebo),
