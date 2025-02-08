@@ -10,7 +10,7 @@ def generate_launch_description():
 
     use_nvblox_arg = DeclareLaunchArgument(
         "use_nvblox",
-        default_value="False",
+        default_value="True",
         description="Whether to run nvblox",
     )
 
