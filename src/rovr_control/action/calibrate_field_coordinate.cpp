@@ -1,3 +1,4 @@
+#include "rovr_interfaces/action/calibrate_field_coordinates.hpp"
 #include "behaviortree_ros2/bt_action_node.hpp"
 
 using CalibrateFieldCoordinate = rovr_interfaces::action::CalibrateFieldCoordinates;
@@ -12,8 +13,7 @@ class CalibrateFieldCoordinateAction : public BT::RosActionNode<CalibrateFieldCo
         : RosActionNode<CalibrateFieldCoordinate>(name, conf, params)
         {}
 
-        BT::NodeStatus onResultReceived(const WrappedResult& wr) override
-        {
+        BT::NodeStatus onResultReceived(const WrappedResult& wr) override {
             if (wr.result->success) {
                 return BT::NodeStatus::SUCCESS;
             }
@@ -21,3 +21,10 @@ class CalibrateFieldCoordinateAction : public BT::RosActionNode<CalibrateFieldCo
             return BT::NodeStatus::FAILURE;
         }
 };
+
+int main() {
+    BT::BehaviorTreeFactory factory;
+    factory.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinate"); // "MyAction" is the name used in the BT XML
+
+    return 0;
+}
