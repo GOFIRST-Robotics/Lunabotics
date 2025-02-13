@@ -4,6 +4,8 @@ struct SensorData {
   bool diggerBottomLimitSwitch;
   bool dumperTopLimitSwitch;
   bool dumperBottomLimitSwitch;
+  int leftMotorPotentiometer;
+  int rightMotorPotentiometer;
 };
 
 // Define the sensor pins here
@@ -11,6 +13,8 @@ struct SensorData {
 #define DIGGER_BOTTOM_LIMIT_SWITCH 3
 #define DUMPER_TOP_LIMIT_SWITCH 4
 #define DUMPER_BOTTOM_LIMIT_SWITCH 5
+#define LEFT_MOTOR_POT_PIN A0 // TODO: We don't know the actual number of pin yet
+#define RIGHT_MOTOR_POT_PIN A1 // TODO: We don't know the actual number of pin yet
 
 void setup() {
   // Initialize serial communication
@@ -21,6 +25,9 @@ void setup() {
   pinMode(DIGGER_BOTTOM_LIMIT_SWITCH, INPUT_PULLUP);
   pinMode(DUMPER_TOP_LIMIT_SWITCH, INPUT_PULLUP);
   pinMode(DUMPER_BOTTOM_LIMIT_SWITCH, INPUT_PULLUP);
+
+  // No need to configure analog pins explicitly for potentiometers
+  // as they are used as inputs by default.
 }
 
 void loop() {
@@ -32,6 +39,10 @@ void loop() {
   data.diggerBottomLimitSwitch = (bool)digitalRead(DIGGER_BOTTOM_LIMIT_SWITCH);
   data.dumperTopLimitSwitch = (bool)digitalRead(DUMPER_TOP_LIMIT_SWITCH);
   data.dumperBottomLimitSwitch = (bool)digitalRead(DUMPER_BOTTOM_LIMIT_SWITCH);
+
+  // Read from the analog inputs (potentiometers)
+  data.leftMotorPotentiometer = analogRead(LEFT_MOTOR_POT_PIN);  // Read left motor potentiometer value
+  data.rightMotorPotentiometer = analogRead(RIGHT_MOTOR_POT_PIN); // Read right motor potentiometer value
 
   // Send the struct over the serial bus to the Nvidia Jetson
   Serial.write((byte *)&data, sizeof(SensorData));
