@@ -38,17 +38,6 @@ public:
         // RCLCPP_INFO(node_->get_logger(), ss.str().c_str());
         return BT::NodeStatus::SUCCESS;
     }
-
-    // Callback invoked when there was an error at the level
-    // of the communication between client and server.
-    // This will set the status of the TreeNode to either SUCCESS or FAILURE,
-    // based on the return value.
-    // If not overridden, it will return FAILURE by default.
-    virtual BT::NodeStatus onFailure(BT::ActionNodeErrorCode error) override
-    {
-        // RCLCPP_ERROR(node_->get_logger(), "Error: %d", error);
-        return BT::NodeStatus::FAILURE;
-    }
 };
 
 // Main method for the node
