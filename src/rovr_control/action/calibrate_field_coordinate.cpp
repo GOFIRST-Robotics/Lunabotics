@@ -22,9 +22,15 @@ class CalibrateFieldCoordinateAction : public BT::RosActionNode<CalibrateFieldCo
         }
 };
 
-int main() {
-    BT::BehaviorTreeFactory factory;
-    factory.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinate"); // "MyAction" is the name used in the BT XML
+// Main method for the node
+int main(int argc, char **argv) {
+    // Initialize ROS 2
+    rclcpp::init(argc, argv);
 
+    // Spin the node
+    // rclcpp::spin(std::make_shared<CalibrateFieldCoordinateAction>());
+
+    // Free up any resources being used by the node
+    rclcpp::shutdown();
     return 0;
 }
