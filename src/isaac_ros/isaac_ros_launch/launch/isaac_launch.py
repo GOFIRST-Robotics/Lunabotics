@@ -71,7 +71,7 @@ def generate_launch_description():
     )
     zed_multicam_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed2i_multicam.launch.py"])]
+            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed_multi_camera.launch.py"])]
         ),
         launch_arguments={
             "record_svo": LaunchConfiguration("record_svo"),
@@ -141,7 +141,7 @@ def generate_launch_description():
             [PathJoinSubstitution([FindPackageShare("nav2_bringup"), "launch", "navigation_launch.py"])]
         ),
         launch_arguments={
-            "use_sim_time": "False",
+            "use_sim_time": "false",
             "params_file": configured_params,
             "autostart": "True",
         }.items(),
