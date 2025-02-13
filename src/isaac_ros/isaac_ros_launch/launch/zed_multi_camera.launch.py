@@ -267,7 +267,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "disable_tf",
                 default_value="False",
-                description="If `True` disable TF broadcasting for all the cameras in order to fuse visual odometry information externally.",
+                description="If `True` disable TF broadcasting for all of the cameras.",
             ),
             OpaqueFunction(function=launch_setup),
         ]

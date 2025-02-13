@@ -73,16 +73,24 @@ def generate_launch_description():
             SetParameter(name="global_frame", value=LaunchConfiguration("global_frame", default="odom")),
             # Remappings for zed data
             SetRemap(
-                src=["camera_0/depth/image"], dst=["/zed2i/zed_node_zed2i/depth/depth_registered"], condition=setup_for_zed
+                src=["camera_0/depth/image"],
+                dst=["/zed2i/zed_node_zed2i/depth/depth_registered"],
+                condition=setup_for_zed,
             ),
             SetRemap(
-                src=["camera_0/depth/camera_info"], dst=["/zed2i/zed_node_zed2i/depth/camera_info"], condition=setup_for_zed
+                src=["camera_0/depth/camera_info"],
+                dst=["/zed2i/zed_node_zed2i/depth/camera_info"],
+                condition=setup_for_zed,
             ),
             SetRemap(
-                src=["camera_0/color/image"], dst=["/zed2i/zed_node_zed2i/rgb/image_rect_color"], condition=setup_for_zed
+                src=["camera_0/color/image"],
+                dst=["/zed2i/zed_node_zed2i/rgb/image_rect_color"],
+                condition=setup_for_zed,
             ),
             SetRemap(
-                src=["camera_0/color/camera_info"], dst=["/zed2i/zed_node_zed2i/rgb/camera_info"], condition=setup_for_zed
+                src=["camera_0/color/camera_info"],
+                dst=["/zed2i/zed_node_zed2i/rgb/camera_info"],
+                condition=setup_for_zed,
             ),
             SetRemap(
                 src=["camera_1/depth/image"],
@@ -95,7 +103,9 @@ def generate_launch_description():
                 condition=setup_for_zed,
             ),
             SetRemap(
-                src=["camera_1/color/image"], dst=["/zed2i_rear/zed_node_zed2i_rear/rgb/image_rect_color"], condition=setup_for_zed
+                src=["camera_1/color/image"],
+                dst=["/zed2i_rear/zed_node_zed2i_rear/rgb/image_rect_color"],
+                condition=setup_for_zed,
             ),
             SetRemap(
                 src=["camera_1/color/camera_info"],
