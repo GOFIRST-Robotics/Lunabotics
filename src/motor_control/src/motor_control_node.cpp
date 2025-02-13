@@ -251,7 +251,7 @@ class MotorControlNode : public rclcpp::Node {
     this->digger_lift_goal = { request->type, request->value };
 
     // Set the digger lift motors to the new duty cycle
-    if (this->digger_lift_goal.type.c_str() == "duty_cycle") {
+    if (this->digger_lift_goal.type == "duty_cycle") {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
     }
@@ -386,16 +386,16 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
-    else if (this->digger_lift_goal.type.c_str() == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
+    else if (this->digger_lift_goal.type == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
     }
-    else if (this->digger_lift_goal.type.c_str() == "position") {
+    else if (this->digger_lift_goal.type == "position") {
       int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
       int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
 
-      left_controller_output = kP * left_error;
-      right_controller_output = kP * right_error;
+      float left_controller_output = kP * left_error;
+      float right_controller_output = kP * right_error;
 
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment);
@@ -408,6 +408,7 @@ private:
   std::map<uint32_t, MotorData> can_data;
   std::map<uint32_t, PIDController*> pid_controllers;
 
+  DiggerLiftGoal digger_lift_goal;
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
 
