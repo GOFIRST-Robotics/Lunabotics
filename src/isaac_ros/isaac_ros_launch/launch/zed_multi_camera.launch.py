@@ -109,7 +109,6 @@ def launch_setup(context, *args, **kwargs):
     for name in names_arr:
         model = models_arr[cam_idx]
         serial = serials_arr[cam_idx]
-        pose = "["
 
         info = "* Starting a ZED ROS2 node for camera " + name + " (" + model + "/" + serial + ")"
 
