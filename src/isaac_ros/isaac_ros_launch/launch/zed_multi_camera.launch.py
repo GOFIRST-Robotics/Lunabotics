@@ -18,54 +18,32 @@ from datetime import datetime
 from launch.substitutions import PathJoinSubstitution
 
 from launch_ros.substitutions import FindPackageShare
-from launch_ros.descriptions import ComposableNode
 
 from ament_index_python.packages import get_package_share_directory
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from launch import LaunchDescription
-from launch.actions import (
-    DeclareLaunchArgument,
-    OpaqueFunction,
-    IncludeLaunchDescription,
-    LogInfo
-)
-from launch.substitutions import (
-    LaunchConfiguration,
-    Command,
-    TextSubstitution
-)
-from launch_ros.actions import (
-    Node,
-    ComposableNodeContainer
-)
-
-from launch import LaunchDescription
-from launch.substitutions import LaunchConfiguration, FindExecutable
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription, LogInfo
+from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import ComposableNodeContainer
+
+from launch.substitutions import FindExecutable
 from launch.conditions import IfCondition
 from launch.actions import (
-    IncludeLaunchDescription,
-    DeclareLaunchArgument,
     ExecuteProcess,
     RegisterEventHandler,
-    SetEnvironmentVariable,
 )
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.event_handlers import OnShutdown
 
-from launch.substitutions import PathJoinSubstitution
-
-from launch_ros.substitutions import FindPackageShare
-from launch_ros.descriptions import ComposableNode
 
 def parse_array_param(param):
-    str = param.replace('[', '')
-    str = str.replace(']', '')
-    str = str.replace(' ', '')
-    arr = str.split(',')
+    str = param.replace("[", "")
+    str = str.replace("]", "")
+    str = str.replace(" ", "")
+    arr = str.split(",")
 
     return arr
+
 
 def launch_setup(context, *args, **kwargs):
     # Locate our config files
@@ -75,12 +53,12 @@ def launch_setup(context, *args, **kwargs):
     # List of actions to be launched
     actions = []
 
-    namespace_val = 'zed_multi'
+    namespace_val = "zed_multi"
 
-    names = LaunchConfiguration('cam_names')
-    models = LaunchConfiguration('cam_models')
-    serials = LaunchConfiguration('cam_serials')
-    disable_tf = LaunchConfiguration('disable_tf')
+    names = LaunchConfiguration("cam_names")
+    models = LaunchConfiguration("cam_models")
+    serials = LaunchConfiguration("cam_serials")
+    disable_tf = LaunchConfiguration("disable_tf")
 
     names_arr = parse_array_param(names.perform(context))
     models_arr = parse_array_param(models.perform(context))
@@ -89,37 +67,39 @@ def launch_setup(context, *args, **kwargs):
 
     num_cams = len(names_arr)
 
-    if (num_cams != len(models_arr)):
+    if num_cams != len(models_arr):
         return [
-            LogInfo(msg=TextSubstitution(
-                text='The size of the `models` param array must be equal to the size of `names`'))
+            LogInfo(
+                msg=TextSubstitution(text="The size of the `models` param array must be equal to the size of `names`")
+            )
         ]
 
-    if (num_cams != len(serials_arr)):
+    if num_cams != len(serials_arr):
         return [
-            LogInfo(msg=TextSubstitution(
-                text='The size of the `serials` param array must be equal to the size of `names`'))
+            LogInfo(
+                msg=TextSubstitution(text="The size of the `serials` param array must be equal to the size of `names`")
+            )
         ]
-    
-    # ROS 2 Component Container    
-    container_name = 'zed_multi_container'
-    distro = os.environ['ROS_DISTRO']
-    if distro == 'foxy':
+
+    # ROS 2 Component Container
+    container_name = "zed_multi_container"
+    distro = os.environ["ROS_DISTRO"]
+    if distro == "foxy":
         # Foxy does not support the isolated mode
-        container_exec='component_container'
+        container_exec = "component_container"
     else:
-        container_exec='component_container_isolated'
-    
-    info = '* Starting Composable node container: /' + namespace_val + '/' + container_name
+        container_exec = "component_container_isolated"
+
+    info = "* Starting Composable node container: /" + namespace_val + "/" + container_name
     actions.append(LogInfo(msg=TextSubstitution(text=info)))
 
     zed_container = ComposableNodeContainer(
         name=container_name,
         namespace=namespace_val,
-        package='rclcpp_components',
+        package="rclcpp_components",
         executable=container_exec,
-        arguments=['--ros-args', '--log-level', 'info'],
-        output='screen',
+        arguments=["--ros-args", "--log-level", "info"],
+        output="screen",
     )
     actions.append(zed_container)
 
@@ -129,40 +109,38 @@ def launch_setup(context, *args, **kwargs):
     for name in names_arr:
         model = models_arr[cam_idx]
         serial = serials_arr[cam_idx]
-        pose = '['
+        pose = "["
 
-        info = '* Starting a ZED ROS2 node for camera ' + name + \
-            ' (' + model + '/' + serial + ')'
+        info = "* Starting a ZED ROS2 node for camera " + name + " (" + model + "/" + serial + ")"
 
         actions.append(LogInfo(msg=TextSubstitution(text=info)))
 
         # Only the first camera send odom and map TF
-        publish_tf = 'false'
-        if (cam_idx == 0):
-            if (disable_tf_val == 'False' or disable_tf_val == 'false'):
-                publish_tf = 'true'        
+        publish_tf = "false"
+        if cam_idx == 0:
+            if disable_tf_val == "False" or disable_tf_val == "false":
+                publish_tf = "true"
 
         # A different node name is required by the Diagnostic Updated
-        node_name = 'zed_node_' + name
+        node_name = "zed_node_" + name
 
         # Add the node
         # ZED Wrapper launch file
         zed_wrapper_launch = IncludeLaunchDescription(
-            launch_description_source=PythonLaunchDescriptionSource([
-                get_package_share_directory('zed_wrapper'),
-                '/launch/zed_camera.launch.py'
-            ]),
+            launch_description_source=PythonLaunchDescriptionSource(
+                [get_package_share_directory("zed_wrapper"), "/launch/zed_camera.launch.py"]
+            ),
             launch_arguments={
-                'container_name': container_name,
-                'node_name': node_name,
-                'camera_name': name,
-                'camera_model': model,
-                'serial_number': serial,
-                'publish_tf': publish_tf,
-                'publish_map_tf': publish_tf,
-                'namespace': namespace_val,
-                'config_path': config_file_common
-            }.items()
+                "container_name": container_name,
+                "node_name": node_name,
+                "camera_name": name,
+                "camera_model": model,
+                "serial_number": serial,
+                "publish_tf": publish_tf,
+                "publish_map_tf": publish_tf,
+                "namespace": namespace_val,
+                "config_path": config_file_common,
+            }.items(),
         )
         actions.append(zed_wrapper_launch)
 
@@ -269,25 +247,28 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument(
-                "record_svo",
+                "record_svo", default_value="False", description="Whether to record ZED data to an SVO file"
+            ),
+            DeclareLaunchArgument(
+                "cam_names",
+                default_value="[zed2i,zed2i_rear]",
+                description="An array containing the names of the cameras, e.g. [zed_front,zed_back]",
+            ),
+            DeclareLaunchArgument(
+                "cam_models",
+                default_value="[zed2i,zed2i]",
+                description="An array containing the names of the cameras, e.g. [zed2i,zed2]",
+            ),
+            DeclareLaunchArgument(
+                "cam_serials",
+                default_value="[38536461,32113890]",
+                description="An array containing the serial numbers of the cameras, e.g. [35199186,23154724]",
+            ),
+            DeclareLaunchArgument(
+                "disable_tf",
                 default_value="False",
-                description="Whether to record ZED data to an SVO file"),
-            DeclareLaunchArgument(
-                'cam_names',
-                default_value='[zed2i,zed2i_rear]',
-                description='An array containing the names of the cameras, e.g. [zed_front,zed_back]'),
-            DeclareLaunchArgument(
-                'cam_models',
-                default_value='[zed2i,zed2i]',
-                description='An array containing the names of the cameras, e.g. [zed2i,zed2]'),
-            DeclareLaunchArgument(
-                'cam_serials',
-                default_value='[38536461,32113890]',
-                description='An array containing the serial numbers of the cameras, e.g. [35199186,23154724]'),
-            DeclareLaunchArgument(
-                'disable_tf',
-                default_value='False',
-                description='If `True` disable TF broadcasting for all the cameras in order to fuse visual odometry information externally.'),
-            OpaqueFunction(function=launch_setup)
+                description="If `True` disable TF broadcasting for all the cameras in order to fuse visual odometry information externally.",
+            ),
+            OpaqueFunction(function=launch_setup),
         ]
     )
