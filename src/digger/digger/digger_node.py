@@ -32,6 +32,20 @@ class DiggerNode(Node):
         self.stop_lift_cb_group = MutuallyExclusiveCallbackGroup()
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
 
+        # Define ROS parameters
+        self.declare_parameter("DIG_ARM", 5)
+        self.declare_parameter("DIGGER_MAX_RPM", 5000)
+        self.declare_parameter("GAZEBO_SIMULATION", False)  # Enable/disable Gazebo simulation
+
+        # Assign parameters to variables
+        self.DIG_ARM = self.get_parameter("DIG_ARM").value
+        self.DIGGER_MAX_RPM = self.get_parameter("DIGGER_MAX_RPM").value
+        self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
+
+        #Define publishers for Gazebo simulation
+        if self.GAZEBO_SIMULATION:
+            self.gazebo_dig_arm_pub = self.create_publisher(Float64, "digger_arm_joint/cmd_vel", 10)
+
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -61,9 +75,16 @@ class DiggerNode(Node):
         self.srv_bottom_lift = self.create_service(
             Trigger, "lift/bottom", self.bottom_lift_callback, callback_group=self.service_cb_group
         )
+        self.srv_dig = self.create_service(
+            Trigger, "digger/dig", self.dig_callback
+            )
+        self.srv_stop = self.create_service(
+            Trigger, "digger/stop", self.stop_callback
+            )
 
         # Define subscribers here
         self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
+    
 
         # Define timers here
         self.timer = self.create_timer(0.1, self.timer_callback)
@@ -76,9 +97,13 @@ class DiggerNode(Node):
         self.DIGGER_BELT_MOTOR = self.get_parameter("DIGGER_BELT_MOTOR").value
         self.DIGGER_LIFT_MOTOR = self.get_parameter("DIGGER_LIFT_MOTOR").value
 
+        # Digger state
+        self.is_digging = False
+
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DIGGER_BELT_MOTOR has been set to: " + str(self.DIGGER_BELT_MOTOR))
         self.get_logger().info("DIGGER_LIFT_MOTOR has been set to: " + str(self.DIGGER_LIFT_MOTOR))
+        self.get_logger().info(f"GAZEBO_SIMULATION has been set to: {self.GAZEBO_SIMULATION}")
 
         # Current state of the digger belt
         self.running = False
@@ -92,6 +117,28 @@ class DiggerNode(Node):
         # Limit Switch States
         self.top_limit_pressed = False
         self.bottom_limit_pressed = False
+    
+    def dig(self, speed: float) -> bool:
+        """Control the digger arm movement."""
+        if not self.is_digging:
+            self.get_logger().info("Starting digging operation.")
+
+        # Clamp speed between -1 and 1
+        speed = max(-1.0, min(speed, 1.0))
+
+        # Send motor command (real-world)
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(
+                can_id=self.DIG_ARM, type="velocity", value=speed * self.DIGGER_MAX_RPM
+            )
+        )
+
+        # Send velocity command to Gazebo if in simulation mode
+        if self.GAZEBO_SIMULATION:
+            self.gazebo_dig_arm_pub.publish(Float64(data=speed * 2.0))  # Adjust scaling as needed
+
+        self.is_digging = True
+        return True
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
@@ -107,6 +154,11 @@ class DiggerNode(Node):
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_BELT_MOTOR, value=0.0)
         )
+
+        """Stop the digger arm."""
+        self.dig(0.0)
+        self.is_digging = False
+        self.get_logger().info("Digger stopped.")
 
     def toggle(self, digger_belt_power: float) -> None:
         """This method toggles the digger belt."""
@@ -199,6 +251,12 @@ class DiggerNode(Node):
         self.set_power(request.power)
         response.success = True
         return response
+    
+    # Service callback methods
+    def dig_callback(self, request, response):
+        """Service to start digging."""
+        response.success = self.dig(1.0)  # Dig at full speed
+        return response
 
     def stop_callback(self, request, response):
         """This service request stops the digger belt."""
@@ -268,6 +326,10 @@ class DiggerNode(Node):
         elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
             self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
 
+        """Determine digger's position based on limit switches."""
+        if msg.digger_bottom_limit_switch:
+            self.get_logger().warn("Digger reached bottom limit.")
+            self.stop()
 
 def main(args=None):
     """The main function."""
