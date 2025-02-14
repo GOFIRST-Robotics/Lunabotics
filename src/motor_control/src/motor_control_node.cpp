@@ -61,9 +61,6 @@ struct DiggerLiftGoal {
   float value;
 };
 
-// Max allowed position difference between linear actuators pushing digger into ground
-int maxPosDiff = 30;
-
 class PIDController {
 private:
   int COUNTS_PER_REVOLUTION; // How many encoder counts for one 360 degree rotation
@@ -291,12 +288,14 @@ public:
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
     this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2);
     this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
+    this->declare_parameter("MAX_POS_DIFF", 30);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "DIGGER_LEFT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -378,7 +377,7 @@ private:
     float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
     int error = msg.left_motor_pot - msg.right_motor_pot;
     float speed_adjustment = error * kP;
-    if (abs(error) > maxPosDiff) {
+    if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int()) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
