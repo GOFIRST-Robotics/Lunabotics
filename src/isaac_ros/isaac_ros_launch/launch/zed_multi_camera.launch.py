@@ -103,6 +103,11 @@ def launch_setup(context, *args, **kwargs):
     )
     actions.append(zed_container)
 
+    # Get the current date and time
+    now = datetime.now()
+    # Format as a string
+    timestamp_str = now.strftime("%m-%d-%Y_%H:%M:%S")
+
     # Set the first camera idx
     cam_idx = 0
 
@@ -143,6 +148,43 @@ def launch_setup(context, *args, **kwargs):
         )
         actions.append(zed_wrapper_launch)
 
+        # Add the timestamp to the svo filename
+        svo_filename = f"/rosbags/{name}_recording_{timestamp_str}.svo2"
+        # Record an SVO2 file
+        record_svo_srv = ExecuteProcess(
+            cmd=[
+                [
+                    FindExecutable(name="ros2"),
+                    " service call ",
+                    f"/{name}/{node_name}/start_svo_rec ",
+                    "zed_msgs/srv/StartSvoRec ",
+                    # Tune this bitrate to adjust file size
+                    f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
+                ]
+            ],
+            shell=True,
+            condition=IfCondition(LaunchConfiguration("record_svo")),
+        )
+        actions.append(record_svo_srv)
+        # Stop recording the SVO2 file
+        stop_svo_recording = RegisterEventHandler(
+            event_handler=OnShutdown(
+                on_shutdown=ExecuteProcess(
+                    cmd=[
+                        [
+                            FindExecutable(name="ros2"),
+                            " service call ",
+                            f"/{name}/{node_name}/stop_svo_rec ",
+                            "std_srvs/srv/Trigger ",
+                        ]
+                    ],
+                    shell=True,
+                    condition=IfCondition(LaunchConfiguration("record_svo")),
+                )
+            )
+        )
+        actions.append(stop_svo_recording)
+
         cam_idx += 1
 
     # Robot State Publisher node (publishing static tfs for the camera)
@@ -157,87 +199,6 @@ def launch_setup(context, *args, **kwargs):
 
     # Add the robot_state_publisher node to the list of nodes to be started
     actions.append(robot_state_publisher)
-
-    # Get the current date and time
-    now = datetime.now()
-    # Format as a string
-    timestamp_str = now.strftime("%m-%d-%Y_%H:%M:%S")
-    # Add the timestamp to the svo filename
-    svo_filename = f"/rosbags/zed_recording_{timestamp_str}.svo2"
-
-    # FRONT
-    record_svo_srv_front = ExecuteProcess(
-        cmd=[
-            [
-                FindExecutable(name="ros2"),
-                " service call ",
-                "/zed2i/zed_node_zed2i/start_svo_rec ",
-                "zed_msgs/srv/StartSvoRec ",
-                # Tune this bitrate to adjust file size
-                f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
-            ]
-        ],
-        shell=True,
-        condition=IfCondition(LaunchConfiguration("record_svo")),
-    )
-
-    actions.append(record_svo_srv_front)
-
-    stop_svo_recording_front = RegisterEventHandler(
-        event_handler=OnShutdown(
-            on_shutdown=ExecuteProcess(
-                cmd=[
-                    [
-                        FindExecutable(name="ros2"),
-                        " service call ",
-                        "/zed2i/zed_node_zed2i/stop_svo_rec ",
-                        "std_srvs/srv/Trigger ",
-                    ]
-                ],
-                shell=True,
-                condition=IfCondition(LaunchConfiguration("record_svo")),
-            )
-        )
-    )
-
-    actions.append(stop_svo_recording_front)
-
-    # REAR
-    record_svo_srv_rear = ExecuteProcess(
-        cmd=[
-            [
-                FindExecutable(name="ros2"),
-                " service call ",
-                "/zed2i_rear/zed_node_zed2i_rear/start_svo_rec ",
-                "zed_msgs/srv/StartSvoRec ",
-                # Tune this bitrate to adjust file size
-                f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
-            ]
-        ],
-        shell=True,
-        condition=IfCondition(LaunchConfiguration("record_svo")),
-    )
-
-    actions.append(record_svo_srv_rear)
-
-    stop_svo_recording_rear = RegisterEventHandler(
-        event_handler=OnShutdown(
-            on_shutdown=ExecuteProcess(
-                cmd=[
-                    [
-                        FindExecutable(name="ros2"),
-                        " service call ",
-                        "/zed2i_rear/zed_node_zed2i_rear/stop_svo_rec ",
-                        "std_srvs/srv/Trigger ",
-                    ]
-                ],
-                shell=True,
-                condition=IfCondition(LaunchConfiguration("record_svo")),
-            )
-        )
-    )
-
-    actions.append(stop_svo_recording_rear)
 
     return actions
 
