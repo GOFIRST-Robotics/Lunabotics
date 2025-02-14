@@ -16,7 +16,7 @@ def generate_launch_description():
     # Launch Configurations
     setup_for_zed = LaunchConfiguration("setup_for_zed", default="True")
     use_nvblox = LaunchConfiguration("use_nvblox", default="True")
-    zed_multicam = LaunchConfiguration("zed_multicam", default="True")
+    zed_multicam = LaunchConfiguration("zed_multicam", default="False")
 
     # Launch Arguments
     run_rviz_arg = DeclareLaunchArgument("run_rviz_robot", default_value="True", description="Whether to start RVIZ")
@@ -42,7 +42,7 @@ def generate_launch_description():
     )
     zed_multicam_arg = DeclareLaunchArgument(
         "zed_multicam",
-        default_value="True",
+        default_value="False",
         description="Whether to use two ZED cameras",
     )
 
