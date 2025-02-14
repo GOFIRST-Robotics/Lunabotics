@@ -63,6 +63,7 @@ struct DiggerLiftGoal {
 
 // Max allowed position difference between linear actuators pushing digger into ground
 int maxPosDiff = 30;
+float current_threshold = 0.0;
 
 class PIDController {
 private:
@@ -386,6 +387,13 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
+    else if ((this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle > current_threshold) || (this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()] > current_threshold)){
+      this->digger_lift_goal = { "duty_cycle", 0.0 };
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      // Log an error message
+      RCLCPP_ERROR(this->get_logger(), "Current too high");
+    } 
     else if (this->digger_lift_goal.type == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
