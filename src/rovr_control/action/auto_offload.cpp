@@ -10,14 +10,33 @@ class AutoOffloadAction : public BT ::RosActionNode<AutoOffload>{
             const BT::NodeConfig& conf,
             const BT::RosNodeParams& params
         )
-        : BT::RosActionNode<AutoOffload>(name, conf, params)
-        {}
+        : BT::RosActionNode<AutoOffload>(name, conf, params) {}
 
-        BT::NodeStatus onResultReceived(const BT::RosActionNode<rovr_interfaces::action::AutoOffload>::WrappedResult& wr) override{
-            if (wr.resultt->success){
-                return BT::NodeStatus::SUCCESS;
-            }
+        bool setGoal(BT::RosActionNode<AutoOffload>::Goal& goal) override {
+            return true;
+        }
 
-            return BT::NodeStatus::FAILURE;
+        BT::NodeStatus onResultReceived(const WrappedResult& wr) override{
+            return (wr.result->success) ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
         }
 };
+
+//main method for the node
+int main(int argc, char **argv) {
+    // Initialize ROS 2
+    rclcpp::init(argc, argv);
+
+    BT::BehaviorTreeFactory factory;
+
+    auto node = std::make_shared<rclcpp::Node>("auto_offload_action_client");
+
+    // provide the ROs node and the name of the action service
+    BT::RosNodeParams params;
+    params.nh = node;
+    params.default_port_value = "auto_offload";
+    factory.registerNodeType<AutoOffloadAction>("AutoOffload", params);
+
+    // Free up any resources being used by the node
+    rclcpp::shutdown();
+    return 0;
+}
