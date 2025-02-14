@@ -10,3 +10,4 @@
     DIGGER_LEFT_LINEAR_ACTUATOR: 2 # CAN ID of the left linear actuator
     DIGGER_RIGHT_LINEAR_ACTUATOR: 1 # CAN ID of the right linear actuator
     DUMPER_MOTOR: 11 # CAN ID of the dumper motor
+    MAX_POS_DIFF: 30 # Max difference in position to allow between the two linear actuators

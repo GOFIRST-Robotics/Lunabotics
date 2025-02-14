@@ -7,11 +7,16 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
+
+    # Launch Configurations
+    setup_for_zed = LaunchConfiguration("setup_for_zed", default="True")
+    use_nvblox = LaunchConfiguration("use_nvblox", default="True")
+    zed_multicam = LaunchConfiguration("zed_multicam", default="False")
 
     # Launch Arguments
     run_rviz_arg = DeclareLaunchArgument("run_rviz_robot", default_value="True", description="Whether to start RVIZ")
@@ -35,6 +40,11 @@ def generate_launch_description():
         default_value="False",
         description="Whether to record a ZED svo file",
     )
+    zed_multicam_arg = DeclareLaunchArgument(
+        "zed_multicam",
+        default_value="False",
+        description="Whether to use two ZED cameras",
+    )
 
     global_frame = LaunchConfiguration("global_frame", default="odom")
 
@@ -57,8 +67,18 @@ def generate_launch_description():
         launch_arguments={
             "record_svo": LaunchConfiguration("record_svo"),
         }.items(),
-        condition=IfCondition(LaunchConfiguration("setup_for_zed")),
+        condition=IfCondition(PythonExpression([setup_for_zed, " and not ", zed_multicam])),
     )
+    zed_multicam_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed_multi_camera.launch.py"])]
+        ),
+        launch_arguments={
+            "record_svo": LaunchConfiguration("record_svo"),
+        }.items(),
+        condition=IfCondition(PythonExpression([setup_for_zed, " and ", zed_multicam])),
+    )
+
     # Gazebo
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -79,7 +99,20 @@ def generate_launch_description():
             "attach_to_shared_component_container": "True",
             "component_container_name": shared_container_name,
         }.items(),
-        condition=IfCondition(LaunchConfiguration("use_nvblox")),
+        condition=IfCondition(PythonExpression([use_nvblox, " and not ", zed_multicam])),
+    )
+    nvblox_multicam_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox_multicam.launch.py"])]
+        ),
+        launch_arguments={
+            "global_frame": global_frame,
+            "setup_for_zed": LaunchConfiguration("setup_for_zed"),
+            "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
+            "attach_to_shared_component_container": "True",
+            "component_container_name": shared_container_name,
+        }.items(),
+        condition=IfCondition(PythonExpression([use_nvblox, " and ", zed_multicam])),
     )
 
     # Rviz
@@ -108,7 +141,7 @@ def generate_launch_description():
             [PathJoinSubstitution([FindPackageShare("nav2_bringup"), "launch", "navigation_launch.py"])]
         ),
         launch_arguments={
-            "use_sim_time": "False",
+            "use_sim_time": "false",
             "params_file": configured_params,
             "autostart": "True",
         }.items(),
@@ -134,10 +167,13 @@ def generate_launch_description():
             setup_for_gazebo_arg,
             record_svo_arg,
             use_nvblox_arg,
+            zed_multicam_arg,
             shared_container,
             nvblox_launch,
+            nvblox_multicam_launch,
             nav2_launch,
             zed_launch,
+            zed_multicam_launch,
             gazebo_launch,
             rviz_launch,
             apriltag_launch,
