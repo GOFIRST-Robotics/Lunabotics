@@ -25,8 +25,10 @@ class ApriltagNode(Node):
             width = msg.width
             esdf_slice = esdf_slice.reshape((height, width))
             self.called = True
+            np.save("esdf_slice_3cm.npy", esdf_slice)
             plt.imshow(esdf_slice)
             plt.show()
+            
         
 def main(args=None):
     rclpy.init(args=args)
