@@ -70,6 +70,18 @@ Visualization Manager:
           Value: false
         zed2i_left_camera_optical_frame:
           Value: false
+        zed2i_rear_camera_center:
+          Value: false
+        zed2i_rear_camera_link:
+          Value: true
+        zed2i_rear_left_camera_frame:
+          Value: false
+        zed2i_rear_left_camera_optical_frame:
+          Value: false
+        zed2i_rear_right_camera_frame:
+          Value: false
+        zed2i_rear_right_camera_optical_frame:
+          Value: false
         zed2i_right_camera_frame:
           Value: false
         zed2i_right_camera_optical_frame:
@@ -97,6 +109,14 @@ Visualization Manager:
                   swerve4_Link:
                     wheel4_Link:
                       {}
+                zed2i_rear_camera_link:
+                  zed2i_rear_camera_center:
+                    zed2i_rear_left_camera_frame:
+                      zed2i_rear_left_camera_optical_frame:
+                        {}
+                    zed2i_rear_right_camera_frame:
+                      zed2i_rear_right_camera_optical_frame:
+                        {}
               zed2i_camera_center:
                 zed2i_left_camera_frame:
                   zed2i_left_camera_optical_frame:
@@ -468,6 +488,31 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         zed2i_left_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_camera_center:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        zed2i_rear_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_left_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_left_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_right_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_right_camera_optical_frame:
           Alpha: 1
           Show Axes: false
           Show Trail: false

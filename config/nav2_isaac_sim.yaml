@@ -143,7 +143,7 @@ controller_server:
         collision_cost: 10000.0
         collision_margin_distance: 0.1
         near_goal_distance: 0.5
-        inflation_radius: 0.8 # (only in Humble)
+        inflation_radius: 0.9 # (only in Humble)
         cost_scaling_factor: 10.0 # (only in Humble)
       PathAlignCritic:
         enabled: true
