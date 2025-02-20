@@ -8,11 +8,11 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(behaviortree_ros2 REQUIRED)
 find_package(rovr_interfaces REQUIRED)
+find_package(nav2_behavior_tree REQUIRED)
 
 add_executable(calibrate_field_coordinate action/calibrate_field_coordinate.cpp)
-ament_target_dependencies(calibrate_field_coordinate rclcpp behaviortree_ros2 rovr_interfaces)
+ament_target_dependencies(calibrate_field_coordinate rclcpp nav2_behavior_tree rovr_interfaces)
 
 target_include_directories(calibrate_field_coordinate PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
