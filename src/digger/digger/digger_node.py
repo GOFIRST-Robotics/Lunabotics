@@ -64,7 +64,9 @@ class DiggerNode(Node):
         )
 
         # Define subscribers here
-        self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
+        self.left_actuator_duty_cycle_pub = self.create_subscription(float, "float", self.left_actuator_duty_cycle_callback, 10)
+        self.right_actuator_duty_cycle_pub = self.create_subscription(float, "float", self.right_actuator_duty_cycle_callback, 10)
+
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
@@ -88,9 +90,10 @@ class DiggerNode(Node):
         # Current state of the lift system
         self.lift_running = False
 
-        # Limit Switch States
-        self.top_limit_pressed = False
-        self.bottom_limit_pressed = False
+        # Lineaer Actuator Duty Cycles
+        self.left_actuator_duty_cycle = 0.0
+        self.right_actuator_duty_cycle = 0.0
+        
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
@@ -148,12 +151,12 @@ class DiggerNode(Node):
     def lift_set_power(self, power: float) -> None:
         """This method sets power to the lift system."""
         self.lift_running = True
-        if power > 0 and self.top_limit_pressed:
-            self.get_logger().warn("WARNING: Top limit switch pressed!")
+        if power > 0 and self.left_actuator_duty_cycle == 0.0:
+            self.get_logger().warn("WARNING: Duty Cycle is 0")
             self.stop_lift()  # Stop the lift system
             return
-        if power < 0 and self.bottom_limit_pressed:
-            self.get_logger().warn("WARNING: Bottom limit switch pressed!")
+        if power < 0 and self.right_actuator_duty_cycle == 0.0:
+            self.get_logger().warn("WARNING: Duty Cycle is 0")
             self.stop_lift()  # Stop the lift system
             return
         if power < 0 and not self.running:
@@ -168,11 +171,11 @@ class DiggerNode(Node):
         )
 
     def zero_lift(self) -> None:
-        """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
+        """This method zeros the lift system by slowly raising it until the duty cycle is 0."""
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
         self.lift_set_power(0.05)
-        while not self.top_limit_pressed:
+        while not self.left_actuator_duty_cycle == 0.0:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -182,11 +185,11 @@ class DiggerNode(Node):
         self.get_logger().info("Done zeroing the lift system")
 
     def bottom_lift(self) -> None:
-        """This method bottoms out the lift system by slowly lowering it until the bottom limit switch is pressed."""
+        """This method bottoms out the lift system by slowly lowering it until the duty cycle is 0."""
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
         self.lift_set_power(-0.05)
-        while not self.bottom_limit_pressed:
+        while not self.right_actuator_duty_cycle == 0.0:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -259,14 +262,15 @@ class DiggerNode(Node):
             self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
 
     # Define subscriber callback methods here
-    def limit_switch_callback(self, limit_switches_msg):
-        """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
-        if not self.top_limit_pressed and limit_switches_msg.digger_top_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        if not self.bottom_limit_pressed and limit_switches_msg.digger_bottom_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        self.top_limit_pressed = limit_switches_msg.digger_top_limit_switch
-        self.bottom_limit_pressed = limit_switches_msg.digger_bottom_limit_switch
+    def left_actuator_duty_cycle_callback(self, left_acutator_msg):
+        if not self.left_actuator_duty_cycle == 0.0 and left_acutator_msg.data == 0.0:
+            self.stop_lift()
+        self.left_actuator_duty_cycle = left_acutator_msg.data
+    
+    def right_actuator_duty_cycle_callback(self, right_actuator_msg):
+        if not self.right_actuator_duty_cycle == 0.0 and right_actuator_msg.data == 0.0:
+            self.stop_lift()
+        self.right_actuator_duty_cycle = right_actuator_msg.data
 
 
 def main(args=None):
