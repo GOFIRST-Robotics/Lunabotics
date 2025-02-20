@@ -12,6 +12,9 @@
     esdf_update_rate_hz: 10.0
     esdf_2d: false
     publish_esdf_distance_slice: true
+
+    esdf_2d_min_height: -4.5
+    esdf_2d_max_height: 5.0
     # mesh settings
     compute_mesh: true
     mesh_update_rate_hz: 2.0
@@ -49,7 +52,7 @@
       # projective integrator (tsdf/color/occupancy)
       projective_integrator_max_integration_distance_m: 5.0
       projective_integrator_truncation_distance_vox: 4.0
-      projective_integrator_weighting_mode: "inverse_square_tsdf_distance_penalty"
+      projective_integrator_weighting_mode: "constant"
       projective_integrator_max_weight: 5.0
       # occupancy integrator
       free_region_occupancy_probability: 0.45

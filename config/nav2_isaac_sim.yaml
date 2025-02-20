@@ -301,14 +301,14 @@ global_costmap:
       width: 200
       height: 200
       footprint: "[ [0.36585, 0.7127], [0.36585, -0.7127], [-0.36585, -0.7127], [-0.36585, 0.7127] ]"
-      resolution: 0.1
+      # resolution: 0.1
       origin_x: -100.0
       origin_y: -100.0
       plugins: ["nvblox_base_layer", "inflation_layer"]
       nvblox_base_layer:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
-        max_obstacle_distance: 1.0
+        max_obstacle_distance: 2.0
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
