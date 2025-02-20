@@ -1,5 +1,9 @@
-//#include "behaviortree_cpp/action_node.h"
-#include "/workspaces/Lunabotics/src/behaviortree_ros2/behaviortree_ros2/include/behaviortree_ros2/bt_action_node.hpp" 
+// following the theoretically working template in calibrate_field_coordinate.cpp so that file has the explanations for the lines
+
+#include "rovr_interfaces/action/auto_dig.hpp"
+#include "behaviortree_ros2/bt_action_node.hpp"
+
+using AutoDig = rovr_interaces::action::AutoDig
 
 class AutoDigAction : public BT::RosActionNode<AutoDig> {
     public:
@@ -11,19 +15,28 @@ class AutoDigAction : public BT::RosActionNode<AutoDig> {
         : BT::RosActionNode<AutoDig>(name, conf, params)
         {}
 
-        void AutoDigAction::on_tick() {
-            if (!BT::isStatusActive(status())) {
-                //call the auto_dig_server.py file somehow
-            }
+        bool setGoal(BT::RosActionNode<CalibrateFieldCoordinate>::Goal& goal) override {
+            return true;
+        }
 
-        }   
-
-        BT::NodeStatus onResultReceived(const BT::RosActionNode<rovr_interfaces::action::AutoDig>::WrappedResult& wr) override {   //might not need override, depends if class definition line inheritance works
-            if (wr.result->success) {
-                return BT::NodeStatus::SUCCESS;
-            }
-            
-            return BT::NodeStatus::FAILURE;
+        BT::NodeStatus onResultReceived(const WrappedResult& wr) override {
+            return (wr.result->success) ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
         }
 
 };
+
+int main(int argc, char**argv) {
+    rclcpp::init(argc, argv);
+
+    BT::BehaviorTreeFactory factory;
+
+    auto node = std::make_shared<rclcpp::Node>("auto_dig_action_client");
+
+    BT::RosNodeParams params;
+    params.nh = node;
+    params.default_port_value = "auto_dig";
+    factory.registerNodeType<AutoDigAction>("AutoDig", params);
+
+    rclcpp::shutdown();
+    return 0;
+}
