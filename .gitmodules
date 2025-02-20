@@ -10,10 +10,6 @@
 	path = src/isaac_ros/isaac_ros_common
 	url = https://github.com/GOFIRST-Robotics/isaac_ros_common.git
 	branch = isaac-ros-3.1
-[submodule "src/isaac_ros/isaac_ros_nvblox"]
-	path = src/isaac_ros/isaac_ros_nvblox
-	url = https://github.com/GOFIRST-Robotics/isaac_ros_nvblox.git
-	branch = temporary
 [submodule "src/isaac_ros/isaac_ros_apriltag"]
 	path = src/isaac_ros/isaac_ros_apriltag
 	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag.git
@@ -34,3 +30,7 @@
 	path = src/realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
 	branch = 4.56.1
+[submodule "src/isaac_ros/isaac_ros_nvblox"]
+	path = src/isaac_ros/isaac_ros_nvblox
+	url = https://github.com/GOFIRST-Robotics/isaac_ros_nvblox.git
+	branch = main
