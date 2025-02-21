@@ -14,6 +14,8 @@
             <input_port name="server_timeout">Server timeout</input_port>
             <output_port name="error_code_id">Assisted teleop error code</output_port>
         </Action>
+        <Action ID="AutoDig" editable="true"/>
+        <Action ID="AutoOffload" editable="true"/>
         <Action ID="BackUp">
             <input_port name="backup_dist">Distance to backup</input_port>
             <input_port name="backup_speed">Speed at which to backup</input_port>
@@ -23,6 +25,7 @@
             <input_port name="disable_collision_checks">Disable collision checking</input_port>
             <output_port name="error_code_id">"Back up error code"</output_port>
         </Action>
+        <Action ID="CalibrateFieldCoordinates" editable="true"/>
         <Action ID="CancelAssistedTeleop">
             <input_port name="server_name">Server name to cancel the assisted teleop behavior</input_port>
             <input_port name="server_timeout">Server timeout</input_port>
