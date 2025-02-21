@@ -61,6 +61,8 @@ struct DiggerLiftGoal {
   float value;
 };
 
+float current_threshold = 0.0; // TODO: Make this a ROS parameter like MAX_POS_DIFF is
+
 class PIDController {
 private:
   int COUNTS_PER_REVOLUTION; // How many encoder counts for one 360 degree rotation
@@ -308,6 +310,8 @@ public:
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
+    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Digger Duty Cycle", 100);
+    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper Duty Cycle", 100);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
@@ -374,6 +378,16 @@ private:
   }
 
   void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers msg) {
+    std_msgs::msg::Float32 digger_linear_actuator_msg;
+    digger_linear_actuator_msg.data = (this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle + this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle)/2.0;
+    digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
+
+    std_msgs::msg::Float32 dumper_linear_actuator_msg;
+    dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].dutyCycle;
+    dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
+
+
+
     float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
     int error = msg.left_motor_pot - msg.right_motor_pot;
     float speed_adjustment = error * kP;
@@ -385,6 +399,13 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
+    else if ((this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle > current_threshold) || (this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle > current_threshold)){
+      this->digger_lift_goal = { "duty_cycle", 0.0 };
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      // Log an error message
+      RCLCPP_ERROR(this->get_logger(), "Current too high");
+    } 
     else if (this->digger_lift_goal.type == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
@@ -461,6 +482,8 @@ private:
   }
 
   rclcpp::TimerBase::SharedPtr timer;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr digger_linear_actuator_pub;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr dumper_linear_actuator_pub;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
   rclcpp::Subscription<rovr_interfaces::msg::Potentiometers>::SharedPtr potentiometer_sub; 
