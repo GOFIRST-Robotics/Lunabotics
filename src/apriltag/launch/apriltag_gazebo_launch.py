@@ -20,12 +20,20 @@ def generate_launch_description():
         remappings=[("image", "color/image"), ("camera_info", "color/camera_info")],
     )
 
+    apriltag_node2 = ComposableNode(
+        package="isaac_ros_apriltag",
+        plugin="nvidia::isaac_ros::apriltag::AprilTagNode",
+        name="isaac_ros_apriltag_rear",
+        namespace="",
+        remappings=[("image", "color/image_rear"), ("camera_info", "color/camera_info_rear"), ("tag_detections", "tag_detections_rear")],
+    )
+
     apriltag_container = ComposableNodeContainer(
         package="rclcpp_components",
         name="apriltag_container",
         namespace="",
         executable="component_container_mt",
-        composable_node_descriptions=[apriltag_node],
+        composable_node_descriptions=[apriltag_node, apriltag_node2],
         output="screen",
     )
 

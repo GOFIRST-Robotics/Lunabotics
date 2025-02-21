@@ -23,6 +23,17 @@ def generate_launch_description():
         ],
     )
 
+    isaac_ros_apriltag2 = ComposableNode(
+        package="isaac_ros_apriltag",
+        plugin="nvidia::isaac_ros::apriltag::AprilTagNode",
+        name="isaac_ros_apriltag2",
+        namespace="apriltag_2",
+        remappings=[
+            ("image", "zed2i/zed_node/left/image_rect_color_rgb"),
+            ("camera_info", "zed2i/zed_node/left/camera_info"),
+        ],
+    )
+
     image_format_converter_node_left = ComposableNode(
         package="isaac_ros_image_proc",
         plugin="nvidia::isaac_ros::image_proc::ImageFormatConverterNode",
@@ -43,7 +54,7 @@ def generate_launch_description():
         name="apriltag_container",
         namespace="",
         executable="component_container_mt",
-        composable_node_descriptions=[isaac_ros_apriltag, image_format_converter_node_left],
+        composable_node_descriptions=[isaac_ros_apriltag, isaac_ros_apriltag2, image_format_converter_node_left],
         output="screen",
     )
 
