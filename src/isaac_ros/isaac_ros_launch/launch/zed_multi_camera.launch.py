@@ -148,42 +148,44 @@ def launch_setup(context, *args, **kwargs):
         )
         actions.append(zed_wrapper_launch)
 
-        # Add the timestamp to the svo filename
-        svo_filename = f"/rosbags/{name}_recording_{timestamp_str}.svo2"
-        # Record an SVO2 file
-        record_svo_srv = ExecuteProcess(
-            cmd=[
-                [
-                    FindExecutable(name="ros2"),
-                    " service call ",
-                    f"/{name}/{node_name}/start_svo_rec ",
-                    "zed_msgs/srv/StartSvoRec ",
-                    # Tune this bitrate to adjust file size
-                    f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
-                ]
-            ],
-            shell=True,
-            condition=IfCondition(LaunchConfiguration("record_svo")),
-        )
-        actions.append(record_svo_srv)
-        # Stop recording the SVO2 file
-        stop_svo_recording = RegisterEventHandler(
-            event_handler=OnShutdown(
-                on_shutdown=ExecuteProcess(
-                    cmd=[
-                        [
-                            FindExecutable(name="ros2"),
-                            " service call ",
-                            f"/{name}/{node_name}/stop_svo_rec ",
-                            "std_srvs/srv/Trigger ",
-                        ]
-                    ],
-                    shell=True,
-                    condition=IfCondition(LaunchConfiguration("record_svo")),
+        # Only record an SVO from the first camera
+        if cam_idx == 0:
+            # Add the timestamp to the svo filename
+            svo_filename = f"/rosbags/{name}_recording_{timestamp_str}.svo2"
+            # Record an SVO2 file
+            record_svo_srv = ExecuteProcess(
+                cmd=[
+                    [
+                        FindExecutable(name="ros2"),
+                        " service call ",
+                        f"/{name}/{node_name}/start_svo_rec ",
+                        "zed_msgs/srv/StartSvoRec ",
+                        # Tune this bitrate to adjust file size
+                        f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
+                    ]
+                ],
+                shell=True,
+                condition=IfCondition(LaunchConfiguration("record_svo")),
+            )
+            actions.append(record_svo_srv)
+            # Stop recording the SVO2 file
+            stop_svo_recording = RegisterEventHandler(
+                event_handler=OnShutdown(
+                    on_shutdown=ExecuteProcess(
+                        cmd=[
+                            [
+                                FindExecutable(name="ros2"),
+                                " service call ",
+                                f"/{name}/{node_name}/stop_svo_rec ",
+                                "std_srvs/srv/Trigger ",
+                            ]
+                        ],
+                        shell=True,
+                        condition=IfCondition(LaunchConfiguration("record_svo")),
+                    )
                 )
             )
-        )
-        actions.append(stop_svo_recording)
+            actions.append(stop_svo_recording)
 
         cam_idx += 1
 
