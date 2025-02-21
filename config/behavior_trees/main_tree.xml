@@ -9,7 +9,7 @@
         <KeepRunningUntilFailure>
           <Fallback>
             <Sequence>
-              <Script code="msg:=&quot;Go To Dig Zone&quot;"/>
+              <GoToDigLocation/>
               <Script code="msg:=&quot;Auto Dig&quot;"/>
               <Script code="msg:=&quot;Go To Offload Zone&quot;"/>
               <Script code="msg:=&quot;Auto Offload&quot;"/>
@@ -23,6 +23,9 @@
   </BehaviorTree>
 
   <!-- Description of Node Models (used by Groot) -->
-  <TreeNodesModel/>
+  <TreeNodesModel>
+    <Action ID="GoToDigLocation"
+            editable="true"/>
+  </TreeNodesModel>
 
 </root>
