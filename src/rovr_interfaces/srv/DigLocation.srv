@@ -1,4 +1,5 @@
 # This service is for fetching potential dig locations
 ---
+bool success
 int64 x
 int64 y

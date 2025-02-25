@@ -5,6 +5,8 @@ from rclpy.node import Node
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
 
+from nav2_simple_commander.robot_navigator import BasicNavigator
+
 class DigLocationFinder(Node):
     def __init__(self):
         super().__init__("dig_location_finder")
@@ -15,6 +17,8 @@ class DigLocationFinder(Node):
         #     self.execute_callback,
         #     cancel_callback=self.cancel_callback,
         # )
+
+        self.nav2 = BasicNavigator()
 
         self.srv = self.create_service(DigLocation, 'find_dig_location', self.find_dig_location_callback)
 
@@ -31,7 +35,13 @@ class DigLocationFinder(Node):
 
     def find_dig_location_callback(self, request, response):
         coords = self.getDigLocation()
-        response.x, response.y = coords[0], coords[1] if coords else None
+        if coords is None:
+            response.success = False
+            return response
+        
+        response.success = True
+        response.x = coords[0]
+        response.y = coords[1]
         return response
         
     def updatePotentialDigLocations(self):
@@ -44,8 +54,9 @@ class DigLocationFinder(Node):
                 if dig_cost >= self.max_dig_cost:
                     self.potential_dig_locations.remove(location)
             
-        except:
-            self.get_logger().error("Error in updatePotentialDigLocations")
+        except Exception as e:
+            self.potential_dig_locations = []
+            self.get_logger().error(f"Error in updatePotentialDigLocations {e}")
 
     def getDigLocation(self):
         self.updatePotentialDigLocations()

@@ -13,4 +13,5 @@
     max_dig_cost: 100 # Measured as a Costmap grid value (0-255)
 
     # Locations of all dig sites to check, as [x, y] pairs
+    # Ros param lists must be flattened, so this is a list of all x values followed by all y values
     all_dig_locations: [1, 2, 3, 4]
