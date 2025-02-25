@@ -8,3 +8,9 @@
     autonomous_field_type: "nasa" # The type of field ("top", "bottom", "nasa")
     lift_digging_start_position: -3050 # Measured in encoder counts!
     lift_digging_end_position: -100 # Measured in encoder counts!
+
+    absolute_max_dig_cost: 200 # Measured as a Costmap grid value (0-255)
+    max_dig_cost: 100 # Measured as a Costmap grid value (0-255)
+
+    # Locations of all dig sites to check, as [x, y] pairs
+    all_dig_locations: [1, 2, 3, 4]
