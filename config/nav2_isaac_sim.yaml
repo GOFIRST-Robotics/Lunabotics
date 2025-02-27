@@ -143,7 +143,7 @@ controller_server:
         collision_cost: 10000.0
         collision_margin_distance: 0.1
         near_goal_distance: 0.5
-        inflation_radius: 0.8 # (only in Humble)
+        inflation_radius: 0.9 # (only in Humble)
         cost_scaling_factor: 10.0 # (only in Humble)
       PathAlignCritic:
         enabled: true
@@ -269,12 +269,18 @@ local_costmap:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
         max_obstacle_distance: 1.0
+        gradient_multiplier: 50.0 
+        # Need to play with this. this is just linear multiplier to the values found by the gradient. 
+        # As of right now, the formula for the cost value is 
+        # cost = min(max_cost, (gradient * gradient_multiplier * max_cost))
+        # max cost = 255
+        # gradient = abs(height(x - 1) - height(x + 1)) + abs(height(y - 1) - height(y + 1))
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: True
         cost_scaling_factor: 8.0
-        inflation_radius: 0.8
+        inflation_radius: 0.9
       always_send_full_costmap: True
   local_costmap_client:
     ros__parameters:
@@ -295,20 +301,20 @@ global_costmap:
       width: 200
       height: 200
       footprint: "[ [0.36585, 0.7127], [0.36585, -0.7127], [-0.36585, -0.7127], [-0.36585, 0.7127] ]"
-      resolution: 0.1
+      # resolution: 0.1
       origin_x: -100.0
       origin_y: -100.0
       plugins: ["nvblox_base_layer", "inflation_layer"]
       nvblox_base_layer:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
-        max_obstacle_distance: 1.0
-        nvblox_map_slice_topic: "/nvblox_node/combined_esdf"
+        max_obstacle_distance: 2.0
+        nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: True
         cost_scaling_factor: 4.0
-        inflation_radius: 0.8
+        inflation_radius: 0.9
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:
