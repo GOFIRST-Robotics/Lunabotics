@@ -12,18 +12,18 @@
 
 class BehaviorTreeExecutor : public rclcpp::Node { 
 public: 
-    BehaviorTreeExecutor() : Node("my_bt_executor") { 
+    BehaviorTreeExecutor() : Node("bt_executor") { 
         // Load behavior tree 
         // factory_.registerNodeType<nav2_behavior_tree::GoToPoseAction>("GoToPose"); 
         // Register your custom nodes 
-        // factory_.registerNodeType<PersonRecognitionAction>("PersonRecognition"); 
-        tree_ = factory_.createTreeFromFile("/path/to/your_custom_bt.xml"); 
+        // factory_.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
+        tree_ = factory_.createTreeFromFile("/workspaces/Lunabotics/config/behavior_trees/main_tree.xml"); 
         // Create service to start the behavior tree 
         start_service_ = create_service<std_srvs::srv::Trigger>("start_autonomy", 
             std::bind(&BehaviorTreeExecutor::startCallback, this, std::placeholders::_1, std::placeholders::_2)); 
 
         // Create service to cancel the behavior tree 
-        cancel_service_ = create_service<std_srvs::srv::Trigger>( "cancel_autonomy", 
+        cancel_service_ = create_service<std_srvs::srv::Trigger>("cancel_autonomy", 
             std::bind(&BehaviorTreeExecutor::cancelCallback, this, std::placeholders::_1, std::placeholders::_2));
     } 
 private: 
