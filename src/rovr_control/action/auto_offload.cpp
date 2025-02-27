@@ -8,9 +8,9 @@ using AutoOffload = rovr_interfaces::action::AutoOffload;
 class AutoOffloadAction : public nav2_behavior_tree::RosActionNode<AutoOffload>{
     public:
         AutoOffloadAction(
-            const std::string& xml_tag_name,
+            const std::string & xml_tag_name,
             const std::string & action_name,
-            const BT::NodeConfiguration& conf)
+            const BT::NodeConfiguration & conf)
         : nav2_behavior_tree::BtActionNode<AutoOffload>(xml_tag_name, action_name, conf) {}
         
         //called when TreeNode is ticked, send request to action server

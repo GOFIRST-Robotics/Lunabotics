@@ -2,40 +2,45 @@
 
 #include "rovr_interfaces/action/auto_dig.hpp"
 #include "behaviortree_ros2/bt_action_node.hpp"
+#inlucde "nav2_behavior_tree/behavior_tree_engine.hpp"
 
-using AutoDig = rovr_interaces::action::AutoDig
+using AutoDig = rovr_interaces::action::AutoDig;
 
-class AutoDigAction : public BT::RosActionNode<AutoDig> {
+class AutoDigAction : public nav2_behavior_tree::BtActionNode<AutoDig> {
     public:
         AutoDigAction(
-            const std::string& name,
-            const BT::NodeConfig& conf,
-            const BT::RosNodeParams& params
+            const std::string & xml_tag_name,
+            const BT::string & action_name,
+            const BT::NodeConfiguration & conf
         )
-        : BT::RosActionNode<AutoDig>(name, conf, params)
+        : nav2_behavior_tree::BtActionNode<AutoDig>(xml_tag_name, action_name, conf)
         {}
 
-        bool setGoal(BT::RosActionNode<CalibrateFieldCoordinate>::Goal& goal) override {
-            return true;
-        }
+        //bool setGoal(BT::RosActionNode<CalibrateFieldCoordinate>::Goal& goal) override {
+        //    return true;
+        // }
 
-        BT::NodeStatus onResultReceived(const WrappedResult& wr) override {
-            return (wr.result->success) ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
-        }
+       // BT::NodeStatus onResultReceived(const WrappedResult& wr) override {
+       //     return (wr.result->success) ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+        // }
 
 };
 
+BT_REGISTER_NODES(factory)
+{
+    BT::NodeBuilder builder =
+    [](const std::string & name, const BT::NodeConfiguration & config)
+    {
+      return std::make_unique<AutoDig>(name, "auto_dig", config);
+    };
+
+  factory.registerBuilder<AutoDigAction>("AutoDig", builder);
+}
+
+// Main method for the node
 int main(int argc, char**argv) {
+    // Initialize ROS 2
     rclcpp::init(argc, argv);
-
-    BT::BehaviorTreeFactory factory;
-
-    auto node = std::make_shared<rclcpp::Node>("auto_dig_action_client");
-
-    BT::RosNodeParams params;
-    params.nh = node;
-    params.default_port_value = "auto_dig";
-    factory.registerNodeType<AutoDigAction>("AutoDig", params);
 
     rclcpp::shutdown();
     return 0;
