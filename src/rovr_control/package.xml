@@ -6,7 +6,7 @@
   <description>This is the main robot control loop</description>
   <maintainer email="brogn002@umn.edu">Anthony Brogni</maintainer>
   <license>MIT License</license>
-
+  
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
@@ -34,6 +34,7 @@
   <exec_depend>nav2_simple_commander</exec_depend>
   <exec_depend>rovr_interfaces</exec_depend>
   <exec_depend>nav2_behavior_tree</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

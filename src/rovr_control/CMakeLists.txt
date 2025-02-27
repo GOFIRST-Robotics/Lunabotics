@@ -10,16 +10,22 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rovr_interfaces REQUIRED)
 find_package(nav2_behavior_tree REQUIRED)
+find_package(std_srvs REQUIRED)
 
+add_executable(behavior_tree_executor rovr_control/behavior_tree_executor.cpp)
+ament_target_dependencies(behavior_tree_executor rclcpp nav2_behavior_tree std_srvs)
 add_executable(calibrate_field_coordinate action/calibrate_field_coordinate.cpp)
 ament_target_dependencies(calibrate_field_coordinate rclcpp nav2_behavior_tree rovr_interfaces)
 
 target_include_directories(calibrate_field_coordinate PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>)
-target_compile_features(calibrate_field_coordinate PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(behavior_tree_executor PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-install(TARGETS calibrate_field_coordinate
+target_compile_features(calibrate_field_coordinate PUBLIC c_std_99 cxx_std_17)
+target_compile_features(behavior_tree_executor PUBLIC c_std_99 cxx_std_17)
+
+install(TARGETS calibrate_field_coordinate behavior_tree_executor
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch
