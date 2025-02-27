@@ -207,4 +207,8 @@ class PyCostmap2D:
         mx, my = self.worldToMapValidated(wx, wy)
         robot_width_cells = robot_width / self.resolution
         robot_height_cells = robot_height / self.resolution
-        return np.amax(self.costmap[int(mx) : int(mx + robot_width_cells), int(my) : int(my + robot_height_cells)])
+        # divide by 2 bc robot coords are from center of robot
+        robot_width_cells /= 2
+        robot_height_cells /= 2
+        return np.amax(self.costmap[int(mx - robot_width_cells) : int(mx + robot_width_cells),
+                                    int(my - robot_height_cells) : int(my + robot_height_cells)])

@@ -1,10 +1,11 @@
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.node import Node
-# from rovr_interfaces.action import DigLocation
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
 
+import math
+from geometry_msgs.msg import PolygonStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator
 
 class DigLocationFinder(Node):
@@ -19,19 +20,33 @@ class DigLocationFinder(Node):
         # )
 
         self.nav2 = BasicNavigator()
-
         self.srv = self.create_service(DigLocation, 'find_dig_location', self.find_dig_location_callback)
+        
+        
+        self.footprint_sub = self.create_subscription(PolygonStamped, '/local_costmap/published_footprint', self.footprint_callback, 10)
+        self.footprint = (1.2, 0.75)
 
         self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
-        # Ignore the 1 in here. It breaks if you default to empty list (it thinks its a byte array)
-        self.all_dig_locations = self.declare_parameter("all_dig_locations", [1]).value
-        
-        # ROS doesn't like nested lists, so the config file has to be flattened.
-        # This unflattens that list
-        self.all_dig_locations = [(self.all_dig_locations[i], self.all_dig_locations[i+1]) for i in range(0, len(self.all_dig_locations), 2)]
+        self.all_dig_locations = self.declare_parameter("all_dig_locations", [1, 2]).value # Ignore the 1 in here. It breaks if you default to empty list (it thinks its a byte array)
 
+        # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
+        self.all_dig_locations = [(self.all_dig_locations[i], self.all_dig_locations[i+1]) for i in range(0, len(self.all_dig_locations), 2)]
         self.potential_dig_locations = self.all_dig_locations.copy()
+
+
+    # ignore how unbelievably scuffed this is.
+    def footprint_callback(self, msg):
+        poly = msg.polygon
+        points = poly.points
+
+        x = math.sqrt((points[0].x - points[1].x)**2 + (points[0].y - points[1].y)**2)
+        y = math.sqrt((points[1].x - points[2].x)**2 + (points[1].y - points[2].y)**2)
+
+        width = max(x, y)
+        height = min(x, y)
+        self.footprint = (width, height)
+        self.destroy_subscription(self.footprint_sub)
 
     def find_dig_location_callback(self, request, response):
         coords = self.getDigLocation()
