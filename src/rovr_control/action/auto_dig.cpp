@@ -2,7 +2,7 @@
 
 #include "rovr_interfaces/action/auto_dig.hpp"
 #include "behaviortree_ros2/bt_action_node.hpp"
-#inlucde "nav2_behavior_tree/behavior_tree_engine.hpp"
+#include "nav2_behavior_tree/behavior_tree_engine.hpp"
 
 using AutoDig = rovr_interaces::action::AutoDig;
 
