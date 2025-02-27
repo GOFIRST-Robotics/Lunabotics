@@ -12,6 +12,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
+from std_msgs.msg import Float32MultiArray
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
@@ -64,7 +65,7 @@ class DiggerNode(Node):
         )
 
         # Define subscribers here
-        self.linear_actuator_duty_cycle_sub = self.create_subscription(float, "dutyCycles", self.linear_actuator_duty_cycle_callback, 10)
+        self.linear_actuator_duty_cycle_sub = self.create_subscription(Float32MultiArray, "Digger_Duty_Cycle", self.linear_actuator_duty_cycle_callback, 10)
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
@@ -89,7 +90,8 @@ class DiggerNode(Node):
         self.lift_running = False
 
         # Lineaer Actuator Duty Cycles
-        self.linear_actuator_duty_cycle = 0.0
+        self.left_linear_actuator_duty_cycle = 0.0
+        self.right_linear_actuator_duty_cycle = 0.0
         
         
 
@@ -149,14 +151,6 @@ class DiggerNode(Node):
     def lift_set_power(self, power: float) -> None:
         """This method sets power to the lift system."""
         self.lift_running = True
-        if power > 0 and self.linear_actuator_duty_cycle == 0.0:
-            self.get_logger().warn("WARNING: Duty Cycle is 0")
-            self.stop_lift()  # Stop the lift system
-            return
-        if power < 0 and self.linear_actuator_duty_cycle == 0.0:
-            self.get_logger().warn("WARNING: Duty Cycle is 0")
-            self.stop_lift()  # Stop the lift system
-            return
         if power < 0 and not self.running:
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
@@ -173,7 +167,7 @@ class DiggerNode(Node):
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
         self.lift_set_power(0.05)
-        while not self.linear_actuator_duty_cycle == 0.0:
+        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -187,7 +181,7 @@ class DiggerNode(Node):
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
         self.lift_set_power(-0.05)
-        while not self.linear_actuator_duty_cycle == 0.0:
+        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -261,9 +255,8 @@ class DiggerNode(Node):
 
     # Define subscriber callback methods here
     def linear_actuator_duty_cycle_callback(self, linear_acutator_msg):
-        if not self.linear_actuator_duty_cycle == 0.0 and linear_acutator_msg.data == 0.0:
-            self.stop_lift()
-        self.linear_actuator_duty_cycle = linear_acutator_msg.data
+        self.left_linear_actuator_duty_cycle = linear_acutator_msg.data[0]
+        self.right_linear_actuator_duty_cycle = linear_acutator_msg.data[1]
     
 
 

@@ -65,21 +65,14 @@ class DumperNode(Node):
 
         self.dumper_duty_cycle = 0.0
 
-        self.dumper_duty_cycle_sub = self.create_subscription(float, "dutyCycles", self.dumper_duty_cycle_callback, 10)
+        self.dumper_duty_cycle_sub = self.create_subscription(float, "Dumper_Duty_Cycle", self.dumper_duty_cycle_callback, 10)
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
-        if dumper_power > 0 and self.dumper_duty_cycle == 0.0:
-            self.get_logger().warn("WARNING: Duty cycle is 0.0!")
-            self.stop()  # Stop the dumper
-        elif dumper_power < 0 and self.dumper_duty_cycle == 0.0:
-            self.get_logger().warn("WARNING: Duty cycle is 0.0!")
-            self.stop()  # stop the dumper
-        else:
-            self.cli_motor_set.call_async(
-                MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
-            )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
+        )
 
     def stop(self) -> None:
         """This method stops the dumper."""
@@ -154,8 +147,6 @@ class DumperNode(Node):
         return response
 
     def dumper_duty_cycle_callback(self, duty_cycle_msg):
-        if not self.dumper_duty_cycle == 0.0 and duty_cycle_msg.data == 0.0:
-            self.stop()
         self.dumper_duty_cycle = duty_cycle_msg.data
 
 
