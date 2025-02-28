@@ -92,8 +92,6 @@ class DiggerNode(Node):
         # Lineaer Actuator Duty Cycles
         self.left_linear_actuator_duty_cycle = 0.0
         self.right_linear_actuator_duty_cycle = 0.0
-        
-        
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:

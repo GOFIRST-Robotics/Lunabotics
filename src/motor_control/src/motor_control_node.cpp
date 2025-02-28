@@ -62,8 +62,6 @@ struct DiggerLiftGoal {
   float value;
 };
 
-float current_threshold = 0.0; // TODO: Make this a ROS parameter like MAX_POS_DIFF is
-
 class PIDController {
 private:
   int COUNTS_PER_REVOLUTION; // How many encoder counts for one 360 degree rotation
@@ -386,8 +384,6 @@ private:
     std_msgs::msg::Float32 dumper_linear_actuator_msg;
     dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].dutyCycle;
     dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
-
-
 
     float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
     int error = msg.left_motor_pot - msg.right_motor_pot;
