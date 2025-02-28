@@ -64,9 +64,9 @@ class DumperNode(Node):
 
         self.dumper_duty_cycle = 0.0
 
-        self.dumper_duty_cycle_sub = self.create_subscription(float, 
-                                                              "Dumper_Duty_Cycle", 
-                                                              self.dumper_duty_cycle_callback, 
+        self.dumper_duty_cycle_sub = self.create_subscription(float,
+                                                              "Dumper_Duty_Cycle",
+                                                              self.dumper_duty_cycle_callback,
                                                               10)
 
     # Define subsystem methods here
