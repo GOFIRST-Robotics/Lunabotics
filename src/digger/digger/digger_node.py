@@ -17,7 +17,7 @@ from std_msgs.msg import Float32MultiArray
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.msg import LimitSwitches, Potentiometers
+from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import Trigger
 
 
@@ -65,7 +65,10 @@ class DiggerNode(Node):
         )
 
         # Define subscribers here
-        self.linear_actuator_duty_cycle_sub = self.create_subscription(Float32MultiArray, "Digger_Duty_Cycle", self.linear_actuator_duty_cycle_callback, 10)
+        self.linear_actuator_duty_cycle_sub = self.create_subscription(Float32MultiArray, 
+                                                                       "Digger_Duty_Cycle", 
+                                                                       self.linear_actuator_duty_cycle_callback, 
+                                                                       10)
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
@@ -255,8 +258,6 @@ class DiggerNode(Node):
     def linear_actuator_duty_cycle_callback(self, linear_acutator_msg):
         self.left_linear_actuator_duty_cycle = linear_acutator_msg.data[0]
         self.right_linear_actuator_duty_cycle = linear_acutator_msg.data[1]
-    
-
 
 def main(args=None):
     """The main function."""
