@@ -1,38 +1,45 @@
 import rclpy
-from rclpy.action import ActionClient, ActionServer, CancelResponse
+from rclpy.action import ActionClient, ActionServer
 from rclpy.node import Node
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
 from rovr_interfaces.action import GoToDig
 from nav2_msgs.action import NavigateToPose
-import math, asyncio
+import math
+import asyncio
 from geometry_msgs.msg import PolygonStamped, PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator
 import tf_transformations
+
 
 class DigLocationFinder(Node):
     def __init__(self):
         super().__init__("dig_location_finder")
         self._action_server = ActionServer(
             self,
-            GoToDig, # Empty action message
+            GoToDig,  # Empty action message
             "go_to_dig_location",
             self.execute_callback,
             cancel_callback=self.drive_to_dig_location,
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
-
         self.nav2 = BasicNavigator()
-        self.srv = self.create_service(DigLocation, 'find_dig_location', self.find_dig_location_callback)
-        self.footprint_sub = self.create_subscription(PolygonStamped, '/local_costmap/published_footprint', self.footprint_callback, 10)
+        self.srv = self.create_service(DigLocation, "find_dig_location", self.find_dig_location_callback)
+        self.footprint_sub = self.create_subscription(
+            PolygonStamped, "/local_costmap/published_footprint", self.footprint_callback, 10
+        )
         self.footprint = (1.2, 0.75)
         self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
-        self.all_dig_locations = self.declare_parameter("all_dig_locations", [1, 2]).value # Ignore the 1 in here. It breaks if you default to empty list (it thinks its a byte array)
+        self.all_dig_locations = self.declare_parameter(
+            "all_dig_locations", [1, 2]
+        ).value  # Ignore the 1 in here. It breaks if you default to empty list (it thinks its a byte array)
 
         # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
-        self.all_dig_locations = [(self.all_dig_locations[i], self.all_dig_locations[i+1]) for i in range(0, len(self.all_dig_locations), 2)]
+        self.all_dig_locations = [
+            (self.all_dig_locations[i], self.all_dig_locations[i + 1]) for i in range(0, len(self.all_dig_locations), 2)
+        ]
         self.potential_dig_locations = self.all_dig_locations.copy()
 
     async def drive_to_dig_location(self, goal_handle):
@@ -42,7 +49,7 @@ class DigLocationFinder(Node):
         if goal_pose_xy is None:
             goal_handle.abort()
             return result
-        
+
         nav_goal = self.get_goal_pose(goal_pose_xy[0], goal_pose_xy[1], math.PI)
 
         send_goal_future = self.nav2_client.send_goal_async(nav_goal)
@@ -51,8 +58,8 @@ class DigLocationFinder(Node):
         goal_response = await send_goal_future
         if not goal_response.accepted:
             self.get_logger().error("Goal rejected")
-            return 
-        
+            return
+
         result_future = goal_response.get_result_async()
 
         while not result_future.done():
@@ -69,7 +76,6 @@ class DigLocationFinder(Node):
             self.get_logger().error("Navigation failed!")
             return result
 
-
     # yaw in rads.
     # yaw = 0 at x axis, positive is counter clockwise
     def get_goal_pose(self, x, y, yaw):
@@ -83,7 +89,7 @@ class DigLocationFinder(Node):
 
         goal_msg.pose.pose.position.x = x
         goal_msg.pose.pose.position.y = y
-        
+
         quaternion = tf_transformations.quaternion_from_euler(0, 0, yaw)
         goal_msg.pose.pose.orientation.x = quaternion[0]
         goal_msg.pose.pose.orientation.y = quaternion[1]
@@ -91,15 +97,13 @@ class DigLocationFinder(Node):
         goal_msg.pose.pose.orientation.w = quaternion[3]
         return goal_msg
 
-
-
     # ignore how unbelievably scuffed this is.
     def footprint_callback(self, msg):
         poly = msg.polygon
         points = poly.points
 
-        x = math.sqrt((points[0].x - points[1].x)**2 + (points[0].y - points[1].y)**2)
-        y = math.sqrt((points[1].x - points[2].x)**2 + (points[1].y - points[2].y)**2)
+        x = math.sqrt((points[0].x - points[1].x) ** 2 + (points[0].y - points[1].y) ** 2)
+        y = math.sqrt((points[1].x - points[2].x) ** 2 + (points[1].y - points[2].y) ** 2)
 
         width = max(x, y)
         height = min(x, y)
@@ -111,12 +115,12 @@ class DigLocationFinder(Node):
         if coords is None:
             response.success = False
             return response
-        
+
         response.success = True
         response.x = coords[0]
         response.y = coords[1]
         return response
-        
+
     def updatePotentialDigLocations(self):
         try:
             costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
@@ -126,7 +130,7 @@ class DigLocationFinder(Node):
                 dig_cost = costmap.getDigCost(location[0], location[1], robot_width, robot_height)
                 if dig_cost >= self.max_dig_cost:
                     self.potential_dig_locations.remove(location)
-            
+
         except Exception as e:
             self.potential_dig_locations = []
             self.get_logger().error(f"Error in updatePotentialDigLocations {e}")
@@ -140,9 +144,10 @@ class DigLocationFinder(Node):
             self.max_dig_cost += 10
             if self.max_dig_cost >= self.absolute_max_dig_cost:
                 return None
-            return self.getDigLocation()        
+            return self.getDigLocation()
         return self.potential_dig_locations[0]
-    
+
+
 def main(args=None):
     rclpy.init(args=args)
     dig_location_finder = DigLocationFinder()
