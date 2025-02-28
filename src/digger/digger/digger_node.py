@@ -65,10 +65,9 @@ class DiggerNode(Node):
         )
 
         # Define subscribers here
-        self.linear_actuator_duty_cycle_sub = self.create_subscription(Float32MultiArray,
-                                                                       "Digger_Duty_Cycle",
-                                                                       self.linear_actuator_duty_cycle_callback,
-                                                                       10)
+        self.linear_actuator_duty_cycle_sub = self.create_subscription(
+            Float32MultiArray, "Digger_Duty_Cycle", self.linear_actuator_duty_cycle_callback, 10
+        )
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
