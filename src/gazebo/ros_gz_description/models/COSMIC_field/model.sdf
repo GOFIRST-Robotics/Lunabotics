@@ -7,7 +7,7 @@
         <collision name="collision">
           <geometry>
             <mesh>
-              <uri>meshes/COSMIC_basic.stl</uri>
+              <uri>meshes/Cosmic_Arena.STL</uri>
             </mesh>
           </geometry>
           <pose>0 0 0 0 0 0</pose>
@@ -15,29 +15,28 @@
         <visual name="visual">
           <geometry>
             <mesh>
-              <uri>meshes/COSMIC_field.dae</uri>
+              <uri>meshes/Cosmic_Arena.STL</uri> <!-- TODO: Change this visual to a .dae file with colors. -->
             </mesh>
           </geometry>
           <pose>0 0 0 0 0 0</pose>
         </visual>
       </link>
 
-      <!-- orientation like rule book, bottom field. plus x, plus y from bottom right-->
-
-      <frame name="bottom_right">
-        <pose>3.44 -2.5 0 0 0 0</pose>
+      <!-- We chose bottom_left to be (0, 0) with x increasing to the right and y increasing up. -->
+      <frame name="bottom_left">
+        <pose>3.44 -2.5 0 0 0 0</pose> <!-- TODO: Check if this is right. -->
       </frame>
 
       <!-- Tags in the starting zone. This assumes that we are placing 2 tags on the wall. -->
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00001</uri>
-        <pose relative_to='bottom_right'>-6.87 1 0.4 1.57 0 1.57</pose>
+        <pose relative_to='bottom_left'>-6.87 1 0.4 1.57 0 1.57</pose> <!-- TODO: Check where this should actually be mounted. -->
         <name>AprilTag_1</name>
       </include> 
 
       <include>
         <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00002</uri>
-        <pose relative_to='bottom_right'>-6.87 1.2159 0.4 1.57 0 1.57</pose>
+        <pose relative_to='bottom_left'>-6.87 1.2159 0.4 1.57 0 1.57</pose> <!-- TODO: Check where this should actually be mounted. -->
         <name>AprilTag_2</name>
       </include>
 
