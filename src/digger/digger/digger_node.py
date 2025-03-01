@@ -12,7 +12,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, Float64
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
@@ -34,18 +34,14 @@ class DiggerNode(Node):
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
 
         # Define ROS parameters
-        self.declare_parameter("DIG_ARM", 5)
-        self.declare_parameter("DIGGER_MAX_RPM", 5000)
         self.declare_parameter("GAZEBO_SIMULATION", False)  # Enable/disable Gazebo simulation
 
         # Assign parameters to variables
-        self.DIG_ARM = self.get_parameter("DIG_ARM").value
-        self.DIGGER_MAX_RPM = self.get_parameter("DIGGER_MAX_RPM").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
 
         # Define publishers for Gazebo simulation
         if self.GAZEBO_SIMULATION:
-            self.gazebo_dig_arm_pub = self.create_publisher(Float64, "digger_arm_joint/cmd_vel", 10)
+            self.gazebo_digger_pub = self.create_publisher(Float64, "digger_belt/cmd_vel", 10)
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
@@ -77,8 +73,6 @@ class DiggerNode(Node):
         self.srv_bottom_lift = self.create_service(
             Trigger, "lift/bottom", self.bottom_lift_callback, callback_group=self.service_cb_group
         )
-        self.srv_dig = self.create_service(Trigger, "digger/dig", self.dig_callback)
-        self.srv_stop = self.create_service(Trigger, "digger/stop", self.stop_callback)
 
         # Define subscribers here
         self.linear_actuator_duty_cycle_sub = self.create_subscription(
@@ -93,9 +87,6 @@ class DiggerNode(Node):
         # Assign the ROS Parameters to member variables below #
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
         self.MAX_POS_DIFF = self.get_parameter("MAX_POS_DIFF").value
-
-        # Digger state
-        self.is_digging = False
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
@@ -122,11 +113,19 @@ class DiggerNode(Node):
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=digger_power)
         )
+        if self.GAZEBO_SIMULATION:
+            msg = Float64()
+            msg.data = digger_power
+            self.gazebo_digger_pub.publish(msg)
 
     def stop(self) -> None:
         """This method stops the digger belt."""
         self.running = False
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=0.0))
+        if self.GAZEBO_SIMULATION:
+            msg = Float64()
+            msg.data = 0.0
+            self.gazebo_digger_pub.publish(msg)
 
     def toggle(self, digger_belt_power: float) -> None:
         """This method toggles the digger belt."""
@@ -277,11 +276,6 @@ class DiggerNode(Node):
     def linear_actuator_duty_cycle_callback(self, linear_acutator_msg):
         self.left_linear_actuator_duty_cycle = linear_acutator_msg.data[0]
         self.right_linear_actuator_duty_cycle = linear_acutator_msg.data[1]
-
-        """Determine digger's position based on limit switches."""
-        if msg.digger_bottom_limit_switch:
-            self.get_logger().warn("Digger reached bottom limit.")
-            self.stop()
 
 
 def main(args=None):
