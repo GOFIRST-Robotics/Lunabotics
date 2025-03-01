@@ -12,11 +12,12 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
+from std_msgs.msg import Float32MultiArray
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.msg import LimitSwitches, Potentiometers
+from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import Trigger
 
 
@@ -42,7 +43,7 @@ class DiggerNode(Node):
         self.DIGGER_MAX_RPM = self.get_parameter("DIGGER_MAX_RPM").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
 
-        #Define publishers for Gazebo simulation
+        # Define publishers for Gazebo simulation
         if self.GAZEBO_SIMULATION:
             self.gazebo_dig_arm_pub = self.create_publisher(Float64, "digger_arm_joint/cmd_vel", 10)
 
@@ -76,15 +77,13 @@ class DiggerNode(Node):
         self.srv_bottom_lift = self.create_service(
             Trigger, "lift/bottom", self.bottom_lift_callback, callback_group=self.service_cb_group
         )
-        self.srv_dig = self.create_service(
-            Trigger, "digger/dig", self.dig_callback
-            )
-        self.srv_stop = self.create_service(
-            Trigger, "digger/stop", self.stop_callback
-            )
+        self.srv_dig = self.create_service(Trigger, "digger/dig", self.dig_callback)
+        self.srv_stop = self.create_service(Trigger, "digger/stop", self.stop_callback)
 
         # Define subscribers here
-        self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
+        self.linear_actuator_duty_cycle_sub = self.create_subscription(
+            Float32MultiArray, "Digger_Duty_Cycle", self.linear_actuator_duty_cycle_callback, 10
+        )
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
@@ -112,31 +111,9 @@ class DiggerNode(Node):
         # Current state of the lift system
         self.lift_running = False
 
-        # Limit Switch States
-        self.top_limit_pressed = False
-        self.bottom_limit_pressed = False
-    
-    def dig(self, speed: float) -> bool:
-        """Control the digger arm movement."""
-        if not self.is_digging:
-            self.get_logger().info("Starting digging operation.")
-
-        # Clamp speed between -1 and 1
-        speed = max(-1.0, min(speed, 1.0))
-
-        # Send motor command (real-world)
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.DIG_ARM, type="velocity", value=speed * self.DIGGER_MAX_RPM
-            )
-        )
-
-        # Send velocity command to Gazebo if in simulation mode
-        if self.GAZEBO_SIMULATION:
-            self.gazebo_dig_arm_pub.publish(Float64(data=speed * 2.0))  # Adjust scaling as needed
-
-        self.is_digging = True
-        return True
+        # Lineaer Actuator Duty Cycles
+        self.left_linear_actuator_duty_cycle = 0.0
+        self.right_linear_actuator_duty_cycle = 0.0
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
@@ -150,11 +127,6 @@ class DiggerNode(Node):
         """This method stops the digger belt."""
         self.running = False
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=0.0))
-
-        """Stop the digger arm."""
-        self.dig(0.0)
-        self.is_digging = False
-        self.get_logger().info("Digger stopped.")
 
     def toggle(self, digger_belt_power: float) -> None:
         """This method toggles the digger belt."""
@@ -199,14 +171,6 @@ class DiggerNode(Node):
     def lift_set_power(self, power: float) -> None:
         """This method sets power to the lift system."""
         self.lift_running = True
-        if power > 0 and self.top_limit_pressed:
-            self.get_logger().warn("WARNING: Top limit switch pressed!")
-            self.stop_lift()  # Stop the lift system
-            return
-        if power < 0 and self.bottom_limit_pressed:
-            self.get_logger().warn("WARNING: Bottom limit switch pressed!")
-            self.stop_lift()  # Stop the lift system
-            return
         if power < 0 and not self.running:
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
@@ -219,11 +183,11 @@ class DiggerNode(Node):
         )
 
     def zero_lift(self) -> None:
-        """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
+        """This method zeros the lift system by slowly raising it until the duty cycle is 0."""
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
         self.lift_set_power(0.05)
-        while not self.top_limit_pressed:
+        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -233,11 +197,11 @@ class DiggerNode(Node):
         self.get_logger().info("Done zeroing the lift system")
 
     def bottom_lift(self) -> None:
-        """This method bottoms out the lift system by slowly lowering it until the bottom limit switch is pressed."""
+        """This method bottoms out the lift system by slowly lowering it until the duty cycle is 0."""
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
         self.lift_set_power(-0.05)
-        while not self.bottom_limit_pressed:
+        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -251,12 +215,6 @@ class DiggerNode(Node):
         """This service request sets power to the digger belt."""
         self.set_power(request.power)
         response.success = True
-        return response
-    
-    # Service callback methods
-    def dig_callback(self, request, response):
-        """Service to start digging."""
-        response.success = self.dig(1.0)  # Dig at full speed
         return response
 
     def stop_callback(self, request, response):
@@ -316,19 +274,15 @@ class DiggerNode(Node):
             self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
 
     # Define subscriber callback methods here
-    def limit_switch_callback(self, limit_switches_msg):
-        """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
-        if not self.top_limit_pressed and limit_switches_msg.digger_top_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        if not self.bottom_limit_pressed and limit_switches_msg.digger_bottom_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        self.top_limit_pressed = limit_switches_msg.digger_top_limit_switch
-        self.bottom_limit_pressed = limit_switches_msg.digger_bottom_limit_switch
+    def linear_actuator_duty_cycle_callback(self, linear_acutator_msg):
+        self.left_linear_actuator_duty_cycle = linear_acutator_msg.data[0]
+        self.right_linear_actuator_duty_cycle = linear_acutator_msg.data[1]
 
         """Determine digger's position based on limit switches."""
         if msg.digger_bottom_limit_switch:
             self.get_logger().warn("Digger reached bottom limit.")
             self.stop()
+
 
 def main(args=None):
     """The main function."""
