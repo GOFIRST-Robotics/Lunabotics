@@ -72,7 +72,7 @@
       odometry_frame: "odom"
       area_memory_db_path: ""
       area_memory: true # Enable to detect loop closure
-      reset_odom_with_loop_closure: false # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
+      reset_odom_with_loop_closure: true # Re-initialize odometry to the last valid pose when loop closure happens (reset camera odometry drift)
       depth_min_range: 0.0 # Set this value for removing fixed zones of the robot in the FoV of the camerafrom the visual odometry evaluation
       set_as_static: false # If 'true' the camera will be static and not move in the environment
       set_gravity_as_origin: true # If 'true' align the positional tracking world to imu gravity measurement. Keep the yaw from the user initial pose.
