@@ -82,7 +82,18 @@ class ApriltagNode(Node):
     # Service callback definition
     def reset_callback(self, request, response):
         """Run once, return success/ fail"""
-        response.success = bool(self.postTransform(self.map_to_odom_tf))
+        tag = TransformStamped()
+        tag.child_frame_id = "odom"
+        tag.header.frame_id = "map"
+        tag.transform.translation.x = self.map_to_odom_tf.transform.translation.x
+        tag.transform.translation.y = self.map_to_odom_tf.transform.translation.y
+        tag.transform.translation.z = self.map_to_odom_tf.transform.translation.z
+        tag.transform.rotation.x = self.map_to_odom_tf.transform.rotation.x
+        tag.transform.rotation.y = self.map_to_odom_tf.transform.rotation.y
+        tag.transform.rotation.z = self.map_to_odom_tf.transform.rotation.z
+        tag.transform.rotation.w = self.map_to_odom_tf.transform.rotation.w
+        tag.header.stamp = self.map_to_odom_tf.header.stamp
+        response.success = bool(self.postTransform(tag))
         return response
 
     # Publish transform if the tag is detected

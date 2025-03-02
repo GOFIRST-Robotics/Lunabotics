@@ -148,10 +148,10 @@ class MainControlNode(Node):
         self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
         self.connection_active = True
 
-        # ----- !! BLOCKING WHILE LOOP !! ----- #
-        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
+        # # ----- !! BLOCKING WHILE LOOP !! ----- # TODO: Test this when we are ready to test it on the bot
+        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
+        # self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
