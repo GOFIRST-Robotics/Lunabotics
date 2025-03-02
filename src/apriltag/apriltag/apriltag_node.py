@@ -19,12 +19,13 @@ class ApriltagNode(Node):
         super().__init__("apriltag_node")
         current_dir = os.getcwd()
 
-        self.declare_parameter("autonomous_field_type", "nasa")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("autonomous_field_type", "cosmic")  # The type of field ("cosmic", "top", "bottom", "nasa")
         field_type = self.get_parameter("autonomous_field_type").value
         paths = {
             "top": "src/apriltag/apriltag/apriltag_location_ucf_top.urdf.xarco",
             "bottom": "src/apriltag/apriltag/apriltag_location_ucf_bot.urdf.xarco",
             "nasa": "src/apriltag/apriltag/apriltag_location_nasa.urdf.xarco",
+            "cosmic": "src/apriltag/apriltag/apriltag_location_cosmic.urdf.xarco",
         }
         relative_path = paths[field_type]
         self.file_path = os.path.join(current_dir, relative_path)
