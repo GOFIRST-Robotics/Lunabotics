@@ -12,7 +12,6 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
-from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import Trigger
 
 
@@ -62,24 +61,19 @@ class DumperNode(Node):
 
         # Current state of the dumper
         self.extended_state = False
-        self.top_limit_pressed = False
-        self.bottom_limit_pressed = False
 
-        self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
+        self.dumper_duty_cycle = 0.0
+
+        self.dumper_duty_cycle_sub = self.create_subscription(
+            float, "Dumper_Duty_Cycle", self.dumper_duty_cycle_callback, 10
+        )
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
-        if dumper_power > 0 and self.top_limit_pressed:
-            self.get_logger().warn("WARNING: Top limit switch pressed!")
-            self.stop()  # Stop the dumper
-        elif dumper_power < 0 and self.bottom_limit_pressed:
-            self.get_logger().warn("WARNING: Bottom limit switch pressed!")
-            self.stop()  # stop the dumper
-        else:
-            self.cli_motor_set.call_async(
-                MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
-            )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
+        )
 
     def stop(self) -> None:
         """This method stops the dumper."""
@@ -118,7 +112,7 @@ class DumperNode(Node):
         self.extended_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
-        while not self.top_limit_pressed:
+        while not self.dumper_duty_cycle == 0.0:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -138,7 +132,7 @@ class DumperNode(Node):
         self.extended_state = False
         self.long_service_running = True
         self.set_power(-self.DUMPER_POWER)
-        while not self.bottom_limit_pressed:
+        while not self.dumper_duty_cycle == 0.0:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -153,14 +147,8 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def limit_switch_callback(self, msg: LimitSwitches):
-        """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
-        if not self.top_limit_pressed and msg.dumper_top_limit_switch:
-            self.stop()  # Stop the lift system
-        if not self.bottom_limit_pressed and msg.dumper_bottom_limit_switch:
-            self.stop()  # Stop the lift system
-        self.top_limit_pressed = msg.dumper_top_limit_switch
-        self.bottom_limit_pressed = msg.dumper_bottom_limit_switch
+    def dumper_duty_cycle_callback(self, duty_cycle_msg):
+        self.dumper_duty_cycle = duty_cycle_msg.data
 
 
 def main(args=None):
