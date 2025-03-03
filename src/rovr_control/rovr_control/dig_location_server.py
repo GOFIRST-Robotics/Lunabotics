@@ -6,7 +6,6 @@ from rovr_interfaces.srv import DigLocation
 from rovr_interfaces.action import GoToDig
 from nav2_msgs.action import NavigateToPose
 import math
-import asyncio
 from geometry_msgs.msg import PolygonStamped, PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator
 import tf_transformations
@@ -27,7 +26,7 @@ class DigLocationFinder(Node):
         self.nav2 = BasicNavigator()
         self.srv = self.create_service(DigLocation, "find_dig_location", self.find_dig_location_callback)
         self.footprint_sub = self.create_subscription(
-            PolygonStamped, "/local_costmap/published_footprint", self.footprint_callback, 10
+            PolygonStamped, "/local_costmap/published_footprint", self.get_robot_footprint, 10
         )
         self.footprint = (1.2, 0.75)
         self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
@@ -62,12 +61,8 @@ class DigLocationFinder(Node):
 
         result_future = goal_response.get_result_async()
 
-        while not result_future.done():
-            if goal_handle.is_cancel_requested:
-                goal_handle.canceled()
-                break
-            await asyncio.sleep(0.1)
-
+        await result_future
+        
         result = result_future.result()
         if result and result.status == 4:  # STATUS_SUCCEEDED (4)
             self.get_logger().info("Navigation succeeded!")
@@ -98,7 +93,7 @@ class DigLocationFinder(Node):
         return goal_msg
 
     # ignore how unbelievably scuffed this is.
-    def footprint_callback(self, msg):
+    def get_robot_footprint(self, msg):
         poly = msg.polygon
         points = poly.points
 
