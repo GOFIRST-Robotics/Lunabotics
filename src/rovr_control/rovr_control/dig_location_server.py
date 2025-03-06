@@ -62,7 +62,7 @@ class DigLocationFinder(Node):
         result_future = goal_response.get_result_async()
 
         await result_future
-        
+
         result = result_future.result()
         if result and result.status == 4:  # STATUS_SUCCEEDED (4)
             self.get_logger().info("Navigation succeeded!")
@@ -132,8 +132,8 @@ class DigLocationFinder(Node):
 
     def getDigLocation(self):
         self.updatePotentialDigLocations()
-        # If there are no potential dig locations, reset the potential dig locations and increase the max dig cost
-        # if the max dig cost is > absolute max dig cost, return None
+        # If there are no potential dig locations, reset the potential dig locations
+        # and increase the max dig cost if the max dig cost is > absolute max dig cost, return None
         if len(self.potential_dig_locations) == 0:
             self.potential_dig_locations = self.all_dig_locations.copy()
             self.max_dig_cost += 10
