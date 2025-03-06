@@ -1,10 +1,27 @@
 #include "rovr_interfaces/action/calibrate_field_coordinates.hpp"
 
-// #include "nav2_behavior_tree/bt_action_node.hpp"
+#include "behaviortree_ros2/bt_action_node.hpp"
 
 using CalibrateFieldCoordinate = rovr_interfaces::action::CalibrateFieldCoordinates;
 
-// class CalibrateFieldCoordinateAction: public BT::
+class CalibrateFieldCoordinateAction: public BT::RosActionNode<CalibrateFieldCoordinate> {
+    public:
+        CalibrateFieldCoordinateAction(
+            const std::string& instance_name, 
+            const BT::NodeConfig& conf,
+            const RosNodeParams& params)
+        : BT::RosActionNode<CalibrateFieldCoordinate>(instance_name, conf, params) {}
+
+        BT::NodeStatus onResultReceived(const WrappedResult& result) override {
+            //TODO: implement this :)
+            return BT::NodeStatus::SUCCESS;
+        }
+
+        bool setGoal(Goal& goal) override {
+            //TODO: implement this :)
+            return true;
+        }
+};
 
 // class CalibrateFieldCoordinateAction: public nav2_behavior_tree::BtActionNode<CalibrateFieldCoordinate> {
 // public:
@@ -37,3 +54,12 @@ using CalibrateFieldCoordinate = rovr_interfaces::action::CalibrateFieldCoordina
 
 //   factory.registerBuilder<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates", builder);
 // }
+
+int main(int argc, char** argv) { 
+    rclcpp::init(argc, argv); 
+
+    auto node = std::make_shared<CalibrateFieldCoordinateAction>(); 
+    rclcpp::spin(node); 
+    rclcpp::shutdown(); 
+    return 0; 
+}
