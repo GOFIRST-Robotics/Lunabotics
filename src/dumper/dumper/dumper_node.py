@@ -62,7 +62,9 @@ class DumperNode(Node):
         # Current state of the dumper
         self.extended_state = False
 
-        self.dumper_duty_cycle = 0.0
+        # Dumper Current Threshold
+        self.current_threshold = 0.3 # TODO: Use this instead of duty cycle == 0
+        self.dumper_duty_cycle = 0.0 # TODO: Rename this to current
 
         self.dumper_duty_cycle_sub = self.create_subscription(
             float, "Dumper_Duty_Cycle", self.dumper_duty_cycle_callback, 10

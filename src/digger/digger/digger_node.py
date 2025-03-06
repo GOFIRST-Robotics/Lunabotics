@@ -91,11 +91,10 @@ class DiggerNode(Node):
         # Current state of the lift system
         self.lift_running = False
 
-        # Lineaer Actuator Duty Cycles
-        self.current_threshold = 0.3
-        
-        self.left_linear_actuator_duty_cycle = 0.0
-        self.right_linear_actuator_duty_cycle = 0.0
+        # Linear Actuator Current Threshold
+        self.current_threshold = 0.3 # TODO: Use this instead of duty cycle == 0
+        self.left_linear_actuator_duty_cycle = 0.0 # TODO: Rename this to current
+        self.right_linear_actuator_duty_cycle = 0.0 # TODO: Rename this to current
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
