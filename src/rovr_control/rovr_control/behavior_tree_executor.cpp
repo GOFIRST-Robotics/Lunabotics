@@ -1,8 +1,9 @@
 // Import the ROS 2 Library
 #include "rclcpp/rclcpp.hpp"
 
-#include "nav2_behavior_tree/bt_action_node.hpp"
-#include "nav2_behavior_tree/behavior_tree_engine.hpp"
+#include "../action/calibrate_field_coordinate.cpp"
+
+#include "behaviortree_cpp/bt_factory.h"
 
 #include <thread>
 #include <chrono>
@@ -37,8 +38,8 @@ private:
         // Start behavior tree in a separate thread 
         running_ = true; 
         bt_thread_ = std::thread([this]() { 
-            while (running_ && rclcpp::ok()) { 
-                auto status = tree_.tickRoot(); 
+            while (running_ && rclcpp::ok()) {
+                auto status = tree_.tickExactlyOnce(); 
                 // Check if the tree has completed 
                 if (status == BT::NodeStatus::SUCCESS || status == BT::NodeStatus::FAILURE) { 
                     RCLCPP_INFO(get_logger(), "Behavior tree finished with status: %s", status == BT::NodeStatus::SUCCESS ? "SUCCESS" : "FAILURE"); 
@@ -47,6 +48,7 @@ private:
 
                     break; 
                 } // Sleep to avoid hogging CPU 
+
                 std::this_thread::sleep_for(std::chrono::milliseconds(50)); 
             } 
         }); 
