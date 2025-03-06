@@ -258,7 +258,7 @@ in another terminal to control the robot with your keyboard.
 
 Alternatively, you can run these nodes:
 ```
-ros2 run joy joy_node
+ros2 run joy joy_node --ros-args --params-file config/joy_node.yaml
 ros2 run rovr_control main_control_node
 ```
 to control the robot using a gamepad and our button bindings assigned in the main_control_node.

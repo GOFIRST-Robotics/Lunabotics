@@ -3,17 +3,21 @@
 # Maintainer: Anthony Brogni <brogn002@umn.edu>
 # Last Updated: November 2023
 
+import time
+
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
-from std_msgs.msg import Bool
+from std_msgs.msg import Float32MultiArray
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
 from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.msg import LimitSwitches
+from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import Trigger
 
 
@@ -22,78 +26,87 @@ class DiggerNode(Node):
         """Initialize the ROS 2 digger node."""
         super().__init__("digger")
 
+        self.cancel_current_srv = False
+        self.long_service_running = False
+
+        # Calling the lift_stop service will cancel any long-running lift services!
+        self.stop_lift_cb_group = MutuallyExclusiveCallbackGroup()
+        self.service_cb_group = MutuallyExclusiveCallbackGroup()
+
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
+        self.cli_digger_lift_set = self.create_client(MotorCommandSet, "digger_lift/set")
 
         # Define services (methods callable from the outside) here
-        self.srv_toggle = self.create_service(SetPower, "digger/toggle", self.toggle_callback)
-        self.srv_stop = self.create_service(Trigger, "digger/stop", self.stop_callback)
-        self.srv_setPower = self.create_service(SetPower, "digger/setPower", self.set_power_callback)
-        self.srv_setPosition = self.create_service(SetPosition, "lift/setPosition", self.set_position_callback)
-        self.srv_lift_stop = self.create_service(Trigger, "lift/stop", self.stop_lift_callback)
-        self.srv_lift_set_power = self.create_service(SetPower, "lift/setPower", self.lift_set_power_callback)
-        self.srv_zero_lift = self.create_service(Trigger, "lift/zero", self.zero_lift_callback)
-
-        # Define publishers here
-        self.publisher_goal_reached = self.create_publisher(Bool, "digger/goal_reached", 10)
+        self.srv_toggle = self.create_service(
+            SetPower, "digger/toggle", self.toggle_callback, callback_group=self.service_cb_group
+        )
+        self.srv_stop = self.create_service(
+            Trigger, "digger/stop", self.stop_callback, callback_group=self.service_cb_group
+        )
+        self.srv_setPower = self.create_service(
+            SetPower, "digger/setPower", self.set_power_callback, callback_group=self.service_cb_group
+        )
+        self.srv_setPosition = self.create_service(
+            SetPosition, "lift/setPosition", self.set_position_callback, callback_group=self.service_cb_group
+        )
+        self.srv_lift_stop = self.create_service(
+            Trigger, "lift/stop", self.stop_lift_callback, callback_group=self.stop_lift_cb_group
+        )
+        self.srv_lift_set_power = self.create_service(
+            SetPower, "lift/setPower", self.lift_set_power_callback, callback_group=self.service_cb_group
+        )
+        self.srv_zero_lift = self.create_service(
+            Trigger, "lift/zero", self.zero_lift_callback, callback_group=self.service_cb_group
+        )
+        self.srv_bottom_lift = self.create_service(
+            Trigger, "lift/bottom", self.bottom_lift_callback, callback_group=self.service_cb_group
+        )
 
         # Define subscribers here
-        self.limit_switch_sub = self.create_subscription(LimitSwitches, "limitSwitches", self.limit_switch_callback, 10)
-
-        # Define timers here
-        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.linear_actuator_duty_cycle_sub = self.create_subscription(
+            Float32MultiArray, "Digger_Duty_Cycle", self.linear_actuator_duty_cycle_callback, 10
+        )
+        self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter("DIGGER_BELT_MOTOR", 2)
-        self.declare_parameter("DIGGER_LIFT_MOTOR", 1)
+        self.declare_parameter("DIGGER_MOTOR", 3)
+        self.declare_parameter("MAX_POS_DIFF", 3)
 
         # Assign the ROS Parameters to member variables below #
-        self.DIGGER_BELT_MOTOR = self.get_parameter("DIGGER_BELT_MOTOR").value
-        self.DIGGER_LIFT_MOTOR = self.get_parameter("DIGGER_LIFT_MOTOR").value
+        self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
+        self.MAX_POS_DIFF = self.get_parameter("MAX_POS_DIFF").value
 
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info("DIGGER_BELT_MOTOR has been set to: " + str(self.DIGGER_BELT_MOTOR))
-        self.get_logger().info("DIGGER_LIFT_MOTOR has been set to: " + str(self.DIGGER_LIFT_MOTOR))
-
-        self.lift_encoder_offset = 0  # measured in degrees
+        self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
+        self.get_logger().info("MAX_POS_DIFF has been set to: " + str(self.MAX_POS_DIFF))
 
         # Current state of the digger belt
         self.running = False
-        # Current goal position (in degrees)
-        self.current_goal_position = 0
-        # Current position of the lift motor in degrees
-        self.current_position_degrees = 0  # Relative encoders always initialize to 0
+        # Current position of the lift motor in potentiometer units (0 to 1023)
+        self.current_lift_position = None  # We don't know the current position yet
         # Goal Threshold
-        # if abs(self.current_goal_position - ACTUAL VALUE) <= self.goal_threshold,
-        # then we should publish True to /digger/goal_reached
-        self.goal_threshold = 320  # in degrees of the motor # TODO: Tune this threshold if needed
+        self.goal_threshold = 2  # in potentiometer units (0 to 1023) # TODO: Tune this threshold value if needed
         # Current state of the lift system
         self.lift_running = False
 
-        # Limit Switch States
-        self.top_limit_pressed = False
-        self.bottom_limit_pressed = False
-
-        # Maximum value of the lift motor encoder (bottom of the lift system) IN DEGREES
-        self.MAX_ENCODER_DEGREES = (
-            -3600 * 360 / 42
-        )  # Multiply the max encoder count (-3600) by 360 and divide by 42 to get degrees
+        # Lineaer Actuator Duty Cycles
+        self.left_linear_actuator_duty_cycle = 0.0
+        self.right_linear_actuator_duty_cycle = 0.0
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
         """This method sets power to the digger belt."""
         self.running = True
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_BELT_MOTOR, value=digger_power)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=digger_power)
         )
 
     def stop(self) -> None:
         """This method stops the digger belt."""
         self.running = False
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_BELT_MOTOR, value=0.0)
-        )
+        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=0.0))
 
     def toggle(self, digger_belt_power: float) -> None:
         """This method toggles the digger belt."""
@@ -102,43 +115,80 @@ class DiggerNode(Node):
         else:
             self.set_power(digger_belt_power)
 
-    # TODO: This method can probably be deleted during the implementation of ticket #257
     def set_position(self, position: int) -> None:
-        """This method sets the position (in degrees) of the digger."""
-        self.current_goal_position = position  # goal position should be in degrees
-        self.cli_motor_set.call_async(
+        """This method sets the position of the digger lift and waits until the goal is reached."""
+        if position > self.current_lift_position and not self.running:
+            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.stop_lift()  # Stop the lift system
+            return
+        self.get_logger().info("Setting the lift position to: " + str(position))
+        self.long_service_running = True
+        self.cli_digger_lift_set.call_async(
             MotorCommandSet.Request(
                 type="position",
-                can_id=self.DIGGER_LIFT_MOTOR,
-                value=float(self.current_goal_position + self.lift_encoder_offset),
+                value=float(position),
             )
         )
+        # Wait until the goal position goal is reached to return
+        while abs(position - self.current_lift_position) > self.goal_threshold:
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
+        self.long_service_running = False
+        self.get_logger().info("Done setting the lift position to: " + str(position))
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
         self.lift_running = False
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=0.0)
+        self.cli_digger_lift_set.call_async(
+            MotorCommandSet.Request(
+                type="duty_cycle",
+                value=0.0,
+            )
         )
 
     def lift_set_power(self, power: float) -> None:
         """This method sets power to the lift system."""
         self.lift_running = True
-        if power > 0 and self.top_limit_pressed:
-            self.get_logger().warn("WARNING: Top limit switch pressed!")
+        if power < 0 and not self.running:
+            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
             return
-        if power < 0 and self.bottom_limit_pressed:
-            self.get_logger().warn("WARNING: Bottom limit switch pressed!")
-            self.stop_lift()  # Stop the lift system
-            return
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_LIFT_MOTOR, value=power)
+        self.cli_digger_lift_set.call_async(
+            MotorCommandSet.Request(
+                type="duty_cycle",
+                value=power,
+            )
         )
 
     def zero_lift(self) -> None:
-        """This method zeros the lift system by slowly raising it until the top limit switch is pressed."""
+        """This method zeros the lift system by slowly raising it until the duty cycle is 0."""
+        self.get_logger().info("Zeroing the lift system")
+        self.long_service_running = True
         self.lift_set_power(0.05)
+        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
+        self.stop_lift()
+        self.long_service_running = False
+        self.get_logger().info("Done zeroing the lift system")
+
+    def bottom_lift(self) -> None:
+        """This method bottoms out the lift system by slowly lowering it until the duty cycle is 0."""
+        self.get_logger().info("Bottoming out the lift system")
+        self.long_service_running = True
+        self.lift_set_power(-0.05)
+        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
+            time.sleep(0.1)  # We don't want to spam loop iterations too fast
+        self.stop_lift()
+        self.long_service_running = False
+        self.get_logger().info("Done bottoming out the lift system")
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -159,9 +209,6 @@ class DiggerNode(Node):
         response.success = True
         return response
 
-    # TODO: This method needs to be modified during the implementation of ticket #257
-    # to return a proper future indicating when the goal position has been reached
-    # so that rclpy.spin_until_future_complete() can be used to wait for the goal.
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
         self.set_position(request.position)
@@ -170,6 +217,8 @@ class DiggerNode(Node):
 
     def stop_lift_callback(self, request, response):
         """This service request stops the lift system."""
+        if self.long_service_running:
+            self.cancel_current_srv = True
         self.stop_lift()
         response.success = True
         return response
@@ -186,38 +235,28 @@ class DiggerNode(Node):
         response.success = True
         return response
 
-    # Define timer callback methods here
-    def timer_callback(self):
-        """Publishes whether or not the current goal position has been reached."""
-        # This service call will return a future object, that will eventually contain the position in degrees
-        future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.DIGGER_LIFT_MOTOR))
-        future.add_done_callback(self.done_callback)
+    def bottom_lift_callback(self, request, response):
+        """This service request bottoms out the lift system."""
+        self.bottom_lift()
+        response.success = True
+        return response
 
-    def done_callback(self, future):
-        self.current_position_degrees = future.result().data
-        goal_reached_msg = Bool(
-            data=abs(self.current_goal_position + self.lift_encoder_offset - self.current_position_degrees)
-            <= self.goal_threshold
-        )
-        self.publisher_goal_reached.publish(goal_reached_msg)
+    # Define the subscriber callback for the potentiometers topic
+    def pot_callback(self, msg: Potentiometers):
+        """Helps us know whether or not the current goal position has been reached."""
+        # Should use the same threshold that is being used in the motor_coontrol_node
+        if abs(msg.left_motor_pot - msg.right_motor_pot) > self.MAX_POS_DIFF:
+            self.get_logger().error("ERROR: The two potentiometer values are too far apart!")
+            self.current_lift_position = None  # We don't know the current position anymore
+            self.stop_lift()  # Stop the lift system
+        else:
+            # Average the two potentiometer values
+            self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
 
     # Define subscriber callback methods here
-    def limit_switch_callback(self, limit_switches_msg):
-        """This subscriber callback method is called whenever a message is received on the limitSwitches topic."""
-        if not self.top_limit_pressed and limit_switches_msg.top_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        if not self.bottom_limit_pressed and limit_switches_msg.bottom_limit_switch:
-            self.stop_lift()  # Stop the lift system
-        self.top_limit_pressed = limit_switches_msg.top_limit_switch
-        self.bottom_limit_pressed = limit_switches_msg.bottom_limit_switch
-        if self.top_limit_pressed:  # If the top limit switch is pressed
-            self.lift_encoder_offset = self.current_position_degrees
-            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
-            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
-        elif self.bottom_limit_pressed:  # If the bottom limit switch is pressed
-            self.lift_encoder_offset = self.current_position_degrees - self.MAX_ENCODER_DEGREES
-            self.get_logger().debug("Current position in degrees: " + str(self.current_position_degrees))
-            self.get_logger().debug("New lift encoder offset: " + str(self.lift_encoder_offset))
+    def linear_actuator_duty_cycle_callback(self, linear_acutator_msg):
+        self.left_linear_actuator_duty_cycle = linear_acutator_msg.data[0]
+        self.right_linear_actuator_duty_cycle = linear_acutator_msg.data[1]
 
 
 def main(args=None):
@@ -225,8 +264,11 @@ def main(args=None):
     rclpy.init(args=args)
 
     node = DiggerNode()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
     node.get_logger().info("Initializing the Digger subsystem!")
-    rclpy.spin(node)
+    executor.spin()
 
     node.destroy_node()
     rclpy.shutdown()
