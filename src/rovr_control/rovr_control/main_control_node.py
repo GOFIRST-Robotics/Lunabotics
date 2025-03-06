@@ -69,8 +69,9 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_belt_power", -0.3)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("autonomous_field_type", "nasa")  # The type of field ("top", "bottom", "nasa")
+        self.declare_parameter("autonomous_field_type", "cosmic")  # The type of field ("cosmic", "top", "bottom", "nasa")
+
+        self.declare_parameter("digger_belt_power", -0.1)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
         self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
@@ -148,10 +149,10 @@ class MainControlNode(Node):
         self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
         self.connection_active = True
 
-        # ----- !! BLOCKING WHILE LOOP !! ----- #
-        while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-            self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
+        # # ----- !! BLOCKING WHILE LOOP !! ----- # TODO: Test this when we are ready to test it on the bot
+        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
+        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
+        # self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
