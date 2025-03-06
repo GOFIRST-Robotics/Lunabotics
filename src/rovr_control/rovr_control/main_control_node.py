@@ -69,14 +69,13 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        # The type of field ("cosmic", "top", "bottom", "nasa")
-        self.declare_parameter("autonomous_field_type", "cosmic")
-
         self.declare_parameter("digger_belt_power", -0.1)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power", 0.075)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
         self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
         self.declare_parameter("dumper_power", 0.5)  # The power the dumper needs to go
+        # The type of field ("cosmic", "top", "bottom", "nasa")
+        self.declare_parameter("autonomous_field_type", "cosmic")
 
         # Assign the ROS Parameters to member variables below #
         self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
