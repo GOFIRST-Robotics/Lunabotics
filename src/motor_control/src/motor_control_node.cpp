@@ -10,11 +10,13 @@
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "std_msgs/msg/float32.hpp"
+#include <std_msgs/msg/float32_multi_array.hpp>
 #include "std_msgs/msg/string.hpp"
 
 // Import custom ROS 2 interfaces
 #include "rovr_interfaces/srv/motor_command_get.hpp"
 #include "rovr_interfaces/srv/motor_command_set.hpp"
+#include "rovr_interfaces/msg/potentiometers.hpp"
 
 // Import Native C++ Libraries
 #include <chrono>
@@ -52,6 +54,12 @@ struct MotorData {
   float velocity;
   int tachometer;
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
+};
+
+// Define a struct to store the current digger lift goal
+struct DiggerLiftGoal {
+  std::string type;
+  float value;
 };
 
 class PIDController {
@@ -235,6 +243,20 @@ class MotorControlNode : public rclcpp::Node {
     RCLCPP_DEBUG(this->get_logger(), "Setting the position of CAN ID: %u to %d degrees", id, position); // Print Statement
   }
 
+  void set_digger_lift_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request,
+                    std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
+    // Update the current digger lift goal
+    this->digger_lift_goal = { request->type, request->value };
+
+    // Set the digger lift motors to the new duty cycle
+    if (this->digger_lift_goal.type == "duty_cycle") {
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+    }
+
+    response->success = true;
+  }
+
   // Get the motor controller's current duty cycle command
   std::optional<float> vesc_get_duty_cycle(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
@@ -265,29 +287,40 @@ public:
     // Define default values for our ROS parameters below #
     this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
-    this->declare_parameter("DIGGER_LIFT_MOTOR", 1);
+    this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2);
+    this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
+    this->declare_parameter("MAX_POS_DIFF", 30);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
-    RCLCPP_INFO(this->get_logger(), "DIGGER_LIFT_MOTOR parameter set to: %ld", this->get_parameter("DIGGER_LIFT_MOTOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_LEFT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
-
-    this->pid_controllers[this->get_parameter("DIGGER_LIFT_MOTOR").as_int()] = new PIDController(42, 0.005, 0.0, 0.0, 0.0, 20, 0.05);
+    srv_set_digger_lift = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
+        "digger_lift/set", std::bind(&MotorControlNode::set_digger_lift_callback, this, _1, _2));
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
+    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Duty_Cycle", 100);
+    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Duty_Cycle", 100);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
     // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
+
+    potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
+
+    // Initialize the current digger lift goal
+    this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
   }
 
 private:
@@ -343,9 +376,49 @@ private:
     RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f, Tachometer: %d", RPM, dutyCycleNow, tachometer);
   }
 
+  void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers msg) {
+    std_msgs::msg::Float32MultiArray digger_linear_actuator_msg;
+    digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle};
+    digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
+
+    std_msgs::msg::Float32 dumper_linear_actuator_msg;
+    dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].dutyCycle;
+    dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
+
+    float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
+    int error = msg.left_motor_pot - msg.right_motor_pot;
+    float speed_adjustment = error * kP;
+    if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int()) {
+      // Stop both motors!
+      this->digger_lift_goal = { "duty_cycle", 0.0 };
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      // Log an error message
+      RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
+    }
+    else if (this->digger_lift_goal.type == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
+    }
+    else if (this->digger_lift_goal.type == "position") {
+      int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
+      int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
+
+      float left_controller_output = kP * left_error;
+      float right_controller_output = kP * right_error;
+
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment);
+    } else{
+      RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
+    }
+  }
+
   // Initialize a hashmap to store the most recent motor data for each CAN ID
   std::map<uint32_t, MotorData> can_data;
   std::map<uint32_t, PIDController*> pid_controllers;
+
+  DiggerLiftGoal digger_lift_goal;
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
 
@@ -399,10 +472,14 @@ private:
   }
 
   rclcpp::TimerBase::SharedPtr timer;
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr digger_linear_actuator_pub;
+  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr dumper_linear_actuator_pub;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
+  rclcpp::Subscription<rovr_interfaces::msg::Potentiometers>::SharedPtr potentiometer_sub; 
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
+  rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_set_digger_lift;
 };
 
 // Main method for the node

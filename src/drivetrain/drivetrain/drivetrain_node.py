@@ -114,10 +114,10 @@ class DrivetrainNode(Node):
 
         # Publish the wheel speeds to the gazebo simulation
         if self.GAZEBO_SIMULATION:
-            self.gazebo_wheelFrontLeft_pub.publish(Float64(data=leftPower))
-            self.gazebo_wheelFrontRight_pub.publish(Float64(data=rightPower))
-            self.gazebo_wheelBackLeft_pub.publish(Float64(data=leftPower))
-            self.gazebo_wheelBackRight_pub.publish(Float64(data=rightPower))
+            self.gazebo_wheelFrontLeft_pub.publish(Float64(data=leftPower * 2))
+            self.gazebo_wheelFrontRight_pub.publish(Float64(data=rightPower * 2))
+            self.gazebo_wheelBackLeft_pub.publish(Float64(data=leftPower * 2))
+            self.gazebo_wheelBackRight_pub.publish(Float64(data=rightPower * 2))
         return True
 
     def stop(self) -> None:

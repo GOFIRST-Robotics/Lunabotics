@@ -10,12 +10,13 @@ Panels:
         - /TF1/Frames1
         - /TF1/Tree1
         - /Nvblox1
+        - /Nvblox1/Map Slice Bounds1
         - /Nvblox1/Esdf Slice1
         - /Sensors1
         - /Plan1
         - /RobotModel1
       Splitter Ratio: 0.5896806120872498
-    Tree Height: 622
+    Tree Height: 723
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -37,6 +38,8 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base_link:
+          Value: true
         frame_link:
           Value: true
         map:
@@ -51,8 +54,6 @@ Visualization Manager:
           Value: true
         swerve4_Link:
           Value: true
-        translation_end_link:
-          Value: true
         wheel1_Link:
           Value: true
         wheel2_Link:
@@ -65,11 +66,21 @@ Visualization Manager:
           Value: false
         zed2i_camera_link:
           Value: true
-        zed2i_imu_link:
-          Value: false
         zed2i_left_camera_frame:
           Value: false
         zed2i_left_camera_optical_frame:
+          Value: false
+        zed2i_rear_camera_center:
+          Value: false
+        zed2i_rear_camera_link:
+          Value: true
+        zed2i_rear_left_camera_frame:
+          Value: false
+        zed2i_rear_left_camera_optical_frame:
+          Value: false
+        zed2i_rear_right_camera_frame:
+          Value: false
+        zed2i_rear_right_camera_optical_frame:
           Value: false
         zed2i_right_camera_frame:
           Value: false
@@ -84,22 +95,35 @@ Visualization Manager:
         map:
           odom:
             zed2i_camera_link:
-              translation_end_link:
+              base_link:
                 frame_link:
                   swerve1_Link:
-                    wheel1_Link: {}
+                    wheel1_Link:
+                      {}
                   swerve2_Link:
-                    wheel2_Link: {}
+                    wheel2_Link:
+                      {}
                   swerve3_Link:
-                    wheel3_Link: {}
+                    wheel3_Link:
+                      {}
                   swerve4_Link:
-                    wheel4_Link: {}
+                    wheel4_Link:
+                      {}
+                zed2i_rear_camera_link:
+                  zed2i_rear_camera_center:
+                    zed2i_rear_left_camera_frame:
+                      zed2i_rear_left_camera_optical_frame:
+                        {}
+                    zed2i_rear_right_camera_frame:
+                      zed2i_rear_right_camera_optical_frame:
+                        {}
               zed2i_camera_center:
                 zed2i_left_camera_frame:
-                  zed2i_imu_link: {}
-                  zed2i_left_camera_optical_frame: {}
+                  zed2i_left_camera_optical_frame:
+                    {}
                 zed2i_right_camera_frame:
-                  zed2i_right_camera_optical_frame: {}
+                  zed2i_right_camera_optical_frame:
+                    {}
       Update Interval: 0
       Value: true
     - Alpha: 0.5
@@ -139,7 +163,8 @@ Visualization Manager:
         - Class: rviz_default_plugins/MarkerArray
           Enabled: false
           Name: Mesh Marker
-          Namespaces: {}
+          Namespaces:
+            {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -150,7 +175,8 @@ Visualization Manager:
         - Class: rviz_default_plugins/Marker
           Enabled: false
           Name: Map Slice Bounds
-          Namespaces: {}
+          Namespaces:
+            {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -171,7 +197,7 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: Intensity
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Max Intensity: 2
@@ -192,7 +218,7 @@ Visualization Manager:
             Value: /nvblox_node/static_esdf_pointcloud
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -399,6 +425,10 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         frame_link:
           Alpha: 1
           Show Axes: false
@@ -424,10 +454,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        translation_end_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         wheel1_Link:
           Alpha: 1
           Show Axes: false
@@ -465,6 +491,31 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        zed2i_rear_camera_center:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        zed2i_rear_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_left_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_left_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_right_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        zed2i_rear_right_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         zed2i_right_camera_frame:
           Alpha: 1
           Show Axes: false
@@ -481,6 +532,27 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Alpha: 0.699999988079071
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /local_costmap/costmap
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /local_costmap/costmap_updates
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 212; 212; 212
