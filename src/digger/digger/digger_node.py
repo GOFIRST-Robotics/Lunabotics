@@ -92,6 +92,8 @@ class DiggerNode(Node):
         self.lift_running = False
 
         # Lineaer Actuator Duty Cycles
+        self.current_threshold = 0.3
+        
         self.left_linear_actuator_duty_cycle = 0.0
         self.right_linear_actuator_duty_cycle = 0.0
 
