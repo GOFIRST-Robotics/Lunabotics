@@ -13,6 +13,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from std_srvs.srv import Trigger
+from std_msgs.msg import Float32
 
 
 class DumperNode(Node):
@@ -67,7 +68,7 @@ class DumperNode(Node):
         self.dumper_current = 0.0
 
         self.dumper_current_sub = self.create_subscription(
-            float, "Dumper_Current", self.dumper_current_callback, 10
+            Float32, "Dumper_Current", self.dumper_current_callback, 10
         )
 
     # Define subsystem methods here

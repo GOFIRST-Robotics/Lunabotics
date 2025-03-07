@@ -307,6 +307,7 @@ public:
     this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2);
     this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
     this->declare_parameter("MAX_POS_DIFF", 30);
+    this->declare_parameter("DUMPER_MOTOR", 24);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -314,6 +315,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_LEFT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
+    RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -415,11 +417,11 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
-    else if (this->digger_lift_goal.type == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
+    else if ((strcmp(this->digger_lift_goal.type, "duty_cycle") == 0) && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
     }
-    else if (this->digger_lift_goal.type == "position") {
+    else if (strcmp(this->digger_lift_goal.type, "position") == 0) {
       int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
       int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
 
@@ -477,7 +479,7 @@ private:
       data = vesc_get_duty_cycle(request->can_id);
     } else if (strcmp(request->type.c_str(), "position") == 0) {
       data = vesc_get_position(request->can_id);
-    } else if (request->type == "current") {
+    } else if (strcmp(request->type.c_str(), "current") == 0) {
       data = vesc_get_current(request->can_id);
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
