@@ -258,14 +258,6 @@ class MotorControlNode : public rclcpp::Node {
     response->success = true;
   }
 
-  void vesc_set_current(uint32_t id, float current) {
-      this->pid_controllers[id]->isActive = false;
-      int32_t data = current * 1000; // Current is measured in amperage
-      send_can(id + 0x00000100, data); // ID must be modified to signify this is a current command
-      this->current_msg[id] = std::make_tuple(id + 0x00000100, data); // update the hashmap
-      RCLCPP_DEBUG(this->get_logger(), "Setting the current of CAN ID: %u to %f amps", id, current); // Print Statement
-  }
-
   // Get the motor controller's current duty cycle command
   std::optional<float> vesc_get_duty_cycle(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
@@ -477,7 +469,7 @@ private:
       data = vesc_get_duty_cycle(request->can_id);
     } else if (strcmp(request->type.c_str(), "position") == 0) {
       data = vesc_get_position(request->can_id);
-    } else if (request->type == "current") {
+    } else if (strcmp(request->type.c_str(), "current") == 0) {
       data = vesc_get_current(request->can_id);
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
