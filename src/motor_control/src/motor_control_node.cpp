@@ -250,7 +250,7 @@ class MotorControlNode : public rclcpp::Node {
     this->digger_lift_goal = { request->type, request->value };
 
     // Set the digger lift motors to the new duty cycle
-    if (this->digger_lift_goal.type == "duty_cycle") {
+    if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
     }
@@ -409,11 +409,11 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
-    else if (this->digger_lift_goal.type == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
+    else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
     }
-    else if (this->digger_lift_goal.type == "position") {
+    else if (strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
       int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
 
