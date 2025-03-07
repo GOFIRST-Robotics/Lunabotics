@@ -299,6 +299,7 @@ public:
     this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2);
     this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
     this->declare_parameter("MAX_POS_DIFF", 30);
+    this->declare_parameter("DUMPER_MOTOR", 24);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -306,6 +307,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_LEFT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
+    RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
