@@ -326,8 +326,8 @@ public:
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
-    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Duty_Cycle", 100);
-    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Duty_Cycle", 100);
+    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Current", 100);
+    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 100);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
@@ -397,11 +397,11 @@ private:
 
   void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers msg) {
     std_msgs::msg::Float32MultiArray digger_linear_actuator_msg;
-    digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle};
+    digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
     std_msgs::msg::Float32 dumper_linear_actuator_msg;
-    dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].dutyCycle;
+    dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
     dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
 
     float kP = 0.01; // TODO: This value will need to be tuned on the real robot!

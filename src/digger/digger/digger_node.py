@@ -66,7 +66,7 @@ class DiggerNode(Node):
 
         # Define subscribers here
         self.linear_actuator_duty_cycle_sub = self.create_subscription(
-            Float32MultiArray, "Digger_Duty_Cycle", self.linear_actuator_duty_cycle_callback, 10
+            Float32MultiArray, "Digger_Current", self.linear_actuator_current_callback, 10
         )
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
@@ -92,9 +92,9 @@ class DiggerNode(Node):
         self.lift_running = False
 
         # Linear Actuator Current Threshold
-        self.current_threshold = 0.3 # TODO: Use this instead of duty cycle == 0
-        self.left_linear_actuator_duty_cycle = 0.0 # TODO: Rename this to current
-        self.right_linear_actuator_duty_cycle = 0.0 # TODO: Rename this to current
+        self.current_threshold = 0.3
+        self.left_linear_actuator_current = 0.0
+        self.right_linear_actuator_current = 0.0
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
@@ -168,7 +168,7 @@ class DiggerNode(Node):
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
         self.lift_set_power(0.05)
-        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
+        while not (self.left_linear_actuator_current < self.current_threshold or self.right_linear_actuator_current < self.current_threshold):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -182,7 +182,7 @@ class DiggerNode(Node):
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
         self.lift_set_power(-0.05)
-        while not (self.left_linear_actuator_duty_cycle == 0.0 or self.right_linear_actuator_duty_cycle == 0.0):
+        while not (self.left_linear_actuator_current < self.current_threshold or self.right_linear_actuator_current < self.current_threshold):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -255,9 +255,9 @@ class DiggerNode(Node):
             self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
 
     # Define subscriber callback methods here
-    def linear_actuator_duty_cycle_callback(self, linear_acutator_msg):
-        self.left_linear_actuator_duty_cycle = linear_acutator_msg.data[0]
-        self.right_linear_actuator_duty_cycle = linear_acutator_msg.data[1]
+    def linear_actuator_current_callback(self, linear_acutator_msg):
+        self.left_linear_actuator_current = linear_acutator_msg.data[0]
+        self.right_linear_actuator_current = linear_acutator_msg.data[1]
 
 
 def main(args=None):
