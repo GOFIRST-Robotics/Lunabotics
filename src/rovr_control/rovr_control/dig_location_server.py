@@ -3,12 +3,12 @@ from rclpy.action import ActionClient, ActionServer
 from rclpy.node import Node
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
-from rovr_interfaces.action import GoToDig
+from rovr_interfaces.action import CalibrateFieldCoordinates
+from scipy.spatial.transform import Rotation as R
 from nav2_msgs.action import NavigateToPose
 import math
 from geometry_msgs.msg import PolygonStamped, PoseStamped
 from nav2_simple_commander.robot_navigator import BasicNavigator
-import tf_transformations
 
 
 class DigLocationFinder(Node):
@@ -16,9 +16,9 @@ class DigLocationFinder(Node):
         super().__init__("dig_location_finder")
         self._action_server = ActionServer(
             self,
-            GoToDig,  # Empty action message
+            CalibrateFieldCoordinates,  # Empty action message
             "go_to_dig_location",
-            self.execute_callback,
+            self.drive_to_dig_location,
             cancel_callback=self.drive_to_dig_location,
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
@@ -42,18 +42,18 @@ class DigLocationFinder(Node):
         self.potential_dig_locations = self.all_dig_locations.copy()
 
     async def drive_to_dig_location(self, goal_handle):
-        result = GoToDig.Result()
+        result = CalibrateFieldCoordinates.Result()
 
         goal_pose_xy = self.getDigLocation()
         if goal_pose_xy is None:
-            goal_handle.abort()
+            goal_handle.succeed()
             return result
 
         nav_goal = self.get_goal_pose(goal_pose_xy[0], goal_pose_xy[1], math.PI)
 
         send_goal_future = self.nav2_client.send_goal_async(nav_goal)
         goal_handle.succeed()
-
+        return result
         goal_response = await send_goal_future
         if not goal_response.accepted:
             self.get_logger().error("Goal rejected")
@@ -85,11 +85,14 @@ class DigLocationFinder(Node):
         goal_msg.pose.pose.position.x = x
         goal_msg.pose.pose.position.y = y
 
-        quaternion = tf_transformations.quaternion_from_euler(0, 0, yaw)
-        goal_msg.pose.pose.orientation.x = quaternion[0]
-        goal_msg.pose.pose.orientation.y = quaternion[1]
-        goal_msg.pose.pose.orientation.z = quaternion[2]
-        goal_msg.pose.pose.orientation.w = quaternion[3]
+        quat = R.from_euler(
+            "xyz", [float(0), float(0), float(yaw)], degrees=False
+        ).as_quat()
+
+        goal_msg.pose.pose.orientation.x = quat[0]
+        goal_msg.pose.pose.orientation.y = quat[1]
+        goal_msg.pose.pose.orientation.z = quat[2]
+        goal_msg.pose.pose.orientation.w = quat[3]
         return goal_msg
 
     # ignore how unbelievably scuffed this is.
@@ -117,6 +120,7 @@ class DigLocationFinder(Node):
         return response
 
     def updatePotentialDigLocations(self):
+        return
         try:
             costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
             robot_width, robot_height = (0.5, 0.5)
@@ -127,11 +131,10 @@ class DigLocationFinder(Node):
                     self.potential_dig_locations.remove(location)
 
         except Exception as e:
-            self.potential_dig_locations = []
             self.get_logger().error(f"Error in updatePotentialDigLocations {e}")
 
     def getDigLocation(self):
-        self.updatePotentialDigLocations()
+        # self.updatePotentialDigLocations()
         # If there are no potential dig locations, reset the potential dig locations
         # and increase the max dig cost if the max dig cost is > absolute max dig cost, return None
         if len(self.potential_dig_locations) == 0:
