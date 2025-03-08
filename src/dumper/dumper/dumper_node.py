@@ -62,10 +62,12 @@ class DumperNode(Node):
         # Current state of the dumper
         self.extended_state = False
 
-        self.dumper_duty_cycle = 0.0
+        # Dumper Current Threshold
+        self.current_threshold = 0.3
+        self.dumper_current = 0.0
 
-        self.dumper_duty_cycle_sub = self.create_subscription(
-            float, "Dumper_Duty_Cycle", self.dumper_duty_cycle_callback, 10
+        self.dumper_current_sub = self.create_subscription(
+            float, "Dumper_Current", self.dumper_current_callback, 10
         )
 
     # Define subsystem methods here
@@ -112,7 +114,7 @@ class DumperNode(Node):
         self.extended_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
-        while not self.dumper_duty_cycle == 0.0:
+        while not self.dumper_current < self.current_threshold:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -132,7 +134,7 @@ class DumperNode(Node):
         self.extended_state = False
         self.long_service_running = True
         self.set_power(-self.DUMPER_POWER)
-        while not self.dumper_duty_cycle == 0.0:
+        while not self.dumper_current < self.current_threshold:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -147,8 +149,8 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def dumper_duty_cycle_callback(self, duty_cycle_msg):
-        self.dumper_duty_cycle = duty_cycle_msg.data
+    def dumper_current_callback(self, msg):
+        self.dumper_current = msg.data
 
 
 def main(args=None):

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!--
- THIS IS FOR THE NASA KSC FIELD and the Collegiate Space Mining Competition (CoSMiC)
- Coordinate system is in meters and degrees
+ THIS IS FOR THE NASA KSC FIELD.
+ Coordinate system is in meters and degrees.
  (0,0) is the bottom left corner of the map (starting zone) and (6.88, 5) is the top right corner.
 -->
 
