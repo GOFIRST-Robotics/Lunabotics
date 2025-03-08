@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<sdf version='1.7'>
+  <model name='COSMIC_field'>
+    <static>true</static>
+    <pose>0 0 0 0 0 0</pose>
+      <link name='field'>
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>meshes/Cosmic_Arena.stl</uri>
+            </mesh>
+          </geometry>
+          <pose>0 0 0 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>meshes/Cosmic_Arena.dae</uri>
+            </mesh>
+          </geometry>
+          <pose>0 0 0 0 0 0</pose>
+        </visual>
+      </link>
+
+      <!-- We chose bottom_left to be (0, 0) with x increasing to the right and y increasing up. -->
+      <frame name="bottom_left">
+        <pose>0 0 0 0 0 0</pose> 
+      </frame>
+
+      <!-- Tags in the starting zone. This assumes that we are placing 2 tags on the wall. -->
+      <include>
+        <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00001</uri>
+        <pose relative_to='bottom_left'>5.48 3.7525 0.8 1.57 0 -1.57</pose>
+        <name>AprilTag_1</name>
+      </include> 
+
+      <include>
+        <uri>/src/gazebo/ros_gz_description/models/Apriltag36_11_00002</uri>
+        <pose relative_to='bottom_left'>5.48 3.9684 0.8 1.57 0 -1.57</pose> 
+        <name>AprilTag_2</name>
+      </include>
+
+  </model>
+</sdf>

@@ -52,6 +52,7 @@ double inputModulus(double input, double minimumInput, double maximumInput) {
 struct MotorData {
   float dutyCycle;
   float velocity;
+  float current;
   int tachometer;
   std::chrono::time_point<std::chrono::steady_clock> timestamp;
 };
@@ -249,7 +250,7 @@ class MotorControlNode : public rclcpp::Node {
     this->digger_lift_goal = { request->type, request->value };
 
     // Set the digger lift motors to the new duty cycle
-    if (this->digger_lift_goal.type == "duty_cycle") {
+    if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
     }
@@ -281,6 +282,14 @@ class MotorControlNode : public rclcpp::Node {
       return std::nullopt; // The data is too stale
     }
   }
+   // Get the current draw of the motor in amps
+  std::optional<float> vesc_get_current(uint32_t id) {
+    if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      return this->can_data[id].current;
+    } else {
+      return std::nullopt; // The data is too stale
+    }
+  }
 
 public:
   MotorControlNode() : Node("MotorControlNode") {
@@ -290,6 +299,7 @@ public:
     this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2);
     this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
     this->declare_parameter("MAX_POS_DIFF", 30);
+    this->declare_parameter("DUMPER_MOTOR", 24);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -297,6 +307,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_LEFT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
+    RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -309,8 +320,8 @@ public:
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
-    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Duty_Cycle", 100);
-    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Duty_Cycle", 100);
+    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Current", 100);
+    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 100);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
@@ -343,16 +354,18 @@ private:
 
     // If 'motorId' is not found in the 'can_data' hashmap, add it.
     if (this->can_data.count(motorId) == 0) {
-      this->can_data[motorId] = {0, 0, 0, std::chrono::steady_clock::now()};
+      this->can_data[motorId] = {0, 0, 0, 0, std::chrono::steady_clock::now()};
     }
 
     float dutyCycleNow = this->can_data[motorId].dutyCycle;
     float RPM = this->can_data[motorId].velocity;
+    float current = this->can_data[motorId].current;
     int32_t tachometer = this->can_data[motorId].tachometer;
 
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
+      current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); 
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0  / 100.0);
       break;
     case 27: // Packet Status 27 (Tachometer)
@@ -370,19 +383,19 @@ private:
     }
 
     // Store the most recent motor data in the hashmap
-    this->can_data[motorId] = {dutyCycleNow, RPM, tachometer, std::chrono::steady_clock::now()};
+    this->can_data[motorId] = {dutyCycleNow, RPM, current, tachometer, std::chrono::steady_clock::now()};
 
     RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
-    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f, Duty Cycle: %.2f, Tachometer: %d", RPM, dutyCycleNow, tachometer);
+    RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2fAmps Tachometer: %d", RPM, dutyCycleNow, current, tachometer);
   }
 
   void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers msg) {
     std_msgs::msg::Float32MultiArray digger_linear_actuator_msg;
-    digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle};
+    digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
     std_msgs::msg::Float32 dumper_linear_actuator_msg;
-    dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].dutyCycle;
+    dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
     dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
 
     float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
@@ -396,11 +409,11 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
-    else if (this->digger_lift_goal.type == "duty_cycle" && this->digger_lift_goal.value != 0.0) {
+    else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
     }
-    else if (this->digger_lift_goal.type == "position") {
+    else if (strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
       int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
 
@@ -458,6 +471,8 @@ private:
       data = vesc_get_duty_cycle(request->can_id);
     } else if (strcmp(request->type.c_str(), "position") == 0) {
       data = vesc_get_position(request->can_id);
+    } else if (strcmp(request->type.c_str(), "current") == 0) {
+      data = vesc_get_current(request->can_id);
     } else {
       RCLCPP_ERROR(this->get_logger(), "Unknown motor GET command type: '%s'", request->type.c_str());
     }

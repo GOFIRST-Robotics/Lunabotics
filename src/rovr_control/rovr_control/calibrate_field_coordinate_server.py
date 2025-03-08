@@ -57,10 +57,11 @@ class CalibrateFieldCoordinateServer(Node):
         while not future_spin.done():
             self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
             if (await self.future_odom).success is True:
+                self.get_logger().info("Found an apriltag!")
                 await self.spin_handle.cancel_goal_async()
 
         if self.spin_handle.status == GoalStatus.STATUS_SUCCEEDED:
-            self.get_logger().warn("Failed to find apriltag")
+            self.get_logger().warn("Failed to find an apriltag")
             goal_handle.abort()
             result.error_message = "Failed to find apriltag"
             result.success = False
@@ -72,6 +73,7 @@ class CalibrateFieldCoordinateServer(Node):
             result.error_message = "Apriltag odom service not available"
             result.success = False
             return result
+
         spin_goal = Spin.Goal(target_yaw=math.pi)
         self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(spin_goal)
         await self.spin_handle.get_result_async()
