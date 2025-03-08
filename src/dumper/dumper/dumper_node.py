@@ -67,9 +67,7 @@ class DumperNode(Node):
         self.current_threshold = 0.3
         self.dumper_current = 0.0
 
-        self.dumper_current_sub = self.create_subscription(
-            Float32, "Dumper_Current", self.dumper_current_callback, 10
-        )
+        self.dumper_current_sub = self.create_subscription(Float32, "Dumper_Current", self.dumper_current_callback, 10)
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:

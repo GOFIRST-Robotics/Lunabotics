@@ -168,7 +168,10 @@ class DiggerNode(Node):
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
         self.lift_set_power(0.05)
-        while not (self.left_linear_actuator_current < self.current_threshold or self.right_linear_actuator_current < self.current_threshold):
+        while not (
+            self.left_linear_actuator_current < self.current_threshold
+            or self.right_linear_actuator_current < self.current_threshold
+        ):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -182,7 +185,10 @@ class DiggerNode(Node):
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
         self.lift_set_power(-0.05)
-        while not (self.left_linear_actuator_current < self.current_threshold or self.right_linear_actuator_current < self.current_threshold):
+        while not (
+            self.left_linear_actuator_current < self.current_threshold
+            or self.right_linear_actuator_current < self.current_threshold
+        ):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
