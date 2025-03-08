@@ -4,7 +4,7 @@
 	branch = master
 [submodule "src/zed-ros2-wrapper"]
 	path = src/zed-ros2-wrapper
-	url = https://github.com/stereolabs/zed-ros2-wrapper.git
+	url = https://github.com/pwmarshall/zed-ros2-wrapper.git
 	branch = master
 [submodule "src/isaac_ros/isaac_ros_common"]
 	path = src/isaac_ros/isaac_ros_common
