@@ -5,6 +5,6 @@
     max_turn_power: 1.0 # Measured in Duty Cycle (0.0-1.0)
     digger_belt_power: -0.1 # Measured in Duty Cycle (0.0-1.0)
     digger_lift_manual_power: 0.075 # Measured in Duty Cycle (0.0-1.0)
-    autonomous_field_type: "nasa" # The type of field ("top", "bottom", "nasa")
+    autonomous_field_type: "cosmic" # The type of field ("cosmic", "top", "bottom", "nasa")
     lift_digging_start_position: -3050 # Measured in encoder counts!
     lift_digging_end_position: -100 # Measured in encoder counts!
