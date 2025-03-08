@@ -1,5 +1,5 @@
 # This service sends a command to the motor_control_node to execute a motor_control GET method
-string type # The type of data to get (duty_cycle, position, or velocity) 
+string type # The type of data to get (duty_cycle, position, current, or velocity) 
 uint32 can_id # CAN ID of the VESC
 ---
 bool success

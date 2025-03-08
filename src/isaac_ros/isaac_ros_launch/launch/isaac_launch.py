@@ -82,7 +82,7 @@ def generate_launch_description():
     # Gazebo
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("ros_gz_launch"), "launch", "NASA_field.launch.py"])]
+            [PathJoinSubstitution([FindPackageShare("ros_gz_launch"), "launch", "COSMIC_field.launch.py"])]
         ),
         condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
     )
