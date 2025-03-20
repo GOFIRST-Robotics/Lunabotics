@@ -9,10 +9,13 @@
 // Import ROS 2 Formatted Message Types
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include "std_msgs/msg/string.hpp"
 
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Matrix3x3.h"
 // Import custom ROS 2 interfaces
 #include "rovr_interfaces/srv/motor_command_get.hpp"
 #include "rovr_interfaces/srv/motor_command_set.hpp"
@@ -330,7 +333,7 @@ public:
 
     potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
     
-    pose_sub = this->create_subscription<geometry_msgs::PoseStamped>("/zed2i/zed_node/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
+    pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
     // Initialize the current digger lift goal
     this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
   }
@@ -428,8 +431,11 @@ private:
     }
   }
 
-  void Pose_callback(const geometry_msgs::Pose msg) {
-      pitch = msg.pose.orientation.y;
+  void Pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+      tf2::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
+      tf2::Matrix3x3 m(q);
+      double roll, yaw;
+      m.getRPY(roll, pitch, yaw);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
@@ -438,7 +444,7 @@ private:
 
   DiggerLiftGoal digger_lift_goal;
 
-  float pitch;
+  double pitch;
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
 
@@ -496,10 +502,10 @@ private:
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr digger_linear_actuator_pub;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr dumper_linear_actuator_pub;
-  rclcpp::Publisher<geometry_msgs::PoseStamped>::SharedPtr pose_sub;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
   rclcpp::Subscription<rovr_interfaces::msg::Potentiometers>::SharedPtr potentiometer_sub; 
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_set_digger_lift;
