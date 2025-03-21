@@ -2,6 +2,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "../action/calibrate_field_coordinate.cpp"
+#include "../action/auto_dig.cpp"
 
 #include "behaviortree_cpp/bt_factory.h"
 
@@ -18,6 +19,7 @@ public:
         // factory_.registerNodeType<nav2_behavior_tree::GoToPoseAction>("GoToPose"); 
         // Register your custom nodes 
         factory_.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
+        factory_.registerNodeType<AutoDigAction>("AutoDig");
         tree_ = factory_.createTreeFromFile("/workspaces/Lunabotics/config/behavior_trees/main_tree.xml"); 
         // Create service to start the behavior tree 
         start_service_ = create_service<std_srvs::srv::Trigger>("start_autonomy", 
