@@ -10,6 +10,9 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
+# Import ROS 2 formatted message types
+from std_msgs.msg import Float64
+
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from std_srvs.srv import Trigger
@@ -26,6 +29,16 @@ class DumperNode(Node):
         # Calling the stop service will cancel any long-running services!
         self.stop_service_cb_group = MutuallyExclusiveCallbackGroup()
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
+
+        # Define ROS parameters
+        self.declare_parameter("GAZEBO_SIMULATION", False)  # Enable/disable Gazebo simulation
+
+        # Assign parameters to variables
+        self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
+
+        # Define publishers for Gazebo simulation
+        if self.GAZEBO_SIMULATION:
+            self.gazebo_dumper_pub = self.create_publisher(Float64, "dumper_motor/cmd_vel", 10) # todo "dumper belt"?
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
@@ -52,12 +65,14 @@ class DumperNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
         self.declare_parameter("DUMPER_POWER", 0.5)
+
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
+        self.get_logger().info(f"GAZEBO_SIMULATION has been set to: {self.GAZEBO_SIMULATION}")
 
         # Current state of the dumper
         self.extended_state = False
@@ -76,10 +91,18 @@ class DumperNode(Node):
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
         )
+        if self.GAZEBO_SIMULATION:
+            msg = Float64()
+            msg.data = dumper_power
+            self.gazebo_dumper_pub.publish(msg)
 
     def stop(self) -> None:
         """This method stops the dumper."""
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
+        if self.GAZEBO_SIMULATION:
+            msg = Float64()
+            msg.data = 0.0
+            self.gazebo_dumper_pub.publish(msg)
 
     def toggle(self) -> None:
         """This method toggles the dumper."""

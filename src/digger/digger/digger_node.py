@@ -181,6 +181,10 @@ class DiggerNode(Node):
                 value=power,
             )
         )
+        if self.GAZEBO_SIMULATION:
+            msg = Float64()
+            msg.data = power
+            self.gazebo_digger_pub.publish(msg)
 
     def zero_lift(self) -> None:
         """This method zeros the lift system by slowly raising it until the duty cycle is 0."""
