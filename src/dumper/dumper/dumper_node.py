@@ -113,10 +113,15 @@ class DumperNode(Node):
         self.extended_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
-        while not self.dumper_current < self.current_threshold:
+        lastPowerTime = time.time()
+        # Wait 2 seconds after the dumper current goes below the threshold before stopping the motor
+        while (not self.dumper_current < self.current_threshold) and (time.time() - lastPowerTime < 2):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the dumper current is not below the threshold, update the last power time 
+            if (not self.dumper_current < self.current_threshold):
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
         self.long_service_running = False
@@ -133,10 +138,15 @@ class DumperNode(Node):
         self.extended_state = False
         self.long_service_running = True
         self.set_power(-self.DUMPER_POWER)
-        while not self.dumper_current < self.current_threshold:
+        lastPowerTime = time.time()
+        # Wait 2 seconds after the dumper current goes below the threshold before stopping the motor
+        while (not self.dumper_current < self.current_threshold) and (time.time() - lastPowerTime < 2):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the dumper current is not below the threshold, update the last power time
+            if (not self.dumper_current < self.current_threshold):
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.stop()
         self.long_service_running = False
