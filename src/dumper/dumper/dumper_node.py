@@ -114,8 +114,8 @@ class DumperNode(Node):
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
         lastPowerTime = time.time()
-        # Wait 1 second after the dumper current goes below the threshold before stopping the motor
-        while time.time() - lastPowerTime < 1:
+        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -123,7 +123,7 @@ class DumperNode(Node):
             if not self.dumper_current < self.current_threshold:
                 lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
-            self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop()
         self.long_service_running = False
         self.get_logger().info("Done extending the dumper")
@@ -140,8 +140,8 @@ class DumperNode(Node):
         self.long_service_running = True
         self.set_power(-self.DUMPER_POWER)
         lastPowerTime = time.time()
-        # Wait 1 second after the dumper current goes below the threshold before stopping the motor
-        while time.time() - lastPowerTime < 1:
+        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -149,7 +149,7 @@ class DumperNode(Node):
             if not self.dumper_current < self.current_threshold:
                 lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
-            self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop()
         self.long_service_running = False
         self.get_logger().info("Done retracting the dumper")
