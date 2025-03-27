@@ -73,7 +73,7 @@ class DumperNode(Node):
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=-1*dumper_power)
         )
 
     def stop(self) -> None:
@@ -162,7 +162,7 @@ class DumperNode(Node):
 
     def dumper_current_callback(self, msg):
         self.dumper_current = msg.data
-        self.get_logger().info("Dumper current: " + str(self.dumper_current))
+        # self.get_logger().info("Dumper current: " + str(self.dumper_current))
 
 
 def main(args=None):
