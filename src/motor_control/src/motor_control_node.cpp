@@ -402,10 +402,16 @@ private:
     dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
     dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
 
-    float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
-    int error = msg.left_motor_pot - msg.right_motor_pot;
-    float speed_adjustment = error * kP;
-    if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int()) {
+    float kP_coupling = 0.01; // TODO: This value will need to be tuned on the real robot!
+    int error_coupling = msg.left_motor_pot - msg.right_motor_pot;
+    float speed_adjustment_coupling = error_coupling * kP_coupling;
+
+    float kP_pitch = 0.01; // TODO: This value will need to be tuned on the real robot!
+    float error_pitch = pitch - 0.0; // may need to adjust desired state from 0.0
+    float speed_adjustment_pitch = error_pitch * kP_pitch;
+    
+
+    if (abs(error_coupling) > this->get_parameter("MAX_POS_DIFF").as_int()) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
@@ -414,19 +420,33 @@ private:
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
+      if (this->digger_lift_goal.value < 0.0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling + speed_adjustment_pitch);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling + speed_adjustment_pitch);
+      }
+      else {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling);
+      }
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
       int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
 
-      float left_controller_output = kP * left_error;
-      float right_controller_output = kP * right_error;
+      float left_controller_output = kP_coupling * left_error;
+      float right_controller_output = kP_coupling * right_error;
 
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment);
-    } else{
+      if(left_error > 0 && right_error > 0){
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment_coupling + speed_adjustment_pitch);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment_coupling + speed_adjustment_pitch);
+      }
+      else{
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment_coupling);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment_coupling);
+      }
+      
+    } 
+    else{
       RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
     }
   }
