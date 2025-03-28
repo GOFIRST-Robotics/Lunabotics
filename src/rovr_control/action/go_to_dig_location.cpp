@@ -6,41 +6,27 @@
 using GoToDigLocation = rovr_interfaces::action::GoToDigLocation;
 
 class GoToDigLocationAction: public BT::RosActionNode<GoToDigLocation> {
-public:
-GoToDigLocation(
-    const std::string& instance_name, 
-    const BT::NodeConfig& conf,
-    const BT::RosNodeParams& params)
-    : BT::RosActionNode<GoToDigLocation>(instance_name, conf, params) {}
+  public:
+      GoToDigLocation(
+        const std::string& instance_name, 
+        const BT::NodeConfig& conf,)
 
-    BT::NodeStatus onResultReceived(const WrappedResult& result) override {
-      //TODO: implement this :)
-      return BT::NodeStatus::SUCCESS;
-  }
+      : BT::RosActionNode<GoToDigLocation>(
+          instance_name,
+          conf,
+          BT::RosNodeParams(std::make_shared<rclcpp::Node>("go_to_location_node"))) {}
 
-  bool setGoal(Goal& goal) override {
+      static BT::PortsList providedPorts() {
+          return providedBasicPorts({});
+      }
+
+      BT::NodeStatus onResultReceived(const WrappedResult& result) override {
+        //TODO: implement this :)
+        return BT::NodeStatus::SUCCESS;
+      }
+
+      bool setGoal(Goal& goal) override {
       //TODO: implement this :)
       return true;
-  }
+      }
 };
-
-
-
-// Main method for the node
-int main(int argc, char **argv) {
-  rclcpp::init(argc, argv); 
-
-  // Create a ROS node
-  auto node = std::make_shared<rclcpp::Node>("go_to_dig_location_node");
-
-  BT::NodeConfig config;
-  BT::RosNodeParams ros_node_params;
-  ros_node_params.nh = node;
-
-  // Create an instance of your action class, passing the ROS node
-  auto action_node = std::make_shared<CalibrateFieldCoordinateAction>("go_to_dig_location", config, ros_node_params);
-
-  rclcpp::spin(node);
-  rclcpp::shutdown(); 
-  return 0;
-}

@@ -14,7 +14,7 @@ class AutoDigAction: public BT::RosActionNode<AutoDig> {
         : BT::RosActionNode<AutoDig>(
             instance_name, 
             conf, 
-            BT::RosNodeParams(std::make_shared<rclcpp::Node>("calibrate_field_coordinate_node"))) {}
+            BT::RosNodeParams(std::make_shared<rclcpp::Node>("auto_dig_node"))) {}
 
         static BT::PortsList providedPorts() {
             return providedBasicPorts({});
