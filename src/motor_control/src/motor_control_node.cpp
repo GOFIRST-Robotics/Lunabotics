@@ -333,7 +333,7 @@ public:
 
     potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
     
-    pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
+    pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed2i/zed_node/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
     // Initialize the current digger lift goal
     this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
   }
