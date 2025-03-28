@@ -6,6 +6,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
+find_package(ament_cmake_python REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rovr_interfaces REQUIRED)
@@ -16,16 +17,26 @@ find_package(std_srvs REQUIRED)
 add_executable(behavior_tree_executor rovr_control/behavior_tree_executor.cpp)
 ament_target_dependencies(behavior_tree_executor rclcpp std_srvs behaviortree_ros2 behaviortree_cpp rovr_interfaces)
 
+install(TARGETS 
+  behavior_tree_executor
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 target_include_directories(behavior_tree_executor PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_compile_features(behavior_tree_executor PUBLIC c_std_99 cxx_std_17)
 
-install(TARGETS behavior_tree_executor
+ament_python_install_package(${PROJECT_NAME})
+
+install(PROGRAMS
+  rovr_control
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch action
+install(DIRECTORY 
+  launch 
+  action
   DESTINATION share/${PROJECT_NAME}
 )
 
