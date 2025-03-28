@@ -1,4 +1,4 @@
 /**:
   ros__parameters:
     GAZEBO_SIMULATION: False # Set to true if running in Gazebo
-    MAX_DRIVETRAIN_RPM: 5000 # Max RPM of the drivetrain # TODO: Determine this actual number by setting 100% duty cycle to one of our drive motors and reading the RPM
+    MAX_DRIVETRAIN_RPM: 18000 # Max RPM of the drivetrain # TODO: Determine this actual number by setting 100% duty cycle to one of our drive motors and reading the RPM
