@@ -320,8 +320,8 @@ public:
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
-    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Current", 100);
-    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 100);
+    digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Current", 5);
+    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 5);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
@@ -361,12 +361,15 @@ private:
     float RPM = this->can_data[motorId].velocity;
     float current = this->can_data[motorId].current;
     int32_t tachometer = this->can_data[motorId].tachometer;
+    std_msgs::msg::Float32 dumper_linear_actuator_msg;
 
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); 
-      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0  / 100.0);
+      dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0 / 100.0);
+      dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
+      dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
@@ -394,10 +397,6 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
-    std_msgs::msg::Float32 dumper_linear_actuator_msg;
-    dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
-    dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
-
     float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
     int error = msg.left_motor_pot - msg.right_motor_pot;
     float speed_adjustment = error * kP;
@@ -408,6 +407,10 @@ private:
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
+    }
+    else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
