@@ -13,6 +13,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from std_srvs.srv import Trigger
+from std_msgs.msg import Float32
 
 
 class DumperNode(Node):
@@ -66,15 +67,13 @@ class DumperNode(Node):
         self.current_threshold = 0.3
         self.dumper_current = 0.0
 
-        self.dumper_current_sub = self.create_subscription(
-            float, "Dumper_Current", self.dumper_current_callback, 10
-        )
+        self.dumper_current_sub = self.create_subscription(Float32, "Dumper_Current", self.dumper_current_callback, 10)
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=dumper_power)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=-1*dumper_power)
         )
 
     def stop(self) -> None:
@@ -114,11 +113,17 @@ class DumperNode(Node):
         self.extended_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
-        while not self.dumper_current < self.current_threshold:
+        lastPowerTime = time.time()
+        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the dumper current is not below the threshold, update the last power time
+            if not self.dumper_current < self.current_threshold:
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop()
         self.long_service_running = False
         self.get_logger().info("Done extending the dumper")
@@ -134,11 +139,17 @@ class DumperNode(Node):
         self.extended_state = False
         self.long_service_running = True
         self.set_power(-self.DUMPER_POWER)
-        while not self.dumper_current < self.current_threshold:
+        lastPowerTime = time.time()
+        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the dumper current is not below the threshold, update the last power time
+            if not self.dumper_current < self.current_threshold:
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop()
         self.long_service_running = False
         self.get_logger().info("Done retracting the dumper")
@@ -151,6 +162,7 @@ class DumperNode(Node):
 
     def dumper_current_callback(self, msg):
         self.dumper_current = msg.data
+        # self.get_logger().info("Dumper current: " + str(self.dumper_current))
 
 
 def main(args=None):
