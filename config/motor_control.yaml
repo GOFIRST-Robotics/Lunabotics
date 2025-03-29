@@ -2,12 +2,12 @@
   ros__parameters:
     CAN_INTERFACE_TRANSMIT: "can0" # can0, can1, slcan0, slcan1 are common values
     CAN_INTERFACE_RECEIVE: "can0" # can0, can1, slcan0, slcan1 are common values
-    BACK_LEFT_DRIVE: 7 # CAN ID of the back left drive motor # TODO: Check what this is on the final robot
-    FRONT_LEFT_DRIVE: 10 # CAN ID of the front left drive motor # TODO: Check what this is on the final robot
-    BACK_RIGHT_DRIVE: 8 # CAN ID of the back right drive motor # TODO: Check what this is on the final robot
-    FRONT_RIGHT_DRIVE: 9 # CAN ID of the front right drive motor # TODO: Check what this is on the final robot
-    DIGGER_MOTOR: 3 # CAN ID of the digger belt motor # TODO: Check what this is on the final robot
-    DIGGER_LEFT_LINEAR_ACTUATOR: 2 # CAN ID of the left linear actuator # TODO: Check what this is on the final robot
-    DIGGER_RIGHT_LINEAR_ACTUATOR: 1 # CAN ID of the right linear actuator # TODO: Check what this is on the final robot
-    DUMPER_MOTOR: 24 # CAN ID of the dumper motor # TODO: Check what this is on the final robot
+    BACK_LEFT_DRIVE: 5 # CAN ID of the back left drive motor # TODO: Check what this is on the final robot
+    FRONT_LEFT_DRIVE: 3 # CAN ID of the front left drive motor # TODO: Check what this is on the final robot
+    BACK_RIGHT_DRIVE: 1 # CAN ID of the back right drive motor # TODO: Check what this is on the final robot
+    FRONT_RIGHT_DRIVE: 6 # CAN ID of the front right drive motor # TODO: Check what this is on the final robot
+    DIGGER_MOTOR: 7 # CAN ID of the digger belt motor # TODO: Check what this is on the final robot
+    DIGGER_LEFT_LINEAR_ACTUATOR: 4 # CAN ID of the left linear actuator # TODO: Check what this is on the final robot
+    DIGGER_RIGHT_LINEAR_ACTUATOR: 2 # CAN ID of the right linear actuator # TODO: Check what this is on the final robot
+    DUMPER_MOTOR: 7 # CAN ID of the dumper motor # TODO: Check what this is on the final robot
     MAX_POS_DIFF: 30 # Max difference in position to allow between the two linear actuators
