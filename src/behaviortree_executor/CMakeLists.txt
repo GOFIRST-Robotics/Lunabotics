@@ -21,6 +21,10 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+target_include_directories(behaviortree_executor PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/action)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

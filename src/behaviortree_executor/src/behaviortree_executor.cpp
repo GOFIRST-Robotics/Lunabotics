@@ -1,4 +1,3 @@
-// Import the ROS 2 Library
 #include "rclcpp/rclcpp.hpp"
 
 #include "../action/calibrate_field_coordinate.cpp"
