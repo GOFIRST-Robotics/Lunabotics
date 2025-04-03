@@ -423,6 +423,7 @@ private:
       double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
       double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
       //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", msg.right_motor_pot, this->digger_lift_goal.value, right_controller_output);
+
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment);
     } else{
