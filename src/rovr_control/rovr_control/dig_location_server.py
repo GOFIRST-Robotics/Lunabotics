@@ -19,7 +19,8 @@ class DigLocationFinder(Node):
             CalibrateFieldCoordinates,  # Empty action message
             "go_to_dig_location",
             self.drive_to_dig_location,
-            # cancel_callback=self.drive_to_dig_location, # TODO: Make a cancel callback that actually cancels all running futures please
+            # cancel_callback=self.drive_to_dig_location,
+            # TODO: Make a cancel callback that actually cancels all running futures please
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
@@ -32,7 +33,8 @@ class DigLocationFinder(Node):
         self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
         self.all_dig_locations = self.declare_parameter(
-            "all_dig_locations", [.6, .37, .6, 1.1, .6, 1.83, 1.8, .37, 1.8, 1.1, 1.8, 1.83, 3.0, .37, 3.0, 1.1, 3.0, 1.83, .6, 2.5, 1.8, 2.5, 3.0, 2.5]
+            "all_dig_locations", [.6, .37, .6, 1.1, .6, 1.83, 1.8, .37, 1.8, 1.1, 1.8, 1.83, 3.0, 
+                                  .37, 3.0, 1.1, 3.0, 1.83, .6, 2.5, 1.8, 2.5, 3.0, 2.5]
         ).value  # If you default to an empty list things break (it thinks its a byte array)
 
         # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
