@@ -401,6 +401,8 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
+    double kP = 0.05;
+
     float kP_coupling = 0.01; // TODO: This value will need to be tuned on the real robot!
     int error_coupling = msg.left_motor_pot - msg.right_motor_pot;
     float speed_adjustment_coupling = error_coupling * kP_coupling;
@@ -435,20 +437,18 @@ private:
       int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
       int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
 
-      float left_controller_output = kP_coupling * left_error;
-      float right_controller_output = kP_coupling * right_error;
+      double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
+      double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
+      //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", msg.right_motor_pot, this->digger_lift_goal.value, right_controller_output);
 
-      if(left_error > 0 && right_error > 0){
+     if(left_error > 0 && right_error > 0){
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment_coupling + speed_adjustment_pitch);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment_coupling + speed_adjustment_pitch);
-      }
-      else{
+      } else{
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment_coupling);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment_coupling);
-      }
-      
-    } 
-    else{
+      } 
+    } else{
       RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
     }
   }
