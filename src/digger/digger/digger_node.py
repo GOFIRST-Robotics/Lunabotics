@@ -87,7 +87,7 @@ class DiggerNode(Node):
         # Current position of the lift motor in potentiometer units (7 to 607)
         self.current_lift_position = None  # We don't know the current position yet
         # Goal Threshold
-        self.goal_threshold = 2  # in potentiometer units (7 to 607) 
+        self.goal_threshold = 2  # in potentiometer units (7 to 607)
         # Current state of the lift system
         self.lift_running = False
 
