@@ -2,6 +2,8 @@
 
 #include "../action/calibrate_field_coordinate.cpp"
 #include "../action/auto_dig.cpp"
+#include "../action/auto_offload.cpp"
+#include "../action/go_to_dig_location.cpp"
 
 #include "behaviortree_cpp/bt_factory.h"
 
@@ -17,6 +19,8 @@ public:
         // Load behavior tree 
         // factory_.registerNodeType<nav2_behavior_tree::GoToPoseAction>("GoToPose"); 
         // Register your custom nodes 
+        factory_.registerNodeType<AutoOffloadAction>("AutoOffload");
+        factory_.registerNodeType<GoToDigLocationAction>("GoToDigLocation");
         factory_.registerNodeType<AutoDigAction>("AutoDig");
         factory_.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
         tree_ = factory_.createTreeFromFile("/workspaces/Lunabotics/config/behavior_trees/main_tree.xml"); 

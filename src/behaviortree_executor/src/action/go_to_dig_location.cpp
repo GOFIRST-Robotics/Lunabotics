@@ -1,4 +1,5 @@
 #include "rovr_interfaces/action/go_to_dig_location.hpp"
+
 #include "behaviortree_cpp/tree_node.h"
 #include "behaviortree_ros2/bt_action_node.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
@@ -7,9 +8,9 @@ using GoToDigLocation = rovr_interfaces::action::GoToDigLocation;
 
 class GoToDigLocationAction: public BT::RosActionNode<GoToDigLocation> {
   public:
-      GoToDigLocation(
+      GoToDigLocationAction(
         const std::string& instance_name, 
-        const BT::NodeConfig& conf,)
+        const BT::NodeConfig& conf)
 
       : BT::RosActionNode<GoToDigLocation>(
           instance_name,
