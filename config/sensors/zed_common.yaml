@@ -11,7 +11,7 @@
       sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
 
     svo:
-      svo_path: "/rosbags/zed_recording_good.svo2" # Path to the SVO file to play (set to "live" to use the live camera feed)
+      svo_path: "live" # Path to the SVO file to play (set to "live" to use the live camera feed)
       svo_loop: false # Enable loop mode when using an SVO as input source
       svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
 

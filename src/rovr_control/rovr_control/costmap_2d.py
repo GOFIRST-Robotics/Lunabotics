@@ -210,6 +210,7 @@ class PyCostmap2D:
         # divide by 2 bc robot coords are from center of robot
         robot_width_cells /= 2
         robot_height_cells /= 2
+        # TODO: Maybe dont use amax, use median or something?
         return np.amax(
             self.costmap[
                 int(mx - robot_width_cells) : int(mx + robot_width_cells),
