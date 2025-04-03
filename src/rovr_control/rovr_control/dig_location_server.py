@@ -57,13 +57,13 @@ class DigLocationFinder(Node):
         if not goal_response.accepted:
             self.get_logger().error("Goal rejected")
             goal_handle.abort()
-            return
+            return result
 
         result_future = goal_response.get_result_async()
 
         await result_future
 
-        result = result_future.result()
+        # result = result_future.result()
         if result and result.status == 4:  # STATUS_SUCCEEDED (4)
             self.get_logger().info("Navigation succeeded!")
             return result
@@ -80,7 +80,7 @@ class DigLocationFinder(Node):
         goal_msg = NavigateToPose.Goal()
         goal_msg.pose = PoseStamped()
         goal_msg.pose.header.frame_id = "map"
-        goal_msg.pose.header.stamp = self.get_clock().now().to_msg()
+        # goal_msg.pose.header.stamp = self.get_clock().now().to_msg()
 
         goal_msg.pose.pose.position.x = x
         goal_msg.pose.pose.position.y = y
