@@ -329,7 +329,8 @@ public:
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
 
     potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
-
+    prev_left_pot = 0;
+    prev_right_pot = 0;
     // Initialize the current digger lift goal
     this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
   }
@@ -397,9 +398,30 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
-    double kP = 0.05; 
-    int error = msg.left_motor_pot - msg.right_motor_pot;
-    float speed_adjustment = error * kP;
+    double kP = 0.05;
+    int spike_threshold = 10;
+    int left_motor_pot = this->prev_left_pot;
+    int right_motor_pot = this->prev_right_pot;
+
+    if(std::abs(msg.left_motor_pot-this->prev_left_pot) < spike_threshold) {
+      left_motor_pot = msg.left_motor_pot;
+      prev_left_pot = msg.left_motor_pot;
+    }
+    if(std::abs(msg.right_motor_pot-this->prev_right_pot < spike_threshold)) {
+      right_motor_pot = msg.right_motor_pot;
+      prev_right_pot = msg.right_motor_pot;
+    }
+    int min_error = 2;
+    int max_error = 6;
+    double percent_extended = left_motor_pot/918.0;
+    double kP_coupling = 0.02;
+    int error = left_motor_pot - right_motor_pot - ((max_error-min_error)*percent_extended + min_error);
+    float speed_adjustment = error * kP_coupling;
+
+    
+
+    RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
+
     if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int()) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
@@ -408,24 +430,24 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
+    else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
+    }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
     }
-    else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
-    }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
-      int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
-      int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
+      int left_error = left_motor_pot - int(this->digger_lift_goal.value);
+      int right_error = right_motor_pot - int(this->digger_lift_goal.value);
 
       double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
       double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
       //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", msg.right_motor_pot, this->digger_lift_goal.value, right_controller_output);
 
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment);
     } else{
       RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
     }
@@ -442,6 +464,8 @@ private:
   // Initialize a hashmap to store the most recent msg for each CAN ID
   std::map<uint32_t, std::tuple<uint32_t, int32_t>> current_msg;
 
+  int prev_left_pot;
+  int prev_right_pot;
   // Callback method for the MotorCommandSet service
   void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request,
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
