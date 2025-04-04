@@ -23,7 +23,7 @@ public:
         factory_.registerNodeType<GoToDigLocationAction>("GoToDigLocation");
         factory_.registerNodeType<AutoDigAction>("AutoDig");
         factory_.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
-        tree_ = factory_.createTreeFromFile("/workspaces/Lunabotics/config/behavior_trees/main_tree.xml"); 
+        tree_ = factory_.createTreeFromFile("/workspaces/isaac_ros-dev/config/behavior_trees/main_tree.xml"); 
         // Create service to start the behavior tree 
         start_service_ = create_service<std_srvs::srv::Trigger>("start_autonomy", 
             std::bind(&BehaviorTreeExecutor::startCallback, this, std::placeholders::_1, std::placeholders::_2)); 
