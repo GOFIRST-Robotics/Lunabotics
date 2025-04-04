@@ -17,7 +17,9 @@ class AutoDigAction: public BT::RosActionNode<AutoDig> {
             BT::RosNodeParams(std::make_shared<rclcpp::Node>("auto_dig_node"))) {}
 
         static BT::PortsList providedPorts() {
-            return providedBasicPorts({});
+            return providedBasicPorts({
+                BT::InputPort<std::string>("action_name")
+            });
         }
 
         BT::NodeStatus onResultReceived(const WrappedResult& result) override {

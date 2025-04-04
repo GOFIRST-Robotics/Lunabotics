@@ -19,7 +19,9 @@ class AutoOffloadAction : public BT::RosActionNode<AutoOffload>{
             BT::RosNodeParams(std::make_shared<rclcpp::Node>("auto_offload_node"))){}
 
         static BT::PortsList providedPorts() {
-            return providedBasicPorts({});
+            return providedBasicPorts({
+                BT::InputPort<std::string>("action_name")
+            });
         }
 
         //TODO: finish this

@@ -17,7 +17,9 @@ class CalibrateFieldCoordinateAction: public BT::RosActionNode<CalibrateFieldCoo
             BT::RosNodeParams(std::make_shared<rclcpp::Node>("calibrate_field_coordinate_node"))) {}
 
         static BT::PortsList providedPorts() {
-            return providedBasicPorts({});
+            return providedBasicPorts({
+                BT::InputPort<std::string>("action_name")
+            });
         }
 
         BT::NodeStatus onResultReceived(const WrappedResult& result) override {

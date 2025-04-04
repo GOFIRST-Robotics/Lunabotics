@@ -4,14 +4,14 @@
     <Fallback>
       <Sequence>
         <RetryUntilSuccessful num_attempts="5">
-          <CalibrateFieldCoordinates/>
+          <CalibrateFieldCoordinates action_name="/calibrate_field_coordinates_server"/>
         </RetryUntilSuccessful>
         <KeepRunningUntilFailure>
           <Sequence>
-            <GoToDigLocation/>
-            <AutoDig/>
+            <GoToDigLocation action_name="/go_to_dig_location_server"/>
+            <AutoDig action_name="/auto_dig_server"/>
             <Script code="msg:=&quot;Go To Offload Zone&quot;"/>
-            <AutoOffload/>
+            <AutoOffload action_name="/auto_offload_server"/>
           </Sequence>
         </KeepRunningUntilFailure>
       </Sequence>

@@ -18,7 +18,9 @@ class GoToDigLocationAction: public BT::RosActionNode<GoToDigLocation> {
           BT::RosNodeParams(std::make_shared<rclcpp::Node>("go_to_location_node"))) {}
 
       static BT::PortsList providedPorts() {
-          return providedBasicPorts({});
+        return providedBasicPorts({
+          BT::InputPort<std::string>("action_name")
+        });
       }
 
       BT::NodeStatus onResultReceived(const WrappedResult& result) override {
