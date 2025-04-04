@@ -37,3 +37,6 @@
 [submodule "src/behaviortree_ros2"]
 	path = src/behaviortree_ros2
 	url = https://github.com/BehaviorTree/BehaviorTree.ROS2.git
+[submodule "src/behaviortree_cpp"]
+	path = src/behaviortree_cpp
+	url = https://github.com/BehaviorTree/BehaviorTree.CPP.git

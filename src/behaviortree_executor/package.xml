@@ -28,6 +28,7 @@
   <exec_depend>rovr_interfaces</exec_depend>
   <exec_depend>std_srvs</exec_depend>
   <exec_depend>behaviortree_cpp</exec_depend>
+  <exec_depend>behaviortree_ros2</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
