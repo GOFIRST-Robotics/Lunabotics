@@ -411,7 +411,7 @@ private:
     int error = left_motor_pot - right_motor_pot;
     float speed_adjustment = error * kP_coupling;
 
-    RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
+    //RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
 
     if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int()) {
       // Stop both motors!
