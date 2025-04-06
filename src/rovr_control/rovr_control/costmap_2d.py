@@ -202,6 +202,18 @@ class PyCostmap2D:
         """
         return my * self.size_x + mx
 
-    def getDigCost(self, wx, wy, robot_width, dig_length):
+    def getDigCost(self, wx, wy, robot_footprint):
+        robot_width, robot_height = robot_footprint
         mx, my = self.worldToMapValidated(wx, wy)
-        return np.amax(self.costmap[int(mx - robot_width) : int(mx + robot_width), int(my) : int(my + dig_length)])
+        robot_width_cells = robot_width / self.resolution
+        robot_height_cells = robot_height / self.resolution
+        # divide by 2 bc robot coords are from center of robot
+        robot_width_cells /= 2
+        robot_height_cells /= 2
+        # TODO: Maybe dont use amax, use median or something?
+        return np.amax(
+            self.costmap[
+                int(mx - robot_width_cells) : int(mx + robot_width_cells),
+                int(my - robot_height_cells) : int(my + robot_height_cells),
+            ]
+        )
