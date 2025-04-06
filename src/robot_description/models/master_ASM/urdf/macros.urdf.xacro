@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:macro name="box_inertia" params="m x y z">
+    <mass value="${m}" />
+    <inertia  ixx="${m*(y*y+z*z)/12}" ixy = "0" ixz = "0"
+        iyy="${m*(x*x+z*z)/12}" iyz = "0"
+        izz="${m*(x*x+y*y)/12}"/>
+</xacro:macro>
+<xacro:macro name="cylinder_inertia" params="m r h">
+    <mass value="${m}" />
+    <inertia  ixx="${m*(3*r*r+h*h)/12}" ixy = "0" ixz = "0"
+        iyy="${m*(3*r*r+h*h)/12}" iyz = "0"
+        izz="${m*r*r/2}"/>
+</xacro:macro>
+
+<xacro:macro name="wheel_link" params="name pretty:=^|true wheelRadius:=^ wheelWidth:=^ wheelMass:=^">
+
+    <link name="${name}">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <xacro:cylinder_inertia m="${wheelMass}" r="${wheelRadius}" h="${wheelWidth}" />
+        </inertial>
+
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+            <xacro:if value="${pretty}">
+                <mesh
+                filename="../meshes/ASM_Drive_Assembly.STL" scale="0.001 0.001 0.001"/> <!-- stl is measured in mm, need m -->
+            </xacro:if>
+            <xacro:unless value="${pretty}">
+                <cylinder radius="${wheelRadius}" length="${wheelWidth}" />
+            </xacro:unless>
+            </geometry>
+            <material name="grey" />
+        </visual>
+
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder radius="${wheelRadius}" length="${wheelWidth}" />
+            </geometry>
+        </collision>
+    </link>
+
+    <gazebo reference="${name}">
+        <mu1 value="1.0" />
+        <mu2 value="0.5" />
+    </gazebo>
+
+
+</xacro:macro>
+
+<xacro:macro name="wheel_joint" params="wheel x y z">
+    <joint
+        name="${str(wheel) + '_joint'}"
+        type="continuous">
+        <origin
+            xyz="${x} ${y} ${z}"
+            rpy="${pi/2} 0 ${pi/2}" />
+        <parent link="frame_link" />
+        <child link="${str(wheel) + '_link'}" />
+        <axis
+        xyz="0 0 -1" />
+    </joint>
+</xacro:macro>
+
+</robot>
