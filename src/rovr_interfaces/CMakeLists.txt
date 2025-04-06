@@ -28,6 +28,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/Drive.srv"
   "srv/MotorCommandGet.srv"
   "srv/MotorCommandSet.srv"
+  "srv/DigLocation.srv"
   "srv/SetActiveCamera.srv"
   "srv/SetClientIp.srv"
   "srv/SetEncoding.srv"
