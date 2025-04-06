@@ -52,7 +52,7 @@ class DumperNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
-        self.declare_parameter("DUMPER_POWER", 0.5)
+        self.declare_parameter("DUMPER_POWER", 0.75)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
