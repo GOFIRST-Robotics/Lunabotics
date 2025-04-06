@@ -73,7 +73,7 @@ class MainControlNode(Node):
         self.declare_parameter("digger_lift_manual_power", 0.5)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
         self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
-        self.declare_parameter("dumper_power", 0.5)  # The power the dumper needs to go
+        self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
         self.declare_parameter("autonomous_field_type", "cosmic")
 
