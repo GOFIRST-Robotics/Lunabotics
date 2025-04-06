@@ -300,6 +300,9 @@ public:
     this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
     this->declare_parameter("MAX_POS_DIFF", 30);
     this->declare_parameter("DUMPER_MOTOR", 24);
+    this->declare_parameter("DIGGER_ACTUATORS_OFFSET", 12);
+    this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
+    this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -308,6 +311,9 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
     RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_OFFSET parameter set to: %ld", this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP").as_double());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -397,9 +403,16 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
-    float kP = 0.01; // TODO: This value will need to be tuned on the real robot!
-    int error = msg.left_motor_pot - msg.right_motor_pot;
-    float speed_adjustment = error * kP;
+    double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
+    int left_motor_pot = msg.left_motor_pot - this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int();
+    int right_motor_pot = msg.right_motor_pot;
+
+    double kP_coupling = this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double();
+    int error = left_motor_pot - right_motor_pot;
+    float speed_adjustment = error * kP_coupling;
+
+    //RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
+
     if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int()) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
@@ -408,23 +421,24 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
+    else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
+    }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
     }
-    else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
-    }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
-      int left_error = msg.left_motor_pot - int(this->digger_lift_goal.value);
-      int right_error = msg.right_motor_pot - int(this->digger_lift_goal.value);
+      int left_error = left_motor_pot - int(this->digger_lift_goal.value);
+      int right_error = right_motor_pot - int(this->digger_lift_goal.value);
 
-      float left_controller_output = kP * left_error;
-      float right_controller_output = kP * right_error;
+      double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
+      double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
+      //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", right_motor_pot, this->digger_lift_goal.value, right_controller_output);
 
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output - speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output + speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment);
     } else{
       RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
     }

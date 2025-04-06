@@ -29,6 +29,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("BACK_RIGHT_DRIVE", 8)
         self.declare_parameter("GAZEBO_SIMULATION", False)
         self.declare_parameter("MAX_DRIVETRAIN_RPM", 10000)
+        self.declare_parameter("DRIVETRAIN_TYPE", "velocity")
 
         # Assign the ROS Parameters to member variables below #
         self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
@@ -37,6 +38,7 @@ class DrivetrainNode(Node):
         self.BACK_RIGHT_DRIVE = self.get_parameter("BACK_RIGHT_DRIVE").value
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
         self.MAX_DRIVETRAIN_RPM = self.get_parameter("MAX_DRIVETRAIN_RPM").value
+        self.DRIVETRAIN_TYPE = self.get_parameter("DRIVETRAIN_TYPE").value
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
@@ -80,25 +82,29 @@ class DrivetrainNode(Node):
             leftPower *= scale_factor
             rightPower *= scale_factor
 
+        if self.DRIVETRAIN_TYPE == "velocity":
+            leftPower *= self.MAX_DRIVETRAIN_RPM
+            rightPower *= self.MAX_DRIVETRAIN_RPM
+
         # Send velocity (not duty cycle) motor commands to the motor_control_node
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
-                can_id=self.FRONT_LEFT_DRIVE, type="velocity", value=leftPower * self.MAX_DRIVETRAIN_RPM
+                can_id=self.FRONT_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower
             )
         )
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
-                can_id=self.BACK_LEFT_DRIVE, type="velocity", value=leftPower * self.MAX_DRIVETRAIN_RPM
+                can_id=self.BACK_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower
             )
         )
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
-                can_id=self.FRONT_RIGHT_DRIVE, type="velocity", value=rightPower * self.MAX_DRIVETRAIN_RPM
+                can_id=self.FRONT_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower
             )
         )
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
-                can_id=self.BACK_RIGHT_DRIVE, type="velocity", value=rightPower * self.MAX_DRIVETRAIN_RPM
+                can_id=self.BACK_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower
             )
         )
 
