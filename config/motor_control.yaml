@@ -11,3 +11,6 @@
     DIGGER_RIGHT_LINEAR_ACTUATOR: 7 # CAN ID of the right linear actuator # TODO: Check what this is on the final robot
     DUMPER_MOTOR: 10 # CAN ID of the dumper motor # TODO: Check what this is on the final robot
     MAX_POS_DIFF: 30 # Max difference in position to allow between the two linear actuators
+    DIGGER_ACTUATORS_OFFSET: 12 # Potentiometer counts offset to make the two digger actuators align
+    DIGGER_ACTUATORS_kP: 0.05 # kP for digger actuator position control
+    DIGGER_ACTUATORS_kP_coupling: 0.004 # kP for digger actuator position syncing

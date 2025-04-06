@@ -300,6 +300,9 @@ public:
     this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
     this->declare_parameter("MAX_POS_DIFF", 30);
     this->declare_parameter("DUMPER_MOTOR", 24);
+    this->declare_parameter("DIGGER_ACTUATORS_OFFSET", 12);
+    this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
+    this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -308,6 +311,9 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
     RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_OFFSET parameter set to: %ld", this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP").as_double());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -329,8 +335,6 @@ public:
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
 
     potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
-    prev_left_pot = 0;
-    prev_right_pot = 0;
     // Initialize the current digger lift goal
     this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
   }
@@ -398,27 +402,13 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
-    double kP = 0.05;
-    int spike_threshold = 10;
-    int left_motor_pot = this->prev_left_pot;
-    int right_motor_pot = this->prev_right_pot;
+    double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
+    int left_motor_pot = msg.left_motor_pot - this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int();
+    int right_motor_pot = msg.right_motor_pot;
 
-    if(std::abs(msg.left_motor_pot-this->prev_left_pot) < spike_threshold) {
-      left_motor_pot = msg.left_motor_pot;
-      prev_left_pot = msg.left_motor_pot;
-    }
-    if(std::abs(msg.right_motor_pot-this->prev_right_pot < spike_threshold)) {
-      right_motor_pot = msg.right_motor_pot;
-      prev_right_pot = msg.right_motor_pot;
-    }
-    int min_error = 2;
-    int max_error = 6;
-    double percent_extended = left_motor_pot/918.0;
-    double kP_coupling = 0.02;
-    int error = left_motor_pot - right_motor_pot - ((max_error-min_error)*percent_extended + min_error);
+    double kP_coupling = this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double();
+    int error = left_motor_pot - right_motor_pot;
     float speed_adjustment = error * kP_coupling;
-
-    
 
     RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
 
@@ -444,7 +434,7 @@ private:
 
       double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
       double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
-      //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", msg.right_motor_pot, this->digger_lift_goal.value, right_controller_output);
+      //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", right_motor_pot, this->digger_lift_goal.value, right_controller_output);
 
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment);
@@ -464,8 +454,6 @@ private:
   // Initialize a hashmap to store the most recent msg for each CAN ID
   std::map<uint32_t, std::tuple<uint32_t, int32_t>> current_msg;
 
-  int prev_left_pot;
-  int prev_right_pot;
   // Callback method for the MotorCommandSet service
   void set_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request,
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
