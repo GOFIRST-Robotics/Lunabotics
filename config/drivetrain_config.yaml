@@ -2,3 +2,4 @@
   ros__parameters:
     GAZEBO_SIMULATION: False # Set to true if running in Gazebo
     MAX_DRIVETRAIN_RPM: 18000 # Max RPM of the drivetrain
+    DRIVETRAIN_TYPE: "velocity" # "velocity" or "duty_cycle"
