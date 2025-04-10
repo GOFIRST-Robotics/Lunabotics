@@ -441,8 +441,13 @@ private:
       }
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling - speed_adjustment_pitch);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling - speed_adjustment_pitch);
+      if (this->digger_lift_goal.value > 0.0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling - speed_adjustment_pitch);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling - speed_adjustment_pitch);
+      } else {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling);
+      } 
       //RCLCPP_INFO(this->get_logger(), "Output: %f, Pitch: %f", speed_adjustment_pitch, pitch);     
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
@@ -482,9 +487,9 @@ private:
   std::map<uint32_t, MotorData> can_data;
   std::map<uint32_t, PIDController*> pid_controllers;
 
+  double pitch = 0.0;
   DiggerLiftGoal digger_lift_goal;
 
-  double pitch = 0.0;
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
 
