@@ -23,25 +23,31 @@ class AutoDigAction: public BT::RosActionNode<AutoDig> {
         }
 
         BT::NodeStatus onResultReceived(const WrappedResult& result) override {
-           //Someone double check that this makes sense pls :)
-           switch (result.code)
-           {
-               case rclcpp_action::ResultCode::SUCCEEDED:
-                   RCLCPP_INFO(node_->get_logger(), "Calibration succeeded.");
-                   return BT::NodeStatus::SUCCESS;
+            auto node_ptr = node_.lock();
+            if (node_ptr) {
+                //Someone double check that this makes sense pls :)
+                switch (result.code)
+                {
+                    case rclcpp_action::ResultCode::SUCCEEDED:
+                        RCLCPP_INFO(node_ptr->get_logger(), "Calibration succeeded.");
+                        return BT::NodeStatus::SUCCESS;
 
-               case rclcpp_action::ResultCode::ABORTED:
-                   RCLCPP_ERROR(node_->get_logger(), "Calibration aborted.");
-                   return BT::NodeStatus::FAILURE;
+                    case rclcpp_action::ResultCode::ABORTED:
+                        RCLCPP_ERROR(node_ptr->get_logger(), "Calibration aborted.");
+                        return BT::NodeStatus::FAILURE;
 
-               case rclcpp_action::ResultCode::CANCELED:
-                   RCLCPP_WARN(node_->get_logger(), "Calibration canceled.");
-                   return BT::NodeStatus::FAILURE;
+                    case rclcpp_action::ResultCode::CANCELED:
+                        RCLCPP_WARN(node_ptr->get_logger(), "Calibration canceled.");
+                        return BT::NodeStatus::FAILURE;
 
-               default:
-                   RCLCPP_ERROR(node_->get_logger(), "Unknown result code.");
-                   return BT::NodeStatus::FAILURE;
-           }
+                    default:
+                        RCLCPP_ERROR(node_ptr->get_logger(), "Unknown result code.");
+                        return BT::NodeStatus::FAILURE;
+                }
+            } else {
+                RCLCPP_ERROR(rclcpp::get_logger("AutoDigAction"), "Node has been deallocated!");
+                return BT::NodeStatus::FAILURE;
+            }
         }
 
         bool setGoal(Goal& goal) override {
