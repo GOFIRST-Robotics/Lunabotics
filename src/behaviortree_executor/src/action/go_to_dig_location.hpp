@@ -4,15 +4,13 @@
 #include "behaviortree_ros2/bt_action_node.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 
-using GoToDigLocation = rovr_interfaces::action::GoToDigLocation;
-
-class GoToDigLocationAction: public BT::RosActionNode<GoToDigLocation> {
+class GoToDigLocationAction: public BT::RosActionNode<rovr_interfaces::action::GoToDigLocation> {
   public:
       GoToDigLocationAction(
         const std::string& instance_name, 
         const BT::NodeConfig& conf)
 
-      : BT::RosActionNode<GoToDigLocation>(
+      : BT::RosActionNode<rovr_interfaces::action::GoToDigLocation>(
           instance_name,
           conf,
           BT::RosNodeParams(std::make_shared<rclcpp::Node>("go_to_location_node"))) {}

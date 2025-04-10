@@ -1,20 +1,21 @@
-#include "rovr_interfaces/action/auto_dig.hpp"
+//Someone please double check this is correct
+#include "rovr_interfaces/action/auto_offload.hpp"
 
 #include "behaviortree_cpp/tree_node.h"
 #include "behaviortree_ros2/bt_action_node.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 
-using AutoDig = rovr_interfaces::action::AutoDig;
 
-class AutoDigAction: public BT::RosActionNode<AutoDig> {
+class AutoOffloadAction : public BT::RosActionNode<rovr_interfaces::action::AutoOffload>{
     public:
-        AutoDigAction(
-            const std::string& instance_name, 
+        AutoOffloadAction(
+            const std::string& instance_name,
             const BT::NodeConfig& conf)
-        : BT::RosActionNode<AutoDig>(
+        
+        : BT::RosActionNode<rovr_interfaces::action::AutoOffload>(
             instance_name, 
             conf, 
-            BT::RosNodeParams(std::make_shared<rclcpp::Node>("auto_dig_node"))) {}
+            BT::RosNodeParams(std::make_shared<rclcpp::Node>("auto_offload_node"))){}
 
         static BT::PortsList providedPorts() {
             return providedBasicPorts({
@@ -22,6 +23,7 @@ class AutoDigAction: public BT::RosActionNode<AutoDig> {
             });
         }
 
+        //TODO: finish this
         BT::NodeStatus onResultReceived(const WrappedResult& result) override {
            //Someone double check that this makes sense pls :)
            switch (result.code)
@@ -43,9 +45,9 @@ class AutoDigAction: public BT::RosActionNode<AutoDig> {
                    return BT::NodeStatus::FAILURE;
            }
         }
-
-        bool setGoal(Goal& goal) override {
-            //TODO: implement this :)
+        
+        //TODO: finish this
+        bool setGoal(Goal& goal)override {
             return true;
-        }
+        }     
 };
