@@ -306,6 +306,7 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_OFFSET", 12);
     this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
+    this->declare_parameter("DIGGER_PITCH_kP", 1.0);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -317,6 +318,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_OFFSET parameter set to: %ld", this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP").as_double());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_PITCH_kP parameter set to: %f", this->get_parameter("DIGGER_PITCH_kP").as_double());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -413,9 +415,9 @@ private:
 
     double kP_coupling = this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double();
     int error = left_motor_pot - right_motor_pot;
-    float speed_adjustment = error * kP_coupling;
+    float speed_adjustment_coupling = error * kP_coupling;
 
-    float kP_pitch = 0.01; // TODO: This value will need to be tuned on the real robot!
+    float kP_pitch = this->get_parameter("DIGGER_PITCH_kP").as_double(); 
     float error_pitch = pitch - 0.0; // may need to adjust desired state from 0.0
     float speed_adjustment_pitch = error_pitch * kP_pitch;
 
@@ -430,8 +432,9 @@ private:
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment + speed_adjustment_pitch);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment + speed_adjustment_pitch);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling - speed_adjustment_pitch);
+      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling - speed_adjustment_pitch);
+      //RCLCPP_INFO(this->get_logger(), "Output: %f, Pitch: %f", speed_adjustment_pitch, pitch);     
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
@@ -445,8 +448,8 @@ private:
       double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
      
       if (left_error > 0 && right_error > 0) {
-        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling + speed_adjustment_pitch);
-        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling + speed_adjustment_pitch);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling - speed_adjustment_pitch);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling - speed_adjustment_pitch);
       } else {
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling);
