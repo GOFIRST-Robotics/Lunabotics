@@ -441,7 +441,7 @@ private:
       }
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      if (this->digger_lift_goal.value > 0.0) {
+      if (this->digger_lift_goal.value < 0.0) {
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling - speed_adjustment_pitch);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling - speed_adjustment_pitch);
       } else {
@@ -461,7 +461,7 @@ private:
       double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
       double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
      
-      if (left_error > 0 && right_error > 0) {
+      if (left_error < 0 && right_error < 0) {
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling - speed_adjustment_pitch);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling - speed_adjustment_pitch);
       } else {
