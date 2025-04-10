@@ -72,13 +72,10 @@ class DiggerNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DIGGER_MOTOR", 3)
-        
         # Assign the ROS Parameters to member variables below #
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
-       
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
-       
+        self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))       
         # Current state of the digger belt
         self.running = False
         # Current position of the lift motor in potentiometer units (0 to 1023)
