@@ -299,7 +299,7 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_OFFSET", 12);
     this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
-    this->declare_parameter("DIGGER_PITCH_kP", 1.0);
+    this->declare_parameter("DIGGER_PITCH_kP", 2.5);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
