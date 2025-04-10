@@ -9,9 +9,12 @@
 // Import ROS 2 Formatted Message Types
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "std_msgs/msg/float32.hpp"
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include "std_msgs/msg/string.hpp"
+#include "tf2/LinearMath/Quaternion.h"
+#include "tf2/LinearMath/Matrix3x3.h"
 
 // Import custom ROS 2 interfaces
 #include "rovr_interfaces/srv/motor_command_get.hpp"
@@ -296,6 +299,7 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_OFFSET", 12);
     this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
+    this->declare_parameter("DIGGER_PITCH_kP", 2.5);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -307,6 +311,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_OFFSET parameter set to: %ld", this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP").as_double());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_PITCH_kP parameter set to: %f", this->get_parameter("DIGGER_PITCH_kP").as_double());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -328,6 +333,7 @@ public:
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
 
     potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
+    pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed2i/zed_node/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
 
     // Initialize the current digger lift goal
     this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
@@ -402,7 +408,11 @@ private:
 
     double kP_coupling = this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double();
     int error = left_motor_pot - right_motor_pot;
-    float speed_adjustment = error * kP_coupling;
+    float speed_adjustment_coupling = error * kP_coupling;
+
+    float kP_pitch = this->get_parameter("DIGGER_PITCH_kP").as_double(); 
+    float error_pitch = pitch - 0.0; // may need to adjust desired state from 0.0
+    float speed_adjustment_pitch = error_pitch * kP_pitch;
 
     //RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
 
@@ -431,8 +441,14 @@ private:
       }
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment);
+      if (this->digger_lift_goal.value > 0.0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling - speed_adjustment_pitch);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling - speed_adjustment_pitch);
+      } else {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling);
+      } 
+      //RCLCPP_INFO(this->get_logger(), "Output: %f, Pitch: %f", speed_adjustment_pitch, pitch);     
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
@@ -444,20 +460,36 @@ private:
 
       double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
       double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
-      //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", right_motor_pot, this->digger_lift_goal.value, right_controller_output);
+     
+      if (left_error > 0 && right_error > 0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling - speed_adjustment_pitch);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling - speed_adjustment_pitch);
+      } else {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling);
+      } 
 
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment);
+      //RCLCPP_INFO(this->get_logger(), "Output: %f, Pitch: %f", speed_adjustment_pitch, pitch);       
+      //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", right_motor_pot, this->digger_lift_goal.value, right_controller_output);
     } else{
       RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
     }
+  }
+
+  void Pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+      tf2::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
+      tf2::Matrix3x3 m(q);
+      double roll, yaw;
+      m.getRPY(roll, pitch, yaw);
   }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
   std::map<uint32_t, MotorData> can_data;
   std::map<uint32_t, PIDController*> pid_controllers;
 
+  double pitch = 0.0;
   DiggerLiftGoal digger_lift_goal;
+
   // Adjust this data retention threshold as needed
   const std::chrono::seconds threshold = std::chrono::seconds(1);
 
@@ -518,6 +550,7 @@ private:
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
   rclcpp::Subscription<rovr_interfaces::msg::Potentiometers>::SharedPtr potentiometer_sub; 
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_set_digger_lift;
