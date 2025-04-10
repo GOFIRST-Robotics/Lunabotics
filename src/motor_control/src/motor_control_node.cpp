@@ -248,13 +248,6 @@ class MotorControlNode : public rclcpp::Node {
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
     // Update the current digger lift goal
     this->digger_lift_goal = { request->type, request->value };
-
-    // Set the digger lift motors to the new duty cycle
-    if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0) {
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
-    }
-
     response->success = true;
   }
 
@@ -413,13 +406,29 @@ private:
 
     //RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
 
-    if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int()) {
+    if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int() && strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
       vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
+    }
+    else if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int() && strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
+      RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high!");
+      if (error > 0.0 && this->digger_lift_goal.value > 0.0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      } else if (error < 0.0 && this->digger_lift_goal.value > 0.0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+      } else if (error > 0.0 && this->digger_lift_goal.value < 0.0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+      } else if (error < 0.0 && this->digger_lift_goal.value < 0.0) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      }
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment);
