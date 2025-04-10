@@ -13,9 +13,9 @@
 #include "std_msgs/msg/float32.hpp"
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include "std_msgs/msg/string.hpp"
-
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
+
 // Import custom ROS 2 interfaces
 #include "rovr_interfaces/srv/motor_command_get.hpp"
 #include "rovr_interfaces/srv/motor_command_set.hpp"
@@ -464,7 +464,7 @@ private:
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling);
       } 
 
-      RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f, Pitch: %f", msg.right_motor_pot, this->digger_lift_goal.value, right_controller_output, pitch);      
+      //RCLCPP_INFO(this->get_logger(), "Output: %f, Pitch: %f", speed_adjustment_pitch, pitch);       
       //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", right_motor_pot, this->digger_lift_goal.value, right_controller_output);
     } else{
       RCLCPP_ERROR(this->get_logger(), "Unknown Digger Lift State: '%s'", this->digger_lift_goal.type.c_str());
