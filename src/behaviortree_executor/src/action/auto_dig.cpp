@@ -23,8 +23,25 @@ class AutoDigAction: public BT::RosActionNode<AutoDig> {
         }
 
         BT::NodeStatus onResultReceived(const WrappedResult& result) override {
-            //TODO: implement this :)
-            return BT::NodeStatus::SUCCESS;
+           //Someone double check that this makes sense pls :)
+           switch (result.code)
+           {
+               case rclcpp_action::ResultCode::SUCCEEDED:
+                   RCLCPP_INFO(node_->get_logger(), "Calibration succeeded.");
+                   return BT::NodeStatus::SUCCESS;
+
+               case rclcpp_action::ResultCode::ABORTED:
+                   RCLCPP_ERROR(node_->get_logger(), "Calibration aborted.");
+                   return BT::NodeStatus::FAILURE;
+
+               case rclcpp_action::ResultCode::CANCELED:
+                   RCLCPP_WARN(node_->get_logger(), "Calibration canceled.");
+                   return BT::NodeStatus::FAILURE;
+
+               default:
+                   RCLCPP_ERROR(node_->get_logger(), "Unknown result code.");
+                   return BT::NodeStatus::FAILURE;
+           }
         }
 
         bool setGoal(Goal& goal) override {
