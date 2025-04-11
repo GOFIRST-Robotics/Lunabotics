@@ -48,7 +48,16 @@ class AutoOffloadAction : public BT::RosActionNode<AutoOffload>{
         }
         
         //TODO: finish this
-        bool setGoal(Goal& goal)override {
+        bool setGoal(Goal& goal)override { 
+            //Someone please double check this as well :)
+            std::string action_name; 
+            if (!getInput<std::string>("action_name", action_name))
+                {
+                    RCLCPP_ERROR(node_->get_logger(), "Missing required input");
+                    return false;
+                }
+
+            goal.action = action_name;
             return true;
         }     
 };

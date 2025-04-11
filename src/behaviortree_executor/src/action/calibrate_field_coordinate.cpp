@@ -45,7 +45,16 @@ class CalibrateFieldCoordinateAction: public BT::RosActionNode<CalibrateFieldCoo
         }
 
         bool setGoal(Goal& goal) override {
-            //TODO: implement this :)
+            //Someone please double check this as well :)
+            // I don't know if this makes sense :skull:
+            std::string action_name; 
+            if (!getInput<std::string>("action_name", action_name))
+            {
+                RCLCPP_ERROR(node_->get_logger(), "Missing required input");
+                return false;
+            }
+
+            goal.action = action_name;
             return true;
         }
 };

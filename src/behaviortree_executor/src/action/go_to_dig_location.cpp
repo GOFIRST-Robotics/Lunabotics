@@ -46,7 +46,15 @@ class GoToDigLocationAction: public BT::RosActionNode<GoToDigLocation> {
       }
 
       bool setGoal(Goal& goal) override {
-      //TODO: implement this :)
-      return true;
+            //Someone please double check this as well :)
+            std::string action_name; 
+            if (!getInput<std::string>("action_name", action_name))
+            {
+              RCLCPP_ERROR(node_->get_logger(), "Missing required input");
+              return false;
+            }
+
+            goal.action = action_name;
+            return true;
       }
 };
