@@ -300,6 +300,7 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
     this->declare_parameter("DIGGER_PITCH_kP", 2.5);
+    this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -312,6 +313,8 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP").as_double());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
     RCLCPP_INFO(this->get_logger(), "DIGGER_PITCH_kP parameter set to: %f", this->get_parameter("DIGGER_PITCH_kP").as_double());
+    RCLCPP_INFO(this->get_logger(), "TIPPING_SPEED_ADJUSTMENT parameter set to: %d", this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool());
+    
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -441,7 +444,7 @@ private:
       }
     }
     else if (strcmp(this->digger_lift_goal.type.c_str(), "duty_cycle") == 0 && this->digger_lift_goal.value != 0.0) {
-      if (this->digger_lift_goal.value < 0.0) {
+      if (this->digger_lift_goal.value < 0.0 && this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool()) {
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value + speed_adjustment_coupling - speed_adjustment_pitch);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), this->digger_lift_goal.value - speed_adjustment_coupling - speed_adjustment_pitch);
       } else {
@@ -461,7 +464,7 @@ private:
       double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
       double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
      
-      if (left_error < 0 && right_error < 0) {
+      if (left_error < 0 && right_error < 0 && this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool()) {
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling - speed_adjustment_pitch);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling - speed_adjustment_pitch);
       } else {
