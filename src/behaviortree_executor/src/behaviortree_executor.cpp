@@ -1,9 +1,9 @@
 #include "rclcpp/rclcpp.hpp"
 
-#include "../action/calibrate_field_coordinate.cpp"
-#include "../action/auto_dig.cpp"
-#include "../action/auto_offload.cpp"
-#include "../action/go_to_dig_location.cpp"
+// #include "action/calibrate_field_coordinates.hpp"
+#include "action/auto_dig.hpp"
+// #include "action/auto_offload.hpp"
+// #include "action/go_to_dig_location.hpp"
 
 #include "behaviortree_cpp/bt_factory.h"
 
@@ -16,13 +16,11 @@
 class BehaviorTreeExecutor : public rclcpp::Node { 
 public: 
     BehaviorTreeExecutor() : Node("bt_executor") { 
-        // Load behavior tree 
-        // factory_.registerNodeType<nav2_behavior_tree::GoToPoseAction>("GoToPose"); 
         // Register your custom nodes 
-        factory_.registerNodeType<AutoOffloadAction>("AutoOffload");
-        factory_.registerNodeType<GoToDigLocationAction>("GoToDigLocation");
+        // factory_.registerNodeType<AutoOffloadAction>("AutoOffload");
+        // factory_.registerNodeType<GoToDigLocationAction>("GoToDigLocation");
         factory_.registerNodeType<AutoDigAction>("AutoDig");
-        factory_.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
+        // factory_.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
         // /workspaces/Lunabotics/config/behavior_trees/main_tree.xml
         tree_ = factory_.createTreeFromFile("config/behavior_trees/main_tree.xml"); 
         // Create service to start the behavior tree 
