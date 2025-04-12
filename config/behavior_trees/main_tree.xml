@@ -4,14 +4,14 @@
     <Fallback>
       <Sequence>
         <RetryUntilSuccessful num_attempts="5">
-          <!-- <CalibrateFieldCoordinates action_name="/calibrate_field_coordinates"/> -->
+          <CalibrateFieldCoordinates action_name="/calibrate_field_coordinates"/>
         </RetryUntilSuccessful>
         <KeepRunningUntilFailure>
           <Sequence>
             <GoToDigLocation action_name="/go_to_dig_location"/>
             <AutoDig action_name="/auto_dig"/>
-            <!-- <Script code="msg:=&quot;Go To Offload Zone&quot;"/> -->
-            <!-- <AutoOffload action_name="/auto_offload"/> -->
+            <Script code="msg:=&quot;Go To Offload Zone&quot;"/>
+            <AutoOffload action_name="/auto_offload"/>
           </Sequence>
         </KeepRunningUntilFailure>
       </Sequence>
@@ -23,12 +23,12 @@
   <TreeNodesModel>
     <Action ID="AutoDig"
             editable="true"/>
-    <!-- <Action ID="AutoOffload"
+    <Action ID="AutoOffload"
             editable="true"/>
     <Action ID="CalibrateFieldCoordinates"
             editable="true"/>
     <Action ID="GoToDigLocation"
-            editable="true"/> -->
+            editable="true"/>
   </TreeNodesModel>
 
 </root>

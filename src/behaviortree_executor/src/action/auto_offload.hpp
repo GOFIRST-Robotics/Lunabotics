@@ -6,49 +6,38 @@
 #include "behaviortree_ros2/ros_node_params.hpp"
 
 using AutoOffload = rovr_interfaces::action::AutoOffload;
+using namespace BT;
 
-class AutoOffloadAction : public BT::RosActionNode<AutoOffload>{
+class AutoOffloadAction : public RosActionNode<AutoOffload>{
     public:
         AutoOffloadAction(
             const std::string& instance_name,
-            const BT::NodeConfig& conf)
+            const NodeConfig& conf)
         
-        : BT::RosActionNode<AutoOffload>(
+        : RosActionNode<AutoOffload>(
             instance_name, 
             conf, 
-            BT::RosNodeParams(std::make_shared<rclcpp::Node>("auto_offload_node"))){}
+            RosNodeParams(std::make_shared<rclcpp::Node>("auto_offload_node"))){}
 
-        static BT::PortsList providedPorts() {
+        static PortsList providedPorts() {
             return providedBasicPorts({
-                BT::InputPort<std::string>("action_name")
+                InputPort<double>("lift_dumping_position"),
+                InputPort<double>("digger_belt_power"),
             });
         }
-
-        //TODO: finish this
-        BT::NodeStatus onResultReceived(const WrappedResult& result) override {
-           //Someone double check that this makes sense pls :)
-           switch (result.code)
-           {
-               case rclcpp_action::ResultCode::SUCCEEDED:
-                   RCLCPP_INFO(node_->get_logger(), "Calibration succeeded.");
-                   return BT::NodeStatus::SUCCESS;
-
-               case rclcpp_action::ResultCode::ABORTED:
-                   RCLCPP_ERROR(node_->get_logger(), "Calibration aborted.");
-                   return BT::NodeStatus::FAILURE;
-
-               case rclcpp_action::ResultCode::CANCELED:
-                   RCLCPP_WARN(node_->get_logger(), "Calibration canceled.");
-                   return BT::NodeStatus::FAILURE;
-
-               default:
-                   RCLCPP_ERROR(node_->get_logger(), "Unknown result code.");
-                   return BT::NodeStatus::FAILURE;
-           }
-        }
         
-        //TODO: finish this
-        bool setGoal(Goal& goal)override {
+        bool setGoal(Goal& goal) override 
+        {
+            // get inputs from the Input port
+            getInput("lift_dumping_position", goal.lift_dumping_position);
+            getInput("digger_belt_power", goal.digger_belt_power);
+            // return true, if we were able to set the goal correctly.
             return true;
-        }     
+        }
+
+        //TODO: finish this
+        NodeStatus onResultReceived(__attribute__ ((unused)) const WrappedResult& result) override {
+            return NodeStatus::SUCCESS;
+        }   
+
 };

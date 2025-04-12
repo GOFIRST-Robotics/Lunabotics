@@ -3,7 +3,7 @@
 #include "behaviortree_cpp/tree_node.h"
 #include "behaviortree_ros2/bt_action_node.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
-#include <cfloat>
+
 using AutoDig = rovr_interfaces::action::AutoDig;
 using namespace BT;
 
@@ -25,7 +25,7 @@ class AutoDigAction: public RosActionNode<AutoDig> {
             });
         }
 
-        bool setGoal(RosActionNode::Goal& goal) override 
+        bool setGoal(Goal& goal) override 
         {
             // get inputs from the Input port
             getInput("lift_digging_start_position", goal.lift_digging_start_position);
@@ -35,26 +35,7 @@ class AutoDigAction: public RosActionNode<AutoDig> {
             return true;
         }
 
-        NodeStatus onResultReceived(const WrappedResult& result) override {
-           //Someone double check that this makes sense pls :)
-           /* switch (result.code)
-           {
-               case rclcpp_action::ResultCode::SUCCEEDED:
-                   RCLCPP_INFO(node_->get_logger(), "Calibration succeeded.");
-                   return NodeStatus::SUCCESS;
-
-               case rclcpp_action::ResultCode::ABORTED:
-                   RCLCPP_ERROR(node_->get_logger(), "Calibration aborted.");
-                   return NodeStatus::FAILURE;
-
-               case rclcpp_action::ResultCode::CANCELED:
-                   RCLCPP_WARN(node_->get_logger(), "Calibration canceled.");
-                   return NodeStatus::FAILURE;
-
-               default:
-                   RCLCPP_ERROR(node_->get_logger(), "Unknown result code.");
-                   return NodeStatus::FAILURE;
-           } */
+        NodeStatus onResultReceived(__attribute__ ((unused)) const WrappedResult& result) override {
            return NodeStatus::SUCCESS;
         }
 };
