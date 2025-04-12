@@ -10,18 +10,17 @@ def generate_launch_description():
         executable="auto_dig_server",
         name="auto_dig_server",
     )
-    # auto_offload_server = Node(
-    #     package="rovr_control",
-    #     executable="auto_offload_server",
-    #     name="auto_offload_server",
-    # )
+    auto_offload_server = Node(
+        package="rovr_control",
+        executable="auto_offload_server",
+        name="auto_offload_server",
+    )
 
-    # # Add behavior tree action nodes
-    # calibrate_field_coordinate_server = Node(
-    #     package="rovr_control",
-    #     executable="calibrate_field_coordinate_server",
-    #     name="calibrate_field_coordinate_server",
-    # )
+    calibrate_field_coordinate_server = Node(
+        package="rovr_control",
+        executable="calibrate_field_coordinate_server",
+        name="calibrate_field_coordinate_server",
+    )
 
     dig_location_server = Node(
         package="rovr_control",

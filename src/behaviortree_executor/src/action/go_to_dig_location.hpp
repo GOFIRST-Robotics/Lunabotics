@@ -13,7 +13,6 @@ public:
   GoToDigLocationAction(
       const std::string &instance_name,
       const NodeConfig &conf)
-
       : RosActionNode<GoToDigLocation>(
             instance_name,
             conf,
@@ -21,39 +20,13 @@ public:
   {
   }
 
-  static PortsList providedPorts()
-  {
-    return providedBasicPorts({});
-  }
-
-  bool setGoal(RosActionNode::Goal& goal) override 
+  bool setGoal(__attribute__ ((unused)) Goal &goal) override
   {
     return true;
   }
 
-  NodeStatus onResultReceived(const WrappedResult &result) override
+  NodeStatus onResultReceived(__attribute__ ((unused)) const WrappedResult &result) override
   {
-    // Someone double check that this makes sense pls :)
-    switch (result.code)
-    {
-    case rclcpp_action::ResultCode::SUCCEEDED:
-      RCLCPP_INFO(node_->get_logger(), "Calibration succeeded.");
-      result.result->success = true;
-      return NodeStatus::SUCCESS;
-
-    case rclcpp_action::ResultCode::ABORTED:
-      RCLCPP_ERROR(node_->get_logger(), "Calibration aborted.");
-      result.result->success = false;
-      return NodeStatus::FAILURE;
-
-    case rclcpp_action::ResultCode::CANCELED:
-      RCLCPP_WARN(node_->get_logger(), "Calibration canceled.");
-      result.result->success = false;
-      return NodeStatus::FAILURE;
-
-    default:
-      RCLCPP_ERROR(node_->get_logger(), "Unknown result code.");
-      return NodeStatus::FAILURE;
-    }
+    return NodeStatus::SUCCESS;
   }
 };
