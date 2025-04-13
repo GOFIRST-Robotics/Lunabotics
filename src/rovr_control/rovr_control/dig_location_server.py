@@ -3,20 +3,21 @@ from rclpy.action import ActionClient, ActionServer
 from rclpy.node import Node
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
-from rovr_interfaces.action import CalibrateFieldCoordinates
+from rovr_interfaces.action import GoToDigLocation
 from scipy.spatial.transform import Rotation as R
 from nav2_msgs.action import NavigateToPose
+from nav2_msgs.srv import GetCostmap
+from nav_msgs.msg import OccupancyGrid
 import math
 from geometry_msgs.msg import PolygonStamped, PoseStamped
-from nav2_simple_commander.robot_navigator import BasicNavigator
 
 
 class DigLocationFinder(Node):
     def __init__(self):
-        super().__init__("dig_location_finder")
+        super().__init__("dig_location_server")
         self._action_server = ActionServer(
             self,
-            CalibrateFieldCoordinates,  # Empty action message
+            GoToDigLocation,  # Empty action message
             "go_to_dig_location",
             self.drive_to_dig_location,
             # cancel_callback=self.drive_to_dig_location,
@@ -24,7 +25,9 @@ class DigLocationFinder(Node):
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
-        self.nav2 = BasicNavigator()
+        self.get_costmap_global_srv = self.create_client(
+            GetCostmap, 'global_costmap/get_costmap'
+        )
         self.srv = self.create_service(DigLocation, "find_dig_location", self.find_dig_location_callback)
         self.footprint_sub = self.create_subscription(
             PolygonStamped, "/local_costmap/published_footprint", self.get_robot_footprint, 10
@@ -44,7 +47,7 @@ class DigLocationFinder(Node):
         self.potential_dig_locations = self.all_dig_locations.copy()
 
     async def drive_to_dig_location(self, goal_handle):
-        result = CalibrateFieldCoordinates.Result()
+        result = GoToDigLocation.Result()
 
         goal_pose_xy = self.getDigLocation()
         if goal_pose_xy is None:
@@ -123,7 +126,7 @@ class DigLocationFinder(Node):
 
     def updatePotentialDigLocations(self):
         try:
-            costmap = PyCostmap2D(self.nav2.getGlobalCostmap())
+            costmap = PyCostmap2D(self.getGlobalCostmap())
             robot_width, robot_height = (0.5, 0.5)
             for location in self.potential_dig_locations:
                 # dig_cost = maximum cost of the cells that the robot will dig
@@ -133,6 +136,21 @@ class DigLocationFinder(Node):
 
         except Exception as e:
             self.get_logger().error(f"Error in updatePotentialDigLocations {e}")
+
+    def getGlobalCostmap(self) -> OccupancyGrid:
+        """Get the global costmap."""
+        while not self.get_costmap_global_srv.wait_for_service(timeout_sec=1.0):
+            self.info('Get global costmaps service not available, waiting...')
+        req = GetCostmap.Request()
+        future = self.get_costmap_global_srv.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+
+        result = future.result()
+        if result is None:
+            self.error('Get global costmap request failed!')
+            return None
+
+        return result.map
 
     def getDigLocation(self):
         # self.updatePotentialDigLocations()
