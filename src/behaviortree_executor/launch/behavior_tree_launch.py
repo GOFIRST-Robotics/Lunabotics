@@ -35,10 +35,10 @@ def generate_launch_description():
         output="screen",
         emulate_tty=True,
     )
-    ld.add_action(auto_dig_server)
-    ld.add_action(auto_offload_server)
-    ld.add_action(calibrate_field_coordinate_server)
+    # ld.add_action(auto_dig_server)
+    # ld.add_action(auto_offload_server)
+    # ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(dig_location_server)
-    ld.add_action(behaviortree_executor)
+    # ld.add_action(behaviortree_executor)
 
     return ld
