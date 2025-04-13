@@ -16,6 +16,7 @@
 class BehaviorTreeExecutor : public rclcpp::Node { 
 public: 
     BehaviorTreeExecutor() : Node("bt_executor") { 
+
         // Register your custom nodes 
         factory_.registerNodeType<AutoOffloadAction>("AutoOffload");
         factory_.registerNodeType<GoToDigLocationAction>("GoToDigLocation");
