@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     ld = LaunchDescription()
@@ -31,14 +32,22 @@ def generate_launch_description():
     behaviortree_executor = Node(
         package="behaviortree_executor",
         executable="behaviortree_executor",
-        name="behaviortree_executor",
+        name="bt_action_server",
         output="screen",
+        parameters=[
+            PathJoinSubstitution([
+            FindPackageShare('behaviortree_executor'),
+            'config',
+            'sample_bt_executor.yaml'
+        ]), 
+    ],
         emulate_tty=True,
     )
-    # ld.add_action(auto_dig_server)
-    # ld.add_action(auto_offload_server)
-    # ld.add_action(calibrate_field_coordinate_server)
+    ld.add_action(auto_dig_server)
+    ld.add_action(auto_offload_server)
+    ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(dig_location_server)
-    # ld.add_action(behaviortree_executor)
+    ld.add_action(behaviortree_executor)
+    
 
     return ld
