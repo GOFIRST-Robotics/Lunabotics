@@ -6,6 +6,7 @@
 #include "action/go_to_dig_location.hpp"
 
 #include "behaviortree_cpp/bt_factory.h"
+#include "behaviortree_ros2/tree_execution_server.hpp"
 
 #include <thread>
 #include <chrono>
@@ -13,79 +14,17 @@
 
 #include "std_srvs/srv/trigger.hpp"
 
-class BehaviorTreeExecutor : public rclcpp::Node { 
+class MyActionServer : public TreeExecutionServer { 
 public: 
-    BehaviorTreeExecutor() : Node("bt_executor") { 
-
+    MyActionServer(const rclcpp::NodeOptions& options) : TreeExecutionServer(options) { 
         // Register your custom nodes 
-        factory_.registerNodeType<AutoOffloadAction>("AutoOffload");
-        factory_.registerNodeType<GoToDigLocationAction>("GoToDigLocation");
-        factory_.registerNodeType<AutoDigAction>("AutoDig");
-        factory_.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
-        // /workspaces/Lunabotics/config/behavior_trees/main_tree.xml
-        tree_ = factory_.createTreeFromFile("config/behavior_trees/main_tree.xml"); 
-        // Create service to start the behavior tree 
-        start_service_ = create_service<std_srvs::srv::Trigger>("start_autonomy", 
-            std::bind(&BehaviorTreeExecutor::startCallback, this, std::placeholders::_1, std::placeholders::_2)); 
+        factory().registerNodeType<AutoOffloadAction>("AutoOffload");
+        factory().registerNodeType<GoToDigLocationAction>("GoToDigLocation");
+        factory().registerNodeType<AutoDigAction>("AutoDig");
+        factory().registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates");
 
-        // Create service to cancel the behavior tree 
-        cancel_service_ = create_service<std_srvs::srv::Trigger>("cancel_autonomy", 
-            std::bind(&BehaviorTreeExecutor::cancelCallback, this, std::placeholders::_1, std::placeholders::_2));
     } 
-
 private: 
-    void startCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response) { 
-        if (running_) { 
-            response->success = false; 
-            response->message = "Behavior tree already running"; 
-            return; 
-        } 
-
-        // Start behavior tree in a separate thread 
-        running_ = true; 
-        bt_thread_ = std::thread([this]() { 
-            while (running_ && rclcpp::ok()) {
-                auto status = tree_.tickExactlyOnce(); 
-                // Check if the tree has completed 
-                if (status == BT::NodeStatus::SUCCESS || status == BT::NodeStatus::FAILURE) { 
-                    RCLCPP_INFO(get_logger(), "Behavior tree finished with status: %s", status == BT::NodeStatus::SUCCESS ? "SUCCESS" : "FAILURE"); 
-
-                    running_ = false; 
-
-                    break; 
-                } // Sleep to avoid hogging CPU 
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(50)); 
-            } 
-        }); 
-        
-        response->success = true; 
-        
-        response->message = "Behavior tree started"; 
-    } 
-    
-    void cancelCallback(const std::shared_ptr<std_srvs::srv::Trigger::Request>, std::shared_ptr<std_srvs::srv::Trigger::Response> response) { 
-        if (!running_) { 
-            response->success = false; 
-            response->message = "No behavior tree running"; 
-            return; 
-        } 
-        // Set flag to stop the execution 
-        running_ = false; 
-        // Wait for the thread to complete 
-        if (bt_thread_.joinable()) { 
-            bt_thread_.join(); 
-        } 
-        // Reset the tree 
-        tree_.haltTree(); 
-        response->success = true; 
-        response->message = "Behavior tree canceled"; 
-    } 
-    
-    BT::BehaviorTreeFactory factory_; 
-    BT::Tree tree_; 
-    std::thread bt_thread_; 
-    bool running_ = false; 
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_service_; 
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr cancel_service_; 
 }; 
@@ -93,8 +32,16 @@ private:
 int main(int argc, char** argv) { 
     rclcpp::init(argc, argv); 
 
-    auto node = std::make_shared<BehaviorTreeExecutor>(); 
-    rclcpp::spin(node); 
+    rclcpp::NodeOptions options;
+    auto action_server = std::make_shared<MyActionServer>(options);
+  
+    // TODO: This workaround is for a bug in MultiThreadedExecutor where it can deadlock when spinning without a timeout.
+    // Deadlock is caused when Publishers or Subscribers are dynamically removed as the node is spinning.
+    rclcpp::executors::MultiThreadedExecutor exec(rclcpp::ExecutorOptions(), 0, false,
+                                                  std::chrono::milliseconds(250));
+    exec.add_node(action_server->node());
+    exec.spin();
+    exec.remove_node(action_server->node());
     rclcpp::shutdown(); 
     return 0; 
 }
