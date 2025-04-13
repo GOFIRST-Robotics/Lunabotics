@@ -10,23 +10,24 @@ using namespace BT;
 class GoToDigLocationAction : public RosActionNode<GoToDigLocation>
 {
 public:
-  GoToDigLocationAction(
-      const std::string &instance_name,
-      const NodeConfig &conf)
-      : RosActionNode<GoToDigLocation>(
-            instance_name,
-            conf,
-            RosNodeParams(std::make_shared<rclcpp::Node>("go_to_dig_location_client"), "go_to_dig_location"))
-  {
-  }
+    GoToDigLocationAction(const std::string& name, const BT::NodeConfig& conf,
+        const BT::RosNodeParams& params)
+        : RosActionNode<GoToDigLocation>(name, conf, params)
+    {
+    }
 
-  bool setGoal(__attribute__ ((unused)) Goal &goal) override
-  {
-    return true;
-  }
+    static PortsList providedPorts()
+    {
+        return providedBasicPorts({});
+    }
 
-  NodeStatus onResultReceived(__attribute__ ((unused)) const WrappedResult &result) override
-  {
-    return NodeStatus::SUCCESS;
-  }
+    bool setGoal(__attribute__((unused)) Goal &goal) override
+    {
+        return true;
+    }
+
+    NodeStatus onResultReceived(__attribute__((unused)) const WrappedResult &result) override
+    {
+        return NodeStatus::SUCCESS;
+    }
 };

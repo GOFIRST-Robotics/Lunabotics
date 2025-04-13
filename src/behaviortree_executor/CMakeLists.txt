@@ -17,7 +17,6 @@ add_executable(behaviortree_executor src/behaviortree_executor.cpp)
 ament_target_dependencies(behaviortree_executor rclcpp std_srvs behaviortree_ros2 behaviortree_cpp rovr_interfaces)
 
 install(DIRECTORY
-    behavior_trees
     config
     launch
     DESTINATION share/${PROJECT_NAME}/
