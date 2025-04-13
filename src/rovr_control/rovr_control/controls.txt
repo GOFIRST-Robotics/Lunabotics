@@ -1,0 +1,12 @@
+X Button: Digger Belt Power +
+Y Button: Digger Belt Power -
+B Button: Toggle dumper
+A Button: Calibrate Field Coordinates
+
+Right Bumper: dumper set power +
+Left Bumper: dumper set power -
+Right Trigger: digger set power +
+Left Trigger: digger set power -
+
+Start Button: Auto Dig
+Back Button: Auto Offload
