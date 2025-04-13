@@ -14,3 +14,4 @@
     DIGGER_ACTUATORS_OFFSET: 12 # Potentiometer counts offset to make the two digger actuators align
     DIGGER_ACTUATORS_kP: 0.05 # kP for digger actuator position control
     DIGGER_ACTUATORS_kP_coupling: 0.004 # kP for digger actuator position syncing
+    DIGGER_PITCH_kP: 2.5 # kP for tipping while digging

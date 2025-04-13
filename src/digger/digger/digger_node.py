@@ -72,16 +72,10 @@ class DiggerNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DIGGER_MOTOR", 3)
-        self.declare_parameter("MAX_POS_DIFF", 3)
-
         # Assign the ROS Parameters to member variables below #
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
-        self.MAX_POS_DIFF = self.get_parameter("MAX_POS_DIFF").value
-
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
-        self.get_logger().info("MAX_POS_DIFF has been set to: " + str(self.MAX_POS_DIFF))
-
         # Current state of the digger belt
         self.running = False
         # Current position of the lift motor in potentiometer units (0 to 1023)
@@ -251,14 +245,8 @@ class DiggerNode(Node):
     # Define the subscriber callback for the potentiometers topic
     def pot_callback(self, msg: Potentiometers):
         """Helps us know whether or not the current goal position has been reached."""
-        # Should use the same threshold that is being used in the motor_coontrol_node
-        if abs(msg.left_motor_pot - msg.right_motor_pot) > self.MAX_POS_DIFF:
-            self.get_logger().error("ERROR: The two potentiometer values are too far apart!")
-            self.current_lift_position = None  # We don't know the current position anymore
-            self.stop_lift()  # Stop the lift system
-        else:
-            # Average the two potentiometer values
-            self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
+        # Average the two potentiometer values
+        self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
 
     # Define subscriber callback methods here
     def linear_actuator_current_callback(self, linear_acutator_msg):
