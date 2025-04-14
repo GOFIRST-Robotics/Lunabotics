@@ -68,7 +68,7 @@ class DigLocationFinder(Node):
 
         await result_future
 
-        # result = result_future.result()
+        result = result_future.result()
         if result and result.status == 4:  # STATUS_SUCCEEDED (4)
             self.get_logger().info("Navigation succeeded!")
             return result
