@@ -44,10 +44,10 @@ class DrivetrainNode(Node):
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
 
         if self.GAZEBO_SIMULATION:
-            self.gazebo_wheel1_pub = self.create_publisher(Float64, "wheel1/cmd_vel", 10)
-            self.gazebo_wheel2_pub = self.create_publisher(Float64, "wheel2/cmd_vel", 10)
-            self.gazebo_wheel3_pub = self.create_publisher(Float64, "wheel3/cmd_vel", 10)
-            self.gazebo_wheel4_pub = self.create_publisher(Float64, "wheel4/cmd_vel", 10)
+            self.gazebo_front_left_wheel_pub = self.create_publisher(Float64, "front_left_wheel/cmd_vel", 10)
+            self.gazebo_back_left_wheel_pub = self.create_publisher(Float64, "back_left_wheel/cmd_vel", 10)
+            self.gazebo_front_right_wheel_pub = self.create_publisher(Float64, "front_right_wheel/cmd_vel", 10)
+            self.gazebo_back_right_wheel_pub = self.create_publisher(Float64, "back_right_wheel/cmd_vel", 10)
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
@@ -110,10 +110,16 @@ class DrivetrainNode(Node):
 
         # Publish the wheel speeds to the gazebo simulation
         if self.GAZEBO_SIMULATION:
-            self.gazebo_wheel1_pub.publish(Float64(data=leftPower * 2))
-            self.gazebo_wheel2_pub.publish(Float64(data=rightPower * 2))
-            self.gazebo_wheel3_pub.publish(Float64(data=rightPower * 2))
-            self.gazebo_wheel4_pub.publish(Float64(data=leftPower * 2))
+            if self.DRIVETRAIN_TYPE == "velocity":
+                self.gazebo_front_left_wheel_pub.publish(Float64(data=leftPower / self.MAX_DRIVETRAIN_RPM))
+                self.gazebo_back_left_wheel_pub.publish(Float64(data=leftPower / self.MAX_DRIVETRAIN_RPM))
+                self.gazebo_front_right_wheel_pub.publish(Float64(data=rightPower / self.MAX_DRIVETRAIN_RPM))
+                self.gazebo_back_right_wheel_pub.publish(Float64(data=rightPower / self.MAX_DRIVETRAIN_RPM))
+            else:
+                self.gazebo_front_left_wheel_pub.publish(Float64(data=leftPower))
+                self.gazebo_back_left_wheel_pub.publish(Float64(data=leftPower))
+                self.gazebo_front_right_wheel_pub.publish(Float64(data=rightPower))
+                self.gazebo_back_right_wheel_pub.publish(Float64(data=rightPower))
         return True
 
     def stop(self) -> None:
