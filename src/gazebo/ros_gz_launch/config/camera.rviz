@@ -29,7 +29,15 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        back_left_wheel_Link:
+          Value: true
+        back_right_wheel_Link:
+          Value: true
         base_link:
+          Value: true
+        front_left_wheel_Link:
+          Value: true
+        front_right_wheel_Link:
           Value: true
         map:
           Value: true
@@ -43,6 +51,18 @@ Visualization Manager:
           Value: true
         zed2i_left_camera_optical_frame:
           Value: true
+        zed2i_rear_camera_center:
+          Value: true
+        zed2i_rear_camera_link:
+          Value: true
+        zed2i_rear_left_camera_frame:
+          Value: true
+        zed2i_rear_left_camera_optical_frame:
+          Value: true
+        zed2i_rear_right_camera_frame:
+          Value: true
+        zed2i_rear_right_camera_optical_frame:
+          Value: true
         zed2i_right_camera_frame:
           Value: true
         zed2i_right_camera_optical_frame:
@@ -53,15 +73,33 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Tree:
-      map:
-        odom:
-          zed2i_camera_link:
-            base_link: {}
-            zed2i_camera_center:
-              zed2i_left_camera_frame:
-                zed2i_left_camera_optical_frame: {}
-              zed2i_right_camera_frame:
-                zed2i_right_camera_optical_frame: {}
+        map:
+          odom:
+            zed2i_camera_link:
+              base_link:
+                back_left_wheel_Link:
+                  {}
+                back_right_wheel_Link:
+                  {}
+                front_left_wheel_Link:
+                  {}
+                front_right_wheel_Link:
+                  {}
+                zed2i_rear_camera_link:
+                  zed2i_rear_camera_center:
+                    zed2i_rear_left_camera_frame:
+                      zed2i_rear_left_camera_optical_frame:
+                        {}
+                    zed2i_rear_right_camera_frame:
+                      zed2i_rear_right_camera_optical_frame:
+                        {}
+              zed2i_camera_center:
+                zed2i_left_camera_frame:
+                  zed2i_left_camera_optical_frame:
+                    {}
+                zed2i_right_camera_frame:
+                  zed2i_right_camera_optical_frame:
+                    {}
       Update Interval: 0
       Value: true
     - Class: rviz_default_plugins/Image
@@ -157,6 +195,8 @@ Visualization Manager:
       Yaw: 0.785398006439209
     Saved: ~
 Window Geometry:
+  Depth Image:
+    collapsed: false
   Displays:
     collapsed: false
   Height: 748
