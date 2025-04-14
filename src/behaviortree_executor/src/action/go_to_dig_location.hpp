@@ -16,11 +16,6 @@ public:
     {
     }
 
-    static PortsList providedPorts()
-    {
-        return providedBasicPorts({});
-    }
-
     bool setGoal(__attribute__((unused)) Goal &goal) override
     {
         return true;
