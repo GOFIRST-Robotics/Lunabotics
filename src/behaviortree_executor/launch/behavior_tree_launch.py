@@ -38,7 +38,7 @@ def generate_launch_description():
             PathJoinSubstitution([
             FindPackageShare('behaviortree_executor'),
             'config',
-            'sample_bt_executor.yaml'
+            'bt_executor.yaml'
         ]), 
     ],
         emulate_tty=True,

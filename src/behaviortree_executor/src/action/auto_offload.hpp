@@ -18,14 +18,6 @@ public:
     {
     }
 
-    static PortsList providedPorts()
-    {
-        return providedBasicPorts({
-            InputPort<double>("lift_dumping_position"),
-            InputPort<double>("digger_belt_power"),
-        });
-    }
-
     bool setGoal(Goal &goal) override
     {
         // get inputs from the Input port

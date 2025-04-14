@@ -12,13 +12,8 @@ class AutoDigAction : public RosActionNode<AutoDig>
 public:
     AutoDigAction(const std::string &name, const BT::NodeConfig &conf,
                   const BT::RosNodeParams &params)
-        : RosActionNode<AutoDig>(name, conf, params) {}
-
-    static PortsList providedPorts()
+        : RosActionNode<AutoDig>(name, conf, params)
     {
-        return providedBasicPorts({InputPort<double>("lift_digging_start_position"),
-                                   InputPort<double>("lift_digging_end_position"),
-                                   InputPort<double>("digger_belt_power")});
     }
 
     bool setGoal(Goal &goal) override
