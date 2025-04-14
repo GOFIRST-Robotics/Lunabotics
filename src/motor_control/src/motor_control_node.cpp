@@ -20,6 +20,7 @@
 #include "rovr_interfaces/srv/motor_command_get.hpp"
 #include "rovr_interfaces/srv/motor_command_set.hpp"
 #include "rovr_interfaces/msg/potentiometers.hpp"
+#include "rovr_interfaces/msg/AllMotorCurrent.hpp"
 
 // Import Native C++ Libraries
 #include <chrono>
@@ -326,6 +327,7 @@ public:
 
     digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Current", 5);
     dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 5);
+    all_motor_current_pub = this->create_publisher<rovr_interfaces::msg::AllMotorCurrent>("All_Motor_Current", 5);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
@@ -350,6 +352,14 @@ private:
         send_can(std::get<0>(this->current_msg[motorId]), std::get<1>(this->current_msg[motorId]));
       }
     }
+
+    //publish current usage from all the motors (to be captured by a rosbag)
+    rovr_interfaces::msg::AllMotorCurrent all_motor_current_msg;
+    for (auto pair : this->can_data) {
+      all_motor_current_msg.motor_ids.push_back(pair.first);
+      all_motor_current_msg.currents.push_back(pair.second.current);
+    }
+    all_motor_current_pub->publish(all_motor_current_msg);
   }
 
   // Listen for CAN status frames sent by our VESC motor controllers
@@ -366,15 +376,21 @@ private:
     float RPM = this->can_data[motorId].velocity;
     float current = this->can_data[motorId].current;
     int32_t tachometer = this->can_data[motorId].tachometer;
-    std_msgs::msg::Float32 dumper_linear_actuator_msg;
 
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); 
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0 / 100.0);
-      dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
-      dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
+      if(motorId == this->get_parameter("DUMPER_MOTOR").as_int()) {
+        std_msgs::msg::Float32 dumper_linear_actuator_msg;
+        dumper_linear_actuator_msg.data = current;
+        dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
+      } else if (motorId == this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int() || motorId == this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()) {
+        std_msgs::msg::Float32MultiArray digger_linear_actuator_msg;
+        digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
+        digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
+      }    
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
@@ -398,10 +414,6 @@ private:
   }
 
   void Potentiometer_callback(const rovr_interfaces::msg::Potentiometers msg) {
-    std_msgs::msg::Float32MultiArray digger_linear_actuator_msg;
-    digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
-    digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
-
     double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
     int left_motor_pot = msg.left_motor_pot - this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int();
     int right_motor_pot = msg.right_motor_pot;
