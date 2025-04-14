@@ -3,6 +3,7 @@ from launch_ros.actions import Node
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
+
 def generate_launch_description():
     ld = LaunchDescription()
 
@@ -28,7 +29,7 @@ def generate_launch_description():
         executable="dig_location_server",
         name="dig_location_server",
     )
-    
+
     behaviortree_executor = Node(
         package="behaviortree_executor",
         executable="behaviortree_executor",
@@ -36,11 +37,11 @@ def generate_launch_description():
         output="screen",
         parameters=[
             PathJoinSubstitution([
-            FindPackageShare('behaviortree_executor'),
-            'config',
-            'bt_executor.yaml'
-        ]), 
-    ],
+                FindPackageShare('behaviortree_executor'),
+                'config',
+                'bt_executor.yaml'
+            ]),
+        ],
         emulate_tty=True,
     )
     ld.add_action(auto_dig_server)
@@ -48,6 +49,5 @@ def generate_launch_description():
     ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(dig_location_server)
     ld.add_action(behaviortree_executor)
-    
 
     return ld
