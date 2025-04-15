@@ -86,7 +86,6 @@ def generate_launch_description():
             ),
             SetRemap(src=["pose"], dst=["/zed2i/zed_node/pose"], condition=setup_for_zed),
             # Remappings for gazebo sim data
-            SetRemap(src=["pose"], dst=["/odom"], condition=setup_for_gazebo), # added for debugging - didn't seem to change much
             SetRemap(src=["camera_0/depth/image"], dst=["/depth/image"], condition=setup_for_gazebo),
             SetRemap(src=["camera_0/depth/camera_info"], dst=["/depth/camera_info"], condition=setup_for_gazebo),
             SetRemap(src=["camera_0/color/image"], dst=["/color/image"], condition=setup_for_gazebo),

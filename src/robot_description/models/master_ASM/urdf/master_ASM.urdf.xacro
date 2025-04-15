@@ -93,13 +93,11 @@
       <camera>
         <horizontal_fov>1.91986218</horizontal_fov> 
         <image>
-          <format>R8G8B8</format>
-          <width>1280</width>
-          <height>720</height>
+          <width>640</width>
+          <height>360</height>
         </image>
         <clip>
-          <near>0.3</near>
-          <far>5.0</far>
+          <far>10.0</far>
         </clip>
       </camera>
       <topic>/color/image</topic>
@@ -112,13 +110,11 @@
       <camera>
         <horizontal_fov>1.91986218</horizontal_fov> 
         <image>
-          <format>R8G8B8</format>
-          <width>1280</width>
-          <height>720</height>
+          <width>640</width>
+          <height>360</height>
         </image>
         <clip>
-          <near>0.3</near>
-          <far>20.0</far>
+          <far>10.0</far>
         </clip>
       </camera>
       <topic>/depth/image</topic>
@@ -134,13 +130,11 @@
       <camera>
         <horizontal_fov>1.91986218</horizontal_fov> 
         <image>
-          <format>R8G8B8</format>
-          <width>1280</width>
-          <height>720</height>
+          <width>640</width>
+          <height>360</height>
         </image>
         <clip>
-          <near>0.3</near>
-          <far>5.0</far>
+          <far>10.0</far>
         </clip>
       </camera>
       <topic>/color/image_rear</topic>
@@ -153,13 +147,11 @@
       <camera>
         <horizontal_fov>1.91986218</horizontal_fov> 
         <image>
-          <format>R8G8B8</format>
-          <width>1280</width>
-          <height>720</height>
+          <width>640</width>
+          <height>360</height>
         </image>
         <clip>
-          <near>0.3</near>
-          <far>20.0</far>
+          <far>10.0</far>
         </clip>
       </camera>
       <topic>/depth/image_rear</topic>
