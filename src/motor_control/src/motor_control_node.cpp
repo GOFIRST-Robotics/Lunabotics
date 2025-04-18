@@ -418,7 +418,7 @@ private:
 
     //RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
 
-    if (abs(error) > this-> ("MAX_POS_DIFF").as_int() && strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
+    if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int() && strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
