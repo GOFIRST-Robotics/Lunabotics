@@ -6,12 +6,13 @@
     FRONT_LEFT_DRIVE: 3 # CAN ID of the front left drive motor
     BACK_RIGHT_DRIVE: 1 # CAN ID of the back right drive motor
     FRONT_RIGHT_DRIVE: 6 # CAN ID of the front right drive motor
-    DIGGER_MOTOR: 4 # CAN ID of the digger belt motor
+    DIGGER_MOTOR: 10 # CAN ID of the digger belt motor
     DIGGER_LEFT_LINEAR_ACTUATOR: 8 # CAN ID of the left linear actuator
     DIGGER_RIGHT_LINEAR_ACTUATOR: 7 # CAN ID of the right linear actuator
-    DUMPER_MOTOR: 10 # CAN ID of the dumper motor
+    DUMPER_MOTOR: 2 # CAN ID of the dumper motor
     MAX_POS_DIFF: 30 # Max difference in position to allow between the two linear actuators
     DIGGER_ACTUATORS_OFFSET: 12 # Potentiometer counts offset to make the two digger actuators align
     DIGGER_ACTUATORS_kP: 0.05 # kP for digger actuator position control
     DIGGER_ACTUATORS_kP_coupling: 0.004 # kP for digger actuator position syncing
     DIGGER_PITCH_kP: 2.5 # kP for tipping while digging
+    TIPPING_SPEED_ADJUSTMENT: true # determines if pitch speed adjustment is used
