@@ -1,17 +1,16 @@
 /**:
   ros__parameters:
-    autonomous_driving_power: 0.25 # Measured in Duty Cycle (0.0-1.0)
     max_drive_power: 1.0 # Measured in Duty Cycle (0.0-1.0)
     max_turn_power: 1.0 # Measured in Duty Cycle (0.0-1.0)
-    digger_belt_power: -0.1 # Measured in Duty Cycle (0.0-1.0)
+    digger_belt_power: -0.2 # Measured in Duty Cycle (0.0-1.0)
     digger_lift_manual_power: 0.5 # Measured in Duty Cycle (0.0-1.0)
     autonomous_field_type: "cosmic" # The type of field ("cosmic", "top", "bottom", "nasa")
-    lift_digging_start_position: -3050 # Measured in encoder counts!
-    lift_digging_end_position: -100 # Measured in encoder counts!
+    lift_digging_start_position: 75 # Measured in potentiometer units (0 to 1023) # TODO: tune this in the real world
+    lift_digging_end_position: 25 # Measured in potentiometer units (0 to 1023) # TODO: tune this in the real world
 
     # Auto Dig cost starts at max_dig_cost, and increases to absolute_max_dig_cost
-    absolute_max_dig_cost: 200 # Measured as a Costmap grid value (0-255) # TODO: tune these
-    max_dig_cost: 100 # Measured as a Costmap grid value (0-255) # TODO: Tune these
+    absolute_max_dig_cost: 200 # Measured as a Costmap grid value (0-255) # TODO: tune this
+    max_dig_cost: 100 # Measured as a Costmap grid value (0-255) # TODO: Tune this
 
     # Locations of all dig sites to check, as [x, y] pairs
     # Ros param lists must be flattened, so this is a list of all x values followed by all y values
