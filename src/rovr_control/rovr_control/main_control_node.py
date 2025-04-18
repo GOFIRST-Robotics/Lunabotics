@@ -66,7 +66,6 @@ class MainControlNode(Node):
         super().__init__("rovr_control")
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter("autonomous_driving_power", 0.25)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_belt_power", -0.1)  # Measured in Duty Cycle (0.0-1.0)
@@ -78,7 +77,6 @@ class MainControlNode(Node):
         self.declare_parameter("autonomous_field_type", "cosmic")
 
         # Assign the ROS Parameters to member variables below #
-        self.autonomous_driving_power = self.get_parameter("autonomous_driving_power").value
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.digger_belt_power = self.get_parameter("digger_belt_power").value
@@ -93,7 +91,6 @@ class MainControlNode(Node):
         self.dumper_power = self.get_parameter("dumper_power").value
 
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info("autonomous_driving_power has been set to: " + str(self.autonomous_driving_power))
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
         self.get_logger().info("digger_belt_power has been set to: " + str(self.digger_belt_power))
