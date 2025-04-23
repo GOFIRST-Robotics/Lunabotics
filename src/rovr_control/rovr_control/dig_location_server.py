@@ -36,8 +36,8 @@ class DigLocationFinder(Node):
         self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
         self.all_dig_locations = self.declare_parameter(
-            "all_dig_locations", [.7, .7, .7, 1.4, .7, 2.1, 1.9, .7, 1.9, 1.4, 1.9, 2.1, 3.0, .7,
-                                  3.0, 1.4, 3.0, 2.1, .7, 2.8, 1.9, 2.8, 3.0, 2.8]
+            "all_dig_locations", [2.0, 2.0, .7, .7, .7, 1.4, .7, 2.1, 1.9, .7, 1.9, 1.4, 1.9,
+                                  2.1, 3.0, .7, 3.0, 1.4, 3.0, 2.1, .7, 2.8, 1.9, 2.8, 3.0, 2.8]
         ).value  # If you default to an empty list things break (it thinks its a byte array)
 
         # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
@@ -68,13 +68,15 @@ class DigLocationFinder(Node):
 
         await result_future
 
-        result = result_future.result()
-        if result and result.status == 4:  # STATUS_SUCCEEDED (4)
+        future_res = result_future.result()
+        if future_res and future_res.status == 4:  # STATUS_SUCCEEDED (4)
             self.get_logger().info("Navigation succeeded!")
-            return result
+            goal_handle.succeed()
         else:
             self.get_logger().error("Navigation failed!")
-            return result
+            goal_handle.abort()
+
+        return result
 
     # yaw in rads.
     # yaw = 0 at x axis, positive is counter clockwise
@@ -119,9 +121,12 @@ class DigLocationFinder(Node):
             response.success = False
             return response
 
-        response.success = True
+        # response.success = True
         response.x = coords[0]
         response.y = coords[1]
+
+        self.get_logger().info(f"Dig location: {coords[0]}, {coords[1]}")
+        
         return response
 
     def updatePotentialDigLocations(self):
