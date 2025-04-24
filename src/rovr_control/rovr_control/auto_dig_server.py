@@ -63,7 +63,7 @@ class AutoDigServer(AsyncNode):
         # Start the digger belt
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Starting the digger belt")
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_belt_power))
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
 
         # Lower the digger so that it is just above the ground (get to this position fast)
         if not goal_handle.is_cancel_requested:

@@ -72,11 +72,17 @@ class DiggerNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DIGGER_MOTOR", 3)
+        self.declare_parameter("DIGGER_ACTUATORS_OFFSET", 12)
+        self.declare_parameter("DIGGER_SAFETY_ZONE", 75)  # Measured in potentiometer units (0 to 1023) # TODO: Tune
         # Assign the ROS Parameters to member variables below #
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
+        self.DIGGER_ACTUATORS_OFFSET = self.get_parameter("DIGGER_ACTUATORS_OFFSET").value
+        self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
-        # Current state of the digger belt
+        self.get_logger().info("DIGGER_ACTUATORS_OFFSET has been set to: " + str(self.DIGGER_ACTUATORS_OFFSET))
+        self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
+        # Current state of the digger chain
         self.running = False
         # Current position of the lift motor in potentiometer units (0 to 1023)
         self.current_lift_position = None  # We don't know the current position yet
@@ -92,23 +98,23 @@ class DiggerNode(Node):
 
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
-        """This method sets power to the digger belt."""
+        """This method sets power to the digger chain."""
         self.running = True
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=digger_power)
         )
 
     def stop(self) -> None:
-        """This method stops the digger belt."""
+        """This method stops the digger chain."""
         self.running = False
         self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=0.0))
 
-    def toggle(self, digger_belt_power: float) -> None:
-        """This method toggles the digger belt."""
+    def toggle(self, digger_chain_power: float) -> None:
+        """This method toggles the digger chain."""
         if self.running:
             self.stop()
         else:
-            self.set_power(digger_belt_power)
+            self.set_power(digger_chain_power)
 
     def set_position(self, position: int) -> None:
         """This method sets the position of the digger lift and waits until the goal is reached."""
@@ -193,19 +199,19 @@ class DiggerNode(Node):
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
-        """This service request sets power to the digger belt."""
+        """This service request sets power to the digger chain."""
         self.set_power(request.power)
         response.success = True
         return response
 
     def stop_callback(self, request, response):
-        """This service request stops the digger belt."""
+        """This service request stops the digger chain."""
         self.stop()
         response.success = True
         return response
 
     def toggle_callback(self, request, response):
-        """This service request toggles the digger belt."""
+        """This service request toggles the digger chain."""
         self.toggle(request.power)
         response.success = True
         return response
@@ -225,7 +231,7 @@ class DiggerNode(Node):
         return response
 
     def lift_set_power_callback(self, request, response):
-        """This service request sets power to the digger belt."""
+        """This service request sets power to the digger chain."""
         self.lift_set_power(request.power)
         response.success = True
         return response
@@ -246,7 +252,10 @@ class DiggerNode(Node):
     def pot_callback(self, msg: Potentiometers):
         """Helps us know whether or not the current goal position has been reached."""
         # Average the two potentiometer values
-        self.current_lift_position = (msg.left_motor_pot + msg.right_motor_pot) / 2
+        self.current_lift_position = ((msg.left_motor_pot - self.DIGGER_ACTUATORS_OFFSET) + msg.right_motor_pot) / 2
+        if self.current_lift_position < self.DIGGER_SAFETY_ZONE and self.running:
+            self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
+            self.stop()  # Stop the digger chain
 
     # Define subscriber callback methods here
     def linear_actuator_current_callback(self, linear_acutator_msg):

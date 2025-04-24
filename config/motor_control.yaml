@@ -16,3 +16,4 @@
     DIGGER_ACTUATORS_kP_coupling: 0.004 # kP for digger actuator position syncing
     DIGGER_PITCH_kP: 2.5 # kP for tipping while digging
     TIPPING_SPEED_ADJUSTMENT: true # determines if pitch speed adjustment is used
+    DIGGER_SAFETY_ZONE: 75 # Measured in potentiometer units (0 to 1023) # TODO: tune this in the real world
