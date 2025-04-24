@@ -118,7 +118,7 @@ class DiggerNode(Node):
 
     def set_position(self, position: int) -> None:
         """This method sets the position of the digger lift and waits until the goal is reached."""
-        if position > self.current_lift_position and not self.running:
+        if position > self.current_lift_position and not self.running and self.current_lift_position >= self.DIGGER_SAFETY_ZONE:
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
             return
@@ -152,7 +152,7 @@ class DiggerNode(Node):
     def lift_set_power(self, power: float) -> None:
         """This method sets power to the lift system."""
         self.lift_running = True
-        if power < 0 and not self.running:
+        if power < 0 and not self.running and self.current_lift_position >= self.DIGGER_SAFETY_ZONE:
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
             return
