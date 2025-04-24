@@ -6,7 +6,7 @@
     FRONT_LEFT_DRIVE: 3 # CAN ID of the front left drive motor
     BACK_RIGHT_DRIVE: 1 # CAN ID of the back right drive motor
     FRONT_RIGHT_DRIVE: 6 # CAN ID of the front right drive motor
-    DIGGER_MOTOR: 10 # CAN ID of the digger belt motor
+    DIGGER_MOTOR: 10 # CAN ID of the digger chain motor
     DIGGER_LEFT_LINEAR_ACTUATOR: 8 # CAN ID of the left linear actuator
     DIGGER_RIGHT_LINEAR_ACTUATOR: 7 # CAN ID of the right linear actuator
     DUMPER_MOTOR: 2 # CAN ID of the dumper motor

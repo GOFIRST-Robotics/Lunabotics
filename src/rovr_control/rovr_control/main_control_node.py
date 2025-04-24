@@ -153,7 +153,7 @@ class MainControlNode(Node):
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_digger_stop.call_async(Trigger.Request())  # Stop the digger belt
+        self.cli_digger_stop.call_async(Trigger.Request())  # Stop the digger chain
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
