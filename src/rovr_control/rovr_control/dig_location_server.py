@@ -63,24 +63,23 @@ class DigLocationFinder(Node):
         nav_goal = self.get_goal_pose(goal_pose_xy[0], goal_pose_xy[1], math.pi)
 
         # send_goal_future = self.nav2_client.send_goal_async(nav_goal)
-        
+
         self.nav_handle: ClientGoalHandle = await self.nav2_client.send_goal_async(nav_goal)
         # await self.nav_handle.get_result_async()
-        future_nav: Future = self.nav_handle.get_result_async()
-        while not future_nav.done():
-            # self.get_logger().info("Waiting for nav2 to finish")
-            if self.nav_handle.status == GoalStatus.STATUS_SUCCEEDED:
-                self.get_logger().info("Nav2 succeeded")
-                break
-            elif self.nav_handle.status == GoalStatus.STATUS_ABORTED:
-                self.get_logger().error("Nav2 failed")
-                goal_handle.abort()
-                return result
-            elif self.nav_handle.status == GoalStatus.STATUS_CANCELED:
-                self.get_logger().error("Nav2 canceled")
-                goal_handle.abort()
-                return result
-        goal_handle.succeed()
+        await self.nav_handle.get_result_async()
+
+
+        if self.nav_handle.status == GoalStatus.STATUS_SUCCEEDED:
+            self.get_logger().info("Nav2 succeeded")
+            goal_handle.succeed()
+        elif self.nav_handle.status == GoalStatus.STATUS_ABORTED:
+            self.get_logger().error("Nav2 failed")
+        elif self.nav_handle.status == GoalStatus.STATUS_CANCELED:
+            self.get_logger().error("Nav2 canceled")
+            goal_handle.abort()
+        else:
+            self.get_logger().error("Nav2 completed in unknown state")
+
 
         return result
 
@@ -183,3 +182,6 @@ def main(args=None):
     rclpy.spin(dig_location_finder)
     dig_location_finder.destroy_node()
     rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()
