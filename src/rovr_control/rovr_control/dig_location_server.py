@@ -1,5 +1,7 @@
 import rclpy
 from rclpy.action import ActionClient, ActionServer
+from rclpy.action.client import ClientGoalHandle
+from rclpy.action.server import ServerGoalHandle
 from rclpy.node import Node
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
@@ -36,8 +38,8 @@ class DigLocationFinder(Node):
         self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
         self.all_dig_locations = self.declare_parameter(
-            "all_dig_locations", [2.0, 2.0, .7, .7, .7, 1.4, .7, 2.1, 1.9, .7, 1.9, 1.4, 1.9,
-                                  2.1, 3.0, .7, 3.0, 1.4, 3.0, 2.1, .7, 2.8, 1.9, 2.8, 3.0, 2.8]
+            "all_dig_locations", [2.0, 2.0, .7, 1.4, .7, 2.1, 1.9, .7, 1.9, 1.4, 1.9, 2.1, 3.0, .7,
+                                  3.0, 1.4, 3.0, 2.1, .7, 2.8, 1.9, 2.8, 3.0, 2.8]
         ).value  # If you default to an empty list things break (it thinks its a byte array)
 
         # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
@@ -46,7 +48,7 @@ class DigLocationFinder(Node):
         ]
         self.potential_dig_locations = self.all_dig_locations.copy()
 
-    async def drive_to_dig_location(self, goal_handle):
+    async def drive_to_dig_location(self, goal_handle: ServerGoalHandle):
         result = GoToDigLocation.Result()
 
         goal_pose_xy = self.getDigLocation()
@@ -57,25 +59,23 @@ class DigLocationFinder(Node):
 
         nav_goal = self.get_goal_pose(goal_pose_xy[0], goal_pose_xy[1], math.pi)
 
-        send_goal_future = self.nav2_client.send_goal_async(nav_goal)
-        goal_response = await send_goal_future
+        goal_response: ClientGoalHandle = await self.nav2_client.send_goal_async(nav_goal)
         if not goal_response.accepted:
             self.get_logger().error("Goal rejected")
             goal_handle.abort()
             return result
 
-        result_future = goal_response.get_result_async()
+        self.nav_future = goal_response.get_result_async()
 
-        await result_future
+        await self.nav_future
 
-        future_res = result_future.result()
-        if future_res and future_res.status == 4:  # STATUS_SUCCEEDED (4)
+        nav_result = self.nav_future.result()
+        if nav_result and nav_result.status == 4:  # STATUS_SUCCEEDED (4)
             self.get_logger().info("Navigation succeeded!")
             goal_handle.succeed()
         else:
             self.get_logger().error("Navigation failed!")
             goal_handle.abort()
-
         return result
 
     # yaw in rads.
@@ -121,12 +121,9 @@ class DigLocationFinder(Node):
             response.success = False
             return response
 
-        # response.success = True
+        response.success = True
         response.x = coords[0]
         response.y = coords[1]
-
-        self.get_logger().info(f"Dig location: {coords[0]}, {coords[1]}")
-        
         return response
 
     def updatePotentialDigLocations(self):
@@ -176,3 +173,6 @@ def main(args=None):
     rclpy.spin(dig_location_finder)
     dig_location_finder.destroy_node()
     rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()
