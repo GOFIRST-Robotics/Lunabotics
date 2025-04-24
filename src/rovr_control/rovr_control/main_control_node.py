@@ -201,11 +201,11 @@ class MainControlNode(Node):
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
-                self.self.cli_dumper_setPower.call_async(SetPower.Request(power=self.dumper_power))
+                self.cli_dumper_setPower.call_async(SetPower.Request(power=self.dumper_power))
             elif msg.buttons[bindings.RIGHT_BUMPER] == 0 and buttons[bindings.RIGHT_BUMPER] == 1:
                 self.cli_dumper_stop.call_async(Trigger.Request())
             elif msg.buttons[bindings.LEFT_BUMPER] == 1 and buttons[bindings.LEFT_BUMPER] == 0:
-                self.self.cli_dumper_setPower.call_async(SetPower.Request(power=-self.dumper_power))
+                self.cli_dumper_setPower.call_async(SetPower.Request(power=-self.dumper_power))
             elif msg.buttons[bindings.LEFT_BUMPER] == 0 and buttons[bindings.LEFT_BUMPER] == 1:
                 self.cli_dumper_stop.call_async(Trigger.Request())
 
