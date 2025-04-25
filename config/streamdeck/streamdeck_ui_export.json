@@ -8,14 +8,14 @@
                         "text": "full auto"
                     },
                     "1": {
-                        "icon": "/home/alex/Downloads/Diamond_Shovel_JE3_BE3.png",
+                        "icon": "Lunabotics/config/streamdeck/Diamond_Shovel_JE3_BE3.png",
                         "switch_page": 0,
                         "text": "dig",
                         "command": "ros2 topic pub -1 /chatter std_msgs/msg/String \"{data: 'Hello ROS 2 World'}\""
                     },
                     "2": {
                         "text": "dump",
-                        "icon": "/home/alex/Downloads/dump_truck-removebg-preview.png"
+                        "icon": "Lunabotics/config/streamdeck/dump_truck-removebg-preview.png"
                     },
                     "3": {
                         "text": "go to dig"
@@ -23,14 +23,14 @@
                     "4": {
                         "text": "calibrate",
                         "command": "",
-                        "icon": "/home/alex/Downloads/image-removebg-preview(1).png"
+                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview(1).png"
                     },
                     "5": {
                         "command": "",
                         "text": "Cancel",
                         "write": "",
                         "keys": "ctrl + c",
-                        "icon": "/home/alex/Downloads/image-removebg-preview.png"
+                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview.png"
                     }
                 },
                 "1": {
