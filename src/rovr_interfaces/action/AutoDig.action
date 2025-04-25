@@ -1,7 +1,7 @@
 # Request
 float64 lift_digging_start_position
 float64 lift_digging_end_position
-float64 digger_belt_power
+float64 digger_chain_power
 ---
 # Result
 ---
