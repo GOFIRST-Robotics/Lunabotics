@@ -68,7 +68,7 @@ class MainControlNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_chain_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("digger_chain_power", 0.1)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power", 0.5)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
         self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
