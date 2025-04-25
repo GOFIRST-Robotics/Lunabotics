@@ -190,10 +190,6 @@ class MainControlNode(Node):
             if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
                 self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_chain_power))
 
-            # Check if the reverse digger button is pressed #
-            if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.cli_digger_toggle.call_async(SetPower.Request(power=-self.digger_chain_power))
-
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
                 self.cli_dumper_stop.call_async(Trigger.Request())  # Stop whatever the dumper is doing
