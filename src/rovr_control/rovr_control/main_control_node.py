@@ -210,13 +210,13 @@ class MainControlNode(Node):
                 self.cli_dumper_stop.call_async(Trigger.Request())
 
             # Manually adjust the height of the digger with the left and right triggers
-            if msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
+            if msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
                 self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power))
-            elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
-                self.cli_lift_stop.call_async(Trigger.Request())
-            elif msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
+                self.cli_lift_stop.call_async(Trigger.Request())
+            elif msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
+                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
+            elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
