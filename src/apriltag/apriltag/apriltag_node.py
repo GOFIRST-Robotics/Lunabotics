@@ -100,7 +100,7 @@ class ApriltagNode(Node):
     # Publish transform if the tag is detected
     def postTransform(self, tag):
         if tag and (self.get_clock().now().to_msg().sec == tag.header.stamp.sec):
-            self.get_logger().info("Resetting the map -> odom TF",throttle_duration_sec=5)
+            self.get_logger().info("Resetting the map -> odom TF", throttle_duration_sec=5)
             self.map_transform = tag
             return True
         return False
@@ -116,6 +116,7 @@ class ApriltagNode(Node):
                 id = tag.id
                 # Extract the known map coordinates of the detected tag
                 xyz, rpy = self.apriltag_map_coords[id]
+
 
                 # Lookup the odom to detected tag tf from the tf buffer
                 try:

@@ -29,10 +29,10 @@ class DigLocationFinder(Node):
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
-        self.get_costmap_global_srv = self.create_client(
-            GetCostmap, 'global_costmap/get_costmap'
+        self.get_costmap_global_srv = self.create_client(GetCostmap, "global_costmap/get_costmap")
+        self.srv = self.create_service(
+            DigLocation, "find_dig_location", self.find_dig_location_callback
         )
-        self.srv = self.create_service(DigLocation, "find_dig_location", self.find_dig_location_callback)
         self.footprint_sub = self.create_subscription(
             PolygonStamped, "/local_costmap/published_footprint", self.get_robot_footprint, 10
         )
@@ -40,13 +40,41 @@ class DigLocationFinder(Node):
         self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
         self.all_dig_locations = self.declare_parameter(
-            "all_dig_locations", [2.0, 2.0, .7, .7, .7, 1.4, .7, 2.1, 1.9, .7, 1.9, 1.4, 1.9,
-                                  2.1, 3.0, .7, 3.0, 1.4, 3.0, 2.1, .7, 2.8, 1.9, 2.8, 3.0, 2.8]
+            "all_dig_locations",
+            [
+                2.0,
+                2.0,
+                0.7,
+                0.7,
+                0.7,
+                1.4,
+                0.7,
+                2.1,
+                1.9,
+                0.7,
+                1.9,
+                1.4,
+                1.9,
+                2.1,
+                3.0,
+                0.7,
+                3.0,
+                1.4,
+                3.0,
+                2.1,
+                0.7,
+                2.8,
+                1.9,
+                2.8,
+                3.0,
+                2.8,
+            ],
         ).value  # If you default to an empty list things break (it thinks its a byte array)
 
         # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
         self.all_dig_locations = [
-            (self.all_dig_locations[i], self.all_dig_locations[i + 1]) for i in range(0, len(self.all_dig_locations), 2)
+            (self.all_dig_locations[i], self.all_dig_locations[i + 1])
+            for i in range(0, len(self.all_dig_locations), 2)
         ]
         self.potential_dig_locations = self.all_dig_locations.copy()
 
@@ -68,7 +96,6 @@ class DigLocationFinder(Node):
         # await self.nav_handle.get_result_async()
         await self.nav_handle.get_result_async()
 
-
         if self.nav_handle.status == GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().info("Nav2 succeeded")
             goal_handle.succeed()
@@ -78,7 +105,6 @@ class DigLocationFinder(Node):
         else:
             self.get_logger().error(f"Nav2 completed in unknown state {self.nav_handle.status}")
             goal_handle.abort()
-
 
         return result
 
@@ -96,9 +122,7 @@ class DigLocationFinder(Node):
         goal_msg.pose.pose.position.x = x
         goal_msg.pose.pose.position.y = y
 
-        quat = R.from_euler(
-            "xyz", [float(0), float(0), float(yaw)], degrees=False
-        ).as_quat()
+        quat = R.from_euler("xyz", [float(0), float(0), float(yaw)], degrees=False).as_quat()
 
         goal_msg.pose.pose.orientation.x = quat[0]
         goal_msg.pose.pose.orientation.y = quat[1]
@@ -130,7 +154,7 @@ class DigLocationFinder(Node):
         response.y = coords[1]
 
         self.get_logger().info(f"Dig location: {coords[0]}, {coords[1]}")
-        
+
         return response
 
     def updatePotentialDigLocations(self):
@@ -149,14 +173,14 @@ class DigLocationFinder(Node):
     def getGlobalCostmap(self) -> OccupancyGrid:
         """Get the global costmap."""
         while not self.get_costmap_global_srv.wait_for_service(timeout_sec=1.0):
-            self.info('Get global costmaps service not available, waiting...')
+            self.info("Get global costmaps service not available, waiting...")
         req = GetCostmap.Request()
         future = self.get_costmap_global_srv.call_async(req)
         rclpy.spin_until_future_complete(self, future)
 
         result = future.result()
         if result is None:
-            self.error('Get global costmap request failed!')
+            self.error("Get global costmap request failed!")
             return None
 
         return result.map
@@ -171,7 +195,7 @@ class DigLocationFinder(Node):
             if self.max_dig_cost >= self.absolute_max_dig_cost:
                 return None
             return self.getDigLocation()
-        
+
         return self.potential_dig_locations[0]
 
 
@@ -181,6 +205,7 @@ def main(args=None):
     rclpy.spin(dig_location_finder)
     dig_location_finder.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == "__main__":
     main()
