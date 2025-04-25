@@ -72,13 +72,12 @@ class DigLocationFinder(Node):
         if self.nav_handle.status == GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().info("Nav2 succeeded")
             goal_handle.succeed()
-        elif self.nav_handle.status == GoalStatus.STATUS_ABORTED:
-            self.get_logger().error("Nav2 failed")
         elif self.nav_handle.status == GoalStatus.STATUS_CANCELED:
             self.get_logger().error("Nav2 canceled")
-            goal_handle.abort()
+            goal_handle.canceled()
         else:
-            self.get_logger().error("Nav2 completed in unknown state")
+            self.get_logger().error(f"Nav2 completed in unknown state {self.nav_handle.status}")
+            goal_handle.abort()
 
 
         return result
