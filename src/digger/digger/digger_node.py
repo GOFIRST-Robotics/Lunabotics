@@ -263,7 +263,6 @@ class DiggerNode(Node):
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
             self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
             self.stop_lift()  # Stop the lift system
-            return
 
     # Define subscriber callback methods here
     def linear_actuator_current_callback(self, linear_acutator_msg):
