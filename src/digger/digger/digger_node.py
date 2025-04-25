@@ -256,7 +256,6 @@ class DiggerNode(Node):
     def pot_callback(self, msg: Potentiometers):
         """Helps us know whether or not the current goal position has been reached."""
         # Average the two potentiometer values
-        self.get_logger().warn(f"RUNNING: {self.running}")
         self.current_lift_position = ((msg.left_motor_pot - self.DIGGER_ACTUATORS_OFFSET) + msg.right_motor_pot) / 2
         if self.current_lift_position < self.DIGGER_SAFETY_ZONE and self.running:
             self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
