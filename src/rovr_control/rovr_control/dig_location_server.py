@@ -9,7 +9,6 @@ from nav2_msgs.action import NavigateToPose
 from nav2_msgs.srv import GetCostmap
 from nav_msgs.msg import OccupancyGrid
 from action_msgs.msg import GoalStatus
-from rclpy.task import Future
 from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
 import math
