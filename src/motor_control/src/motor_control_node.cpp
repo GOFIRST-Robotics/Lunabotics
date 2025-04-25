@@ -417,6 +417,17 @@ private:
     float speed_adjustment_pitch = error_pitch * kP_pitch;
 
     //RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
+    if(this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current > current_threshold || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current > current_threshold) {
+      if(start.count() + time_limit < std::chrono::steady_clock::now().count()) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+        return;
+      }
+    } 
+    else {
+      start = std::chrono::steady_clock::now();
+    }
+    
 
     if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int() && strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       // Stop both motors!
@@ -506,6 +517,9 @@ private:
   std::map<uint32_t, PIDController*> pid_controllers;
 
   double pitch = 0.0;
+  double current_threshold = 0.0;
+  double time_limit = 0.0;
+  auto start = std::chrono::steady_clock::now();
   DiggerLiftGoal digger_lift_goal;
 
   // Adjust this data retention threshold as needed
