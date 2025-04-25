@@ -4,7 +4,7 @@ joy_node:
     coalesce_interval_ms: 50
     deadzone: 0.1
     device_id: 0
-    device_name: ''
+    device_name: ""
     qos_overrides:
       /parameter_events:
         publisher:
