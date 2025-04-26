@@ -48,35 +48,20 @@
 				"files.autoSave": "afterDelay",
 				"editor.formatOnSave": true,
 				"[python]": {
-					"editor.formatOnPaste": false,
-					"editor.formatOnSaveMode": "file"
-				},
-				"[workbench.view.extension]": {
-					"ms-python.python": false
+					"editor.defaultFormatter": "ms-python.black-formatter",
+					"editor.formatOnSave": true,
+					"editor.codeActionsOnSave": {
+					"source.fixAll": "explicit"
+					}
 				},
 				"black-formatter.args": [
 					"--line-length",
 					"120"
 				],
-				"[C_Cpp]": {
-					"default.cppStandard": "c++17",
-					"default.cStandard": "c99"
+				"[c++]": {
+					"editor.defaultFormatter": "ms-vscode.cpptools"
 				},
-				"ruff.lineLength": 99,
-				"ruff.lint.enable": true,
-				"ruff.lint.select": [
-					"A",
-					"C",
-					"CNL",
-					"D",
-					"E",
-					"F",
-					"I",
-					"Q",
-					"W"
-				],
-				"ruff.nativeServer": true,
-				"C_Cpp.clang_format_fallbackStyle": "Google",
+				"C_Cpp.clang_format_fallbackStyle": "{ ColumnLimit: 120 }",
 				"diffEditor.ignoreTrimWhitespace": false,
 				// Make bash the default shell in the container terminal
 				"terminal.integrated.defaultProfile.linux": "bash"
