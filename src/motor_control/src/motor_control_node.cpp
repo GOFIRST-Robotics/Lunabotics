@@ -301,6 +301,8 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
     this->declare_parameter("DIGGER_PITCH_kP", 2.5);
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
+    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 15.0); // TODO: Tune this on the real robot!
+    this->declare_parameter("CURRENT_SPIKE_TIME", 0.5); // TODO: Tune this on the real robot!
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -314,6 +316,8 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
     RCLCPP_INFO(this->get_logger(), "DIGGER_PITCH_kP parameter set to: %f", this->get_parameter("DIGGER_PITCH_kP").as_double());
     RCLCPP_INFO(this->get_logger(), "TIPPING_SPEED_ADJUSTMENT parameter set to: %d", this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool());
+    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_THRESHOLD parameter set to: %f", this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double());
+    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_TIME parameter set to: %f", this->get_parameter("CURRENT_SPIKE_TIME").as_double());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -404,6 +408,20 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
+    double current_threshold = this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
+    double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
+    if(this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current > current_threshold || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current > current_threshold) {
+      if(start.count() + time_limit < std::chrono::steady_clock::now().count()) {
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+        RCLCPP_WARN(this->get_logger(), "WARNING: Linear actuator current draw is too high! Stopping both motors.");
+        return;
+      }
+    } 
+    else {
+      start = std::chrono::steady_clock::now();
+    }
+
     double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
     int left_motor_pot = msg.left_motor_pot - this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int();
     int right_motor_pot = msg.right_motor_pot;
@@ -417,17 +435,6 @@ private:
     float speed_adjustment_pitch = error_pitch * kP_pitch;
 
     //RCLCPP_INFO(this->get_logger(), "Error: %d, Adjustment: %f", error, speed_adjustment);
-    if(this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current > current_threshold || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current > current_threshold) {
-      if(start.count() + time_limit < std::chrono::steady_clock::now().count()) {
-        vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
-        vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
-        return;
-      }
-    } 
-    else {
-      start = std::chrono::steady_clock::now();
-    }
-    
 
     if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int() && strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       // Stop both motors!
@@ -517,8 +524,6 @@ private:
   std::map<uint32_t, PIDController*> pid_controllers;
 
   double pitch = 0.0;
-  double current_threshold = 0.0;
-  double time_limit = 0.0;
   auto start = std::chrono::steady_clock::now();
   DiggerLiftGoal digger_lift_goal;
 
