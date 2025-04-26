@@ -29,9 +29,7 @@ class DigLocationFinder(Node):
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
         self.get_costmap_global_srv = self.create_client(GetCostmap, "global_costmap/get_costmap")
-        self.srv = self.create_service(
-            DigLocation, "find_dig_location", self.find_dig_location_callback
-        )
+        self.srv = self.create_service(DigLocation, "find_dig_location", self.find_dig_location_callback)
         self.footprint_sub = self.create_subscription(
             PolygonStamped, "/local_costmap/published_footprint", self.get_robot_footprint, 10
         )
@@ -72,8 +70,7 @@ class DigLocationFinder(Node):
 
         # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
         self.all_dig_locations = [
-            (self.all_dig_locations[i], self.all_dig_locations[i + 1])
-            for i in range(0, len(self.all_dig_locations), 2)
+            (self.all_dig_locations[i], self.all_dig_locations[i + 1]) for i in range(0, len(self.all_dig_locations), 2)
         ]
         self.potential_dig_locations = self.all_dig_locations.copy()
 

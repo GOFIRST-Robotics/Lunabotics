@@ -70,9 +70,7 @@ class ApriltagNode(Node):
         self.map_transform.transform.rotation.z = 0.0
         self.map_transform.transform.rotation.w = 1.0
 
-        self.transforms = self.create_subscription(
-            AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10
-        )
+        self.transforms = self.create_subscription(AprilTagDetectionArray, "/tag_detections", self.tagDetectionSub, 10)
         self.tf_broadcaster = TransformBroadcaster(self)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -149,9 +147,7 @@ class ApriltagNode(Node):
                         odom_to_tag_transform.transform.rotation.w,
                     ]
                 ).as_quat()
-                rotated_quaternion = (
-                    current_quaternion * rotation_quaternion
-                )  # Multiply the quaternions
+                rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
 
                 # Apply the rotation to the position before adding it to the cumulative sum
                 # Then, we can just average the positions and use an identity quaternion for the rotation
