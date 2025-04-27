@@ -4,8 +4,8 @@ from rclpy.task import Future
 
 
 class AsyncNode(Node):
-    def __init__(self, name: str):
-        super().__init__(name)
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
 
         self.sleep_goal_reached = Future()
         self.sleep_goal_reached.set_result(None)
