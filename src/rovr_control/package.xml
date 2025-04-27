@@ -23,16 +23,16 @@
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>tf2_msgs</exec_depend>
-  <exec_depend>ros2launch</exec_depend>
+  <!-- <exec_depend>ros2launch</exec_depend>
   <exec_depend>motor_control</exec_depend>
   <exec_depend>drivetrain</exec_depend>
   <exec_depend>digger</exec_depend>
   <exec_depend>dumper</exec_depend>
-  <exec_depend>joy</exec_depend>
+  <exec_depend>joy</exec_depend> -->
   <exec_depend>rovr_interfaces</exec_depend>
-  <exec_depend>ros2socketcan_bridge</exec_depend>
+  <!-- <exec_depend>ros2socketcan_bridge</exec_depend>
   <exec_depend>python3-serial</exec_depend>
-  <exec_depend>nav2_simple_commander</exec_depend>
+  <exec_depend>nav2_simple_commander</exec_depend> -->
 
   <export>
     <build_type>ament_python</build_type>

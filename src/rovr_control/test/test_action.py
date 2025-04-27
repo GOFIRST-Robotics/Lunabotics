@@ -16,6 +16,9 @@ from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rovr_control.auto_dig_server import AutoDigServer
+from rclpy.parameter import Parameter
+from rosgraph_msgs.msg import Clock
+from threading import Event, Thread
 
 class TestAutoDig(unittest.TestCase):
     @classmethod
@@ -24,7 +27,32 @@ class TestAutoDig(unittest.TestCase):
         rclpy.init(context=cls.context)
         cls.executor = MultiThreadedExecutor(context=cls.context)
         cls.node = AutoDigServer(context=cls.context)
-        # cls.cg = MutuallyExclusiveCallbackGroup()
+        # setup sim time
+        param_sim = Parameter('use_sim_time', Parameter.Type.BOOL, True) 
+        cls.node.set_parameters([param_sim])
+        cls.clock = cls.node.create_publisher(Clock,"/clock",1)
+        cls.shutdown_event = Event()
+        def clock_loop():
+            context = rclpy.context.Context()
+            rclpy.init(context=context)
+            node = rclpy.create_node('sim_time_publisher',context=context)
+            pub = node.create_publisher(Clock, '/clock', 1)
+            sec = 0
+            nanosec = 0
+            while not cls.shutdown_event.is_set():
+                msg = Clock()
+                msg.clock.sec = sec
+                msg.clock.nanosec = nanosec
+
+                pub.publish(msg)
+                # node.get_logger().info('Publishing: Sim-Time Message:  sec: {}, nanosec: {}'.format(sec, nanosec))
+                sec += 0
+                nanosec += int(0.01 * 10 ** 9)
+                if nanosec >= (1 * 10 ** 9):
+                    sec += 1
+                    nanosec -= 1 * 10 ** 9
+        cls.clockthread = Thread(target=clock_loop)
+        cls.clockthread.start()
         cls.ac = ActionClient(cls.node, AutoDig, "auto_dig")
         cls.goal = AutoDig.Goal(
             lift_digging_start_position=0.0,
@@ -53,6 +81,8 @@ class TestAutoDig(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.node.destroy_node()
+        cls.shutdown_event.set()
+        cls.clockthread.join()
         rclpy.shutdown(context=cls.context)
 
     def setUp(self) -> None:
@@ -66,20 +96,20 @@ class TestAutoDig(unittest.TestCase):
     def test_autodig(self) -> None:
         # Defaults
         auto_dig_handle = self.ac.send_goal_async(self.goal)
-        rclpy.spin_until_future_complete(self.node, auto_dig_handle, self.executor, timeout_sec=1)
+        rclpy.spin_until_future_complete(self.node, auto_dig_handle, self.executor)
         result_handle: ClientGoalHandle = auto_dig_handle.result()
         result_future: Future = result_handle.get_result_async()
-        rclpy.spin_until_future_complete(self.node, result_future, self.executor, timeout_sec=10)
+        rclpy.spin_until_future_complete(self.node, result_future, self.executor)
         self.assertTrue(result_handle.status == GoalStatus.STATUS_SUCCEEDED)
 
     def test_autodig_cancel(self) -> None:
         # Defaults
         auto_dig_handle = self.ac.send_goal_async(self.goal)
-        rclpy.spin_until_future_complete(self.node, auto_dig_handle, self.executor, timeout_sec=1)
+        rclpy.spin_until_future_complete(self.node, auto_dig_handle, self.executor)
         result_handle: ClientGoalHandle = auto_dig_handle.result()
         result_future: Future = result_handle.get_result_async()
         result_handle.cancel_goal_async()
-        rclpy.spin_until_future_complete(self.node, result_future, self.executor, timeout_sec=10)
+        rclpy.spin_until_future_complete(self.node, result_future, self.executor)
         self.assertTrue(result_handle.status == GoalStatus.STATUS_CANCELED)
 
 
