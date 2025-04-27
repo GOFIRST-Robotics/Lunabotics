@@ -1,5 +1,5 @@
 import rclpy
-from rclpy.action import ActionClient, ActionServer
+from rclpy.action import ActionClient, ActionServer, CancelResponse
 from rclpy.node import Node
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
@@ -103,6 +103,14 @@ class DigLocationFinder(Node):
             goal_handle.abort()
 
         return result
+
+    def cancel_callback(self, cancel_request: ServerGoalHandle):
+        self.get_logger().info("Cancelling drive to dig location")
+        if self.nav_handle.status == GoalStatus.STATUS_EXECUTING:
+            self.nav_handle.cancel_goal_async()
+        if not self.nav_handle.is_done():
+            self.nav_handle.cancel_goal_async()
+        return CancelResponse.ACCEPT
 
     # yaw in rads.
     # yaw = 0 at x axis, positive is counter clockwise
