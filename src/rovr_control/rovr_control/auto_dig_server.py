@@ -11,8 +11,8 @@ from rovr_control.node_util import AsyncNode
 
 
 class AutoDigServer(AsyncNode):
-    def __init__(self):
-        super().__init__("auto_dig_server")
+    def __init__(self, **kwargs):
+        super().__init__("auto_dig_server",**kwargs)
         self._action_server = ActionServer(
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
         )

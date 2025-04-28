@@ -16,14 +16,14 @@ from geometry_msgs.msg import PolygonStamped, PoseStamped
 
 
 class DigLocationFinder(Node):
-    def __init__(self):
-        super().__init__("dig_location_server")
+    def __init__(self,**kwargs):
+        super().__init__("dig_location_server",**kwargs)
         self._action_server = ActionServer(
             self,
             GoToDigLocation,  # Empty action message
             "go_to_dig_location",
             self.drive_to_dig_location,
-            # cancel_callback=self.drive_to_dig_location,
+            cancel_callback=self.cancel_callback,
             # TODO: Make a cancel callback that actually cancels all running futures please
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
@@ -107,8 +107,6 @@ class DigLocationFinder(Node):
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         self.get_logger().info("Cancelling drive to dig location")
         if self.nav_handle.status == GoalStatus.STATUS_EXECUTING:
-            self.nav_handle.cancel_goal_async()
-        if not self.nav_handle.is_done():
             self.nav_handle.cancel_goal_async()
         return CancelResponse.ACCEPT
 
