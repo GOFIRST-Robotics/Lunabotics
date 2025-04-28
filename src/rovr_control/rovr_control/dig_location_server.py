@@ -16,8 +16,8 @@ from geometry_msgs.msg import PolygonStamped, PoseStamped
 
 
 class DigLocationFinder(Node):
-    def __init__(self):
-        super().__init__("dig_location_server")
+    def __init__(self,**kwargs):
+        super().__init__("dig_location_server",**kwargs)
         self._action_server = ActionServer(
             self,
             GoToDigLocation,  # Empty action message
