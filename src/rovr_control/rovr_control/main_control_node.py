@@ -69,7 +69,8 @@ class MainControlNode(Node):
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_chain_power", 0.1)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_lift_manual_power", 0.5)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("digger_lift_manual_power_down", 0.1)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
         self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
         self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
@@ -80,7 +81,8 @@ class MainControlNode(Node):
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.digger_chain_power = self.get_parameter("digger_chain_power").value
-        self.digger_lift_manual_power = self.get_parameter("digger_lift_manual_power").value
+        self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
+        self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
         self.lift_digging_start_position = (
             self.get_parameter("lift_digging_start_position").value * 360 / 42
@@ -94,7 +96,8 @@ class MainControlNode(Node):
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
         self.get_logger().info("digger_chain_power has been set to: " + str(self.digger_chain_power))
-        self.get_logger().info("digger_lift_manual_power has been set to: " + str(self.digger_lift_manual_power))
+        self.get_logger().info("digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down))
+        self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
         self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
@@ -207,11 +210,11 @@ class MainControlNode(Node):
 
             # Manually adjust the height of the digger with the left and right triggers
             if msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power))
+                self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power_up))
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
+                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_down))
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
 
