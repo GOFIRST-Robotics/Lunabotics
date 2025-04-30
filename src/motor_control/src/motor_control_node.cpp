@@ -379,6 +379,9 @@ private:
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); 
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0 / 100.0);
+      if (std::abs(current) > 100.0) {
+        current = this->can_data[motorId].current;
+      }
       dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
       dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
       break;
@@ -412,6 +415,7 @@ private:
     double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
     if (this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current > current_threshold || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current > current_threshold) {
       if (start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *start).count() > time_limit) {
+          this->digger_lift_goal = { "duty_cycle", 0.0 };  
           vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
           vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
           RCLCPP_WARN(this->get_logger(), "WARNING: Linear actuator current draw is too high! Stopping both motors.");
