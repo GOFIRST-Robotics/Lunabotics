@@ -71,17 +71,20 @@ class DiggerNode(Node):
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter("digger_lift_manual_power_down", 0.1)
+        self.declare_parameter("digger_lift_manual_power_down", 0.15)
+        self.declare_parameter("digger_lift_manual_power_up", 0.5)
         self.declare_parameter("DIGGER_MOTOR", 3)
         self.declare_parameter("DIGGER_ACTUATORS_OFFSET", 12)
         self.declare_parameter("DIGGER_SAFETY_ZONE", 92)  # Measured in potentiometer units (0 to 1023)
         # Assign the ROS Parameters to member variables below #
         self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
+        self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
         self.DIGGER_ACTUATORS_OFFSET = self.get_parameter("DIGGER_ACTUATORS_OFFSET").value
         self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down))
+        self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
         self.get_logger().info("DIGGER_ACTUATORS_OFFSET has been set to: " + str(self.DIGGER_ACTUATORS_OFFSET))
         self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
@@ -174,7 +177,7 @@ class DiggerNode(Node):
         """This method zeros the lift system by slowly raising it until the duty cycle is 0."""
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
-        self.lift_set_power(self.digger_lift_manual_power_down)
+        self.lift_set_power(self.digger_lift_manual_power_up)
         while not (
             self.left_linear_actuator_current < self.current_threshold
             and self.right_linear_actuator_current < self.current_threshold
