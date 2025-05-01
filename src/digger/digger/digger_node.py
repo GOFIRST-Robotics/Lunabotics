@@ -95,7 +95,7 @@ class DiggerNode(Node):
         self.lift_lowering = False
 
         # Linear Actuator Current Threshold
-        self.current_threshold = 0.3
+        self.current_threshold = 0.2
         self.left_linear_actuator_current = 0.0
         self.right_linear_actuator_current = 0.0
 
@@ -127,7 +127,7 @@ class DiggerNode(Node):
         """This method sets the position of the digger lift and waits until the goal is reached."""
         self.lift_lowering = position > self.current_lift_position
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
-            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5)
             self.stop_lift()  # Stop the lift system
             return
         self.get_logger().info("Setting the lift position to: " + str(position))
@@ -160,7 +160,7 @@ class DiggerNode(Node):
         """This method sets power to the lift system."""
         self.lift_lowering = power < 0
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
-            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5)
             self.stop_lift()  # Stop the lift system
             return
         self.cli_digger_lift_set.call_async(
@@ -177,7 +177,7 @@ class DiggerNode(Node):
         self.lift_set_power(self.digger_lift_manual_power_down)
         while not (
             self.left_linear_actuator_current < self.current_threshold
-            or self.right_linear_actuator_current < self.current_threshold
+            and self.right_linear_actuator_current < self.current_threshold
         ):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
@@ -194,7 +194,7 @@ class DiggerNode(Node):
         self.lift_set_power(-self.digger_lift_manual_power_down)
         while not (
             self.left_linear_actuator_current < self.current_threshold
-            or self.right_linear_actuator_current < self.current_threshold
+            and self.right_linear_actuator_current < self.current_threshold
         ):
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
@@ -264,7 +264,7 @@ class DiggerNode(Node):
             self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
             self.stop()  # Stop the digger chain
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
-            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5)
             self.stop_lift()  # Stop the lift system
 
     # Define subscriber callback methods here

@@ -71,8 +71,8 @@ class MainControlNode(Node):
         self.declare_parameter("digger_chain_power", 0.1)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_down", 0.1)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
-        self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_start_position", 100.0)  # Measured in encoder counts
+        self.declare_parameter("lift_digging_end_position", 35.0)  # Measured in encoder counts
         self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
         self.declare_parameter("autonomous_field_type", "cosmic")
@@ -84,12 +84,8 @@ class MainControlNode(Node):
         self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
         self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_digging_start_position = (
-            self.get_parameter("lift_digging_start_position").value * 360 / 42
-        )  # Convert encoder counts to degrees
-        self.lift_digging_end_position = (
-            self.get_parameter("lift_digging_end_position").value * 360 / 42
-        )  # Convert encoder counts to degrees
+        self.lift_digging_start_position = (self.get_parameter("lift_digging_start_position").value) 
+        self.lift_digging_end_position = (self.get_parameter("lift_digging_end_position").value)
         self.dumper_power = self.get_parameter("dumper_power").value
 
         # Print the ROS Parameters to the terminal below #
@@ -116,7 +112,6 @@ class MainControlNode(Node):
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
-        self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
 
         # Define publishers and subscribers here
@@ -148,11 +143,6 @@ class MainControlNode(Node):
         # Create timer for watchdog
         self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
         self.connection_active = True
-
-        # # ----- !! BLOCKING WHILE LOOP !! ----- # TODO: Test this when we are ready to test it on the bot
-        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        # self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
