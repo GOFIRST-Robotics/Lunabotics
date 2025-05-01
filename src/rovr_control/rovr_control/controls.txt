@@ -1,5 +1,4 @@
 X Button: Digger Belt Power +
-Y Button: Digger Belt Power -
 B Button: Toggle dumper
 A Button: Calibrate Field Coordinates
 
