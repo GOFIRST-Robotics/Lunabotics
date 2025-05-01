@@ -379,9 +379,6 @@ private:
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(static_cast<short>((can_msg->data[4] << 8) + can_msg->data[5])) / 10.0; 
       dutyCycleNow = static_cast<float>(static_cast<short>((can_msg->data[6] << 8) + can_msg->data[7])) / 10.0 / 100.0;
-      if (std::abs(current) > 100.0) {
-        current = this->can_data[motorId].current;
-      }
       dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
       dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
       break;
