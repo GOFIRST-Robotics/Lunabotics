@@ -301,6 +301,8 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
     this->declare_parameter("DIGGER_PITCH_kP", 2.5);
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
+    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 15.0); // TODO: Tune this on the real robot!
+    this->declare_parameter("CURRENT_SPIKE_TIME", 0.5); // TODO: Tune this on the real robot!
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -314,6 +316,8 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
     RCLCPP_INFO(this->get_logger(), "DIGGER_PITCH_kP parameter set to: %f", this->get_parameter("DIGGER_PITCH_kP").as_double());
     RCLCPP_INFO(this->get_logger(), "TIPPING_SPEED_ADJUSTMENT parameter set to: %d", this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool());
+    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_THRESHOLD parameter set to: %f", this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double());
+    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_TIME parameter set to: %f", this->get_parameter("CURRENT_SPIKE_TIME").as_double());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -375,6 +379,9 @@ private:
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(((can_msg->data[4] << 8) + can_msg->data[5]) / 10.0); 
       dutyCycleNow = static_cast<float>(((can_msg->data[6] << 8) + can_msg->data[7]) / 10.0 / 100.0);
+      if (std::abs(current) > 100.0) {
+        current = this->can_data[motorId].current;
+      }
       dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
       dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
       break;
@@ -403,6 +410,25 @@ private:
     std_msgs::msg::Float32MultiArray digger_linear_actuator_msg;
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
+
+    double current_threshold = this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
+    double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
+    if (this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current > current_threshold || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current > current_threshold) {
+      if (start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *start).count() > time_limit) {
+          this->digger_lift_goal = { "duty_cycle", 0.0 };  
+          vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+          vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+          RCLCPP_WARN(this->get_logger(), "WARNING: Linear actuator current draw is too high! Stopping both motors.");
+          return;
+      } else if (!start.has_value()) {
+          start = std::chrono::steady_clock::now();
+          RCLCPP_INFO(this->get_logger(), "Starting the timer for current spike detection.");
+      }
+    } else if (start.has_value()) {
+        // Clear the start time when the current falls below the threshold
+        start.reset();
+        RCLCPP_INFO(this->get_logger(), "Resetting the timer for current spike detection.");
+    }
 
     double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
     int left_motor_pot = msg.left_motor_pot - this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int();
@@ -506,6 +532,7 @@ private:
   std::map<uint32_t, PIDController*> pid_controllers;
 
   double pitch = 0.0;
+  std::optional<std::chrono::steady_clock::time_point> start;
   DiggerLiftGoal digger_lift_goal;
 
   // Adjust this data retention threshold as needed
