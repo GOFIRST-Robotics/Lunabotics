@@ -11,26 +11,28 @@
                         "icon": "Lunabotics/config/streamdeck/Diamond_Shovel_JE3_BE3.png",
                         "switch_page": 0,
                         "text": "dig",
-                        "command": "ros2 topic pub -1 /chatter std_msgs/msg/String \"{data: 'Hello ROS 2 World'}\""
+                        "command": "ros2 action send_goal auto_dig AutoDig <values>" 
                     },
                     "2": {
                         "text": "dump",
-                        "icon": "Lunabotics/config/streamdeck/dump_truck-removebg-preview.png"
+                        "icon": "Lunabotics/config/streamdeck/dump_truck-removebg-preview.png",
+                        "command": "ros2 action send_goal <action_name> <action_type> <values>"
                     },
                     "3": {
-                        "text": "go to dig"
+                        "text": "go to dig",
+                        "command": "ros2 action send_goal <action_name> <action_type> <values>"
                     },
                     "4": {
                         "text": "calibrate",
-                        "command": "",
-                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview(1).png"
+                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview(1).png",
+                        "command": "ros2 action send_goal calibrate_field_coordinates CalibrateFieldCoordinates "
                     },
                     "5": {
-                        "command": "",
                         "text": "Cancel",
                         "write": "",
                         "keys": "ctrl + c",
-                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview.png"
+                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview.png",
+                        "command": "crtl + c"
                     }
                 },
                 "1": {
