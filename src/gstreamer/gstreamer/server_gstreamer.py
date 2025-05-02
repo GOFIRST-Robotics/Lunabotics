@@ -38,12 +38,7 @@ class GstreamerServer:
         self.pipeline.add(src_caps)
         nonNVvideoconvert.link(src_caps)
 
-        if platform.machine() == "aarch64":
-            videoconvert = Gst.ElementFactory.make("nvvidconv", "nvvidconv")
-        elif platform.machine() == "x86_64" or platform.machine() == "amd64":
-            videoconvert = Gst.ElementFactory.make("nvvideoconvert", "nvvideoconvert")
-        else:
-            sys.exit(1)
+        videoconvert = Gst.ElementFactory.make("nvvideoconvert", "nvvideoconvert")
         self.pipeline.add(videoconvert)
         src_caps.link(videoconvert)
 
@@ -79,7 +74,7 @@ class GstreamerServer:
         # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480, format=(string)NV12,
         # framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2av1enc ! udpsink host=127.0.0.1 port=5000
         nvv4l2av1enc = Gst.ElementFactory.make("nvv4l2av1enc", "nvv4l2av1enc")
-        # nvv4l2av1enc.set_property("bitrate", 1000000) # Uncomment to set a bitrate limit
+        nvv4l2av1enc.set_property("bitrate", 10000) # Uncomment to set a bitrate limit
         self.pipeline.add(nvv4l2av1enc)
         input.link(nvv4l2av1enc)
 
