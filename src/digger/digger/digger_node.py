@@ -98,7 +98,7 @@ class DiggerNode(Node):
         self.lift_lowering = False
 
         # Linear Actuator Current Threshold
-        self.current_threshold = 0.2
+        self.current_threshold = 0.3
         self.left_linear_actuator_current = 0.0
         self.right_linear_actuator_current = 0.0
 
@@ -178,14 +178,17 @@ class DiggerNode(Node):
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
         self.lift_set_power(self.digger_lift_manual_power_up)
-        while not (
-            self.left_linear_actuator_current < self.current_threshold
-            and self.right_linear_actuator_current < self.current_threshold
-        ):
+        lastPowerTime = time.time()
+        # Wait 0.5 seconds after the current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the current is not below the threshold, update the last power time
+            if not (self.left_linear_actuator_current < self.current_threshold or self.right_linear_actuator_current < self.current_threshold):
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop_lift()
         self.long_service_running = False
         self.get_logger().info("Done zeroing the lift system")
@@ -195,14 +198,17 @@ class DiggerNode(Node):
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
         self.lift_set_power(-self.digger_lift_manual_power_down)
-        while not (
-            self.left_linear_actuator_current < self.current_threshold
-            and self.right_linear_actuator_current < self.current_threshold
-        ):
+        lastPowerTime = time.time()
+        # Wait 0.5 seconds after the current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the current is not below the threshold, update the last power time
+            if not (self.left_linear_actuator_current < self.current_threshold or self.right_linear_actuator_current < self.current_threshold):
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop_lift()
         self.long_service_running = False
         self.get_logger().info("Done bottoming out the lift system")
