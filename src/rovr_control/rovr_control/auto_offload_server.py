@@ -3,7 +3,6 @@ from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, ServerGoalHandle
 
 from rovr_interfaces.action import AutoOffload
-from rovr_interfaces.srv import Drive
 from std_srvs.srv import Trigger
 
 from rovr_control.node_util import AsyncNode
@@ -20,9 +19,6 @@ class AutoOffloadServer(AsyncNode):
             cancel_callback=self.cancel_callback,
         )
 
-        self.cli_drivetrain_drive = self.create_client(Drive, "drivetrain/drive")
-        self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
-
         self.cli_dumper_extend = self.create_client(Trigger, "dumper/extendDumper")
         self.cli_dumper_retract = self.create_client(Trigger, "dumper/retractDumper")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
@@ -33,14 +29,6 @@ class AutoOffloadServer(AsyncNode):
         result = AutoOffload.Result()
 
         # Make sure the services are available
-        if not self.cli_drivetrain_drive.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Drivetrain drive service not available")
-            goal_handle.abort()
-            return result
-        if not self.cli_drivetrain_stop.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Drivetrain stop service not available")
-            goal_handle.abort()
-            return result
         if not self.cli_dumper_extend.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Dumper extend service not available")
             goal_handle.abort()
@@ -53,16 +41,6 @@ class AutoOffloadServer(AsyncNode):
             self.get_logger().error("Dumper stop service not available")
             goal_handle.abort()
             return result
-
-        # Drive backward into the berm zone
-        if not goal_handle.is_cancel_requested:
-            self.get_logger().info("Auto Driving")
-            await self.cli_drivetrain_drive.call_async(Drive.Request(forward_power=-0.25, turning_power=0.0))
-
-        # drive for 10 seconds
-        if not goal_handle.is_cancel_requested:
-            await self.async_sleep(10)  # Allows for task to be canceled
-            await self.cli_drivetrain_stop.call_async(Trigger.Request())
 
         # Dump the material
         if not goal_handle.is_cancel_requested:
@@ -88,7 +66,6 @@ class AutoOffloadServer(AsyncNode):
         """This method is called when the action is canceled."""
         super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")
-        self.cli_drivetrain_stop.call_async(Trigger.Request())
         self.cli_dumper_stop.call_async(Trigger.Request())
         return CancelResponse.ACCEPT
 

@@ -259,7 +259,6 @@ class MainControlNode(Node):
                 future.add_done_callback(self.cancel_done)
 
         # Check if the autonomous offload button is pressed
-        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             # Check if the auto offload process is not running
             if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
