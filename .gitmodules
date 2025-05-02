@@ -26,10 +26,6 @@
 	path = src/isaac_ros/isaac_ros_visual_slam
 	url = https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam.git
 	branch = v3.1.0
-[submodule "src/realsense-ros"]
-	path = src/realsense-ros
-	url = https://github.com/IntelRealSense/realsense-ros.git
-	branch = 4.56.1
 [submodule "src/isaac_ros/isaac_ros_nvblox"]
 	path = src/isaac_ros/isaac_ros_nvblox
 	url = https://github.com/GOFIRST-Robotics/isaac_ros_nvblox.git
