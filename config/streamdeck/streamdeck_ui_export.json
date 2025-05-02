@@ -16,23 +16,22 @@
                     "2": {
                         "text": "dump",
                         "icon": "Lunabotics/config/streamdeck/dump_truck-removebg-preview.png",
-                        "command": "ros2 action send_goal <action_name> <action_type> <values>"
+                        "command": "ros2 action send_goal auto_offload AutoOffload \"{DUMPER_POWER: 0.75}\""
                     },
                     "3": {
                         "text": "go to dig",
-                        "command": "ros2 action send_goal <action_name> <action_type> <values>"
+                        "command": "ros2 action send_goal go_to_dig_location GoToDigLocation <values>"
                     },
                     "4": {
                         "text": "calibrate",
                         "icon": "Lunabotics/config/streamdeck/image-removebg-preview(1).png",
-                        "command": "ros2 action send_goal calibrate_field_coordinates CalibrateFieldCoordinates "
+                        "command": "ros2 action send_goal calibrate_field_coordinates CalibrateFieldCoordinates <values>"
                     },
                     "5": {
                         "text": "Cancel",
                         "write": "",
                         "keys": "ctrl + c",
-                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview.png",
-                        "command": "crtl + c"
+                        "icon": "Lunabotics/config/streamdeck/image-removebg-preview.png"
                     }
                 },
                 "1": {
