@@ -69,9 +69,9 @@ class MainControlNode(Node):
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_chain_power", 0.1)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_lift_manual_power", 0.5)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("lift_digging_start_position", -3050)  # Measured in encoder counts
-        self.declare_parameter("lift_digging_end_position", -100)  # Measured in encoder counts
+        self.declare_parameter("digger_lift_manual_power_down", 0.1)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("lift_digging_start_position", 100.0)  # Measured in encoder counts
         self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
         self.declare_parameter("autonomous_field_type", "cosmic")
@@ -80,24 +80,22 @@ class MainControlNode(Node):
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
         self.digger_chain_power = self.get_parameter("digger_chain_power").value
-        self.digger_lift_manual_power = self.get_parameter("digger_lift_manual_power").value
+        self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
+        self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_digging_start_position = (
-            self.get_parameter("lift_digging_start_position").value * 360 / 42
-        )  # Convert encoder counts to degrees
-        self.lift_digging_end_position = (
-            self.get_parameter("lift_digging_end_position").value * 360 / 42
-        )  # Convert encoder counts to degrees
+        self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value
         self.dumper_power = self.get_parameter("dumper_power").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
         self.get_logger().info("digger_chain_power has been set to: " + str(self.digger_chain_power))
-        self.get_logger().info("digger_lift_manual_power has been set to: " + str(self.digger_lift_manual_power))
+        self.get_logger().info(
+            "digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down)
+        )
+        self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
-        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
         self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
 
         # Define some initial states here
@@ -113,7 +111,6 @@ class MainControlNode(Node):
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
-        self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
 
         # Define publishers and subscribers here
@@ -145,11 +142,6 @@ class MainControlNode(Node):
         # Create timer for watchdog
         self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
         self.connection_active = True
-
-        # # ----- !! BLOCKING WHILE LOOP !! ----- # TODO: Test this when we are ready to test it on the bot
-        # while not self.cli_lift_zero.wait_for_service(timeout_sec=1):
-        #     self.get_logger().warn("Waiting for the lift/zero service to be available (BLOCKING)")
-        # self.cli_lift_zero.call_async(Trigger.Request())  # Zero the lift by slowly raising it up
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -207,11 +199,11 @@ class MainControlNode(Node):
 
             # Manually adjust the height of the digger with the left and right triggers
             if msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power))
+                self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power_up))
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power))
+                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_down))
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
 
@@ -242,7 +234,6 @@ class MainControlNode(Node):
                 future.add_done_callback(self.cancel_done)
 
         # Check if the autonomous digging button is pressed
-        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Check if the auto digging process is not running
             if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
@@ -252,7 +243,6 @@ class MainControlNode(Node):
                 self.stop_all_subsystems()
                 goal = AutoDig.Goal(
                     lift_digging_start_position=self.lift_digging_start_position,
-                    lift_digging_end_position=self.lift_digging_end_position,
                     digger_chain_power=self.digger_chain_power,
                 )
                 self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
@@ -266,7 +256,6 @@ class MainControlNode(Node):
                 future.add_done_callback(self.cancel_done)
 
         # Check if the autonomous offload button is pressed
-        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
             # Check if the auto offload process is not running
             if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
