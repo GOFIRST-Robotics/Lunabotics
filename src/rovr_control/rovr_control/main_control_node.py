@@ -84,15 +84,17 @@ class MainControlNode(Node):
         self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
         self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_digging_start_position = (self.get_parameter("lift_digging_start_position").value) 
-        self.lift_digging_end_position = (self.get_parameter("lift_digging_end_position").value)
+        self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value
+        self.lift_digging_end_position = self.get_parameter("lift_digging_end_position").value
         self.dumper_power = self.get_parameter("dumper_power").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
         self.get_logger().info("digger_chain_power has been set to: " + str(self.digger_chain_power))
-        self.get_logger().info("digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down))
+        self.get_logger().info(
+            "digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down)
+        )
         self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
