@@ -53,11 +53,19 @@ class CalibrateFieldCoordinateServer(Node):
         while not future_spin.done():
             self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
             if (await self.future_odom).success is True:
-                self.get_logger().info("Found an apriltag!")
+                self.get_logger().info("Found the apriltags!")
                 await self.spin_handle.cancel_goal_async()
+                # Call the reset odom service again now that we are stopped for better accuracy
+                self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
+                if (await self.future_odom).success is True:
+                    self.get_logger().info("Successfully set the map -> odom transform")
+                else:
+                    self.get_logger().error("Failed to set the map -> odom transform")
+                    goal_handle.abort()
+                    return result
 
         if self.spin_handle.status == GoalStatus.STATUS_SUCCEEDED:
-            self.get_logger().warn("Failed to find an apriltag")
+            self.get_logger().warn("Failed to find the apriltags")
             goal_handle.abort()
             return result
 
