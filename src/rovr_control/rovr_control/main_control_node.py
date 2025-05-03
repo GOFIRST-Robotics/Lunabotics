@@ -72,7 +72,6 @@ class MainControlNode(Node):
         self.declare_parameter("digger_lift_manual_power_down", 0.1)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", 100.0)  # Measured in encoder counts
-        self.declare_parameter("lift_digging_end_position", 35.0)  # Measured in encoder counts
         self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
         self.declare_parameter("autonomous_field_type", "cosmic")
@@ -85,7 +84,6 @@ class MainControlNode(Node):
         self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
         self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value
-        self.lift_digging_end_position = self.get_parameter("lift_digging_end_position").value
         self.dumper_power = self.get_parameter("dumper_power").value
 
         # Print the ROS Parameters to the terminal below #
@@ -98,7 +96,6 @@ class MainControlNode(Node):
         self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
-        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
         self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
 
         # Define some initial states here
@@ -247,7 +244,6 @@ class MainControlNode(Node):
                 self.stop_all_subsystems()
                 goal = AutoDig.Goal(
                     lift_digging_start_position=self.lift_digging_start_position,
-                    lift_digging_end_position=self.lift_digging_end_position,
                     digger_chain_power=self.digger_chain_power,
                 )
                 self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
