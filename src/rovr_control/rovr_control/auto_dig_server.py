@@ -83,19 +83,7 @@ class AutoDigServer(AsyncNode):
             await self.async_sleep(5)
             self.get_logger().info("Done Digging in Place")
 
-        # Stop digging
-        if not goal_handle.is_cancel_requested:
-            self.get_logger().info("Stopping the digger chain")
-            await self.cli_digger_stop.call_async(Trigger.Request())
-
-        # Raise the digger back up using the lift (get to this position fast)
-        if not goal_handle.is_cancel_requested:
-            self.get_logger().info("Raising the digger to the ending position")
-            await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=goal_handle.request.lift_digging_end_position)
-            )
-
-        # Raise the digger the rest of the way slowly
+        # Raise the digger back up to the top using the lift
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Raising the digger up to the top")
             await self.cli_lift_zero.call_async(Trigger.Request())
