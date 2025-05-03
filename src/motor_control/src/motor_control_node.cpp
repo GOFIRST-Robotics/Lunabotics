@@ -415,7 +415,7 @@ private:
     double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
     double left_current = this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current;
     double right_current = this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current;
-    RCLCPP_INFO(this->get_logger(), "Left Current: %fA Right Current: %fA", left_current, right_current);
+    // RCLCPP_INFO(this->get_logger(), "Left Current: %fA Right Current: %fA", left_current, right_current);
     if ((this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0
     || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0)
     && (left_current > current_threshold || right_current > current_threshold)) {
