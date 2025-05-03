@@ -304,6 +304,8 @@ public:
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
     this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8); // TODO: Tune this on the real robot!
     this->declare_parameter("CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
+    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 1.8); // TODO: Tune this on the real robot!
+    this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -319,6 +321,8 @@ public:
     RCLCPP_INFO(this->get_logger(), "TIPPING_SPEED_ADJUSTMENT parameter set to: %d", this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool());
     RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_THRESHOLD parameter set to: %f", this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double());
     RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_TIME parameter set to: %f", this->get_parameter("CURRENT_SPIKE_TIME").as_double());
+    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_THRESHOLD parameter set to: %f", this->get_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD").as_double());
+    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_TIME parameter set to: %f", this->get_parameter("BUCKETS_CURRENT_SPIKE_TIME").as_double());
 
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
@@ -411,6 +415,7 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
+    // Linear actuators current spike detection
     double current_threshold = this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
     double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
     double left_current = this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current;
@@ -420,6 +425,7 @@ private:
     || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0)
     && (left_current > current_threshold || right_current > current_threshold)) {
       if (start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *start).count() > time_limit) {
+          // Stop both linear actuators and the dumper motor
           this->digger_lift_goal = { "duty_cycle", 0.0 };  
           vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
           vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
@@ -434,6 +440,30 @@ private:
         // Clear the start time when the current falls below the threshold
         start.reset();
         RCLCPP_DEBUG(this->get_logger(), "Resetting the timer for current spike detection.");
+    }
+
+    // Digging buckets current spike detection
+    double buckets_current_threshold = this->get_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
+    double buckets_time_limit = this->get_parameter("BUCKETS_CURRENT_SPIKE_TIME").as_double(); // in seconds
+    double buckets_current = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
+    // RCLCPP_INFO(this->get_logger(), "Digging Buckets Current: %fA", buckets_current);
+    if (buckets_current > buckets_current_threshold) {
+      if (buckets_start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *buckets_start).count() > buckets_time_limit) {
+          // Stop both linear actuators and the dumper motor
+          this->digger_lift_goal = { "duty_cycle", 0.0 };  
+          vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
+          vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+          this->cli_digger_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+          RCLCPP_WARN(this->get_logger(), "WARNING: Buckets current draw is too high! (%fA) Stopping the digger.", buckets_current);
+          return;
+      } else if (!buckets_start.has_value()) {
+          buckets_start = std::chrono::steady_clock::now();
+          RCLCPP_DEBUG(this->get_logger(), "Starting the timer for buckets current spike detection.");
+      }
+    } else if (buckets_start.has_value()) {
+        // Clear the start time when the current falls below the threshold
+        buckets_start.reset();
+        RCLCPP_DEBUG(this->get_logger(), "Resetting the timer for buckets current spike detection.");
     }
 
     double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
@@ -539,6 +569,7 @@ private:
 
   double pitch = 0.0;
   std::optional<std::chrono::steady_clock::time_point> start;
+  std::optional<std::chrono::steady_clock::time_point> buckets_start;
   DiggerLiftGoal digger_lift_goal;
 
   // Adjust this data retention threshold as needed
