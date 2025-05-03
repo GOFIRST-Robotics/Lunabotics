@@ -12,8 +12,9 @@ from rclpy.task import Future
 from action_msgs.msg import GoalStatus
 from nav2_msgs.action import Spin
 
+from rovr_control.node_util import AsyncNode
 
-class CalibrateFieldCoordinateServer(Node):
+class CalibrateFieldCoordinateServer(AsyncNode):
     def __init__(self):
         super().__init__("calibrate_field_action_server")
         self._action_server = ActionServer(
@@ -55,7 +56,8 @@ class CalibrateFieldCoordinateServer(Node):
             if (await self.future_odom).success is True:
                 self.get_logger().info("Found the apriltags!")
                 await self.spin_handle.cancel_goal_async()
-                # Call the reset odom service again now that we are stopped for better accuracy
+                # Call the reset odom service again after the robot stops for better accuracy
+                await self.async_sleep(1)  # Wait for a second to allow the robot to stop
                 self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
                 if (await self.future_odom).success is True:
                     self.get_logger().info("Successfully set the map -> odom transform")
@@ -82,6 +84,7 @@ class CalibrateFieldCoordinateServer(Node):
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
+        super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")
         if self.spin_handle.status == GoalStatus.STATUS_EXECUTING:
             self.spin_handle.cancel_goal_async()
