@@ -15,6 +15,7 @@
 #include "std_msgs/msg/string.hpp"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Matrix3x3.h"
+#include "std_srvs/srv/trigger.hpp"
 
 // Import custom ROS 2 interfaces
 #include "rovr_interfaces/srv/motor_command_get.hpp"
@@ -301,8 +302,8 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
     this->declare_parameter("DIGGER_PITCH_kP", 2.5);
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
-    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 15.0); // TODO: Tune this on the real robot!
-    this->declare_parameter("CURRENT_SPIKE_TIME", 0.5); // TODO: Tune this on the real robot!
+    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8); // TODO: Tune this on the real robot!
+    this->declare_parameter("CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -329,6 +330,8 @@ public:
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
+
+    cli_digger_stop = this->create_client<std_srvs::srv::Trigger>("digger/stop");
 
     digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Current", 5);
     dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 5);
@@ -410,24 +413,27 @@ private:
 
     double current_threshold = this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
     double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
+    double left_current = this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current;
+    double right_current = this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current;
+    // RCLCPP_INFO(this->get_logger(), "Left Current: %fA Right Current: %fA", left_current, right_current);
     if ((this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0
     || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0)
-    && (this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current > current_threshold
-    || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current > current_threshold)) {
+    && (left_current > current_threshold || right_current > current_threshold)) {
       if (start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *start).count() > time_limit) {
           this->digger_lift_goal = { "duty_cycle", 0.0 };  
           vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
           vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
-          RCLCPP_WARN(this->get_logger(), "WARNING: Linear actuator current draw is too high! Stopping both motors.");
+          this->cli_digger_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+          RCLCPP_WARN(this->get_logger(), "WARNING: Linear actuator current draw is too high! (%fA, %fA) Stopping the digger.", left_current, right_current);
           return;
       } else if (!start.has_value()) {
           start = std::chrono::steady_clock::now();
-          RCLCPP_INFO(this->get_logger(), "Starting the timer for current spike detection.");
+          RCLCPP_DEBUG(this->get_logger(), "Starting the timer for current spike detection.");
       }
     } else if (start.has_value()) {
         // Clear the start time when the current falls below the threshold
         start.reset();
-        RCLCPP_INFO(this->get_logger(), "Resetting the timer for current spike detection.");
+        RCLCPP_DEBUG(this->get_logger(), "Resetting the timer for current spike detection.");
     }
 
     double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
@@ -590,6 +596,7 @@ private:
   }
 
   rclcpp::TimerBase::SharedPtr timer;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr cli_digger_stop;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr digger_linear_actuator_pub;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr dumper_linear_actuator_pub;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;

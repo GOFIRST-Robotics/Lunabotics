@@ -71,14 +71,22 @@ class DiggerNode(Node):
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
 
         # Define default values for our ROS parameters below #
+        self.declare_parameter("digger_lift_manual_power_down", 0.15)
+        self.declare_parameter("digger_lift_manual_power_up", 0.5)
         self.declare_parameter("DIGGER_MOTOR", 3)
         self.declare_parameter("DIGGER_ACTUATORS_OFFSET", 12)
         self.declare_parameter("DIGGER_SAFETY_ZONE", 92)  # Measured in potentiometer units (0 to 1023)
         # Assign the ROS Parameters to member variables below #
+        self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
+        self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
         self.DIGGER_ACTUATORS_OFFSET = self.get_parameter("DIGGER_ACTUATORS_OFFSET").value
         self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
         # Print the ROS Parameters to the terminal below #
+        self.get_logger().info(
+            "digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down)
+        )
+        self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
         self.get_logger().info("DIGGER_ACTUATORS_OFFSET has been set to: " + str(self.DIGGER_ACTUATORS_OFFSET))
         self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
@@ -124,7 +132,9 @@ class DiggerNode(Node):
         """This method sets the position of the digger lift and waits until the goal is reached."""
         self.lift_lowering = position > self.current_lift_position
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
-            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.get_logger().warn(
+                "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
+            )
             self.stop_lift()  # Stop the lift system
             return
         self.get_logger().info("Setting the lift position to: " + str(position))
@@ -157,7 +167,9 @@ class DiggerNode(Node):
         """This method sets power to the lift system."""
         self.lift_lowering = power < 0
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
-            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.get_logger().warn(
+                "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
+            )
             self.stop_lift()  # Stop the lift system
             return
         self.cli_digger_lift_set.call_async(
@@ -171,15 +183,21 @@ class DiggerNode(Node):
         """This method zeros the lift system by slowly raising it until the duty cycle is 0."""
         self.get_logger().info("Zeroing the lift system")
         self.long_service_running = True
-        self.lift_set_power(0.05)
-        while not (
-            self.left_linear_actuator_current < self.current_threshold
-            or self.right_linear_actuator_current < self.current_threshold
-        ):
+        self.lift_set_power(self.digger_lift_manual_power_up)
+        lastPowerTime = time.time()
+        # Wait 0.5 seconds after the current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the current is not below the threshold, update the last power time
+            if not (
+                self.left_linear_actuator_current < self.current_threshold
+                or self.right_linear_actuator_current < self.current_threshold
+            ):
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop_lift()
         self.long_service_running = False
         self.get_logger().info("Done zeroing the lift system")
@@ -188,15 +206,21 @@ class DiggerNode(Node):
         """This method bottoms out the lift system by slowly lowering it until the duty cycle is 0."""
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
-        self.lift_set_power(-0.05)
-        while not (
-            self.left_linear_actuator_current < self.current_threshold
-            or self.right_linear_actuator_current < self.current_threshold
-        ):
+        self.lift_set_power(-self.digger_lift_manual_power_down)
+        lastPowerTime = time.time()
+        # Wait 0.5 seconds after the current goes below the threshold before stopping the motor
+        while time.time() - lastPowerTime < 0.5:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
+            # If the current is not below the threshold, update the last power time
+            if not (
+                self.left_linear_actuator_current < self.current_threshold
+                or self.right_linear_actuator_current < self.current_threshold
+            ):
+                lastPowerTime = time.time()
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
+            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
         self.stop_lift()
         self.long_service_running = False
         self.get_logger().info("Done bottoming out the lift system")
@@ -261,7 +285,9 @@ class DiggerNode(Node):
             self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
             self.stop()  # Stop the digger chain
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
-            self.get_logger().warn("WARNING: The digger buckets are not running! Will not lower.")
+            self.get_logger().warn(
+                "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
+            )
             self.stop_lift()  # Stop the lift system
 
     # Define subscriber callback methods here

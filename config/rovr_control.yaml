@@ -2,11 +2,11 @@
   ros__parameters:
     max_drive_power: 1.0 # Measured in Duty Cycle (0.0-1.0)
     max_turn_power: 1.0 # Measured in Duty Cycle (0.0-1.0)
-    digger_chain_power: 0.1 # Measured in Duty Cycle (0.0-1.0)
-    digger_lift_manual_power: 0.5 # Measured in Duty Cycle (0.0-1.0)
+    digger_chain_power: 0.15 # Measured in Duty Cycle (0.0-1.0)
+    digger_lift_manual_power_down: 0.15 # Measured in Duty Cycle (0.0-1.0)
+    digger_lift_manual_power_up: 0.5 # Measured in Duty Cycle (0.0-1.0)
     autonomous_field_type: "cosmic" # The type of field ("cosmic", "top", "bottom", "nasa")
-    lift_digging_start_position: 95 # Measured in potentiometer units (0 to 1023) # TODO: tune this in the real world
-    lift_digging_end_position: 35 # Measured in potentiometer units (0 to 1023) # TODO: tune this in the real world
+    lift_digging_start_position: 100.0 # Measured in potentiometer units (0 to 1023)
 
     # Auto Dig cost starts at max_dig_cost, and increases to absolute_max_dig_cost
     absolute_max_dig_cost: 200 # Measured as a Costmap grid value (0-255) # TODO: tune this
