@@ -234,7 +234,6 @@ class MainControlNode(Node):
                 future.add_done_callback(self.cancel_done)
 
         # Check if the autonomous digging button is pressed
-        # TODO: This autonomous action needs to be tested extensively on the physical robot!
         if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
             # Check if the auto digging process is not running
             if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
