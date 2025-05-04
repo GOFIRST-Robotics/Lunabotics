@@ -173,68 +173,6 @@ controller_server:
         #   twirling_cost_power: 1
         #   twirling_cost_weight: 10.0
 
-    # Progress checker parameters
-    progress_checker:
-      plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
-      movement_time_allowance: 50.0
-    # Goal checker parameters
-    general_goal_checker:
-      plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
-      stateful: True
-    # DWB parameters
-    FollowPath:
-      # Primary controller params (DWBLocalPlanner)
-      plugin: "dwb_core::DWBLocalPlanner"
-      debug_trajectory_details: True
-      min_vel_x: -0.5 # TODO: adjust this if needed (m/s)
-      min_vel_y: 0.0
-      max_vel_x: 0.5 # TODO: adjust this if needed (m/s)
-      max_vel_y: 0.0
-      max_vel_theta: 0.5 # TODO: adjust this if needed (rad/s)
-      min_speed_xy: -0.75 # TODO: adjust this if needed (m/s)
-      max_speed_xy: 0.75 # TODO: adjust this if needed (m/s)
-      min_speed_theta: -0.5 # TODO: adjust this if needed (rad/s)
-      acc_lim_x: 0.5 # TODO: adjust this if needed (m/s^2)
-      acc_lim_y: 0.0
-      acc_lim_theta: 0.5 # TODO: adjust this if needed (rad/s^2)
-      decel_lim_x: -0.5 # TODO: adjust this if needed (m/s^2)
-      decel_lim_y: 0.0
-      decel_lim_theta: -0.5 # TODO: adjust this if needed (rad/s^2)
-      vx_samples: 30
-      vy_samples: 10
-      vtheta_samples: 20
-      sim_time: 1.4
-      linear_granularity: 0.05
-      angular_granularity: 0.025
-      transform_tolerance: 0.2
-      xy_goal_tolerance: 0.25
-      trans_stopped_velocity: 0.25
-      short_circuit_trajectory_evaluation: True
-      stateful: True
-      critics:
-        [
-          "RotateToGoal",
-          "Oscillation",
-          "ObstacleFootprint",
-          "GoalAlign",
-          "PathAlign",
-          "PathDist",
-          "GoalDist",
-        ]
-      ObstacleFootprint.scale: 0.1
-      PathAlign.scale: 32.0
-      PathAlign.forward_point_distance: 0.1
-      GoalAlign.scale: 24.0
-      GoalAlign.forward_point_distance: 0.1
-      PathDist.scale: 32.0
-      GoalDist.scale: 24.0
-      RotateToGoal.scale: 32.0
-      RotateToGoal.slowing_factor: 1.0
-      RotateToGoal.lookahead_time: -1.0
-
 # Update velocity smoother default params to match our controller server config
 # https://navigation.ros.org/configuration/packages/configuring-velocity-smoother.html
 velocity_smoother:
