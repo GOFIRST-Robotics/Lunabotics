@@ -293,10 +293,11 @@ public:
     // Define default values for our ROS parameters below #
     this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
-    this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 2);
-    this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 1);
+    this->declare_parameter("DIGGER_LEFT_LINEAR_ACTUATOR", 8);
+    this->declare_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR", 7);
     this->declare_parameter("MAX_POS_DIFF", 30);
-    this->declare_parameter("DUMPER_MOTOR", 24);
+    this->declare_parameter("DUMPER_MOTOR", 2);
+    this->declare_parameter("DIGGER_MOTOR", 10);
     this->declare_parameter("DIGGER_ACTUATORS_OFFSET", 12);
     this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
@@ -304,7 +305,7 @@ public:
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
     this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8); // TODO: Tune this on the real robot!
     this->declare_parameter("CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
-    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 1.8); // TODO: Tune this on the real robot!
+    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0); // TODO: Tune this on the real robot!
     this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
 
     // Print the ROS Parameters to the terminal below #
@@ -314,6 +315,7 @@ public:
     RCLCPP_INFO(this->get_logger(), "DIGGER_RIGHT_LINEAR_ACTUATOR parameter set to: %ld", this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int());
     RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
     RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
+    RCLCPP_INFO(this->get_logger(), "DIGGER_MOTOR parameter set to: %ld", this->get_parameter("DIGGER_MOTOR").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_OFFSET parameter set to: %ld", this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP").as_double());
     RCLCPP_INFO(this->get_logger(), "DIGGER_ACTUATORS_kP_coupling parameter set to: %f", this->get_parameter("DIGGER_ACTUATORS_kP_coupling").as_double());
@@ -445,7 +447,7 @@ private:
     // Digging buckets current spike detection
     double buckets_current_threshold = this->get_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
     double buckets_time_limit = this->get_parameter("BUCKETS_CURRENT_SPIKE_TIME").as_double(); // in seconds
-    double buckets_current = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
+    double buckets_current = this->can_data[this->get_parameter("DIGGER_MOTOR").as_int()].current;
     // RCLCPP_INFO(this->get_logger(), "Digging Buckets Current: %fA", buckets_current);
     if (buckets_current > buckets_current_threshold) {
       if (buckets_start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *buckets_start).count() > buckets_time_limit) {
