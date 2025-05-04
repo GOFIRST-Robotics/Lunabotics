@@ -38,7 +38,7 @@ def generate_launch_description():
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
-    ld.add_action(gstreamer_server)
+    # ld.add_action(gstreamer_server)
     ld.add_action(isaac_launch)
 
     # Return the launch description
