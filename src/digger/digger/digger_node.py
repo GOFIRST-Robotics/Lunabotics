@@ -12,7 +12,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32, Float32MultiArray
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
@@ -69,6 +69,9 @@ class DiggerNode(Node):
             Float32MultiArray, "Digger_Current", self.linear_actuator_current_callback, 10
         )
         self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
+
+        # Define publishers here
+        self.lift_pose_publisher = self.create_publisher(Float32, "lift_pose", 10)
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("digger_lift_manual_power_down", 0.15)
@@ -281,6 +284,7 @@ class DiggerNode(Node):
         """Helps us know whether or not the current goal position has been reached."""
         # Average the two potentiometer values
         self.current_lift_position = ((msg.left_motor_pot - self.DIGGER_ACTUATORS_OFFSET) + msg.right_motor_pot) / 2
+        self.lift_pose_publisher.publish(Float32(data=self.current_lift_position))
         if self.current_lift_position < self.DIGGER_SAFETY_ZONE and self.running:
             self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
             self.stop()  # Stop the digger chain
