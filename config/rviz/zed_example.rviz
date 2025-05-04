@@ -292,7 +292,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Best Effort
-            Value: /zed2ii/zed_node/depth/depth_registered
+            Value: /zed2i/zed_node_zed2i/depth/depth_registered
           Value: false
         - Class: rviz_default_plugins/Image
           Enabled: false
@@ -306,7 +306,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Best Effort
-            Value: /zed2ii/zed_node/left/image_rect_color
+            Value: /zed2i/zed_node_zed2i/left/image_rect_color
           Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true

@@ -11,6 +11,7 @@ from rclpy.task import Future
 
 from action_msgs.msg import GoalStatus
 from nav2_msgs.action import Spin
+from builtin_interfaces.msg import Duration
 
 
 class CalibrateFieldCoordinateServer(Node):
@@ -45,7 +46,7 @@ class CalibrateFieldCoordinateServer(Node):
             return result
 
         # Spin around to find the apriltag
-        spin_goal = Spin.Goal(target_yaw=2 * math.pi)
+        spin_goal = Spin.Goal(target_yaw=2 * math.pi, time_allowance=Duration(sec=5))
         self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(spin_goal)
         future_spin: Future = self.spin_handle.get_result_async()
         self.future_odom = Future()
