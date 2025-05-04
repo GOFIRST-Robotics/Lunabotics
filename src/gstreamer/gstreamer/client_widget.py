@@ -84,10 +84,10 @@ class ClientWidget(QWidget):
         print("Requesting Camera 1")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video0"
-        req.width = 640
-        req.height = 480
-        req.framerate = 30
+        req.device = "/dev/video4"
+        req.width = 1280
+        req.height = 720
+        req.framerate = 10
         req.format = "NV12"
         cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
         self.wait_cli(cli, req)
@@ -97,10 +97,10 @@ class ClientWidget(QWidget):
         print("Requesting Camera 2")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video2"
-        req.width = 640
-        req.height = 480
-        req.framerate = 30
+        req.device = "/dev/video0"
+        req.width = 1344
+        req.height = 376
+        req.framerate = 15
         req.format = "NV12"
         cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
         self.wait_cli(cli, req)
@@ -110,10 +110,10 @@ class ClientWidget(QWidget):
         print("Requesting Camera 3")
         req = SetActiveCamera.Request()
         req.srctype = "v4l2src"
-        req.device = "/dev/video4"
-        req.width = 640
-        req.height = 480
-        req.framerate = 30
+        req.device = "/dev/video2"
+        req.width = 1344
+        req.height = 376
+        req.framerate = 15
         req.format = "NV12"
         cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
         self.wait_cli(cli, req)
