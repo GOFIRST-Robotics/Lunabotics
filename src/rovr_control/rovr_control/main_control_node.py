@@ -17,6 +17,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from sensor_msgs.msg import Joy
 from action_msgs.msg import GoalStatus
+from std_msgs.msg import Float32
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetPosition
@@ -72,6 +73,7 @@ class MainControlNode(Node):
         self.declare_parameter("digger_lift_manual_power_down", 0.1)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", 100.0)  # Measured in encoder counts
+        self.declare_parameter("DIGGER_SAFETY_ZONE", 92)  # Measured in potentiometer units (0 to 1023)
         self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
         self.declare_parameter("autonomous_field_type", "cosmic")
@@ -85,6 +87,7 @@ class MainControlNode(Node):
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
         self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value
         self.dumper_power = self.get_parameter("dumper_power").value
+        self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
 
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
@@ -97,6 +100,7 @@ class MainControlNode(Node):
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
         self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
         self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
+        self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -123,6 +127,7 @@ class MainControlNode(Node):
             10,
             callback_group=ReentrantCallbackGroup(),
         )
+        self.lift_pose_subscription = self.create_subscription(Float32, "lift_pose", self.lift_pose_callback, 10)
 
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
@@ -133,6 +138,9 @@ class MainControlNode(Node):
         self.field_calibrated_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_dig_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
+
+        # Current position of the lift motor in potentiometer units (0 to 1023)
+        self.current_lift_position = None  # We don't know the current position yet
 
         # Add watchdog parameters
         self.declare_parameter("watchdog_timeout", 0.5)  # Timeout in seconds
@@ -203,7 +211,10 @@ class MainControlNode(Node):
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_down))
+                if self.current_lift_position and self.current_lift_position < self.DIGGER_SAFETY_ZONE:
+                    self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_up))
+                else:
+                    self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_down))
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
                 self.cli_lift_stop.call_async(Trigger.Request())
 
@@ -294,6 +305,11 @@ class MainControlNode(Node):
         elif not self.connection_active:
             self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
             self.connection_active = True
+
+    # Define the subscriber callback for the lift pose topic
+    def lift_pose_callback(self, msg: Float32):
+        # Average the two potentiometer values
+        self.current_lift_position = msg.data
 
 
 def main(args=None) -> None:
