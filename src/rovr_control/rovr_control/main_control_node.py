@@ -311,6 +311,7 @@ class MainControlNode(Node):
         # Average the two potentiometer values
         self.current_lift_position = msg.data
 
+
 def main(args=None) -> None:
     rclpy.init(args=args)
 
