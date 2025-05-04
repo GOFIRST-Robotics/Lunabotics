@@ -65,7 +65,7 @@ def generate_launch_description():
         package="zed_components",
         namespace="zed2i",
         plugin="stereolabs::ZedCamera",
-        name="zed_node",
+        name="zed_node_zed2i",
         parameters=[
             # YAML files
             config_file_common,  # Common parameters
