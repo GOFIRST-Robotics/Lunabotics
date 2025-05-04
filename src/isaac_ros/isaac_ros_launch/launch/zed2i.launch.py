@@ -96,7 +96,7 @@ def generate_launch_description():
             [
                 FindExecutable(name="ros2"),
                 " service call ",
-                "/zed2i/zed_node/start_svo_rec ",
+                "/zed2i/zed_node_zed2i/start_svo_rec ",
                 "zed_msgs/srv/StartSvoRec ",
                 # Tune this bitrate to adjust file size
                 f"\"{{compression_mode: 2, bitrate: 10000, svo_filename: '{svo_filename}'}}\"",
@@ -113,7 +113,7 @@ def generate_launch_description():
                     [
                         FindExecutable(name="ros2"),
                         " service call ",
-                        "/zed2i/zed_node/stop_svo_rec ",
+                        "/zed2i/zed_node_zed2i/stop_svo_rec ",
                         "std_srvs/srv/Trigger ",
                     ]
                 ],
