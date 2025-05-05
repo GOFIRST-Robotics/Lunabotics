@@ -86,29 +86,21 @@ Visualization Manager:
           odom:
             zed2i_camera_link:
               base_link:
-                back_left_wheel_Link:
-                  {}
-                back_right_wheel_Link:
-                  {}
-                front_left_wheel_Link:
-                  {}
-                front_right_wheel_Link:
-                  {}
+                back_left_wheel_Link: {}
+                back_right_wheel_Link: {}
+                front_left_wheel_Link: {}
+                front_right_wheel_Link: {}
                 zed2i_rear_camera_link:
                   zed2i_rear_camera_center:
                     zed2i_rear_left_camera_frame:
-                      zed2i_rear_left_camera_optical_frame:
-                        {}
+                      zed2i_rear_left_camera_optical_frame: {}
                     zed2i_rear_right_camera_frame:
-                      zed2i_rear_right_camera_optical_frame:
-                        {}
+                      zed2i_rear_right_camera_optical_frame: {}
               zed2i_camera_center:
                 zed2i_left_camera_frame:
-                  zed2i_left_camera_optical_frame:
-                    {}
+                  zed2i_left_camera_optical_frame: {}
                 zed2i_right_camera_frame:
-                  zed2i_right_camera_optical_frame:
-                    {}
+                  zed2i_right_camera_optical_frame: {}
       Update Interval: 0
       Value: true
     - Alpha: 0.5
@@ -148,8 +140,7 @@ Visualization Manager:
         - Class: rviz_default_plugins/MarkerArray
           Enabled: false
           Name: Mesh Marker
-          Namespaces:
-            {}
+          Namespaces: {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -160,8 +151,7 @@ Visualization Manager:
         - Class: rviz_default_plugins/Marker
           Enabled: false
           Name: Map Slice Bounds
-          Namespaces:
-            {}
+          Namespaces: {}
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -292,7 +282,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Best Effort
-            Value: /zed2ii/zed_node/depth/depth_registered
+            Value: /zed2i/zed_node_zed2i/depth/depth_registered
           Value: false
         - Class: rviz_default_plugins/Image
           Enabled: false
@@ -306,7 +296,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Best Effort
-            Value: /zed2ii/zed_node/left/image_rect_color
+            Value: /zed2i/zed_node_zed2i/left/image_rect_color
           Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
