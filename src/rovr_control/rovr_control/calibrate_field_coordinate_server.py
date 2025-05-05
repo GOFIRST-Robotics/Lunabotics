@@ -6,7 +6,6 @@ from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
 from rovr_interfaces.action import CalibrateFieldCoordinates
 from std_srvs.srv import Trigger
-from rclpy.node import Node
 from rclpy.task import Future
 
 from action_msgs.msg import GoalStatus
