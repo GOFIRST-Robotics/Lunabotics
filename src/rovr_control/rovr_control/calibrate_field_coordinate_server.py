@@ -14,6 +14,7 @@ from builtin_interfaces.msg import Duration
 
 from rovr_control.node_util import AsyncNode
 
+
 class CalibrateFieldCoordinateServer(AsyncNode):
     def __init__(self):
         super().__init__("calibrate_field_action_server")
