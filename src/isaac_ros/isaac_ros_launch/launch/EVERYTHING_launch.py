@@ -21,7 +21,8 @@ def generate_launch_description():
         launch_arguments={
             "setup_for_zed": "True",
             "setup_for_gazebo": "False",
-            "use_nvblox": "True",
+            "use_nvblox": "False",  # TODO: Change this back before merging (False for testing only)
+            "use_nav2": "False",  # TODO: Change this back before merging (False for testing only)
             "run_rviz_robot": "False",  # We don't need to run RViz during matches
             "zed_multicam": "True",  # Use multiple ZED cameras
             "record_svo": "True",  # Record match data to an SVO file
@@ -38,7 +39,7 @@ def generate_launch_description():
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
-    ld.add_action(gstreamer_server)
+    # ld.add_action(gstreamer_server) # TODO: Change this back before merging (commmented for testing only)
     ld.add_action(isaac_launch)
 
     # Return the launch description
