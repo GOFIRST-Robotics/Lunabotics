@@ -303,10 +303,10 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
     this->declare_parameter("DIGGER_PITCH_kP", 2.5);
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
-    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8); // TODO: Tune this on the real robot!
-    this->declare_parameter("CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
-    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0); // TODO: Tune this on the real robot!
-    this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
+    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8);
+    this->declare_parameter("CURRENT_SPIKE_TIME", 0.2);
+    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0);
+    this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
