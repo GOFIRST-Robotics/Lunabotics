@@ -1,7 +1,7 @@
 #!/bin/bash
 printf 'CONFIG_DOCKER_SEARCH_DIRS="$HOME/Lunabotics/src/isaac_ros/isaac_ros_common/scripts/../../../../docker"\n BASE_DOCKER_REGISTRY_NAMES="umnrobotics/isaac_ros3.1"\n'> ~/.isaac_ros_common-config
-image_key="ros2_humble.deepstream.user.zed.umn.gazebo"
-docker_arg="-v /usr/local/zed/resources:/usr/local/zed/resources -v $HOME/rosbags:/rosbags -v /usr/local/zed/settings:/usr/local/zed/settings"
+image_key="ros2_humble.deepstream.user.zed.umn.gazebo.streamdeck"
+docker_arg="-v /usr/local/zed/resources:/usr/local/zed/resources -v $HOME/rosbags:/rosbags -v /usr/local/zed/settings:/usr/local/zed/settings --privileged"
 
 USE_CACHED_IMAGE=${1:-true}
 
