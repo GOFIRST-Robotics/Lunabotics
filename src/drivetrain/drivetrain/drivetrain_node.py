@@ -44,6 +44,7 @@ class DrivetrainNode(Node):
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
+        self.lift_pose_subscription = self.create_subscription(Float32, "lift_pose", self.lift_pose_callback, 10)
 
         if self.GAZEBO_SIMULATION:
             self.gazebo_front_left_wheel_pub = self.create_publisher(Float64, "front_left_wheel/cmd_vel", 10)
@@ -127,7 +128,18 @@ class DrivetrainNode(Node):
 
     def stop(self) -> None:
         """This method stops the drivetrain."""
-        self.drive(0.0, 0.0)
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=0.0)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=0.0)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=0.0)
+        )
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=0.0)
+        )
 
     # Define service callback methods here
 
