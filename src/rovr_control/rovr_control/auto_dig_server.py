@@ -73,7 +73,7 @@ class AutoDigServer(AsyncNode):
             await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
 
         # Retry x times to lower the digger into the ground when current limits are hit
-        x, dig_sec = 3, 2
+        x, dig_sec = 3, 5
         for _ in range(x):
             # Lower the digger into the ground slowly
             if not goal_handle.is_cancel_requested:
@@ -86,6 +86,7 @@ class AutoDigServer(AsyncNode):
                 self.get_logger().info("Auto Digging in Place")
                 await self.async_sleep(dig_sec)
                 self.get_logger().info("Done Digging in Place")
+        self.cli_digger_stop.call_async(Trigger.Request())
 
         # Raise the digger so that it is just below the safety zone
         if not goal_handle.is_cancel_requested:
