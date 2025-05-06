@@ -187,7 +187,7 @@ local_costmap:
         enabled: True
         max_obstacle_distance: 1.0
         gradient_multiplier: 1000.0
-        min_grad_diff: 0.12
+        min_grad_diff: 0.13
         # Need to play with this. this is just linear multiplier to the values found by the gradient. 
         # As of right now, the formula for the cost value is 
         # cost = min(max_cost, (gradient * gradient_multiplier * max_cost))
@@ -228,7 +228,7 @@ global_costmap:
         enabled: True
         max_obstacle_distance: 1.0
         gradient_multiplier: 1000.0
-        min_grad_diff: 0.12
+        min_grad_diff: 0.13
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
