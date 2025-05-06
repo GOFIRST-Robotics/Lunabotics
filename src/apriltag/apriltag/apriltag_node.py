@@ -106,8 +106,7 @@ class ApriltagNode(Node):
         return False
 
     def tagDetectionSub(self, msg):
-        # Force us to use both tags so that we get a better odometry estimate.
-        if len(msg.detections) == 2:
+        if len(msg.detections) > 0:
             tags = msg.detections
             # Initialize cumulative sums and counter
             cumulative_position = np.zeros(3, None)
