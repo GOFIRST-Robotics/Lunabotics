@@ -10,7 +10,7 @@ from rclpy.node import Node
 
 # Import ROS 2 formatted message types
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, Float32
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import Drive, MotorCommandSet
@@ -30,6 +30,7 @@ class DrivetrainNode(Node):
         self.declare_parameter("GAZEBO_SIMULATION", False)
         self.declare_parameter("MAX_DRIVETRAIN_RPM", 10000)
         self.declare_parameter("DRIVETRAIN_TYPE", "velocity")
+        self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
 
         # Assign the ROS Parameters to member variables below #
         self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
@@ -39,6 +40,7 @@ class DrivetrainNode(Node):
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
         self.MAX_DRIVETRAIN_RPM = self.get_parameter("MAX_DRIVETRAIN_RPM").value
         self.DRIVETRAIN_TYPE = self.get_parameter("DRIVETRAIN_TYPE").value
+        self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
 
         # Define publishers and subscribers here
         self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
@@ -63,10 +65,19 @@ class DrivetrainNode(Node):
         self.get_logger().info("BACK_RIGHT_DRIVE has been set to: " + str(self.BACK_RIGHT_DRIVE))
         self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
         self.get_logger().info("MAX_DRIVETRAIN_RPM has been set to: " + str(self.MAX_DRIVETRAIN_RPM))
+        self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
+
+        # Current position of the lift motor in potentiometer units (0 to 1023)
+        self.current_lift_position = None  # We don't know the current position yet
 
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
+
+        if self.current_lift_position is None or self.current_lift_position > self.DIGGER_SAFETY_ZONE:
+            self.get_logger().warn("Digger outside the safety zone, cannot drive!")
+            self.stop()
+            return
 
         # Clamp the values between -1 and 1
         forward_power = max(-1.0, min(forward_power, 1.0))
@@ -136,6 +147,11 @@ class DrivetrainNode(Node):
     def cmd_vel_callback(self, msg: Twist) -> None:
         """This method is called whenever a message is received on the cmd_vel topic."""
         self.drive(msg.linear.x, msg.angular.z)
+
+    # Define the subscriber callback for the lift pose topic
+    def lift_pose_callback(self, msg: Float32):
+        # Average the two potentiometer values
+        self.current_lift_position = msg.data
 
 
 def main(args=None):
