@@ -88,24 +88,16 @@ class DrivetrainNode(Node):
 
         # Send velocity (not duty cycle) motor commands to the motor_control_node
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.FRONT_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower
-            )
+            MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower)
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.BACK_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower
-            )
+            MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower)
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.FRONT_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower
-            )
+            MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower)
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                can_id=self.BACK_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower
-            )
+            MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower)
         )
 
         # Publish the wheel speeds to the gazebo simulation
