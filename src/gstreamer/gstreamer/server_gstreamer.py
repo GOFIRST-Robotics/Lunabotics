@@ -80,6 +80,21 @@ class GstreamerServer:
 
         nvv4l2av1enc.link(sink)
 
+    def init_mjpeg(self, input, sink):
+        # gst-launch-1.0 videotestsrc ! 'video/x-raw, width=(int)640, height=(int)480, format=(string)NV12,
+        # framerate=(fraction)30/1' ! nvvideoconvert ! nvv4l2h264enc ! rtph264pay ! udpsink host=
+        jpegenc = Gst.ElementFactory.make("jpegenc", "jpegenc")
+        jpegenc.set_property("quality", 85)  # Adjust quality as needed (0-100)
+        self.pipeline.add(jpegenc)
+        input.link(jpegenc)
+        
+        # Create RTP payloader for JPEG
+        rtpjpegpay = Gst.ElementFactory.make("rtpjpegpay", "rtpjpegpay")
+        self.pipeline.add(rtpjpegpay)
+        jpegenc.link(rtpjpegpay)
+        
+        rtpjpegpay.link(sink)
+
     def run(self):
         self.pipeline.set_state(Gst.State.PLAYING)
 

@@ -69,6 +69,22 @@ class GstreamerClient:
 
         caps_v4l2src.link(queue)
 
+    def init_mjpeg(self, source, queue):
+        rtp_caps = Gst.Caps.from_string(
+            "application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)JPEG, payload=(int)26"
+        )
+        self.udpsrc.set_property("caps", rtp_caps)
+
+        # RTP depayloader for JPEG
+        rtpjpegdepay = Gst.ElementFactory.make("rtpjpegdepay", "rtpjpegdepay")
+        self.pipeline.add(rtpjpegdepay)
+        self.udpsrc.link(rtpjpegdepay)
+
+        # JPEG decoder
+        jpegdec = Gst.ElementFactory.make("jpegdec", "jpegdec")
+        self.pipeline.add(jpegdec)
+        rtpjpegdepay.link(jpegdec)
+
     def run(self):
         # Start playing
         print("Starting pipeline")
