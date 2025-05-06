@@ -6,16 +6,14 @@ from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
 from rovr_interfaces.action import CalibrateFieldCoordinates
 from std_srvs.srv import Trigger
+from rclpy.node import Node
 from rclpy.task import Future
 
 from action_msgs.msg import GoalStatus
 from nav2_msgs.action import Spin
-from builtin_interfaces.msg import Duration
-
-from rovr_control.node_util import AsyncNode
 
 
-class CalibrateFieldCoordinateServer(AsyncNode):
+class CalibrateFieldCoordinateServer(Node):
     def __init__(self):
         super().__init__("calibrate_field_action_server")
         self._action_server = ActionServer(
@@ -47,7 +45,7 @@ class CalibrateFieldCoordinateServer(AsyncNode):
             return result
 
         # Spin around to find the apriltag
-        spin_goal = Spin.Goal(target_yaw=2 * math.pi, time_allowance=Duration(sec=5))
+        spin_goal = Spin.Goal(target_yaw=2 * math.pi)
         self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(spin_goal)
         future_spin: Future = self.spin_handle.get_result_async()
         self.future_odom = Future()
@@ -55,20 +53,11 @@ class CalibrateFieldCoordinateServer(AsyncNode):
         while not future_spin.done():
             self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
             if (await self.future_odom).success is True:
-                self.get_logger().info("Found the apriltags!")
+                self.get_logger().info("Found an apriltag!")
                 await self.spin_handle.cancel_goal_async()
-                # Call the reset odom service again after the robot stops for better accuracy
-                await self.async_sleep(1)  # Wait for a second to allow the robot to stop
-                self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
-                if (await self.future_odom).success is True:
-                    self.get_logger().info("Successfully set the map -> odom transform")
-                else:
-                    self.get_logger().error("Failed to set the map -> odom transform")
-                    goal_handle.abort()
-                    return result
 
         if self.spin_handle.status == GoalStatus.STATUS_SUCCEEDED:
-            self.get_logger().warn("Failed to find the apriltags")
+            self.get_logger().warn("Failed to find an apriltag")
             goal_handle.abort()
             return result
 
@@ -85,7 +74,6 @@ class CalibrateFieldCoordinateServer(AsyncNode):
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
-        super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")
         if self.spin_handle.status == GoalStatus.STATUS_EXECUTING:
             self.spin_handle.cancel_goal_async()

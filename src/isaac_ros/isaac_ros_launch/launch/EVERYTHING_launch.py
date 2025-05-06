@@ -25,7 +25,7 @@ def generate_launch_description():
             "use_nav2": "True",
             "run_rviz_robot": "False",  # We don't need to run RViz during matches
             "zed_multicam": "True",  # Use multiple ZED cameras
-            "record_svo": "False",  # TODO: Change this back before merging (False for testing only)
+            "record_svo": "True",  # Record match data to an SVO file
         }.items(),
     )
 
@@ -39,7 +39,7 @@ def generate_launch_description():
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
-    # ld.add_action(gstreamer_server) # TODO: Change this back before merging (commmented for testing only)
+    ld.add_action(gstreamer_server)
     ld.add_action(isaac_launch)
 
     # Return the launch description
