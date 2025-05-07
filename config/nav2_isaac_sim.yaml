@@ -215,8 +215,8 @@ global_costmap:
       robot_base_frame: base_link
       use_sim_time: False
       rolling_window: True
-      width: 200
-      height: 200
+      width: 20
+      height: 20
       footprint: "[ [0.595, 0.38], [-0.595, 0.38,], [-0.595, -0.38], [0.595, -0.38] ]"
       # resolution: 0.1
       origin_x: -100.0
@@ -319,14 +319,3 @@ behavior_server:
 robot_state_publisher:
   ros__parameters:
     use_sim_time: False
-
-waypoint_follower:
-  ros__parameters:
-    use_sim_time: False
-    loop_rate: 20
-    stop_on_failure: false
-    waypoint_task_executor_plugin: "wait_at_waypoint"
-    wait_at_waypoint:
-      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
-      enabled: True
-      waypoint_pause_duration: 200
