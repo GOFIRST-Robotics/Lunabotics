@@ -9,13 +9,13 @@
     <!-- Tags in the starting zone. This assumes that we are placing 2 tags on the wall. -->
     <link name="base_tag_1">
         <visual>
-            <origin xyz="5.48 3.7525 0.8" rpy="0 0 0"/>
+            <origin xyz="5.48 3.7525 0.4" rpy="0 0 0"/>
         </visual>
     </link>
 
     <link name="base_tag_2">
         <visual>
-            <origin xyz="5.48 3.9684 0.8" rpy="0 0 0"/>
+            <origin xyz="5.48 3.9684 0.4" rpy="0 0 0"/>
         </visual>
     </link>
 </root>

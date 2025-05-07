@@ -303,10 +303,10 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
     this->declare_parameter("DIGGER_PITCH_kP", 2.5);
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
-    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8); // TODO: Tune this on the real robot!
-    this->declare_parameter("CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
-    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0); // TODO: Tune this on the real robot!
-    this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2); // TODO: Tune this on the real robot!
+    this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8);
+    this->declare_parameter("CURRENT_SPIKE_TIME", 0.2);
+    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0);
+    this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -348,7 +348,7 @@ public:
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
 
     potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
-    pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed2i/zed_node/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
+    pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed2i/zed_node_zed2i/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
 
     // Initialize the current digger lift goal
     this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
