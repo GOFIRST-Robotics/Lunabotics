@@ -40,11 +40,6 @@ def generate_launch_description():
         default_value="True",
         description="Whether to run nav2",
     )
-    dig_location_server = Node(
-        package="rovr_control",
-        executable="dig_location_server",
-        name="dig_location_server",
-    )
     record_svo_arg = DeclareLaunchArgument(
         "record_svo",
         default_value="False",
@@ -190,6 +185,5 @@ def generate_launch_description():
             rviz_launch,
             apriltag_launch,
             apriltag_gazebo_launch,
-            dig_location_server,
         ]
     )

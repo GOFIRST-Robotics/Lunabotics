@@ -53,7 +53,7 @@ class CalibrateFieldCoordinateServer(Node):
         while not future_spin.done():
             self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
             if (await self.future_odom).success is True:
-                self.get_logger().info("Found an apriltag!")
+                self.get_logger().info("Found an apriltag!", throttle_duration_sec=5)
                 await self.spin_handle.cancel_goal_async()
 
         if self.spin_handle.status == GoalStatus.STATUS_SUCCEEDED:
