@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from rovr_interfaces.msg import Potentiometers
+from std_srvs.srv import SetBool, Trigger
 
 import serial
 import struct
@@ -13,6 +14,10 @@ class read_serial(Node):
 
         self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
 
+        # Services to control the relay-driven agitator motor
+        self.srv_onoff = self.create_service(SetBool, "motor_on_off", self.on_off_callback)
+        self.srv_toggle = self.create_service(Trigger, "motor_toggle", self.toggle_callback)
+
         try:
             self.arduino = serial.Serial("/dev/ttyACM0", 9600)
             time.sleep(1)  # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
@@ -22,18 +27,34 @@ class read_serial(Node):
             self.destroy_node()
             return
 
-        while True:
-            if self.arduino is None:
-                self.get_logger().fatal("Killing read_serial node")
-                self.destroy_node()
-                return
-            data = self.arduino.read(4)  # Pause until 4 bytes are read
-            decoded = struct.unpack("hh", data)  # Use h for integers and ? for booleans
+        self.timer = self.create_timer(0.1, self.timer_callback)
 
-            msg = Potentiometers()
-            msg.left_motor_pot = decoded[0]
-            msg.right_motor_pot = decoded[1]
-            self.potentiometerPub.publish(msg)
+    def timer_callback(self):
+        if self.arduino is None:
+            self.get_logger().fatal("Killing read_serial node")
+            self.destroy_node()
+            return
+        data = self.arduino.read(4)  # Pause until 4 bytes are read
+        decoded = struct.unpack("hh", data)  # Use h for integers and ? for booleans
+
+        msg = Potentiometers()
+        msg.left_motor_pot = decoded[0]
+        msg.right_motor_pot = decoded[1]
+        self.potentiometerPub.publish(msg)
+
+    def on_off_callback(self, request, response):
+        # request.data == True  → ON, False → OFF
+        cmd = b"1" if request.data else b"0"
+        self.arduino.write(cmd)
+        response.success = True
+        response.message = "Agitator motor turned " + ("on" if request.data else "off")
+        return response
+
+    def toggle_callback(self, request, response):
+        self.arduino.write(b"2")
+        response.success = True
+        response.message = "Agitator motor toggled"
+        return response
 
 
 def main(args=None):
