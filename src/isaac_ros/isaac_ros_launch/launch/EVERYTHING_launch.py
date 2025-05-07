@@ -22,6 +22,7 @@ def generate_launch_description():
             "setup_for_zed": "True",
             "setup_for_gazebo": "False",
             "use_nvblox": "True",
+            "use_nav2": "True",
             "run_rviz_robot": "False",  # We don't need to run RViz during matches
             "zed_multicam": "True",  # Use multiple ZED cameras
             "record_svo": "True",  # Record match data to an SVO file

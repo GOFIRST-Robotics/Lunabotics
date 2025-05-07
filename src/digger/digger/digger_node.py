@@ -74,11 +74,11 @@ class DiggerNode(Node):
         self.lift_pose_publisher = self.create_publisher(Float32, "lift_pose", 10)
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter("digger_lift_manual_power_down", 0.15)
+        self.declare_parameter("digger_lift_manual_power_down", 0.12)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)
         self.declare_parameter("DIGGER_MOTOR", 3)
         self.declare_parameter("DIGGER_ACTUATORS_OFFSET", 12)
-        self.declare_parameter("DIGGER_SAFETY_ZONE", 92)  # Measured in potentiometer units (0 to 1023)
+        self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
         # Assign the ROS Parameters to member variables below #
         self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
         self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
