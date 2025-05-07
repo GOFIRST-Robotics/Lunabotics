@@ -10,7 +10,9 @@ bt_navigator:
     odom_topic: /odom
     bt_loop_duration: 10
     default_server_timeout: 20
-    navigators: ['navigate_to_pose', 'navigate_through_poses']
+    navigators: ["navigate_to_pose", "navigate_through_poses"]
+    #default_nav_to_pose_bt_xml: $(find-pkg-share nova_carter_navigation)/behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml
+    #default_nav_through_poses_bt_xml: $(find-pkg-share nova_carter_navigation)/behavior_trees/navigate_through_poses_w_replanning_and_recovery.xml
     navigate_to_pose:
       plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
     navigate_through_poses:
@@ -77,141 +79,56 @@ bt_navigator_navigate_to_pose_rclcpp_node:
 controller_server:
   ros__parameters:
     use_sim_time: False
-    controller_frequency: 20.0
+    controller_frequency: 10.0
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["stopped_goal_checker"]
     controller_plugins: ["FollowPath"]
     # Progress checker parameters
     progress_checker:
-      plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
-      movement_time_allowance: 10.0
+      plugin: "nav2_controller::PoseProgressChecker"
+      required_movement_radius: 0.1
+      required_movement_angle: 0.1
+      movement_time_allowance: 30.0
     stopped_goal_checker:
       plugin: "nav2_controller::StoppedGoalChecker"
       trans_stopped_velocity: 0.1
       rot_stopped_velocity: 0.1
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.1
+      yaw_goal_tolerance: 0.1
     FollowPath:
-      plugin: "nav2_mppi_controller::MPPIController"
-      time_steps: 56
-      model_dt: 0.05
-      batch_size: 2000
-      vx_std: 0.2
-      wz_std: 0.4
-      vx_max: 0.5
-      vx_min: -0.35
-      wz_max: 1.9
-      iteration_count: 1
-      prune_distance: 1.7
-      transform_tolerance: 0.1
-      temperature: 0.3
-      gamma: 0.015
-      motion_model: "DiffDrive"
-      visualize: false
-      reset_period: 1.0 # (only in Humble)
-      regenerate_noises: false
-      TrajectoryVisualizer:
-        trajectory_step: 5
-        time_step: 3
-      critics: ["ConstraintCritic", "ObstaclesCritic", "GoalCritic", "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "PreferForwardCritic"]
-      ConstraintCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 4.0
-      GoalCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 5.0
-        threshold_to_consider: 1.4
-      GoalAngleCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 3.0
-        threshold_to_consider: 0.5
-      PreferForwardCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 5.0
-        threshold_to_consider: 0.5
-      ObstaclesCritic:
-        enabled: true
-        cost_power: 1
-        repulsion_weight: 4.0
-        critical_weight: 20.0
-        consider_footprint: True
-        collision_cost: 10000.0
-        collision_margin_distance: 0.1
-        near_goal_distance: 0.5
-        inflation_radius: 5.0 # (only in Humble)
-        cost_scaling_factor: 10.0 # (only in Humble)
-      PathAlignCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 14.0
-        max_path_occupancy_ratio: 0.05
-        trajectory_point_step: 3
-        threshold_to_consider: 0.5
-        offset_from_furthest: 20
-        use_path_orientations: false
-      PathFollowCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 5.0
-        offset_from_furthest: 5
-        threshold_to_consider: 1.4
-      PathAngleCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 2.0
-        offset_from_furthest: 4
-        threshold_to_consider: 0.5
-        max_angle_to_furthest: 1.0
-        mode: 0
-        # TwirlingCritic:
-        #   enabled: true
-        #   twirling_cost_power: 1
-        #   twirling_cost_weight: 10.0
-
-    # Progress checker parameters
-    progress_checker:
-      plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.5
-      movement_time_allowance: 50.0
-    # Goal checker parameters
-    general_goal_checker:
-      plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
-      stateful: True
-    # DWB parameters
-    FollowPath:
+      # RotationShimController parameters
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "dwb_core::DWBLocalPlanner"
+      angular_dist_threshold: 0.785
+      forward_sampling_distance: 0.25
+      rotate_to_heading_angular_vel: 0.75
+      max_angular_accel: 0.75
+      simulate_ahead_time: 1.0
       # Primary controller params (DWBLocalPlanner)
-      plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: True
-      min_vel_x: -0.5 # TODO: adjust this if needed (m/s)
+      min_vel_x: -0.75
       min_vel_y: 0.0
-      max_vel_x: 0.5 # TODO: adjust this if needed (m/s)
+      max_vel_x: 0.75
       max_vel_y: 0.0
-      max_vel_theta: 0.5 # TODO: adjust this if needed (rad/s)
-      min_speed_xy: -0.75 # TODO: adjust this if needed (m/s)
-      max_speed_xy: 0.75 # TODO: adjust this if needed (m/s)
-      min_speed_theta: -0.5 # TODO: adjust this if needed (rad/s)
-      acc_lim_x: 0.5 # TODO: adjust this if needed (m/s^2)
+      max_vel_theta: 0.75
+      min_speed_xy: -0.75
+      max_speed_xy: 0.75
+      min_speed_theta: -0.75
+      acc_lim_x: 0.75
       acc_lim_y: 0.0
-      acc_lim_theta: 0.5 # TODO: adjust this if needed (rad/s^2)
-      decel_lim_x: -0.5 # TODO: adjust this if needed (m/s^2)
+      acc_lim_theta: 0.75
+      decel_lim_x: -0.75
       decel_lim_y: 0.0
-      decel_lim_theta: -0.5 # TODO: adjust this if needed (rad/s^2)
+      decel_lim_theta: -0.75
       vx_samples: 30
-      vy_samples: 10
+      vy_samples: 0
       vtheta_samples: 20
       sim_time: 1.4
       linear_granularity: 0.05
       angular_granularity: 0.025
       transform_tolerance: 0.2
-      xy_goal_tolerance: 0.25
-      trans_stopped_velocity: 0.25
+      xy_goal_tolerance: 0.1
+      trans_stopped_velocity: 0.1
       short_circuit_trajectory_evaluation: True
       stateful: True
       critics:
@@ -240,15 +157,15 @@ controller_server:
 velocity_smoother:
   ros__parameters:
     use_sim_time: False
-    smoothing_frequency: 20.0
+    smoothing_frequency: 10.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.0, 0.5]
-    min_velocity: [-0.5, 0.0, -0.5]
+    max_velocity: [0.75, 0.0, 0.75]
+    min_velocity: [-0.75, 0.0, -0.75]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    max_accel: [0.5, 0.0, 0.5]
-    max_decel: [-0.5, 0.0, -0.5]
+    max_accel: [0.75, 0.0, 0.75]
+    max_decel: [-0.75, 0.0, -0.75]
     odom_duration: 0.1
 
 local_costmap:
@@ -269,9 +186,9 @@ local_costmap:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
         max_obstacle_distance: 1.0
-        gradient_multiplier: 50.0 
-        # Need to play with this. this is just linear multiplier to the values found by the gradient. 
-        # As of right now, the formula for the cost value is 
+        gradient_multiplier: 50.0
+        # Need to play with this. this is just linear multiplier to the values found by the gradient.
+        # As of right now, the formula for the cost value is
         # cost = min(max_cost, (gradient * gradient_multiplier * max_cost))
         # max cost = 255
         # gradient = abs(height(x - 1) - height(x + 1)) + abs(height(y - 1) - height(y + 1))
@@ -329,6 +246,7 @@ planner_server:
     use_sim_time: False
     planner_plugins: ["GridBased"]
     GridBased:
+      allow_reverse: true
       plugin: "nav2_smac_planner/SmacPlannerHybrid"
       downsample_costmap: false # whether or not to downsample the map
       downsampling_factor: 1 # multiplier for the resolution of the costmap layer (e.g. 2 on a 5cm costmap would be 10cm)
@@ -342,13 +260,13 @@ planner_server:
       analytic_expansion_ratio: 3.5 # The ratio to attempt analytic expansions during search for final approach.
       analytic_expansion_max_length: 1.5 # For Hybrid/Lattice nodes: The maximum length of the analytic expansion to be considered valid to prevent unsafe shortcutting
       minimum_turning_radius: 0.20 # minimum turning radius in m of path / vehicle
-      reverse_penalty: 2.0 # Penalty to apply if motion is reversing, must be => 1
+      reverse_penalty: 1.0 # penalty ≥1.0 for reversing. 1.0 means “no extra cost”
       change_penalty: 0.0 # Penalty to apply if motion is changing directions (L to R), must be >= 0
       non_straight_penalty: 1.2 # Penalty to apply if motion is non-straight, must be => 1
       cost_penalty: 3.0 # Penalty to apply to higher cost areas when adding into the obstacle map dynamic programming distance expansion heuristic. This drives the robot more towards the center of passages. A value between 1.3 - 3.5 is reasonable.
       retrospective_penalty: 0.015
       lookup_table_size: 20.0 # Size of the dubin/reeds-sheep distance window to cache, in meters.
-      cache_obstacle_heuristic: false # Cache the obstacle map dynamic programming distance expansion heuristic between subsiquent replannings of the same goal location. Dramatically speeds up replanning performance (40x) if costmap is largely static.
+      cache_obstacle_heuristic: true # Cache the obstacle map dynamic programming distance expansion heuristic between subsiquent replannings of the same goal location. Dramatically speeds up replanning performance (40x) if costmap is largely static.
       debug_visualizations: false # For Hybrid nodes: Whether to publish expansions on the /expansions topic as an array of poses (the orientation has no meaning) and the path's footprints on the /planned_footprints topic. WARNING: heavy to compute and to display, for debug only as it degrades the performance.
       use_quadratic_cost_penalty: False
       downsample_obstacle_heuristic: True
@@ -377,7 +295,8 @@ behavior_server:
     costmap_topic: local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
-    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    behavior_plugins:
+      ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"
     backup:
