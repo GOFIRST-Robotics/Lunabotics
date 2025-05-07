@@ -1,6 +1,5 @@
 import rclpy
 from rclpy.node import Node
-from rovr_interfaces.msg import LimitSwitches
 from rovr_interfaces.msg import Potentiometers
 
 import serial
@@ -12,7 +11,6 @@ class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
 
-        self.limitSwitchesPub = self.create_publisher(LimitSwitches, "limitSwitches", 10)
         self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
 
         try:
@@ -29,19 +27,12 @@ class read_serial(Node):
                 self.get_logger().fatal("Killing read_serial node")
                 self.destroy_node()
                 return
-            data = self.arduino.read(8)  # Pause until 8 bytes are read
-            decoded = struct.unpack("????hh", data)  # Use h for integers and ? for booleans
-
-            msg = LimitSwitches()
-            msg.digger_top_limit_switch = decoded[0]
-            msg.digger_bottom_limit_switch = decoded[1]
-            msg.dumper_top_limit_switch = decoded[2]
-            msg.dumper_bottom_limit_switch = decoded[3]
-            self.limitSwitchesPub.publish(msg)
+            data = self.arduino.read(4)  # Pause until 4 bytes are read
+            decoded = struct.unpack("hh", data)  # Use h for integers and ? for booleans
 
             msg = Potentiometers()
-            msg.left_motor_pot = decoded[4]
-            msg.right_motor_pot = decoded[5]
+            msg.left_motor_pot = decoded[0]
+            msg.right_motor_pot = decoded[1]
             self.potentiometerPub.publish(msg)
 
 
