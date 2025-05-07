@@ -84,6 +84,14 @@ class DrivetrainNode(Node):
         forward_power = max(-1.0, min(forward_power, 1.0))
         turning_power = max(-1.0, min(turning_power, 1.0))
 
+        if (forward_power != 0 and turning_power != 0) and abs(forward_power - turning_power) <= 0.1:
+            if turning_power >= forward_power:
+                forward_power -= 0.1
+                turning_power += 0.1
+            else:
+                forward_power += 0.1
+                turning_power -= 0.1
+
         # Calculate the wheel speeds for each side of the drivetrain
         leftPower = forward_power - turning_power
         rightPower = forward_power + turning_power
