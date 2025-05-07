@@ -35,6 +35,11 @@ def generate_launch_description():
         default_value="True",
         description="Whether to run nvblox",
     )
+    use_nav2_arg = DeclareLaunchArgument(
+        "use_nav2",
+        default_value="True",
+        description="Whether to run nav2",
+    )
     record_svo_arg = DeclareLaunchArgument(
         "record_svo",
         default_value="False",
@@ -145,6 +150,7 @@ def generate_launch_description():
             "params_file": configured_params,
             "autostart": "True",
         }.items(),
+        condition=IfCondition(LaunchConfiguration("use_nav2")),
     )
 
     # apriltag launch
@@ -167,6 +173,7 @@ def generate_launch_description():
             setup_for_gazebo_arg,
             record_svo_arg,
             use_nvblox_arg,
+            use_nav2_arg,
             zed_multicam_arg,
             shared_container,
             nvblox_launch,
