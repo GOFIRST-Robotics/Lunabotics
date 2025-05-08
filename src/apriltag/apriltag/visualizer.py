@@ -36,7 +36,7 @@ class DistanceMapVisualizer(Node):
             if self.distance_map is None:
                 return
 
-            self.gradient_map = np.abs(ndimage.sobel(self.distance_map, axis=0)) + np.abs(ndimage.sobel(self.distance_map, axis=1))
+            self.gradient_map = np.abs(ndimage.sobel(self.distance_map, axis=0)**2) + np.abs(ndimage.sobel(self.distance_map, axis=1)**2)
 
             # self.gradient_map[self.gradient_map > 0.1] = 1
 

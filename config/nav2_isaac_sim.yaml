@@ -183,8 +183,8 @@ local_costmap:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
         gradient_multiplier: 150.0
-        min_grad_diff: 0.045
-        lethal_obstacle_cutoff: 0.055
+        min_grad_diff: 0.02
+        lethal_obstacle_cutoff: 0.03
         # Need to play with this. this is just linear multiplier to the values found by the gradient. 
         # As of right now, the formula for the cost value is 
         # cost = min(max_cost, (gradient * gradient_multiplier * max_cost))
@@ -225,7 +225,7 @@ global_costmap:
         enabled: True
         gradient_multiplier: 1.0
         min_grad_diff: 0.05
-        lethal_obstacle_cutoff: 0.1
+        lethal_obstacle_cutoff: 0.08
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
