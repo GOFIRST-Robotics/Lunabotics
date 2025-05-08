@@ -21,25 +21,26 @@ def generate_launch_description():
         launch_arguments={
             "setup_for_zed": "True",
             "setup_for_gazebo": "False",
-            "use_nvblox": "True",
+            "use_nvblox": "False",
             "use_nav2": "True",
             "run_rviz_robot": "False",  # We don't need to run RViz during matches
-            "zed_multicam": "True",  # Use multiple ZED cameras
+            "zed_multicam": "False",  # Use multiple ZED cameras
             "record_svo": "True",  # Record match data to an SVO file
+            "use_apriltags": "False",
         }.items(),
     )
 
-    gstreamer_server = Node(
-        package="gstreamer",
-        executable="server_node",
-        name="gstreamer_server_node",
-        output="screen",
-        emulate_tty=True,
-    )
+    # gstreamer_server = Node(
+    #     package="gstreamer",
+    #     executable="server_node",
+    #     name="gstreamer_server_node",
+    #     output="screen",
+    #     emulate_tty=True,
+    # )
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
-    ld.add_action(gstreamer_server)
+    # ld.add_action(gstreamer_server)
     ld.add_action(isaac_launch)
 
     # Return the launch description
