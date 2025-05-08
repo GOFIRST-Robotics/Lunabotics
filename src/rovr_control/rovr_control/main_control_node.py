@@ -259,7 +259,7 @@ class MainControlNode(Node):
                     AutoDigNavOffload.Goal(
                         lift_digging_start_position=self.lift_digging_start_position,
                         digger_chain_power=self.digger_chain_power,
-                        backward_distance=0.2,  # meters # TODO: Tune this distance!
+                        backward_distance=1.9,  # meters
                     )
                 )
                 if not self.auto_dig_nav_offload_handle.accepted:

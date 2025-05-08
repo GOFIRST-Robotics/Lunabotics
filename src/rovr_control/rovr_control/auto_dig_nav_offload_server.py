@@ -84,7 +84,7 @@ class AutoDigNavOffloadServer(AsyncNode):
 
     async def _do_backup(self, goal_handle):
         dist = goal_handle.request.backward_distance
-        speed = 1.0  # duty cycle
+        speed = 0.5  # duty cycle
         timeout = 60.0  # seconds
         self.get_logger().info(f"→ Backing up {dist} m @ {speed} (duty cycle)")
 
