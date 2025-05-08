@@ -4,6 +4,9 @@ from rclpy.action.server import ServerGoalHandle
 from nav2_msgs.action import BackUp
 from rovr_interfaces.action import AutoDig, AutoOffload, AutoDigNavOffload
 from rovr_control.node_util import AsyncNode
+from builtin_interfaces.msg import Duration
+from geometry_msgs.msg import Point
+from action_msgs.msg import GoalStatus
 
 
 class AutoDigNavOffloadServer(AsyncNode):
@@ -21,14 +24,14 @@ class AutoDigNavOffloadServer(AsyncNode):
 
         # Sub‑actions: dig, backup, offload
         self._auto_dig_client = ActionClient(self, AutoDig, "auto_dig")
-        self._backup_client = ActionClient(self, BackUp, "backup_server")
+        self._backup_client = ActionClient(self, BackUp, "backup")
         self._auto_offload_client = ActionClient(self, AutoOffload, "auto_offload")
 
         self.dig_in_progress = False
         self.backup_in_progress = False
         self.offload_in_progress = False
 
-        self.get_logger().info("Auto Dig–Backup–Offload server ready")
+        self.get_logger().info("Auto Dig-Backup-Offload server ready")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         result = AutoDigNavOffload.Result()
@@ -81,22 +84,24 @@ class AutoDigNavOffloadServer(AsyncNode):
 
     async def _do_backup(self, goal_handle):
         dist = goal_handle.request.backward_distance
-        speed = 0.25  # duty cycle
-        timeout = 20.0  # seconds
+        speed = 1.0  # duty cycle
+        timeout = 60.0  # seconds
         self.get_logger().info(f"→ Backing up {dist} m @ {speed} (duty cycle)")
 
         if not self._backup_client.wait_for_server(timeout_sec=5.0):
             self.get_logger().error("BackUp server unavailable")
             return False
 
+        target_point = Point()
+        target_point.x = -abs(dist)  # negative x = backward
+        target_point.y = 0.0
+        target_point.z = 0.0
+
         self.backup_in_progress = True
         backup_goal = BackUp.Goal(
-            backup_dist=-abs(dist),  # negative = backward
-            backup_speed=speed,
-            time_allowance=timeout,
-            server_name="backup_server",
-            server_timeout=10.0,
-            disable_collision_checks=False,
+            speed=speed,
+            target=target_point,
+            time_allowance=Duration(sec=int(timeout)),
         )
         send = await self._backup_client.send_goal_async(backup_goal)
         if not send.accepted:
@@ -116,11 +121,11 @@ class AutoDigNavOffloadServer(AsyncNode):
 
         result = await result_future
         self.backup_in_progress = False
-        if result.status == result.Status.SUCCEEDED and result.result.error_code_id == 0:
+        if result.status == GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().info("→ BackUp succeeded")
             return True
         else:
-            self.get_logger().error(f"BackUp failed: {result.result.error_msg}")
+            self.get_logger().error(f"BackUp failed: {result}")
             return False
 
     async def _do_auto_offload(self, goal_handle):
