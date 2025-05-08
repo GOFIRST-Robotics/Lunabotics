@@ -69,7 +69,7 @@ class MainControlNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_chain_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("digger_chain_power", 0.18)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_down", 0.12)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", 125.0)  # Measured in encoder counts
@@ -259,7 +259,7 @@ class MainControlNode(Node):
                     AutoDigNavOffload.Goal(
                         lift_digging_start_position=self.lift_digging_start_position,
                         digger_chain_power=self.digger_chain_power,
-                        backward_distance=1.9,  # meters
+                        backward_distance=1.8,  # meters
                     )
                 )
                 if not self.auto_dig_nav_offload_handle.accepted:

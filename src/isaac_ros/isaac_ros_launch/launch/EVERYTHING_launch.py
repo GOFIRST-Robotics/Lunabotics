@@ -24,16 +24,12 @@ def generate_launch_description():
             "use_nvblox": "False",
             "use_nav2": "True",
             "run_rviz_robot": "False",  # We don't need to run RViz during matches
-            "zed_multicam": "False",  # Use multiple ZED cameras
+            "zed_multicam": "True",  # Use multiple ZED cameras
             "record_svo": "True",  # Record match data to an SVO file
             "use_apriltags": "False",
         }.items(),
     )
 
-
-
-    # Add all of the actions to the launch description
-    ld.add_action(main_launch)
     camera_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([FindPackageShare("rovr_control"), "camera_launch.py"]))
     )
