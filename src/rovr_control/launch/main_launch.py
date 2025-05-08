@@ -83,6 +83,12 @@ def generate_launch_description():
         name="auto_offload_server",
     )
 
+    auto_dig_nav_offload_server = Node(
+        package="rovr_control",
+        executable="auto_dig_nav_offload_server",
+        name="auto_dig_nav_offload_server",
+    )
+
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
     ld.add_action(joystick_node)
@@ -94,5 +100,6 @@ def generate_launch_description():
     ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(auto_dig_server)
     ld.add_action(auto_offload_server)
+    ld.add_action(auto_dig_nav_offload_server)
 
     return ld
