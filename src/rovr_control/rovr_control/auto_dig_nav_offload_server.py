@@ -81,9 +81,9 @@ class AutoDigNavOffloadServer(AsyncNode):
 
     async def _do_backup(self, goal_handle):
         dist = goal_handle.request.backward_distance
-        speed = 0.025  # or expose as a parameter
-        timeout = 10.0  # seconds
-        self.get_logger().info(f"→ Backing up {dist} m @ {speed} m/s")
+        speed = 0.25  # duty cycle
+        timeout = 20.0  # seconds
+        self.get_logger().info(f"→ Backing up {dist} m @ {speed} (duty cycle)")
 
         if not self._backup_client.wait_for_server(timeout_sec=5.0):
             self.get_logger().error("BackUp server unavailable")
