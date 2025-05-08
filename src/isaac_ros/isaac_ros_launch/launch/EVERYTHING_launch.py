@@ -29,18 +29,14 @@ def generate_launch_description():
         }.items(),
     )
 
-    gstreamer_server = Node(
-        package="gstreamer",
-        executable="server_node",
-        name="gstreamer_server_node",
-        output="screen",
-        emulate_tty=True,
+    camera_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([FindPackageShare("rovr_control"), "camera_launch.py"]))
     )
 
     # Add all of the actions to the launch description
     ld.add_action(main_launch)
-    ld.add_action(gstreamer_server)
     ld.add_action(isaac_launch)
+    ld.add_action(camera_launch)
 
     # Return the launch description
     return ld
