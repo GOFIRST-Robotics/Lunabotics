@@ -82,7 +82,9 @@ class AutoDigServer(AsyncNode):
 
             # Dig in place (no lift lowering) for dig_sec seconds
             if not goal_handle.is_cancel_requested:
-                await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
+                await self.cli_digger_setPower.call_async(
+                    SetPower.Request(power=goal_handle.request.digger_chain_power)
+                )
                 self.get_logger().info("Auto Digging in Place")
                 await self.async_sleep(dig_sec)
                 self.get_logger().info("Done Digging in Place")
