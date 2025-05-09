@@ -83,12 +83,11 @@ def generate_launch_description():
         name="auto_offload_server",
     )
 
-    # # Add behavior tree action nodes
-    # calibrate_field_coordinate = Node(
-    #     package="rovr_control",
-    #     executable="calibrate_field_coordinate",
-    #     name="calibrate_field_coordinate",
-    # )
+    auto_dig_nav_offload_server = Node(
+        package="rovr_control",
+        executable="auto_dig_nav_offload_server",
+        name="auto_dig_nav_offload_server",
+    )
 
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
@@ -101,6 +100,6 @@ def generate_launch_description():
     ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(auto_dig_server)
     ld.add_action(auto_offload_server)
-    # ld.add_action(calibrate_field_coordinate)
+    ld.add_action(auto_dig_nav_offload_server)
 
     return ld

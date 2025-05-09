@@ -490,7 +490,7 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
-    else if ((msg.left_motor_pot == 1023) || (msg.right_motor_pot == 1023)) {
+    else if ((msg.left_motor_pot >= 1023) || (msg.right_motor_pot >= 1023)) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
@@ -498,7 +498,7 @@ private:
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Potentiometer has reached max value! Stopping both motors, check if one is unplugged");
     }
-    else if ((msg.left_motor_pot == 0) || (msg.right_motor_pot == 0)) {
+    else if ((msg.left_motor_pot <= 0) || (msg.right_motor_pot <= 0)) {
       // Stop both motors!
       this->digger_lift_goal = { "duty_cycle", 0.0 };
       vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
