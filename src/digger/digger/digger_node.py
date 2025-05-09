@@ -75,24 +75,31 @@ class DiggerNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("digger_lift_manual_power_down", 0.12)
+        self.declare_parameter("auto_dig_final_lift_speed", 0.08)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)
         self.declare_parameter("DIGGER_MOTOR", 3)
         self.declare_parameter("DIGGER_ACTUATORS_OFFSET", 12)
         self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
+        self.declare_parameter("lift_digging_end_position", 900)  # Measured in potentiometer units (0 to 1023)
         # Assign the ROS Parameters to member variables below #
         self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
+        self.auto_dig_final_lift_speed = self.get_parameter("auto_dig_final_lift_speed").value
         self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
         self.DIGGER_ACTUATORS_OFFSET = self.get_parameter("DIGGER_ACTUATORS_OFFSET").value
         self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
+        self.lift_digging_end_position = self.get_parameter("lift_digging_end_position").value
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info(
             "digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down)
         )
+        self.get_logger().info("auto_dig_final_lift_speed has been set to: " + str(self.auto_dig_final_lift_speed))
         self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
         self.get_logger().info("DIGGER_ACTUATORS_OFFSET has been set to: " + str(self.DIGGER_ACTUATORS_OFFSET))
         self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
+        self.get_logger().info("lift_digging_end_position has been set to: " + str(self.lift_digging_end_position))
+
         # Current state of the digger chain
         self.running = False
         # Current position of the lift motor in potentiometer units (0 to 1023)
@@ -209,10 +216,26 @@ class DiggerNode(Node):
         """This method bottoms out the lift system by slowly lowering it until the duty cycle is 0."""
         self.get_logger().info("Bottoming out the lift system")
         self.long_service_running = True
-        self.lift_set_power(-self.digger_lift_manual_power_down)
+        current_power = self.digger_lift_manual_power_down
+        self.lift_set_power(-current_power)
+        # Store the initial position for Linear Interpolation
+        initial_position = self.current_lift_position
         lastPowerTime = time.time()
         # Wait 0.5 seconds after the current goes below the threshold before stopping the motor
         while time.time() - lastPowerTime < 0.5:
+            # Calculate interpolated power (only if positions are different to avoid division by zero)
+            if initial_position != self.lift_digging_end_position and self.current_lift_position != initial_position:
+                progress = (self.current_lift_position - initial_position) / (
+                    self.lift_digging_end_position - initial_position
+                )
+                # Constrain progress between 0 and 1
+                progress = max(0, min(1, progress))
+                self.get_logger().info("Progress is currently: " + str(progress))
+                current_power = self.digger_lift_manual_power_down - progress * (
+                    self.digger_lift_manual_power_down - self.auto_dig_final_lift_speed
+                )
+                self.get_logger().info("Power is currently: " + str(current_power))
+            self.lift_set_power(-current_power)
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
