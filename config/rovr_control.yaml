@@ -2,7 +2,7 @@
   ros__parameters:
     max_drive_power: 1.0 # Measured in Duty Cycle (0.0-1.0)
     max_turn_power: 1.0 # Measured in Duty Cycle (0.0-1.0)
-    digger_chain_power: 0.2 # Measured in Duty Cycle (0.0-1.0)
+    digger_chain_power: 0.18 # Measured in Duty Cycle (0.0-1.0)
     digger_lift_manual_power_down: 0.12 # Measured in Duty Cycle (0.0-1.0)
     digger_lift_manual_power_up: 0.5 # Measured in Duty Cycle (0.0-1.0)
     autonomous_field_type: "cosmic" # The type of field ("cosmic", "top", "bottom", "nasa")

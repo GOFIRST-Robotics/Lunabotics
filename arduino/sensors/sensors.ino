@@ -13,8 +13,8 @@ struct SensorData {
 #define DIGGER_BOTTOM_LIMIT_SWITCH 3
 #define DUMPER_TOP_LIMIT_SWITCH 4
 #define DUMPER_BOTTOM_LIMIT_SWITCH 5
-#define LEFT_MOTOR_POT_PIN A0
-#define RIGHT_MOTOR_POT_PIN A1
+#define LEFT_MOTOR_POT_PIN A2
+#define RIGHT_MOTOR_POT_PIN A3
 
 void setup() {
   // Initialize serial communication
