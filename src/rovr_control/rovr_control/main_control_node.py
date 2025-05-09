@@ -21,7 +21,7 @@ from std_msgs.msg import Float32
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload
+from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
 from std_srvs.srv import Trigger
 
 # Import Python Modules
@@ -69,7 +69,7 @@ class MainControlNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_chain_power", 0.2)  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter("digger_chain_power", 0.18)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_down", 0.12)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("lift_digging_start_position", 125.0)  # Measured in encoder counts
@@ -134,10 +134,12 @@ class MainControlNode(Node):
         )
         self.act_auto_dig = ActionClient(self, AutoDig, "auto_dig")
         self.act_auto_offload = ActionClient(self, AutoOffload, "auto_offload")
+        self.act_auto_dig_nav_offload = ActionClient(self, AutoDigNavOffload, "auto_dig_nav_offload")
 
         self.field_calibrated_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_dig_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
+        self.auto_dig_nav_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
 
         # Current position of the lift motor in potentiometer units (0 to 1023)
         self.current_lift_position = None  # We don't know the current position yet
@@ -220,28 +222,56 @@ class MainControlNode(Node):
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
-        # Check if the Apriltag calibration button is pressed
+        # # Check if the Apriltag calibration button is pressed
+        # # TODO: This autonomous action needs to be tested on the physical robot!
+        # if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
+        #     # Check if the field calibration process is not running
+        #     if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
+        #         if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
+        #             self.get_logger().error("Field calibration action not available")
+        #             return
+        #         self.stop_all_subsystems()
+        #         self.field_calibrated_handle = await self.act_calibrate_field_coordinates.send_goal_async(
+        #             CalibrateFieldCoordinates.Goal()
+        #         )
+        #         if not self.field_calibrated_handle.accepted:
+        #             self.get_logger().info("Field calibration Goal rejected")
+        #             return
+        #         self.field_calibrated_handle.get_result_async().add_done_callback(self.get_result_callback)
+        #         self.state = states["Autonomous"]
+        #     # Terminate the field calibration process
+        #     else:
+        #         self.get_logger().warn("Field Calibration Terminated")
+        #         # Cancel the goal
+        #         future = self.field_calibrated_handle.cancel_goal_async()
+        #         future.add_done_callback(self.cancel_done)
+
+        # Check if the Auto Dig Nav button is pressed
         # TODO: This autonomous action needs to be tested on the physical robot!
         if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
-            # Check if the field calibration process is not running
-            if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
-                if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
-                    self.get_logger().error("Field calibration action not available")
+            # Check if the Auto Dig Nav Offload process is not running
+            if self.auto_dig_nav_offload_handle.status != GoalStatus.STATUS_EXECUTING:
+                if not self.act_auto_dig_nav_offload.wait_for_server(timeout_sec=1.0):
+                    self.get_logger().error("Auto Dig Nav Offload action not available")
                     return
                 self.stop_all_subsystems()
-                self.field_calibrated_handle = await self.act_calibrate_field_coordinates.send_goal_async(
-                    CalibrateFieldCoordinates.Goal()
+                self.auto_dig_nav_offload_handle = await self.act_auto_dig_nav_offload.send_goal_async(
+                    AutoDigNavOffload.Goal(
+                        lift_digging_start_position=self.lift_digging_start_position,
+                        digger_chain_power=self.digger_chain_power,
+                        backward_distance=1.8,  # meters
+                    )
                 )
-                if not self.field_calibrated_handle.accepted:
-                    self.get_logger().info("Field calibration Goal rejected")
+                if not self.auto_dig_nav_offload_handle.accepted:
+                    self.get_logger().info("Auto Dig Nav Offload Goal rejected")
                     return
-                self.field_calibrated_handle.get_result_async().add_done_callback(self.get_result_callback)
+                self.auto_dig_nav_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
-            # Terminate the field calibration process
+            # Terminate the Auto Dig Nav Offload process
             else:
-                self.get_logger().warn("Field Calibration Terminated")
+                self.get_logger().warn("Auto Dig Nav Offload Terminated")
                 # Cancel the goal
-                future = self.field_calibrated_handle.cancel_goal_async()
+                future = self.auto_dig_nav_offload_handle.cancel_goal_async()
                 future.add_done_callback(self.cancel_done)
 
         # Check if the autonomous digging button is pressed

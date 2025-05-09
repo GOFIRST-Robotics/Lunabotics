@@ -19,5 +19,5 @@
     DIGGER_SAFETY_ZONE: 120 # Measured in potentiometer units (0 to 1023)
     CURRENT_SPIKE_THRESHOLD: 1.8 # Threshold for current spike detection (measured in Amps)
     CURRENT_SPIKE_TIME: 0.2 # Time in seconds to consider it a current spike (measured in seconds)
-    BUCKETS_CURRENT_SPIKE_THRESHOLD: 8.0 # Threshold for current spike detection (measured in Amps) # TODO: Tune this
-    BUCKETS_CURRENT_SPIKE_TIME: 0.2 # Time in seconds to consider it a current spike (measured in seconds) # TODO: Tune this
+    BUCKETS_CURRENT_SPIKE_THRESHOLD: 10.0 # Threshold for current spike detection (measured in Amps)
+    BUCKETS_CURRENT_SPIKE_TIME: 0.2 # Time in seconds to consider it a current spike (measured in seconds)

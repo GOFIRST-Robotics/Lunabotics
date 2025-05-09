@@ -75,7 +75,9 @@ class DrivetrainNode(Node):
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
 
-        if self.current_lift_position is None or self.current_lift_position > self.DIGGER_SAFETY_ZONE:
+        if (
+            self.current_lift_position is None or self.current_lift_position > self.DIGGER_SAFETY_ZONE
+        ) and not self.GAZEBO_SIMULATION:
             self.get_logger().warn("Digger outside the safety zone, cannot drive!")
             self.stop()
             return
