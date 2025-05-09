@@ -22,7 +22,7 @@ from std_msgs.msg import Float32
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, SetBool
 
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
