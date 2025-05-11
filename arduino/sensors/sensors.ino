@@ -7,7 +7,7 @@ struct SensorData {
 // Define the sensor pins here
 #define LEFT_MOTOR_POT_PIN A0
 #define RIGHT_MOTOR_POT_PIN A1
-#define RELAY_PIN 7  // TODO: Edit this with the correct pin number
+#define RELAY_PIN 7
 
 void setup() {
   // Initialize serial communication

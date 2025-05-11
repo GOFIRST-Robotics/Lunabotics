@@ -3,7 +3,7 @@ from rclpy.action import ActionServer
 from rclpy.action.server import CancelResponse, ServerGoalHandle
 
 from rovr_interfaces.action import AutoOffload
-from std_srvs.srv import Trigger, SetBool
+from std_srvs.srv import Trigger
 
 from rovr_control.node_util import AsyncNode
 
