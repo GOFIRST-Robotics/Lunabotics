@@ -161,7 +161,7 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
-        self.self.cli_motor_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
+        self.cli_motor_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -202,7 +202,7 @@ class MainControlNode(Node):
 
             # Check if the agitator button is pressed #
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
+                self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:

@@ -22,7 +22,6 @@ class AutoOffloadServer(AsyncNode):
         self.cli_dumper_extend = self.create_client(Trigger, "dumper/extendDumper")
         self.cli_dumper_retract = self.create_client(Trigger, "dumper/retractDumper")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
-        self.cli_motor_on_off = self.create_client(SetBool, "motor_on_off")
         self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
@@ -43,10 +42,6 @@ class AutoOffloadServer(AsyncNode):
             self.get_logger().error("Dumper stop service not available")
             goal_handle.abort()
             return result
-        if not self.cli_motor_on_off.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Agitator motor on/off service not available")
-            goal_handle.abort()
-            return result
         if not self.cli_motor_toggle.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Agitator motor toggle service not available")
             goal_handle.abort()
@@ -57,16 +52,8 @@ class AutoOffloadServer(AsyncNode):
             self.get_logger().info("Auto Dumping")
             await self.cli_dumper_extend.call_async(Trigger.Request())
         if not goal_handle.is_cancel_requested:
-            # Start the agitator motor
-            self.get_logger().info("Starting Agitator Motor")
-            await self.cli_motor_on_off.call_async(SetBool.Request(data=True))
-        if not goal_handle.is_cancel_requested:
             # wait for 5 seconds before retracting the dumper
             await self.async_sleep(5)  # Allows for task to be canceled
-        if not goal_handle.is_cancel_requested:
-            # Stop the agitator motor
-            self.get_logger().info("Stopping Agitator Motor")
-            await self.cli_motor_on_off.call_async(SetBool.Request(data=False))
         if not goal_handle.is_cancel_requested:
             # retract the dumper
             await self.cli_dumper_retract.call_async(Trigger.Request())
@@ -85,7 +72,6 @@ class AutoOffloadServer(AsyncNode):
         super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")
         self.cli_dumper_stop.call_async(Trigger.Request())
-        self.cli_motor_on_off.call_async(SetBool.Request(data=False))
         return CancelResponse.ACCEPT
 
 
