@@ -22,7 +22,6 @@ class AutoOffloadServer(AsyncNode):
         self.cli_dumper_extend = self.create_client(Trigger, "dumper/extendDumper")
         self.cli_dumper_retract = self.create_client(Trigger, "dumper/retractDumper")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
-        self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         """This method lays out the procedure for autonomously offloading!"""
@@ -40,10 +39,6 @@ class AutoOffloadServer(AsyncNode):
             return result
         if not self.cli_dumper_stop.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Dumper stop service not available")
-            goal_handle.abort()
-            return result
-        if not self.cli_motor_toggle.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Agitator motor toggle service not available")
             goal_handle.abort()
             return result
 
