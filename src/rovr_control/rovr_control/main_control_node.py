@@ -22,7 +22,7 @@ from std_msgs.msg import Float32
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, SetBool
 
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
@@ -116,6 +116,8 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
+        self.cli_motor_on_off = self.create_client(SetBool, "motor_on_off")
+        self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -159,6 +161,7 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
+        self.cli_motor_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -196,6 +199,10 @@ class MainControlNode(Node):
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
                 self.cli_dumper_stop.call_async(Trigger.Request())  # Stop whatever the dumper is doing
                 self.cli_dumper_toggle.call_async(Trigger.Request())  # Toggle the dumper (extended or retracted)
+
+            # Check if the agitator button is pressed #
+            if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
+                self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
