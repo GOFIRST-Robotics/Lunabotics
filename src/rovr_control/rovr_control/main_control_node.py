@@ -151,9 +151,9 @@ class MainControlNode(Node):
         self.watchdog_timeout = self.get_parameter("watchdog_timeout").value
         self.last_joy_timestamp = time.time()
 
-        # Create timer for watchdog
-        self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
-        self.connection_active = True
+        # # Create timer for watchdog
+        # self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
+        # self.connection_active = True
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -326,22 +326,22 @@ class MainControlNode(Node):
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
 
-    def watchdog_callback(self):
-        """Check if we've received joystick messages recently"""
-        current_time = time.time()
-        time_since_last_joy = current_time - self.last_joy_timestamp
+    # def watchdog_callback(self):
+    #     """Check if we've received joystick messages recently"""
+    #     current_time = time.time()
+    #     time_since_last_joy = current_time - self.last_joy_timestamp
 
-        # If we haven't received a message in watchdog_timeout seconds
-        if time_since_last_joy > self.watchdog_timeout:
-            if self.connection_active:  # Only trigger once when connection is lost
-                self.get_logger().warn(
-                    f"No joystick messages received for {time_since_last_joy:.2f} seconds! Stopping the robot."
-                )
-                self.stop_all_subsystems()  # Stop all robot movement! (safety feature)
-                self.connection_active = False
-        elif not self.connection_active:
-            self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
-            self.connection_active = True
+    #     # If we haven't received a message in watchdog_timeout seconds
+    #     if time_since_last_joy > self.watchdog_timeout:
+    #         if self.connection_active:  # Only trigger once when connection is lost
+    #             self.get_logger().warn(
+    #                 f"No joystick messages received for {time_since_last_joy:.2f} seconds! Stopping the robot."
+    #             )
+    #             self.stop_all_subsystems()  # Stop all robot movement! (safety feature)
+    #             self.connection_active = False
+    #     elif not self.connection_active:
+    #         self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
+    #         self.connection_active = True
 
     # Define the subscriber callback for the lift pose topic
     def lift_pose_callback(self, msg: Float32):

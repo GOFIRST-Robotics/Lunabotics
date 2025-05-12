@@ -47,8 +47,8 @@ class AutoOffloadServer(AsyncNode):
             self.get_logger().info("Auto Dumping")
             await self.cli_dumper_extend.call_async(Trigger.Request())
         if not goal_handle.is_cancel_requested:
-            # wait for 5 seconds before retracting the dumper
-            await self.async_sleep(5)  # Allows for task to be canceled
+            # wait for 2 seconds before retracting the dumper
+            await self.async_sleep(2)  # Allows for task to be canceled
         if not goal_handle.is_cancel_requested:
             # retract the dumper
             await self.cli_dumper_retract.call_async(Trigger.Request())

@@ -28,6 +28,8 @@ class read_serial(Node):
             return
 
         self.timer = self.create_timer(0.1, self.timer_callback)
+        self.lastMsg = Potentiometers()
+        self.agitatorOn = False
 
     def timer_callback(self):
         if self.arduino is None:
@@ -41,6 +43,7 @@ class read_serial(Node):
         msg.left_motor_pot = decoded[0]
         msg.right_motor_pot = decoded[1]
         self.potentiometerPub.publish(msg)
+        self.lastMsg = msg
 
     def on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
@@ -48,12 +51,18 @@ class read_serial(Node):
         self.arduino.write(cmd)
         response.success = True
         response.message = "Agitator motor turned " + ("on" if request.data else "off")
+        self.agitatorOn = request.data
         return response
 
     def toggle_callback(self, request, response):
-        self.arduino.write(b"2")
-        response.success = True
-        response.message = "Agitator motor toggled"
+        if self.agitatorOn:
+            response2 = SetBool.Response()
+            self.on_off_callback(SetBool.Request(data=False), response2)
+        else:
+            response2 = SetBool.Response()
+            self.on_off_callback(SetBool.Request(data=True), response2)
+        response.success = response2.success
+        response.message = response2.message
         return response
 
 

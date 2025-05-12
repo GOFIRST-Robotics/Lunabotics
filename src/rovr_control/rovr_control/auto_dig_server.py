@@ -81,28 +81,48 @@ class AutoDigServer(AsyncNode):
             self.get_logger().info("Starting the digger chain")
             await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
 
+        # Lower the digger to 400
+        if not goal_handle.is_cancel_requested:
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=400.0, power_limit=0.12)
+            )
+
+        # Lower the digger to 550
+        if not goal_handle.is_cancel_requested:
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=550.0, power_limit=0.10)
+            )
+
         if not goal_handle.is_cancel_requested:
             # Start the agitator motor
             self.get_logger().info("Starting Agitator Motor")
             await self.cli_motor_on_off.call_async(SetBool.Request(data=True))
 
-        # Retry x times to lower the digger into the ground when current limits are hit
-        x, dig_sec = 3, 5
-        for _ in range(x):
-            # Lower the digger into the ground slowly
-            if not goal_handle.is_cancel_requested:
-                self.get_logger().info("Lowering the digger into the ground")
-                await self.cli_lift_bottom.call_async(Trigger.Request())
+        # Lower the digger to 650
+        if not goal_handle.is_cancel_requested:
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=650.0, power_limit=0.09)
+            )
 
-            # Dig in place (no lift lowering) for dig_sec seconds
-            if not goal_handle.is_cancel_requested:
-                await self.cli_digger_setPower.call_async(
-                    SetPower.Request(power=goal_handle.request.digger_chain_power)
-                )
-                self.get_logger().info("Auto Digging in Place")
-                await self.async_sleep(dig_sec)
-                self.get_logger().info("Done Digging in Place")
-        self.cli_digger_stop.call_async(Trigger.Request())
+        # Lower the digger to 750
+        if not goal_handle.is_cancel_requested:
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
+            await self.cli_lift_setPosition.call_async(
+                SetPosition.Request(position=750.0, power_limit=0.10)
+            )
+
+        # Dig in place (no lift lowering) for 5 seconds
+        if not goal_handle.is_cancel_requested:
+            await self.cli_digger_setPower.call_async(
+                SetPower.Request(power=goal_handle.request.digger_chain_power)
+            )
+            self.get_logger().info("Auto Digging in Place")
+            await self.async_sleep(5)
+            self.get_logger().info("Done Digging in Place")
+            self.cli_digger_stop.call_async(Trigger.Request())
 
         if not goal_handle.is_cancel_requested:
             # Stop the agitator motor
@@ -120,7 +140,7 @@ class AutoDigServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Starting the digger chain")
             await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
-            await self.async_sleep(10)
+            await self.async_sleep(5)
 
         # Raise the digger back up to the top using the lift
         if not goal_handle.is_cancel_requested:
