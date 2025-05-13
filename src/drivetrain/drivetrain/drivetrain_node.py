@@ -77,7 +77,7 @@ class DrivetrainNode(Node):
 
         if (
             self.current_lift_position is None or self.current_lift_position > self.DIGGER_SAFETY_ZONE
-        ) and not self.GAZEBO_SIMULATION:
+        ) and not self.GAZEBO_SIMULATION and (forward_power != 0 or turning_power != 0):
             self.get_logger().warn("Digger outside the safety zone, cannot drive!")
             self.stop()
             return
