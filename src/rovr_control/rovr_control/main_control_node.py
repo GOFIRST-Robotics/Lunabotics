@@ -254,7 +254,6 @@ class MainControlNode(Node):
         #         future.add_done_callback(self.cancel_done)
 
         # Check if the Auto Dig Nav button is pressed
-        # TODO: This autonomous action needs to be tested on the physical robot!
         if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
             # Check if the Auto Dig Nav Offload process is not running
             if self.auto_dig_nav_offload_handle.status != GoalStatus.STATUS_EXECUTING:
