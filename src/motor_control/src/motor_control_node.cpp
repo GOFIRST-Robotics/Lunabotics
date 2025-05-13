@@ -65,6 +65,7 @@ struct MotorData {
 struct DiggerLiftGoal {
   std::string type;
   float value;
+  float power_limit;
 };
 
 class PIDController {
@@ -251,7 +252,7 @@ class MotorControlNode : public rclcpp::Node {
   void set_digger_lift_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Request> request,
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandSet::Response> response) {
     // Update the current digger lift goal
-    this->digger_lift_goal = { request->type, request->value };
+    this->digger_lift_goal = { request->type, request->value, request->power_limit };
     response->success = true;
   }
 
@@ -302,7 +303,7 @@ public:
     this->declare_parameter("DIGGER_ACTUATORS_kP", 0.05);
     this->declare_parameter("DIGGER_ACTUATORS_kP_coupling", 0.10);
     this->declare_parameter("DIGGER_PITCH_kP", 2.5);
-    this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", true);
+    this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", false);
     this->declare_parameter("CURRENT_SPIKE_THRESHOLD", 1.8);
     this->declare_parameter("CURRENT_SPIKE_TIME", 0.2);
     this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0);
@@ -338,6 +339,7 @@ public:
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
     cli_digger_stop = this->create_client<std_srvs::srv::Trigger>("digger/stop");
+    cli_lift_stop = this->create_client<std_srvs::srv::Trigger>("lift/stop");
 
     digger_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("Digger_Current", 5);
     dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 5);
@@ -351,7 +353,7 @@ public:
     pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed2i/zed_node_zed2i/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
 
     // Initialize the current digger lift goal
-    this->digger_lift_goal = { "duty_cycle", 0.0 }; // Stopped by default
+    this->digger_lift_goal = { "duty_cycle", 0.0, 0.0 }; // Stopped by default
   }
 
 private:
@@ -417,32 +419,30 @@ private:
     digger_linear_actuator_msg.data = {this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current, this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current};
     digger_linear_actuator_pub->publish(digger_linear_actuator_msg);
 
-    // Linear actuators current spike detection
-    double current_threshold = this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
-    double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
-    double left_current = this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current;
-    double right_current = this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current;
-    // RCLCPP_INFO(this->get_logger(), "Left Current: %fA Right Current: %fA", left_current, right_current);
-    if ((this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0
-    || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0)
-    && (left_current > current_threshold || right_current > current_threshold)) {
-      if (start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *start).count() > time_limit) {
-          // Stop both linear actuators and the dumper motor
-          this->digger_lift_goal = { "duty_cycle", 0.0 };  
-          vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
-          vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
-          this->cli_digger_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
-          RCLCPP_WARN(this->get_logger(), "WARNING: Linear actuator current draw is too high! (%fA, %fA) Stopping the digger.", left_current, right_current);
-          return;
-      } else if (!start.has_value()) {
-          start = std::chrono::steady_clock::now();
-          RCLCPP_DEBUG(this->get_logger(), "Starting the timer for current spike detection.");
-      }
-    } else if (start.has_value()) {
-        // Clear the start time when the current falls below the threshold
-        start.reset();
-        RCLCPP_DEBUG(this->get_logger(), "Resetting the timer for current spike detection.");
-    }
+    // // Linear actuators current spike detection
+    // double current_threshold = this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
+    // double time_limit = this->get_parameter("CURRENT_SPIKE_TIME").as_double(); // in seconds
+    // double left_current = this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].current;
+    // double right_current = this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].current;
+    // // RCLCPP_INFO(this->get_logger(), "Left Current: %fA Right Current: %fA", left_current, right_current);
+    // if ((this->can_data[this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0
+    // || this->can_data[this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int()].dutyCycle < 0.0)
+    // && (left_current > current_threshold || right_current > current_threshold)) {
+    //   if (start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *start).count() > time_limit) {
+    //       // Stop both linear actuators and the dumper motor
+    //       this->cli_lift_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+    //       this->cli_digger_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+    //       RCLCPP_WARN(this->get_logger(), "WARNING: Linear actuator current draw is too high! (%fA, %fA) Stopping the digger.", left_current, right_current);
+    //       return;
+    //   } else if (!start.has_value()) {
+    //       start = std::chrono::steady_clock::now();
+    //       RCLCPP_DEBUG(this->get_logger(), "Starting the timer for current spike detection.");
+    //   }
+    // } else if (start.has_value()) {
+    //     // Clear the start time when the current falls below the threshold
+    //     start.reset();
+    //     RCLCPP_DEBUG(this->get_logger(), "Resetting the timer for current spike detection.");
+    // }
 
     // Digging buckets current spike detection
     double buckets_current_threshold = this->get_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD").as_double(); // in amps
@@ -452,9 +452,7 @@ private:
     if (buckets_current > buckets_current_threshold) {
       if (buckets_start.has_value() && std::chrono::duration<double>(std::chrono::steady_clock::now() - *buckets_start).count() > buckets_time_limit) {
           // Stop both linear actuators and the dumper motor
-          this->digger_lift_goal = { "duty_cycle", 0.0 };  
-          vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
-          vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+          this->cli_lift_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
           this->cli_digger_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
           RCLCPP_WARN(this->get_logger(), "WARNING: Buckets current draw is too high! (%fA) Stopping the digger.", buckets_current);
           return;
@@ -468,7 +466,7 @@ private:
         RCLCPP_DEBUG(this->get_logger(), "Resetting the timer for buckets current spike detection.");
     }
 
-    double kP = this->get_parameter("DIGGER_ACTUATORS_kP").as_double();
+    float kP = static_cast<float>(this->get_parameter("DIGGER_ACTUATORS_kP").as_double());
     int left_motor_pot = msg.left_motor_pot - this->get_parameter("DIGGER_ACTUATORS_OFFSET").as_int();
     int right_motor_pot = msg.right_motor_pot;
 
@@ -484,25 +482,19 @@ private:
 
     if (abs(error) > this->get_parameter("MAX_POS_DIFF").as_int() && strcmp(this->digger_lift_goal.type.c_str(), "position") == 0) {
       // Stop both motors!
-      this->digger_lift_goal = { "duty_cycle", 0.0 };
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      this->cli_lift_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Position difference between linear actuators is too high! Stopping both motors.");
     }
     else if ((msg.left_motor_pot >= 1023) || (msg.right_motor_pot >= 1023)) {
       // Stop both motors!
-      this->digger_lift_goal = { "duty_cycle", 0.0 };
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      this->cli_lift_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Potentiometer has reached max value! Stopping both motors, check if one is unplugged");
     }
     else if ((msg.left_motor_pot <= 0) || (msg.right_motor_pot <= 0)) {
       // Stop both motors!
-      this->digger_lift_goal = { "duty_cycle", 0.0 };
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), 0.0);
-      vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), 0.0);
+      this->cli_lift_stop->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
       // Log an error message
       RCLCPP_ERROR(this->get_logger(), "ERROR: Potentiometer has reached min value! Stopping both motors, check if one is unplugged");
     }
@@ -540,16 +532,16 @@ private:
       int left_error = left_motor_pot - int(this->digger_lift_goal.value);
       int right_error = right_motor_pot - int(this->digger_lift_goal.value);
 
-      double left_controller_output = std::clamp(kP * left_error, -0.5, 0.5);
-      double right_controller_output = std::clamp(kP * right_error, -0.5, 0.5);
-     
+      float left_controller_output = std::clamp(kP * left_error, -this->digger_lift_goal.power_limit, this->digger_lift_goal.power_limit);
+      float right_controller_output = std::clamp(kP * right_error, -this->digger_lift_goal.power_limit, this->digger_lift_goal.power_limit);
+
       if (left_error < 0 && right_error < 0 && this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool()) {
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling - speed_adjustment_pitch);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling - speed_adjustment_pitch);
       } else {
         vesc_set_duty_cycle(this->get_parameter("DIGGER_LEFT_LINEAR_ACTUATOR").as_int(), left_controller_output + speed_adjustment_coupling);
         vesc_set_duty_cycle(this->get_parameter("DIGGER_RIGHT_LINEAR_ACTUATOR").as_int(), right_controller_output - speed_adjustment_coupling);
-      } 
+      }
 
       //RCLCPP_INFO(this->get_logger(), "Output: %f, Pitch: %f", speed_adjustment_pitch, pitch);       
       //RCLCPP_INFO(this->get_logger(), "Current Pos: %d, Goal: %f, Output: %f", right_motor_pot, this->digger_lift_goal.value, right_controller_output);
@@ -630,6 +622,7 @@ private:
 
   rclcpp::TimerBase::SharedPtr timer;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr cli_digger_stop;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr cli_lift_stop;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr digger_linear_actuator_pub;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr dumper_linear_actuator_pub;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;

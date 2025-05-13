@@ -23,8 +23,8 @@ def generate_launch_description():
             "use_nvblox": "False",
             "use_nav2": "True",
             "run_rviz_robot": "False",  # We don't need to run RViz during matches
-            "zed_multicam": "True",  # Use multiple ZED cameras
-            "record_svo": "True",  # Record match data to an SVO file
+            "zed_multicam": "False",  # Use multiple ZED cameras
+            "record_svo": "False",  # Record match data to an SVO file
             "use_apriltags": "False",
         }.items(),
     )
