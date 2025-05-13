@@ -28,10 +28,12 @@ class AutoDigNavOffloadServer(AsyncNode):
         self._backup_client = ActionClient(self, BackUp, "backup")
         self._auto_offload_client = ActionClient(self, AutoOffload, "auto_offload")
 
+        # Status tracking
         self.dig_in_progress = False
         self.backup_in_progress = False
         self.offload_in_progress = False
 
+        # Handle tracking
         self.dig_handle = ClientGoalHandle(None, None, None)
         self.offload_handle = ClientGoalHandle(None, None, None)
 
@@ -95,7 +97,7 @@ class AutoDigNavOffloadServer(AsyncNode):
             dist = goal_handle.request.backward_distance
             speed = 0.5  # duty cycle
             timeout = 9.0  # seconds
-            self.get_logger().info(f"→ Backing up {dist} m @ {speed} (duty cycle)")
+            self.get_logger().info(f"→ Backing up {dist}m @ {speed} (duty cycle)")
 
             if not self._backup_client.wait_for_server(timeout_sec=5.0):
                 self.get_logger().error("BackUp server unavailable")
@@ -146,13 +148,13 @@ class AutoDigNavOffloadServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             self.offload_in_progress = True
             offload_goal = AutoOffload.Goal()
-            send = await self._auto_offload_client.send_goal_async(offload_goal)
-            if not send.accepted:
+            self.offload_handle = await self._auto_offload_client.send_goal_async(offload_goal)
+            if not self.offload_handle.accepted:
                 self.get_logger().error("AutoOffload rejected")
                 self.offload_in_progress = False
                 return False
 
-            await send.get_result_async()
+            await self.offload_handle.get_result_async()
             self.offload_in_progress = False
             self.get_logger().info("→ AutoOffload complete")
             return True
@@ -168,7 +170,7 @@ class AutoDigNavOffloadServer(AsyncNode):
             self._backup_client.cancel_all_goals()  # cancel Nav2 backup
         if self.offload_in_progress:
             self.get_logger().info("Cancelling AutoOffload")
-            self.offload_handle.cancel_all_goals()  # cancel AutoOffload
+            self.offload_handle.cancel_goal_async()  # cancel AutoOffload
         return CancelResponse.ACCEPT
 
 
