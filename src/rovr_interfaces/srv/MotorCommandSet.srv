@@ -3,5 +3,6 @@ string type # The type of command to send (ramp_duty_cycle, duty_cycle, position
 uint32 can_id # CAN ID of the VESC
 float32 value # Value to pass to the motor_control method
 float32 value2 # Second value to pass to the motor_control method
+float32 power_limit 0.5 # optional power cap
 ---
 bool success

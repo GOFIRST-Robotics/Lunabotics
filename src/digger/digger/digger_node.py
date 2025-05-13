@@ -43,7 +43,7 @@ class DiggerNode(Node):
             SetPower, "digger/toggle", self.toggle_callback, callback_group=self.service_cb_group
         )
         self.srv_stop = self.create_service(
-            Trigger, "digger/stop", self.stop_callback, callback_group=self.service_cb_group
+            Trigger, "digger/stop", self.stop_callback, callback_group=self.stop_lift_cb_group
         )
         self.srv_setPower = self.create_service(
             SetPower, "digger/setPower", self.set_power_callback, callback_group=self.service_cb_group
@@ -110,7 +110,7 @@ class DiggerNode(Node):
     # Define subsystem methods here
     def set_power(self, digger_power: float) -> None:
         """This method sets power to the digger chain."""
-        if self.current_lift_position < self.DIGGER_SAFETY_ZONE:
+        if self.current_lift_position < self.DIGGER_SAFETY_ZONE - 5:
             self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
             self.stop()  # Stop the digger chain
         else:
@@ -131,7 +131,7 @@ class DiggerNode(Node):
         else:
             self.set_power(digger_chain_power)
 
-    def set_position(self, position: int) -> None:
+    def set_position(self, position: int, power_limit: float = 0.5) -> None:
         """This method sets the position of the digger lift and waits until the goal is reached."""
         self.lift_lowering = position > self.current_lift_position
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
@@ -146,6 +146,7 @@ class DiggerNode(Node):
             MotorCommandSet.Request(
                 type="position",
                 value=float(position),
+                power_limit=power_limit,
             )
         )
         # Wait until the goal position goal is reached to return
@@ -249,7 +250,7 @@ class DiggerNode(Node):
 
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
-        self.set_position(request.position)
+        self.set_position(request.position, request.power_limit)
         response.success = True
         return response
 

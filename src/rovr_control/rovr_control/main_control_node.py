@@ -22,7 +22,7 @@ from std_msgs.msg import Float32
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetPosition
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, SetBool
 
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
@@ -116,6 +116,8 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
+        self.cli_motor_on_off = self.create_client(SetBool, "motor_on_off")
+        self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -149,9 +151,9 @@ class MainControlNode(Node):
         self.watchdog_timeout = self.get_parameter("watchdog_timeout").value
         self.last_joy_timestamp = time.time()
 
-        # Create timer for watchdog
-        self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
-        self.connection_active = True
+        # # Create timer for watchdog
+        # self.watchdog_timer = self.create_timer(0.1, self.watchdog_callback)  # Check every 0.1 seconds
+        # self.connection_active = True
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
@@ -159,6 +161,7 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
+        self.cli_motor_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -196,6 +199,10 @@ class MainControlNode(Node):
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
                 self.cli_dumper_stop.call_async(Trigger.Request())  # Stop whatever the dumper is doing
                 self.cli_dumper_toggle.call_async(Trigger.Request())  # Toggle the dumper (extended or retracted)
+
+            # Check if the agitator button is pressed #
+            if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
+                self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
@@ -319,22 +326,22 @@ class MainControlNode(Node):
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
 
-    def watchdog_callback(self):
-        """Check if we've received joystick messages recently"""
-        current_time = time.time()
-        time_since_last_joy = current_time - self.last_joy_timestamp
+    # def watchdog_callback(self):
+    #     """Check if we've received joystick messages recently"""
+    #     current_time = time.time()
+    #     time_since_last_joy = current_time - self.last_joy_timestamp
 
-        # If we haven't received a message in watchdog_timeout seconds
-        if time_since_last_joy > self.watchdog_timeout:
-            if self.connection_active:  # Only trigger once when connection is lost
-                self.get_logger().warn(
-                    f"No joystick messages received for {time_since_last_joy:.2f} seconds! Stopping the robot."
-                )
-                self.stop_all_subsystems()  # Stop all robot movement! (safety feature)
-                self.connection_active = False
-        elif not self.connection_active:
-            self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
-            self.connection_active = True
+    #     # If we haven't received a message in watchdog_timeout seconds
+    #     if time_since_last_joy > self.watchdog_timeout:
+    #         if self.connection_active:  # Only trigger once when connection is lost
+    #             self.get_logger().warn(
+    #                 f"No joystick messages received for {time_since_last_joy:.2f} seconds! Stopping the robot."
+    #             )
+    #             self.stop_all_subsystems()  # Stop all robot movement! (safety feature)
+    #             self.connection_active = False
+    #     elif not self.connection_active:
+    #         self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
+    #         self.connection_active = True
 
     # Define the subscriber callback for the lift pose topic
     def lift_pose_callback(self, msg: Float32):
