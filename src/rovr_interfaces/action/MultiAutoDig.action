@@ -1,0 +1,12 @@
+# Request
+float32 lift_digging_start_position  # Initial lift position for digging
+float32 digger_chain_power           # Power for the digger chain
+float32 backward_distance            # Distance to back up after digging
+int32 num_digs                       # Number of dig sequences to perform
+float32 dig_offset                   # Distance offset between dig positions
+---
+# Result
+---
+# Feedback
+int32 current_dig                    # Current dig sequence number
+int32 total_digs                     # Total number of dig sequences

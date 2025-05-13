@@ -21,7 +21,7 @@ from std_msgs.msg import Float32
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
+from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload, MultiAutoDig
 from std_srvs.srv import Trigger, SetBool
 
 # Import Python Modules
@@ -137,11 +137,13 @@ class MainControlNode(Node):
         self.act_auto_dig = ActionClient(self, AutoDig, "auto_dig")
         self.act_auto_offload = ActionClient(self, AutoOffload, "auto_offload")
         self.act_auto_dig_nav_offload = ActionClient(self, AutoDigNavOffload, "auto_dig_nav_offload")
+        self.act_multi_auto_dig = ActionClient(self, MultiAutoDig, "multi_auto_dig")
 
         self.field_calibrated_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_dig_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
         self.auto_dig_nav_offload_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
+        self.multi_auto_dig_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
 
         # Current position of the lift motor in potentiometer units (0 to 1023)
         self.current_lift_position = None  # We don't know the current position yet
@@ -200,9 +202,9 @@ class MainControlNode(Node):
                 self.cli_dumper_stop.call_async(Trigger.Request())  # Stop whatever the dumper is doing
                 self.cli_dumper_toggle.call_async(Trigger.Request())  # Toggle the dumper (extended or retracted)
 
-            # Check if the agitator button is pressed #
-            if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
+            # # Check if the agitator button is pressed #
+            # if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
+            #     self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
@@ -253,6 +255,37 @@ class MainControlNode(Node):
         #         future = self.field_calibrated_handle.cancel_goal_async()
         #         future.add_done_callback(self.cancel_done)
 
+        backup_distance = 1.8  # meters
+
+        # Check if the Multi Auto Dig button is pressed
+        if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
+            # Check if the Multi Auto Digprocess is not running
+            if self.multi_auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
+                if not self.act_multi_auto_dig.wait_for_server(timeout_sec=1.0):
+                    self.get_logger().error("Multi Auto Dig action not available")
+                    return
+                self.stop_all_subsystems()
+                self.multi_auto_dig_handle = await self.act_multi_auto_dig.send_goal_async(
+                    MultiAutoDig.Goal(
+                        lift_digging_start_position=self.lift_digging_start_position,
+                        digger_chain_power=self.digger_chain_power,
+                        backward_distance=backup_distance,  # meters
+                        num_digs=3,  # Number of digs to perform
+                        dig_offset=0.75,  # Offset for each dig (in meters)
+                    )
+                )
+                if not self.multi_auto_dig_handle.accepted:
+                    self.get_logger().info("Multi Auto Dig Goal rejected")
+                    return
+                self.multi_auto_dig_handle.get_result_async().add_done_callback(self.get_result_callback)
+                self.state = states["Autonomous"]
+            # Terminate the Multi Auto Dig process
+            else:
+                self.get_logger().warn("Multi Auto Dig Terminated")
+                # Cancel the goal
+                future = self.multi_auto_dig_handle.cancel_goal_async()
+                future.add_done_callback(self.cancel_done)
+
         # Check if the Auto Dig Nav button is pressed
         if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
             # Check if the Auto Dig Nav Offload process is not running
@@ -265,7 +298,7 @@ class MainControlNode(Node):
                     AutoDigNavOffload.Goal(
                         lift_digging_start_position=self.lift_digging_start_position,
                         digger_chain_power=self.digger_chain_power,
-                        backward_distance=1.8,  # meters
+                        backward_distance=backup_distance,  # meters
                     )
                 )
                 if not self.auto_dig_nav_offload_handle.accepted:
