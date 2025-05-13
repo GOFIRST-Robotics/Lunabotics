@@ -5,7 +5,7 @@ from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
 )
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from nav2_common.launch import RewrittenYaml
@@ -17,6 +17,8 @@ def generate_launch_description():
     setup_for_zed = LaunchConfiguration("setup_for_zed", default="True")
     use_nvblox = LaunchConfiguration("use_nvblox", default="True")
     zed_multicam = LaunchConfiguration("zed_multicam", default="True")
+    use_apriltags = LaunchConfiguration("use_apriltags", default="True")
+    setup_for_gazebo = LaunchConfiguration("setup_for_gazebo", default="False")
 
     # Launch Arguments
     run_rviz_arg = DeclareLaunchArgument("run_rviz_robot", default_value="True", description="Whether to start RVIZ")
@@ -35,6 +37,11 @@ def generate_launch_description():
         default_value="True",
         description="Whether to run nvblox",
     )
+    use_nav2_arg = DeclareLaunchArgument(
+        "use_nav2",
+        default_value="True",
+        description="Whether to run nav2",
+    )
     dig_location_server = Node(
         package="rovr_control",
         executable="dig_location_server",
@@ -49,6 +56,11 @@ def generate_launch_description():
         "zed_multicam",
         default_value="True",
         description="Whether to use two ZED cameras",
+    )
+    use_apriltags_arg = DeclareLaunchArgument(
+        "use_apriltags",
+        default_value="True",
+        description="Whether to run isaac ros apriltags",
     )
 
     global_frame = LaunchConfiguration("global_frame", default="odom")
@@ -150,19 +162,20 @@ def generate_launch_description():
             "params_file": configured_params,
             "autostart": "True",
         }.items(),
+        condition=IfCondition(LaunchConfiguration("use_nav2")),
     )
 
     # apriltag launch
     apriltag_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("apriltag"), "apriltag_launch.py"])]),
-        condition=UnlessCondition(LaunchConfiguration("setup_for_gazebo")),
+        condition=IfCondition(PythonExpression([use_apriltags, " and not ", setup_for_gazebo])),
     )
     # apriltag (gazebo) launch
     apriltag_gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [PathJoinSubstitution([FindPackageShare("apriltag"), "apriltag_gazebo_launch.py"])]
         ),
-        condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
+        condition=IfCondition(PythonExpression([use_apriltags, " and ", setup_for_gazebo])),
     )
 
     return LaunchDescription(
@@ -172,7 +185,9 @@ def generate_launch_description():
             setup_for_gazebo_arg,
             record_svo_arg,
             use_nvblox_arg,
+            use_nav2_arg,
             zed_multicam_arg,
+            use_apriltags_arg,
             shared_container,
             nvblox_launch,
             nvblox_multicam_launch,
