@@ -20,7 +20,7 @@ from action_msgs.msg import GoalStatus
 from std_msgs.msg import Float32
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower, SetPosition
+from rovr_interfaces.srv import SetPower
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
 from std_srvs.srv import Trigger, SetBool
 
@@ -112,7 +112,6 @@ class MainControlNode(Node):
         self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
         self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
-        self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
