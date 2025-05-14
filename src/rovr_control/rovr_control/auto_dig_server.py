@@ -83,7 +83,7 @@ class AutoDigServer(AsyncNode):
         if not goal_handle.is_cancel_requested and fails < max_fails:
             # Start the agitator motor
             self.get_logger().info("Starting Agitator Motor")
-            # await self.cli_motor_on_off.call_async(SetBool.Request(data=True))
+            await self.cli_motor_on_off.call_async(SetBool.Request(data=True))
 
         fails += await self.set_position_retry(650.0, 0.09, max_fails-fails)
 

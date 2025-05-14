@@ -32,8 +32,12 @@ def generate_camera_nodes(camera_name, video_device, resolution=(640, 480), qual
 
 def generate_launch_description():
     return LaunchDescription(
-        generate_camera_nodes("left", "/dev/video4", (1280, 720), quality=60)
-        # + generate_camera_nodes('back', '/dev/video0')
+        generate_camera_nodes("digger", "/dev/video0")
+        + generate_camera_nodes("left", "/dev/video7")
+        + generate_camera_nodes("right", "/dev/video2", (640, 480), 30)
+        + generate_camera_nodes("dumper", "/dev/video1")
+
+        # + generate_camera_nodes('front', '/dev/video3')
         # + generate_camera_nodes('left', '/dev/video0')
         # + generate_camera_nodes('right', '/dev/video0')
         # + generate_camera_nodes('dumper', '/dev/video0')
