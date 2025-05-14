@@ -139,7 +139,7 @@ class DiggerNode(Node):
                 "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
             )
             self.stop_lift()  # Stop the lift system
-            return
+            return False
         self.get_logger().info("Setting the lift position to: " + str(position))
         self.long_service_running = True
         self.cli_digger_lift_set.call_async(
