@@ -74,35 +74,32 @@ class AutoDigServer(AsyncNode):
         max_fails = 4
         self.goal_handle = goal_handle
 
-        fails += await self.set_position_retry(400.0, 0.12, max_fails-fails)
+        fails += await self.set_position_retry(400.0, 0.12, max_fails - fails)
 
-        fails += await self.set_position_retry(475.0, 0.11, max_fails-fails)
+        fails += await self.set_position_retry(475.0, 0.11, max_fails - fails)
 
-        fails += await self.set_position_retry(550.0, 0.10, max_fails-fails)
+        fails += await self.set_position_retry(550.0, 0.10, max_fails - fails)
 
         if not goal_handle.is_cancel_requested and fails < max_fails:
             # Start the agitator motor
             self.get_logger().info("Starting Agitator Motor")
             await self.cli_motor_on_off.call_async(SetBool.Request(data=True))
 
-        fails += await self.set_position_retry(650.0, 0.09, max_fails-fails)
+        fails += await self.set_position_retry(650.0, 0.09, max_fails - fails)
 
-        fails += await self.set_position_retry(725.0, 0.10, max_fails-fails)
+        fails += await self.set_position_retry(725.0, 0.10, max_fails - fails)
 
         # fails += await self.set_position_retry(750.0, 0.105, max_fails-fails)
 
-        fails += await self.set_position_retry(800.0, 0.105, max_fails-fails)
+        fails += await self.set_position_retry(800.0, 0.105, max_fails - fails)
 
         # fails += await self.set_position_retry(850.0, 0.11, max_fails-fails)
 
-        fails += await self.set_position_retry(900.0, 0.11, max_fails-fails)
+        fails += await self.set_position_retry(900.0, 0.11, max_fails - fails)
 
-    
         # Dig in place (no lift lowering) for 5 seconds
         if not goal_handle.is_cancel_requested:
-            await self.cli_digger_setPower.call_async(
-                SetPower.Request(power=goal_handle.request.digger_chain_power)
-            )
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
             self.get_logger().info("Auto Digging in Place")
             await self.async_sleep(5)
             self.get_logger().info("Done Digging in Place")
@@ -148,7 +145,7 @@ class AutoDigServer(AsyncNode):
         self.cli_lift_stop.call_async(Trigger.Request())
         self.cli_motor_on_off.call_async(SetBool.Request(data=False))
         return CancelResponse.ACCEPT
-    
+
     async def set_position_retry(self, position: float, power_limit: float, max_retries: int = 4):
         self.get_logger().info("Starting the digger chain")
         await self.cli_digger_setPower.call_async(SetPower.Request(power=self.goal_handle.request.digger_chain_power))
@@ -156,7 +153,11 @@ class AutoDigServer(AsyncNode):
         for i in range(max_retries):
             if not self.goal_handle.is_cancel_requested:
                 self.get_logger().info(f"Attempting to set position to {position} with power limit {power_limit}")
-                if (await self.cli_lift_setPosition.call_async(SetPosition.Request(position=position, power_limit=power_limit))).success:
+                if (
+                    await self.cli_lift_setPosition.call_async(
+                        SetPosition.Request(position=position, power_limit=power_limit)
+                    )
+                ).success:
                     self.get_logger().info(f"Successfully set position to {position}")
                     return i
 
@@ -164,7 +165,9 @@ class AutoDigServer(AsyncNode):
                     break
 
                 await self.async_sleep(1)
-                await self.cli_digger_setPower.call_async(SetPower.Request(power=self.goal_handle.request.digger_chain_power))
+                await self.cli_digger_setPower.call_async(
+                    SetPower.Request(power=self.goal_handle.request.digger_chain_power)
+                )
                 await self.async_sleep(5)
 
             else:

@@ -20,7 +20,7 @@ from action_msgs.msg import GoalStatus
 from std_msgs.msg import Float32
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower, SetPosition
+from rovr_interfaces.srv import SetPower
 from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
 from std_srvs.srv import Trigger, SetBool
 
