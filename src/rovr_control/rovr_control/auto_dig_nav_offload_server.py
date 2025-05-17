@@ -75,7 +75,11 @@ class AutoDigNavOffloadServer(AsyncNode):
             self.get_logger().error("AutoDig server unavailable")
             return False
 
+        self.get_logger().info("AutoDig server available")
+
         if not goal_handle.is_cancel_requested:
+            self.get_logger().info("start dig")
+
             self.dig_in_progress = True
             dig_goal = AutoDig.Goal(
                 lift_digging_start_position=goal_handle.request.lift_digging_start_position,
@@ -86,11 +90,15 @@ class AutoDigNavOffloadServer(AsyncNode):
                 self.get_logger().error("AutoDig rejected")
                 self.dig_in_progress = False
                 return False
+            self.get_logger().info("AutoDig Goal Accepted")
+
 
             await self.dig_handle.get_result_async()
             self.dig_in_progress = False
             self.get_logger().info("→ AutoDig complete")
             return True
+        
+        return False
 
     async def _do_backup(self, goal_handle):
         if not goal_handle.is_cancel_requested:

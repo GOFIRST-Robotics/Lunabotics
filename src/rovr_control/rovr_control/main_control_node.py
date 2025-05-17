@@ -116,8 +116,11 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
-        self.cli_motor_on_off = self.create_client(SetBool, "motor_on_off")
-        self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
+        self.cli_big_agitator_on_off = self.create_client(SetBool, "big_agitator_on_off")
+        self.cli_big_agitator_toggle = self.create_client(Trigger, "big_agitator_toggle")
+        self.cli_small_agitator_on_off = self.create_client(SetBool, "small_agitator_on_off")
+        self.cli_small_agitator_toggle = self.create_client(Trigger, "small_agitator_toggle")
+
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -161,7 +164,9 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
-        self.cli_motor_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
+        self.cli_big_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
+        self.cli_small_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
+        
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -202,7 +207,8 @@ class MainControlNode(Node):
 
             # Check if the agitator button is pressed #
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
+                self.cli_big_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
+                self.cli_small_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
