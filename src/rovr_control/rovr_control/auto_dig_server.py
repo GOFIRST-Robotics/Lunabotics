@@ -18,7 +18,6 @@ class AutoDigServer(AsyncNode):
         )
 
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
-        self.cli_lift_bottom = self.create_client(Trigger, "lift/bottom")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
@@ -54,10 +53,6 @@ class AutoDigServer(AsyncNode):
             return result
         if not self.cli_lift_zero.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Lift zero service not available")
-            goal_handle.abort()
-            return result
-        if not self.cli_lift_bottom.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Lift bottom service not available")
             goal_handle.abort()
             return result
         if not self.cli_digger_setPower.wait_for_service(timeout_sec=1.0):
@@ -103,25 +98,21 @@ class AutoDigServer(AsyncNode):
             self.get_logger().info("Starting Small Agitator Motor")
             # await self.cli_small_agitator_on_off.call_async(SetBool.Request(data=True))
 
-        # Lower the digger to 650
-        if not goal_handle.is_cancel_requested:
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
-            await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=650.0, power_limit=0.09)
-            )
+        fails += await self.set_position_retry(650.0, 0.09, max_fails - fails)
 
-        # Lower the digger to 750
-        if not goal_handle.is_cancel_requested:
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
-            await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=750.0, power_limit=0.10)
-            )
+        fails += await self.set_position_retry(725.0, 0.10, max_fails - fails)
+
+        # fails += await self.set_position_retry(750.0, 0.105, max_fails-fails)
+
+        fails += await self.set_position_retry(800.0, 0.105, max_fails - fails)
+
+        # fails += await self.set_position_retry(850.0, 0.11, max_fails-fails)
+
+        fails += await self.set_position_retry(900.0, 0.11, max_fails - fails)
 
         # Dig in place (no lift lowering) for 5 seconds
         if not goal_handle.is_cancel_requested:
-            await self.cli_digger_setPower.call_async(
-                SetPower.Request(power=goal_handle.request.digger_chain_power)
-            )
+            await self.cli_digger_setPower.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
             self.get_logger().info("Auto Digging in Place")
             await self.async_sleep(5)
             self.get_logger().info("Done Digging in Place")
