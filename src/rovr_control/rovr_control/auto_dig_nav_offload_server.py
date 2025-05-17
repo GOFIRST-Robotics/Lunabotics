@@ -50,9 +50,8 @@ class AutoDigNavOffloadServer(AsyncNode):
 
         # 2. Back up
         if not goal_handle.is_cancel_requested:
-            if not await self._do_backup(goal_handle):
-                goal_handle.abort()
-                return result
+            # Don't fail the whole action if backup fails
+            await self._do_backup(goal_handle)
 
         # 3. Offload
         if not goal_handle.is_cancel_requested:
@@ -96,7 +95,7 @@ class AutoDigNavOffloadServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             dist = goal_handle.request.backward_distance
             speed = 0.5  # duty cycle
-            timeout = 9.0  # seconds
+            timeout = 9.0  # seconds # TODO: Tune this value well!
             self.get_logger().info(f"→ Backing up {dist}m @ {speed} (duty cycle)")
 
             if not self._backup_client.wait_for_server(timeout_sec=5.0):
