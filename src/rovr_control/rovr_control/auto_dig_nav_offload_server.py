@@ -50,9 +50,8 @@ class AutoDigNavOffloadServer(AsyncNode):
 
         # 2. Back up
         if not goal_handle.is_cancel_requested:
-            if not await self._do_backup(goal_handle):
-                goal_handle.abort()
-                return result
+            # Don't fail the whole action if backup fails
+            await self._do_backup(goal_handle)
 
         # 3. Offload
         if not goal_handle.is_cancel_requested:
