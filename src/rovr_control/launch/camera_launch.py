@@ -2,7 +2,7 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 
-def generate_camera_nodes(camera_name, video_device, pixel_format="yuyv", resolution=(320, 240), quality=50):
+def generate_camera_nodes(camera_name, video_device, pixel_format="yuyv", resolution=(320, 240)):
     return [
         # Camera driver node
         Node(
@@ -15,7 +15,6 @@ def generate_camera_nodes(camera_name, video_device, pixel_format="yuyv", resolu
                 {"image_width": resolution[0]},
                 {"image_height": resolution[1]},
                 {"pixel_format": pixel_format},
-                {".image_raw.jpeg_quality": quality},
             ],
             remappings=[("/image_raw", "image_raw"), ("/camera_info", "camera_info")],  # scoped to namespace
         ),
@@ -33,14 +32,10 @@ def generate_camera_nodes(camera_name, video_device, pixel_format="yuyv", resolu
 
 def generate_launch_description():
     return LaunchDescription(
-        generate_camera_nodes("a1", "/dev/video3", "mjpeg2rgb")
-        # + generate_camera_nodes("a2", "/dev/video11", "mjpeg2rgb")  
-        + generate_camera_nodes("a3", "/dev/video9", "mjpeg2rgb")
-        + generate_camera_nodes("a4", "/dev/video5", "mjpeg2rgb")
-        + generate_camera_nodes("ps1", "/dev/video8")
-        # + generate_camera_nodes("ps2", "/dev/video7")
-        + generate_camera_nodes("ps3", "/dev/video2")
-
-        # + generate_camera_nodes("back", "/dev/video2", "yuyv", (1344, 376))
+        generate_camera_nodes("right", "/dev/video6", "mjpeg2rgb")
+        + generate_camera_nodes("left", "/dev/video8", "mjpeg2rgb")  
+        + generate_camera_nodes("back", "/dev/video2", "mjpeg2rgb")
+        + generate_camera_nodes("digger", "/dev/video4")
+        + generate_camera_nodes("dumper", "/dev/video5")
         # + generate_camera_nodes("front", "/dev/video0")
     )
