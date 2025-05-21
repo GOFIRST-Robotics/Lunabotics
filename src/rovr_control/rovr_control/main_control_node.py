@@ -207,7 +207,7 @@ class MainControlNode(Node):
             # Check if the agitator button is pressed #
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
                 self.cli_big_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
-                self.cli_small_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
+                # self.cli_small_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
