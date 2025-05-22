@@ -76,8 +76,10 @@ class DrivetrainNode(Node):
         """This method drives the robot with the desired forward and turning power."""
 
         if (
-            self.current_lift_position is None or self.current_lift_position > self.DIGGER_SAFETY_ZONE
-        ) and not self.GAZEBO_SIMULATION and (forward_power != 0 or turning_power != 0):
+            (self.current_lift_position is None or self.current_lift_position > self.DIGGER_SAFETY_ZONE)
+            and not self.GAZEBO_SIMULATION
+            and (forward_power != 0 or turning_power != 0)
+        ):
             self.get_logger().warn("Digger outside the safety zone, cannot drive!")
             self.stop()
             return
@@ -85,14 +87,6 @@ class DrivetrainNode(Node):
         # Clamp the values between -1 and 1
         forward_power = max(-1.0, min(forward_power, 1.0))
         turning_power = max(-1.0, min(turning_power, 1.0))
-
-        if (forward_power != 0 and turning_power != 0) and abs(forward_power - turning_power) <= 0.1:
-            if turning_power >= forward_power:
-                forward_power -= 0.1
-                turning_power += 0.1
-            else:
-                forward_power += 0.1
-                turning_power -= 0.1
 
         # Calculate the wheel speeds for each side of the drivetrain
         leftPower = forward_power - turning_power
