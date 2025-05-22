@@ -90,7 +90,7 @@ controller_server:
       trans_stopped_velocity: 0.1
       rot_stopped_velocity: 0.1
       xy_goal_tolerance: 0.1
-      yaw_goal_tolerance: 0.15
+      yaw_goal_tolerance: 0.1
     FollowPath:
       # RotationShimController parameters
       plugin: "nav2_rotation_shim_controller::RotationShimController"
