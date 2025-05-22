@@ -34,7 +34,7 @@ def generate_launch_description():
     return LaunchDescription(
         generate_camera_nodes("right", "/dev/video6", "mjpeg2rgb")
         + generate_camera_nodes("left", "/dev/video8", "mjpeg2rgb")  
-        + generate_camera_nodes("back", "/dev/video2", "mjpeg2rgb")
+        + generate_camera_nodes("back", "/dev/video0", "mjpeg2rgb")
         + generate_camera_nodes("digger", "/dev/video4")
         + generate_camera_nodes("dumper", "/dev/video5")
         # + generate_camera_nodes("front", "/dev/video0")
