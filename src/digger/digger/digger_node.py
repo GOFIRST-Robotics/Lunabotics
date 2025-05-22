@@ -131,7 +131,7 @@ class DiggerNode(Node):
         else:
             self.set_power(digger_chain_power)
 
-    def set_position(self, position: int, power_limit: float = 0.5) -> None:
+    def set_position(self, position: int, power_limit: float = 0.5) -> bool:
         """This method sets the position of the digger lift and waits until the goal is reached."""
         self.lift_lowering = position > self.current_lift_position
         if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
@@ -139,7 +139,7 @@ class DiggerNode(Node):
                 "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
             )
             self.stop_lift()  # Stop the lift system
-            return
+            return False
         self.get_logger().info("Setting the lift position to: " + str(position))
         self.long_service_running = True
         self.cli_digger_lift_set.call_async(
@@ -152,11 +152,15 @@ class DiggerNode(Node):
         # Wait until the goal position goal is reached to return
         while abs(position - self.current_lift_position) > self.goal_threshold:
             if self.cancel_current_srv:
-                self.cancel_current_srv = False
                 break
             time.sleep(0.1)  # We don't want to spam loop iterations too fast
         self.long_service_running = False
+        if self.cancel_current_srv:
+            self.cancel_current_srv = False
+            self.get_logger().info("Lift position goal was stopped.")
+            return False
         self.get_logger().info("Done setting the lift position to: " + str(position))
+        return True
 
     def stop_lift(self) -> None:
         """This method stops the lift."""
@@ -250,8 +254,7 @@ class DiggerNode(Node):
 
     def set_position_callback(self, request, response):
         """This service request sets the position of the lift."""
-        self.set_position(request.position, request.power_limit)
-        response.success = True
+        response.success = self.set_position(request.position, request.power_limit)
         return response
 
     def stop_lift_callback(self, request, response):
