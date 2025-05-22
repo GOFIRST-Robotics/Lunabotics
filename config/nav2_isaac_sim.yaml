@@ -167,8 +167,8 @@ velocity_smoother:
 local_costmap:
   local_costmap:
     ros__parameters:
-      update_frequency: 10.0
-      publish_frequency: 10.0
+      update_frequency: 5.0
+      publish_frequency: 5.0
       global_frame: odom
       robot_base_frame: base_link
       use_sim_time: False
@@ -181,19 +181,14 @@ local_costmap:
       nvblox_base_layer:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
-        max_obstacle_distance: 1.0
-        gradient_multiplier: 50.0
-        # Need to play with this. this is just linear multiplier to the values found by the gradient.
-        # As of right now, the formula for the cost value is
-        # cost = min(max_cost, (gradient * gradient_multiplier * max_cost))
-        # max cost = 255
-        # gradient = abs(height(x - 1) - height(x + 1)) + abs(height(y - 1) - height(y + 1))
+        min_grad_diff: 0.12
+        lethal_obstacle_cutoff: 0.12
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: True
         cost_scaling_factor: 8.0
-        inflation_radius: 5.0
+        inflation_radius: 3.0
       always_send_full_costmap: True
   local_costmap_client:
     ros__parameters:
@@ -205,8 +200,8 @@ local_costmap:
 global_costmap:
   global_costmap:
     ros__parameters:
-      update_frequency: 10.0
-      publish_frequency: 10.0
+      update_frequency: 2.0
+      publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: base_link
       use_sim_time: False
@@ -214,19 +209,20 @@ global_costmap:
       width: 20
       height: 20
       footprint: "[ [0.595, 0.38], [-0.595, 0.38,], [-0.595, -0.38], [0.595, -0.38] ]"
-      # resolution: 0.1
+      resolution: 0.05
       origin_x: -100.0
       origin_y: -100.0
       plugins: ["nvblox_base_layer", "inflation_layer"]
       nvblox_base_layer:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
-        max_obstacle_distance: 2.0
+        min_grad_diff: 0.12
+        lethal_obstacle_cutoff: 0.12
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: True
-        cost_scaling_factor: 4.0
+        cost_scaling_factor: 8.0
         inflation_radius: 5.0
       always_send_full_costmap: True
   global_costmap_client:
