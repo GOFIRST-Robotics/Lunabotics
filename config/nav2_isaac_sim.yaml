@@ -74,9 +74,8 @@ bt_navigator_navigate_to_pose_rclcpp_node:
 
 controller_server:
   ros__parameters:
-    tf_buffer_cache_time_ns: 50000000  # 50ms in nanoseconds
     use_sim_time: False
-    controller_frequency: 5.0
+    controller_frequency: 10.0
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["stopped_goal_checker"]
     controller_plugins: ["FollowPath"]
@@ -95,7 +94,6 @@ controller_server:
     FollowPath:
       # RotationShimController parameters
       plugin: "nav2_rotation_shim_controller::RotationShimController"
-      debug_trajectory_details: True
       primary_controller: "dwb_core::DWBLocalPlanner"
       angular_dist_threshold: 0.785
       forward_sampling_distance: 0.25
@@ -103,28 +101,29 @@ controller_server:
       max_angular_accel: 0.75
       simulate_ahead_time: 1.0
       # Primary controller params (DWBLocalPlanner)
-      min_vel_x: -0.5
+      debug_trajectory_details: True
+      min_vel_x: -0.75
       min_vel_y: 0.0
-      max_vel_x: 0.5
+      max_vel_x: 0.75
       max_vel_y: 0.0
       max_vel_theta: 0.75
-      min_speed_xy: -0.5
-      max_speed_xy: 0.5
+      min_speed_xy: -0.75
+      max_speed_xy: 0.75
       min_speed_theta: -0.75
-      acc_lim_x: 0.5
+      acc_lim_x: 0.75
       acc_lim_y: 0.0
       acc_lim_theta: 0.75
-      decel_lim_x: -0.5
+      decel_lim_x: -0.75
       decel_lim_y: 0.0
       decel_lim_theta: -0.75
-      vx_samples: 20
+      vx_samples: 30
       vy_samples: 0
-      vtheta_samples: 15
+      vtheta_samples: 20
       sim_time: 1.4
       linear_granularity: 0.05
       angular_granularity: 0.025
-      transform_tolerance: 0.5
-      xy_goal_tolerance: 0.15
+      transform_tolerance: 0.2
+      xy_goal_tolerance: 0.1
       trans_stopped_velocity: 0.1
       short_circuit_trajectory_evaluation: True
       stateful: True
@@ -157,12 +156,12 @@ velocity_smoother:
     smoothing_frequency: 10.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.0, 0.5]
-    min_velocity: [-0.5, 0.0, -0.5]
+    max_velocity: [0.75, 0.0, 0.75]
+    min_velocity: [-0.75, 0.0, -0.75]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    max_accel: [0.5, 0.0, 0.5]
-    max_decel: [-0.5, 0.0, -0.5]
+    max_accel: [0.75, 0.0, 0.75]
+    max_decel: [-0.75, 0.0, -0.75]
     odom_duration: 0.1
 
 local_costmap:
@@ -182,14 +181,8 @@ local_costmap:
       nvblox_base_layer:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
-        gradient_multiplier: 150.0
-        min_grad_diff: 0.02
-        lethal_obstacle_cutoff: 0.03
-        # Need to play with this. this is just linear multiplier to the values found by the gradient. 
-        # As of right now, the formula for the cost value is 
-        # cost = min(max_cost, (gradient * gradient_multiplier * max_cost))
-        # max cost = 255
-        # gradient = abs(height(x - 1) - height(x + 1)) + abs(height(y - 1) - height(y + 1))
+        min_grad_diff: 0.12
+        lethal_obstacle_cutoff: 0.12
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -223,9 +216,8 @@ global_costmap:
       nvblox_base_layer:
         plugin: "nvblox::nav2::NvbloxCostmapLayer"
         enabled: True
-        gradient_multiplier: 1.0
-        min_grad_diff: 0.05
-        lethal_obstacle_cutoff: 0.08
+        min_grad_diff: 0.12
+        lethal_obstacle_cutoff: 0.12
         nvblox_map_slice_topic: "/nvblox_node/static_map_slice"
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -306,7 +298,7 @@ behavior_server:
       plugin: "nav2_behaviors/Wait"
     global_frame: odom
     robot_base_frame: base_link
-    transform_tolerance: 0.5
+    transform_tolerance: 0.1
     use_sim_time: False
     simulate_ahead_time: 1.0
     max_rotational_vel: 0.75
