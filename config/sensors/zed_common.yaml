@@ -11,7 +11,7 @@
       sim_port: 30000 # The connection port of the simulation server. See the documentation of the supported simulation plugins for more information.
 
     svo:
-      svo_path: "live" # Path to the SVO file to play (set to "live" to use the live camera feed)
+      svo_path: "/rosbags/zed_recording_good2.svo2" # Path to the SVO file to play (set to "live" to use the live camera feed)
       svo_loop: false # Enable loop mode when using an SVO as input source
       svo_realtime: true # if true the SVO will be played trying to respect the original framerate eventually skipping frames, otherwise every frame will be processed respecting the `pub_frame_rate` setting
 
@@ -100,7 +100,7 @@
       target_yaw_uncertainty: 1e-2 # defines the target yaw uncertainty at which the calibration process between GNSS and VIO concludes. The unit of this parameter is in radian. By default, the threshold is set at 0.1 radians.
 
     mapping:
-      mapping_enabled: false # True to enable mapping and fused point cloud publication
+      mapping_enabled: true # True to enable mapping and fused point cloud publication
       resolution: 0.05 # maps resolution in meters [min: 0.01f - max: 0.2f]
       max_mapping_range: 5.0 # maximum depth range while mapping in meters (-1 for automatic calculation) [2.0, 20.0]
       fused_pointcloud_freq: 1.0 # frequency of the publishing of the fused colored point cloud

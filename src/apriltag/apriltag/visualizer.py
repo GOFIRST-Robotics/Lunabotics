@@ -6,23 +6,53 @@ from matplotlib.colors import LinearSegmentedColormap
 from threading import Lock
 import time
 
+import pyvista as pv
+
 from scipy import ndimage
 
 # Import message types
 from nvblox_msgs.msg import DistanceMapSlice
+from sensor_msgs.msg import PointCloud2
 
 class DistanceMapVisualizer(Node):
     def __init__(self):
         super().__init__('distance_map_visualizer')
-        self.subscription = self.create_subscription(
-            DistanceMapSlice,
-            '/nvblox_node/static_map_slice',
-            self.listener_callback,
-            10)
+        # self.subscription = self.create_subscription(
+        #     DistanceMapSlice,
+        #     '/nvblox_node/static_map_slice',
+        #     self.listener_callback,
+        #     10)
+        
+        self.pointCloudSubscription = self.create_subscription(
+            PointCloud2,
+            # '/nvblox_node/static_esdf_pointcloud',
+            # '/zed2i/zed_node_zed2i/point_cloud/cloud_registered',
+            '/zed2i/zed_node_zed2i/mapping/fused_cloud',
+            self.pointCloudCallback,
+            10
+        )
         
 
         self.lock = Lock()
         self.distance_map = None
+
+    def pointCloudCallback(self, msg):
+        with self.lock:
+            print(msg.header)
+            print(msg.height, msg.width)
+            print(msg.fields)
+            above_ground_float_values = np.frombuffer(msg.data, dtype=np.uint8).view(dtype=np.float32)
+            # points = np.frombuffer(data, dtype='>f4')
+            points = above_ground_float_values.reshape(-1, 4)[:, :3]  # Assuming x, y, z are the first three floats
+            point_cloud = pv.PolyData(points)
+            plotter = pv.Plotter()
+
+            np.savez('point_cloud_data.npz', points=points)
+            
+            plotter.add_mesh(point_cloud, color='white', point_size=1, render_points_as_spheres=True)
+            plotter.set_background('white')
+            plotter.show_grid()
+            plotter.show()
 
     def listener_callback(self, msg):
         with self.lock:
