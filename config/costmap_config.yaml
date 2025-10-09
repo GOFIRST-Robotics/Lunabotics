@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    unknown_cost: -1
+    lethal_cost: 100
+    input_topic: /zed2i/zed_node_zed2i/mapping/fused_cloud
+    output_topic: /costmap/costmap
+    costmap_resolution: 0.1
+    lethal_slope: 0.3 # the slope at which a point is considered lethal
+    # Units for slope are non existant. higher = steeper
+
+

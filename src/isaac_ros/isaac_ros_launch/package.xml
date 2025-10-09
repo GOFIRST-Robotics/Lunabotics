@@ -12,6 +12,7 @@
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
 
+  <exec_depend>alexblox</exec_depend>
   <exec_depend>isaac_ros_nvblox</exec_depend>
   <exec_depend>isaac_ros_apriltag</exec_depend>
   <exec_depend>zed_wrapper</exec_depend>

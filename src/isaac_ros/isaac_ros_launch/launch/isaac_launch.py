@@ -15,7 +15,7 @@ def generate_launch_description():
 
     # Launch Configurations
     setup_for_zed = LaunchConfiguration("setup_for_zed", default="True")
-    use_nvblox = LaunchConfiguration("use_nvblox", default="True")
+    use_nvblox = LaunchConfiguration("use_nvblox", default="False")
     zed_multicam = LaunchConfiguration("zed_multicam", default="False")
     use_apriltags = LaunchConfiguration("use_apriltags", default="True")
     setup_for_gazebo = LaunchConfiguration("setup_for_gazebo", default="False")
@@ -46,6 +46,12 @@ def generate_launch_description():
         package="rovr_control",
         executable="dig_location_server",
         name="dig_location_server",
+    )
+    alexblox_server = Node(
+        package="alexblox",
+        executable="costmapGenerator",
+        name="costmapGenerator",
+        parameters=["config/costmap_config.yaml"],
     )
     record_svo_arg = DeclareLaunchArgument(
         "record_svo",
@@ -199,5 +205,6 @@ def generate_launch_description():
             apriltag_launch,
             apriltag_gazebo_launch,
             dig_location_server,
+            alexblox_server,
         ]
     )
