@@ -1,0 +1,23 @@
+# This ROS 2 node contains the code for the auger subsystem of the robot
+
+
+import time
+
+# Import the ROS 2 Python module
+import rclpy
+from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+
+# Import ROS 2 formatted message types
+from std_msgs.msg import Float32, Float32MultiArray
+
+# Import custom ROS 2 interfaces
+from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
+from rovr_interfaces.srv import SetPower, SetPosition
+from rovr_interfaces.msg import Potentiometers
+from std_srvs.srv import Trigger
+
+class Auger(Node):
+    def __init__(self):
+        "Initialize the ROS 2 Auger node"
