@@ -1,6 +1,4 @@
 # This ROS 2 node contains the code for the auger subsystem of the robot
-
-
 import time
 
 # Import the ROS 2 Python module
@@ -21,3 +19,90 @@ from std_srvs.srv import Trigger
 class Auger(Node):
     def __init__(self):
         "Initialize the ROS 2 Auger node"
+        super().__init__('auger')
+
+        
+        self.service_cb_group = MutuallyExclusiveCallbackGroup()
+
+        #TODO Define service clients here
+        self.cli_actuator_set = self.create_client(MotorCommandSet, "actuator/set")
+        self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
+        self.cli_drive_set = self.create_client(MotorCommandSet, "drive/set")
+
+        #TODO Define services (methods callable from the outside) here
+        self.srv_set_actuator_position = self.create_service(
+            SetPower, "actuator/setPosition", self.set_actuator_position_callback, callback_group=self.service_cb_group
+        )
+        self.srv_set_motor_position = self.create_service(
+            SetPower, "motor/setPosition", self.set_motor_position_callback, callback_group=self.service_cb_group
+        )
+
+       
+
+
+
+
+
+    #Define subsystem methods here
+
+    #TODO est position linear actuator
+    def set_actuator_position(self, position: float, power_limit: float) -> bool:
+        """ Set the auger position of the linear actuator."""
+        return False
+    
+
+    #TODO get position linear actuator
+    def get_actuator_position(self) -> float:
+        """ Get the auger position of the linear actuator."""
+        return 0.0
+    
+
+    #TODO set angular position
+    def set_auger_angular_position(self, angle: float) -> bool:
+        """ Set the auger angular position of the auger motor."""
+        return False
+
+    #TODO get angular position
+    def get_auger_angular_position(self) -> float:
+        """ Get the auger angular position of the auger motor."""
+        return 0.0
+    
+
+
+    #TODO set auger spin velocity
+    def set_auger_spin_velocity(self, velocity: float) -> bool:
+        """ Set the auger spin velocity of the auger motor."""
+        return False
+    
+
+    #TODO auger spin velocity
+    def get_auger_spin_velocity(self) -> float:
+        """ Get the auger spin velocity of the auger motor."""
+        return 0.0
+
+
+
+
+
+
+
+    #TODO  Define service callback methods here
+    def set_actuator_position_callback(self, request, response):
+        """This service request sets position of the actuator."""
+        self.set_actuator_position(request.power)
+        response.success = True
+        return response
+    
+
+    def set_motor_position_callback(self, request, response):
+        """This service request sets position of the angular motor."""
+        self.set_auger_angular_position(request.power)
+        response.success = True
+        return response
+    
+    def set_auger_velocity_callback(self, request, response):
+        """This service request sets the turn velocity of the auger"""
+        self.set_auger_spin_velocity(request.power)
+        response.success = True
+        return response
+        
