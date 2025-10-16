@@ -1,10 +1,8 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
-from scipy import ndimage
 
 from sensor_msgs.msg import PointCloud2
-from nvblox_msgs.msg import DistanceMapSlice
 from nav_msgs.msg import OccupancyGrid
 
 

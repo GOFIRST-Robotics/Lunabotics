@@ -1,11 +1,9 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
-from scipy import ndimage
 import pyvista as pv # this isnt in the container right now, either pip install each time, or rebuild the container. i added it as a dependency.
 
 from sensor_msgs.msg import PointCloud2
-from nvblox_msgs.msg import DistanceMapSlice
 from nav_msgs.msg import OccupancyGrid
 from threading import Lock
 
