@@ -9,6 +9,7 @@ Panels:
         - /Nvblox1
         - /Nvblox1/Map Slice Bounds1
         - /Nvblox1/Esdf Slice1
+        - /Map2
       Splitter Ratio: 0.5896806120872498
     Tree Height: 1001
   - Class: rviz_common/Selection
@@ -567,13 +568,13 @@ Visualization Manager:
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /costmap/costmap
+        Value: /map
       Update Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /costmap/costmap_updates
+        Value: /map_updates
       Use Timestamp: false
       Value: true
   Enabled: true
@@ -622,25 +623,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 25.858062744140625
+      Distance: 15.352240562438965
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 8.706381797790527
-        Y: -2.287569999694824
-        Z: -3.3105902671813965
+        X: 1.3153513669967651
+        Y: 0.44086113572120667
+        Z: 0.31986361742019653
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.3497968912124634
+      Pitch: 1.1347968578338623
       Target Frame: camera_link
       Value: Orbit (rviz)
-      Yaw: 4.467240810394287
+      Yaw: 4.697237491607666
     Saved: ~
 Window Geometry:
   Color Image:

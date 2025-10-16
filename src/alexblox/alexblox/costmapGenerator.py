@@ -96,8 +96,8 @@ class CostmapGenerator(Node):
         occ_grid = OccupancyGrid()
         occ_grid.header = msg.header
         occ_grid.info.resolution = float(resolution)
-        occ_grid.info.width = grid_x_size
-        occ_grid.info.height = grid_y_size
+        occ_grid.info.width = costmap.shape[1]
+        occ_grid.info.height = costmap.shape[0]
         occ_grid.info.origin.position.x = float(origin[0])
         occ_grid.info.origin.position.y = float(origin[1])
         occ_grid.info.origin.position.z = 0.0
