@@ -21,6 +21,12 @@ class Auger(Node):
         "Initialize the ROS 2 Auger node"
         super().__init__('auger')
 
+
+        self.current_actuator_position = 0.0
+        self.current_motor_angle = 0.0
+        self.current_spin_velocity = 0.0
+
+
         
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
 
@@ -31,12 +37,14 @@ class Auger(Node):
 
         #TODO Define services (methods callable from the outside) here
         self.srv_set_actuator_position = self.create_service(
-            SetPower, "actuator/setPosition", self.set_actuator_position_callback, callback_group=self.service_cb_group
+            SetPosition, "actuator/setPosition", self.set_actuator_position_callback, callback_group=self.service_cb_group
         )
         self.srv_set_motor_position = self.create_service(
-            SetPower, "motor/setPosition", self.set_motor_position_callback, callback_group=self.service_cb_group
+            SetPosition, "motor/setPosition", self.set_motor_position_callback, callback_group=self.service_cb_group
         )
-
+        self.srv_set_angular_velocity = self.create_service(
+            SetPower, "drive/setPower", self.set_auger_velocity_callback, callback_group=self.service_cb_group
+        )
        
 
 
@@ -89,14 +97,14 @@ class Auger(Node):
     #TODO  Define service callback methods here
     def set_actuator_position_callback(self, request, response):
         """This service request sets position of the actuator."""
-        self.set_actuator_position(request.power)
+        self.set_actuator_position(request.position)
         response.success = True
         return response
     
 
     def set_motor_position_callback(self, request, response):
         """This service request sets position of the angular motor."""
-        self.set_auger_angular_position(request.power)
+        self.set_auger_angular_position(request.position)
         response.success = True
         return response
     
