@@ -22,13 +22,11 @@ class Auger(Node):
         super().__init__('auger')
 
 
-        self.current_actuator_position = 0.0
-        self.current_motor_angle = 0.0
-        self.current_spin_velocity = 0.0
 
-
+    
         
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
+        self.stop_cb_group = MutuallyExclusiveCallbackGroup()
 
         #TODO Define service clients here
         self.cli_actuator_set = self.create_client(MotorCommandSet, "actuator/set")
@@ -39,6 +37,10 @@ class Auger(Node):
         self.srv_set_actuator_position = self.create_service(
             SetPosition, "actuator/setPosition", self.set_actuator_position_callback, callback_group=self.service_cb_group
         )
+        self.srv_stop_actuator = self.create_service(
+            Trigger, "actuator/stop", self.stop_actuator_callback, callback_group=self.stop_cb_group
+        )
+
         self.srv_set_motor_position = self.create_service(
             SetPosition, "motor/setPosition", self.set_motor_position_callback, callback_group=self.service_cb_group
         )
@@ -46,18 +48,68 @@ class Auger(Node):
             SetPower, "drive/setPower", self.set_auger_velocity_callback, callback_group=self.service_cb_group
         )
        
+        #TODO Define subscribers here
+
+        #TODO Define publishers here
 
 
 
+        self.declare_parameter("target_actuator_position", 0.0)
+        self.declare_parameter("actuator_position_limit", 1.0)
+
+        self.declare_parameter("target_motor_angle", 0.0)
+        self.declare_parameter("target_spin_velocity", 0.0)
+
+
+        self.target_actuator_position = self.get_parameter("target_actuator_position").value
+        self.actuator_position_limit = self.get_parameter("actuator_position_limit").value
+        
+        self.target_motor_angle = self.get_parameter("target_motor_angle").value
+        self.target_spin_velocity = self.get_parameter("target_spin_velocity").value
+
+        self.linear_actuator_can_id = self.get_parameter("LINEAR_ACTUATOR_CAN_ID").value
+        self.auger_motor_can_id = self.get_parameter("AUGER_MOTOR_CAN_ID").value
+        self.spin_motor_can_id = self.get_parameter("SPIN_MOTOR_CAN_ID").value
+
+
+
+        self.get_logger().info("target_actuator_position is set to: " + str(self.target_actuator_position))
+        self.get_logger().info("target_motor_angle is set to: " + str(self.target_motor_angle))
+        self.get_logger().info("target_spin_velocity is set to: " + str(self.target_spin_velocity))
+
+        self.get_logger().info("Linear Actuator CAN ID is set to: " + str(self.linear_actuator_can_id))
+        self.get_logger().info("Auger Motor CAN ID is set to: " + str(self.auger_motor_can_id))
+        self.get_logger().info("Spin Motor CAN ID is set to: " + str(self.spin_motor_can_id))
+        
 
 
     #Define subsystem methods here
 
-    #TODO est position linear actuator
+    #TODO set position linear actuator
     def set_actuator_position(self, position: float, power_limit: float) -> bool:
         """ Set the auger position of the linear actuator."""
+        self.get_logger().info("Setting actuator position to: " + str(position))
+        if position <= self.actuator_position_limit:
+            self.target_actuator_position = position
+            self.cli_actuator_set.call_async(
+            MotorCommandSet.Request(
+                type="position",
+                value=float(position),
+            )
+        )
+            return True
         return False
-    
+
+
+    def stop_actuator(self) -> bool:
+        """ Stop the auger linear actuator."""
+        self.cli_actuator_set.call_async(
+            MotorCommandSet.Request(
+                type="duty_cycle",
+                value=0.0,
+            )
+        )
+        return True
 
     #TODO get position linear actuator
     def get_actuator_position(self) -> float:
@@ -68,7 +120,15 @@ class Auger(Node):
     #TODO set angular position
     def set_auger_angular_position(self, angle: float) -> bool:
         """ Set the auger angular position of the auger motor."""
-        return False
+        self.get_logger().info("Setting auger angular position to: " + str(angle))
+        self.target_motor_angle = angle
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(
+                type="position",
+                value=float(angle),
+            )
+        )
+        return True
 
     #TODO get angular position
     def get_auger_angular_position(self) -> float:
@@ -80,7 +140,15 @@ class Auger(Node):
     #TODO set auger spin velocity
     def set_auger_spin_velocity(self, velocity: float) -> bool:
         """ Set the auger spin velocity of the auger motor."""
-        return False
+        self.get_logger().info("Setting auger spin velocity to: " + str(velocity))
+        self.target_spin_velocity = velocity
+        self.cli_drive_set.call_async(
+            MotorCommandSet.Request(
+                type="velocity",
+                value=float(velocity),
+            )
+        )
+        return True
     
 
     #TODO auger spin velocity
@@ -93,11 +161,16 @@ class Auger(Node):
 
 
 
-
     #TODO  Define service callback methods here
     def set_actuator_position_callback(self, request, response):
         """This service request sets position of the actuator."""
         self.set_actuator_position(request.position)
+        response.success = True
+        return response
+    
+    def stop_actuator_callback(self, request, response):
+        """This service request stops the actuator."""
+        self.stop_actuator()
         response.success = True
         return response
     
