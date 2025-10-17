@@ -390,8 +390,10 @@ private:
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(static_cast<short>((can_msg->data[4] << 8) + can_msg->data[5])) / 10.0; 
       dutyCycleNow = static_cast<float>(static_cast<short>((can_msg->data[6] << 8) + can_msg->data[7])) / 10.0 / 100.0;
-      dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
-      dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
+      if (motorId == this->get_parameter("DUMPER_MOTOR").as_int()) {
+        dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
+        dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
+      }
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);

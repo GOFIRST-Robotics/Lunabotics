@@ -12,12 +12,13 @@
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
 
-  <exec_depend>isaac_ros_nvblox</exec_depend>
+  <exec_depend>alexblox</exec_depend>
+  <!-- <exec_depend>isaac_ros_nvblox</exec_depend> -->
   <exec_depend>isaac_ros_apriltag</exec_depend>
   <exec_depend>zed_wrapper</exec_depend>
-  <exec_depend>nvblox_rviz_plugin</exec_depend>
+  <!-- <exec_depend>nvblox_rviz_plugin</exec_depend>
   <exec_depend>nvblox_examples_bringup</exec_depend>
-  <exec_depend>nvblox_nav2</exec_depend>
+  <exec_depend>nvblox_nav2</exec_depend> -->
   <exec_depend>robot_description</exec_depend>
   <exec_depend>apriltag</exec_depend>
   <exec_depend>ros_gz_launch</exec_depend>

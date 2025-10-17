@@ -38,8 +38,8 @@ def generate_launch_description():
     )
 
     ld.add_action(run_rviz_arg)
-    ld.add_action(joystick_node)  # TODO: The joystick node currently does not work inside the container!
-    ld.add_action(start_gStreamer_client)
+    # ld.add_action(joystick_node)  # TODO: The joystick node currently does not work inside the container!
+    # ld.add_action(start_gStreamer_client)
     ld.add_action(rviz_node)
 
     return ld
