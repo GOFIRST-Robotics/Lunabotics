@@ -111,32 +111,32 @@ def generate_launch_description():
     )
 
     # Nvblox
-    nvblox_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox.launch.py"])]
-        ),
-        launch_arguments={
-            "global_frame": global_frame,
-            "setup_for_zed": LaunchConfiguration("setup_for_zed"),
-            "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
-            "attach_to_shared_component_container": "True",
-            "component_container_name": shared_container_name,
-        }.items(),
-        condition=IfCondition(PythonExpression([use_nvblox, " and not ", zed_multicam])),
-    )
-    nvblox_multicam_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox_multicam.launch.py"])]
-        ),
-        launch_arguments={
-            "global_frame": global_frame,
-            "setup_for_zed": LaunchConfiguration("setup_for_zed"),
-            "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
-            "attach_to_shared_component_container": "True",
-            "component_container_name": shared_container_name,
-        }.items(),
-        condition=IfCondition(PythonExpression([use_nvblox, " and ", zed_multicam])),
-    )
+    # nvblox_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox.launch.py"])]
+    #     ),
+    #     launch_arguments={
+    #         "global_frame": global_frame,
+    #         "setup_for_zed": LaunchConfiguration("setup_for_zed"),
+    #         "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
+    #         "attach_to_shared_component_container": "True",
+    #         "component_container_name": shared_container_name,
+    #     }.items(),
+    #     condition=IfCondition(PythonExpression([use_nvblox, " and not ", zed_multicam])),
+    # )
+    # nvblox_multicam_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox_multicam.launch.py"])]
+    #     ),
+    #     launch_arguments={
+    #         "global_frame": global_frame,
+    #         "setup_for_zed": LaunchConfiguration("setup_for_zed"),
+    #         "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
+    #         "attach_to_shared_component_container": "True",
+    #         "component_container_name": shared_container_name,
+    #     }.items(),
+    #     condition=IfCondition(PythonExpression([use_nvblox, " and ", zed_multicam])),
+    # )
 
     # Rviz
     rviz_launch = IncludeLaunchDescription(

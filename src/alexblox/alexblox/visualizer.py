@@ -1,7 +1,8 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
-import pyvista as pv  # this isnt in the container right now, either pip install each time, or rebuild the container. i added it as a dependency.
+import pyvista as pv  # this isnt in the container right now, 
+# either pip install each time, or rebuild the container. i added it as a dependency.
 
 from sensor_msgs.msg import PointCloud2
 from nav_msgs.msg import OccupancyGrid
@@ -76,7 +77,7 @@ class CostmapVisualizer(Node):
             average_heightmap = np.divide(sums, counts, out=np.full_like(sums, np.nan), where=counts != 0)
             projected = average_heightmap
 
-            origin = (world_min_x, world_min_y)
+            # origin = (world_min_x, world_min_y)
 
             # EDGE DETECTION
             gradient = np.gradient(projected, resolution, edge_order=1)

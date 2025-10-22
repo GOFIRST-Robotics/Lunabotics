@@ -17,15 +17,15 @@ def generate_launch_description():
 
     run_rviz_arg = DeclareLaunchArgument("run_rviz_client", default_value="True", description="Whether to start RVIZ")
 
-    joystick_node = Node(
-        package="joy",
-        executable="joy_node",
-        parameters=["config/joy_node.yaml"],
-    )
+    # joystick_node = Node(
+    #     package="joy",
+    #     executable="joy_node",
+    #     parameters=["config/joy_node.yaml"],
+    # )
 
-    start_gStreamer_client = ExecuteProcess(
-        cmd=["rqt", "--force-discover", "--standalone", "CameraClient"], shell=True, output="screen"
-    )
+    # start_gStreamer_client = ExecuteProcess(
+    #     cmd=["rqt", "--force-discover", "--standalone", "CameraClient"], shell=True, output="screen"
+    # )
 
     # NOTE: RVIZ uses a lot of bandwidth, so it should be turned off during competition matches
     rviz_node = Node(

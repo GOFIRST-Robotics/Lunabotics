@@ -33,7 +33,7 @@ def generate_camera_nodes(camera_name, video_device, pixel_format="yuyv", resolu
 def generate_launch_description():
     return LaunchDescription(
         generate_camera_nodes("right", "/dev/video6", "mjpeg2rgb")
-        + generate_camera_nodes("left", "/dev/video8", "mjpeg2rgb")  
+        + generate_camera_nodes("left", "/dev/video8", "mjpeg2rgb")
         + generate_camera_nodes("back", "/dev/video0", "mjpeg2rgb")
         + generate_camera_nodes("digger", "/dev/video4")
         + generate_camera_nodes("dumper", "/dev/video5")

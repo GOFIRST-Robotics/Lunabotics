@@ -91,12 +91,11 @@ class AutoDigNavOffloadServer(AsyncNode):
                 return False
             self.get_logger().info("AutoDig Goal Accepted")
 
-
             await self.dig_handle.get_result_async()
             self.dig_in_progress = False
             self.get_logger().info("→ AutoDig complete")
             return True
-        
+
         return False
 
     async def _do_backup(self, goal_handle):
