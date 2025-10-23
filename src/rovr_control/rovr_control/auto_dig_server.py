@@ -181,7 +181,7 @@ class AutoDigServer(AsyncNode):
                 if not self.goal_handle.is_cancel_requested:
                     self.get_logger().info(f"Attempting to set position to {position} with power limit {power_limit}")
                     if (await self.cli_lift_setPosition.call_async(
-                        SetPosition.Request(position=position, power_limit=power_limit))).success:
+                            SetPosition.Request(position=position, power_limit=power_limit))).success:
                         self.get_logger().info(f"Successfully set position to {position}")
                         return i
 
@@ -195,7 +195,8 @@ class AutoDigServer(AsyncNode):
                         return -1
 
                     await self.async_sleep(1)
-                    await self.cli_digger_setPower.call_async(SetPower.Request(power=self.goal_handle.request.digger_chain_power))
+                    await self.cli_digger_setPower.call_async(
+                        SetPower.Request(power=self.goal_handle.request.digger_chain_power))
                     await self.async_sleep(5)
 
                 else:
