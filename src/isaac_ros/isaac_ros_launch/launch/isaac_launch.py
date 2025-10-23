@@ -15,7 +15,7 @@ def generate_launch_description():
 
     # Launch Configurations
     setup_for_zed = LaunchConfiguration("setup_for_zed", default="True")
-    use_nvblox = LaunchConfiguration("use_nvblox", default="False")
+    # use_nvblox = LaunchConfiguration("use_nvblox", default="False")
     zed_multicam = LaunchConfiguration("zed_multicam", default="False")
     use_apriltags = LaunchConfiguration("use_apriltags", default="True")
     setup_for_gazebo = LaunchConfiguration("setup_for_gazebo", default="False")

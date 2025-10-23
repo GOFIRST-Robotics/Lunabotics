@@ -14,7 +14,9 @@ class AutoDigServer(AsyncNode):
     def __init__(self):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
-            self, AutoDig, "auto_dig", self.execute_callback, goal_callback=self.goal_callback, handle_accepted_callback=self.handle_accepted_callback, cancel_callback=self.cancel_callback
+            self, AutoDig, "auto_dig", self.execute_callback,
+            goal_callback=self.goal_callback, handle_accepted_callback=self.handle_accepted_callback,
+            cancel_callback=self.cancel_callback
         )
 
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
@@ -29,7 +31,7 @@ class AutoDigServer(AsyncNode):
     def goal_callback(self, goal_request):
         self.get_logger().info('Received goal request')
         return GoalResponse.ACCEPT
-    
+
     def handle_accepted_callback(self, goal_handle):
         self.get_logger().info('Starting new goal')
         goal_handle.execute()
@@ -90,7 +92,6 @@ class AutoDigServer(AsyncNode):
         #     # Start the agitator motor
         #     self.get_logger().info("Starting Small Agitator Motor")
         #     await self.cli_small_agitator_on_off.call_async(SetBool.Request(data=True))
-
 
         fails += await self.set_position_retry(475.0, 0.108, max_fails-fails)
 
@@ -173,17 +174,19 @@ class AutoDigServer(AsyncNode):
     async def set_position_retry(self, position: float, power_limit: float, max_retries: int = 4):
         if not self.goal_handle.is_cancel_requested:
             self.get_logger().info("Starting the digger chain")
-            await self.cli_digger_setPower.call_async(SetPower.Request(power=self.goal_handle.request.digger_chain_power))
+            await self.cli_digger_setPower.call_async(
+                SetPower.Request(power=self.goal_handle.request.digger_chain_power))
 
             for i in range(max_retries):
                 if not self.goal_handle.is_cancel_requested:
                     self.get_logger().info(f"Attempting to set position to {position} with power limit {power_limit}")
-                    if (await self.cli_lift_setPosition.call_async(SetPosition.Request(position=position, power_limit=power_limit))).success:
+                    if (await self.cli_lift_setPosition.call_async(
+                        SetPosition.Request(position=position, power_limit=power_limit))).success:
                         self.get_logger().info(f"Successfully set position to {position}")
                         return i
 
                     self.get_logger().info(f"Failed to set position to {position}")
-                    
+
                     if i == max_retries - 1:
                         break
 
@@ -201,6 +204,7 @@ class AutoDigServer(AsyncNode):
             return max_retries
         return -1
 
+
 def main(args=None) -> None:
     rclpy.init(args=args)
 
@@ -209,6 +213,7 @@ def main(args=None) -> None:
 
     action_server.destroy_node()
     rclpy.shutdown()
+
 
 # This code does NOT run if this file is imported as a module
 if __name__ == "__main__":

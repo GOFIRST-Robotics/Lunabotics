@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import numpy as np
-import pyvista as pv  # this isnt in the container right now, 
+import pyvista as pv  # this isnt in the container right now,
 # either pip install each time, or rebuild the container. i added it as a dependency.
 
 from sensor_msgs.msg import PointCloud2

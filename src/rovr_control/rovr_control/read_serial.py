@@ -17,10 +17,9 @@ class read_serial(Node):
         # Services to control the relay-driven agitator motor
         self.srv_bigonoff = self.create_service(SetBool, "big_agitator_on_off", self.big_on_off_callback)
         self.srv_bigtoggle = self.create_service(Trigger, "big_agitator_toggle", self.big_toggle_callback)
-        
+
         self.srv_smallonoff = self.create_service(SetBool, "small_agitator_on_off", self.small_on_off_callback)
         self.srv_smalltoggle = self.create_service(Trigger, "small_agitator_toggle", self.small_toggle_callback)
-
 
         try:
             self.arduino = serial.Serial("/dev/ttyACM0", 9600)
@@ -69,7 +68,7 @@ class read_serial(Node):
         response.success = response2.success
         response.message = response2.message
         return response
-    
+
     def small_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
         cmd = b"3" if request.data else b"2"

@@ -120,7 +120,6 @@ class MainControlNode(Node):
         self.cli_small_agitator_on_off = self.create_client(SetBool, "small_agitator_on_off")
         self.cli_small_agitator_toggle = self.create_client(Trigger, "small_agitator_toggle")
 
-
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
         # In order to have actions be cancellable they need to be called in a ReentrantCallbackGroup
@@ -165,7 +164,6 @@ class MainControlNode(Node):
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
         self.cli_big_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
         self.cli_small_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
-        
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
