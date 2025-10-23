@@ -23,7 +23,7 @@ class StreamDeckNode(Node):
             self.update_key_image(key)
         self.deck.set_key_callback(self.key_change_callback)
 
-    def key_change_callback(self, key, state):
+    def key_change_callback(self, _, key, state):
         print("Deck {} Key {} = {}".format(self.deck.DECK_TYPE, key, state), flush=True)
 
     def update_key_image(self, key):
