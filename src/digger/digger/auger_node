@@ -30,7 +30,6 @@ class Auger(Node):
         self.cli_spin_motor = self.create_client(MotorCommandSet, "motor_spin/set")
 
         #Define parameters here
-        self.declare_parameter("tilt_limit", 1.0)
         self.declare_parameter("push_position_limit", 1.0)
         self.declare_parameter("spin_velocity", 0.0)
 
@@ -62,9 +61,11 @@ class Auger(Node):
             SetPower, "motor_spin/setPower", self.set_auger_spin_velocity_callback, callback_group=self.service_cb_group
         )
        
-        #TODO Define subscribers here
+        #TODO Define subscribers here - need to subscribe to potentiometer readings?
 
-        #TODO Define publishers here
+        #TODO Define publishers here 
+
+
 
         self.get_logger().info("tilt_limit is set to: " + str(self.tilt_limit))
         self.get_logger().info("push_position_limit is set to: " + str(self.push_position_limit))
@@ -74,11 +75,12 @@ class Auger(Node):
 
     #Define subsystem methods here
 
-    #TODO set angular position
-    def set_actuator_tilt_position(self, angle: float) -> bool:
-        """ Set the auger angular position of the auger motor."""
-        self.get_logger().info("Setting auger angular position to: " + str(angle))
-        self.target_motor_angle = angle
+    #TODO set tilt position - is this really an angle? More likely a max position.
+    #TODO shouldn't we rather have just the two options exctract fully and retract fully? - introduce two loc vals for max and min position?
+    def set_actuator_tilt_position(self, tilt: bool) -> bool:
+        """ Set the auger tilt position of the actuator."""
+        self.get_logger().info("The : " + str(tilt))
+
         self.cli_tilt_actuator.call_async(
             MotorCommandSet.Request(
                 type="position",
@@ -87,6 +89,7 @@ class Auger(Node):
         )
         return True
     
+
     def stop_actuator_tilt(self) -> bool:
         """ Stop the auger angular position of the auger motor."""
         self.cli_tilt_actuator.call_async(
@@ -98,7 +101,7 @@ class Auger(Node):
         return True
 
 
-    #TODO set position linear actuator
+    #TODO set position of the actuator that pushes the auger into the ground
     def set_actuator_push_position(self, position: float, power_limit: float) -> bool:
         """ Set the target position of the linear actuator that pushes the auger into the ground."""
         self.get_logger().info("Setting actuator position to: " + str(position))
@@ -209,10 +212,17 @@ def main(args=None):
     executor.add_node(node)
 
     node.get_logger().info("Initializing the Auger subsystem!")
-
-    executor.spin()
-
-    node.destroy_node()
+    try:
+    
+        executor.spin()
+    #TODO this exception needed? Could this ever happen?
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down the Auger subsystem.")
+    finally:
+        node.destroy_node()
+    
+    
+    
     rclpy.shutdown()
 
 
