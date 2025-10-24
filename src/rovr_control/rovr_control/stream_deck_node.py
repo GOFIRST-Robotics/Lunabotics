@@ -29,7 +29,7 @@ class StreamDeckNode(Node):
             print("No Stream Decks found. Retrying...")
             time.sleep(1)
             streamdecks = DeviceManager().enumerate()
-        print("Found {} Stream Deck(s).\n".format(len(streamdecks)))
+        print("Found Stream Deck.")
         self.deck: StreamDeckMini = streamdecks[0]
         self.deck.open()
         self.deck.reset()
