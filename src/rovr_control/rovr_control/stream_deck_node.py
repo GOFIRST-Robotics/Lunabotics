@@ -1,42 +1,55 @@
 
 # Import the ROS 2 module
+import os
+import time
+
 import rclpy
-from rclpy.node import Node
 from PIL import Image, ImageDraw, ImageFont
+from rclpy.node import Node
 from StreamDeck.DeviceManager import DeviceManager, StreamDeckMini
 from StreamDeck.ImageHelpers import PILHelper
-import os
+
+from rovr_interfaces.msg import StreamDeckState
+
 
 class StreamDeckNode(Node):
 
     ASSETS_PATH = "/workspaces/isaac_ros-dev/src/rovr_control/resource/"
-    
+    button_states: list[bool] = [False] * StreamDeckMini.KEY_COUNT
+
     def __init__(self) -> None:
         super().__init__("StreamDeckNode")
-        print("Hello from StreamDeckNode!")
+        self.publisher = self.create_publisher(StreamDeckState, 'control/stream_deck', 10)
+        msg = StreamDeckState()
+        msg.button_states = self.button_states
+        self.publisher.publish(msg)
+        
         streamdecks = DeviceManager().enumerate()
+        while len(streamdecks) == 0:
+            print("No Stream Decks found. Retrying...")
+            time.sleep(1)
+            streamdecks = DeviceManager().enumerate()
         print("Found {} Stream Deck(s).\n".format(len(streamdecks)))
         self.deck: StreamDeckMini = streamdecks[0]
         self.deck.open()
         self.deck.reset()
         for key in range(self.deck.key_count()):
-            self.update_key_image(key)
+            self.render_key_image(key)
         self.deck.set_key_callback(self.key_change_callback)
 
-    def key_change_callback(self, _, key, state):
-        print("Deck {} Key {} = {}".format(self.deck.DECK_TYPE, key, state), flush=True)
+    def key_change_callback(self, _, key: int, state: bool) -> None:
+        self.button_states[key] = state
+        msg = StreamDeckState()
+        msg.button_states = self.button_states
+        print("Publishing button states: {}".format(self.button_states))
+        self.publisher.publish(msg)
 
-    def update_key_image(self, key):
-        # Generate the custom key with the requested image and label.
+    def render_key_image(self, key: int) -> None:
         image = self.render_key_image("test.png", "Hi!")
-
-        # Use a scoped-with on the deck to ensure we're the only thread using it
-        # right now.
         with self.deck:
-            # Update requested key with the generated image.
             self.deck.set_key_image(key, image)
 
-    def render_key_image(self, icon_filename, label_text):
+    def render_key_image(self, icon_filename: str, label_text: str) -> bytes:
         # Resize the source image asset to best-fit the dimensions of a single key,
         # leaving a margin at the bottom so that we can draw the key title
         # afterwards.
@@ -49,7 +62,7 @@ class StreamDeckNode(Node):
 
         return PILHelper.to_native_key_format(self.deck, image)
 
-def main(args=None):
+def main(args=None) -> None:
     rclpy.init(args=args)
 
     stream_deck = StreamDeckNode()
@@ -61,5 +74,5 @@ def main(args=None):
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
