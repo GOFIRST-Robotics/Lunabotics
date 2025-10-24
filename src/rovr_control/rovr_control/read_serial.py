@@ -15,8 +15,11 @@ class read_serial(Node):
         self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
 
         # Services to control the relay-driven agitator motor
-        self.srv_onoff = self.create_service(SetBool, "motor_on_off", self.on_off_callback)
-        self.srv_toggle = self.create_service(Trigger, "motor_toggle", self.toggle_callback)
+        self.srv_bigonoff = self.create_service(SetBool, "big_agitator_on_off", self.big_on_off_callback)
+        self.srv_bigtoggle = self.create_service(Trigger, "big_agitator_toggle", self.big_toggle_callback)
+
+        self.srv_smallonoff = self.create_service(SetBool, "small_agitator_on_off", self.small_on_off_callback)
+        self.srv_smalltoggle = self.create_service(Trigger, "small_agitator_toggle", self.small_toggle_callback)
 
         try:
             self.arduino = serial.Serial("/dev/ttyACM0", 9600)
@@ -29,7 +32,8 @@ class read_serial(Node):
 
         self.timer = self.create_timer(0.1, self.timer_callback)
         self.lastMsg = Potentiometers()
-        self.agitatorOn = False
+        self.bigAgitatorOn = False
+        self.smallAgitatorOn = False
 
     def timer_callback(self):
         if self.arduino is None:
@@ -45,22 +49,42 @@ class read_serial(Node):
         self.potentiometerPub.publish(msg)
         self.lastMsg = msg
 
-    def on_off_callback(self, request, response):
+    def big_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
         cmd = b"1" if request.data else b"0"
         self.arduino.write(cmd)
         response.success = True
-        response.message = "Agitator motor turned " + ("on" if request.data else "off")
-        self.agitatorOn = request.data
+        response.message = "Big agitator motor turned " + ("on" if request.data else "off")
+        self.bigAgitatorOn = request.data
         return response
 
-    def toggle_callback(self, request, response):
-        if self.agitatorOn:
+    def big_toggle_callback(self, request, response):
+        if self.bigAgitatorOn:
             response2 = SetBool.Response()
-            self.on_off_callback(SetBool.Request(data=False), response2)
+            self.big_on_off_callback(SetBool.Request(data=False), response2)
         else:
             response2 = SetBool.Response()
-            self.on_off_callback(SetBool.Request(data=True), response2)
+            self.big_on_off_callback(SetBool.Request(data=True), response2)
+        response.success = response2.success
+        response.message = response2.message
+        return response
+
+    def small_on_off_callback(self, request, response):
+        # request.data == True  → ON, False → OFF
+        cmd = b"3" if request.data else b"2"
+        self.arduino.write(cmd)
+        response.success = True
+        response.message = "Small agitator motor turned " + ("on" if request.data else "off")
+        self.smallAgitatorOn = request.data
+        return response
+
+    def small_toggle_callback(self, request, response):
+        if self.smallAgitatorOn:
+            response2 = SetBool.Response()
+            self.small_on_off_callback(SetBool.Request(data=False), response2)
+        else:
+            response2 = SetBool.Response()
+            self.small_on_off_callback(SetBool.Request(data=True), response2)
         response.success = response2.success
         response.message = response2.message
         return response

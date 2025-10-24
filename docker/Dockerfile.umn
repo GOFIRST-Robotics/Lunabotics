@@ -40,5 +40,9 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install 
     ros-humble-zed-msgs \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m pip install -U \
+    pyvista
+
+
 ARG USERNAME=admin
 RUN adduser ${USERNAME} dialout && adduser ${USERNAME} tty && adduser ${USERNAME} input
