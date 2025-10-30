@@ -62,7 +62,7 @@ class Auger(Node):
         )
        
         #TODO Define subscribers here - need to subscribe to potentiometer readings?
-
+        self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
         #TODO Define publishers here 
 
 
@@ -84,7 +84,7 @@ class Auger(Node):
         self.cli_tilt_actuator.call_async(
             MotorCommandSet.Request(
                 type="position",
-                value=float(angle),
+                value=float(tilt),
             )
         )
         return True
