@@ -1,0 +1,37 @@
+<package format="2">
+  <name>rqt_msg</name>
+  <version>1.7.1</version>
+  <description>A Python GUI plugin for introspecting available ROS message types.</description>
+
+  <maintainer email="brandon@openrobotics.org">Brandon Ong</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://wiki.ros.org/rqt_msg</url>
+  <url type="repository">https://github.com/ros-visualization/rqt_msg</url>
+  <url type="bugtracker">https://github.com/ros-visualization/rqt_msg/issues</url>
+
+  <author>Aaron Blasdel</author>
+  <author email="audrow@openrobotics.org">Audrow Nash</author>
+  <author email="dthomas@osrfoundation.org">Dirk Thomas</author>
+  <author email="mikeblautman@gmail.com">Michael Lautman</author>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend version_gte="0.2.19">python_qt_binding</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
+  <exec_depend>rqt_gui</exec_depend>
+  <exec_depend>rqt_gui_py</exec_depend>
+  <exec_depend>rqt_py_common</exec_depend>
+  <exec_depend>rqt_console</exec_depend>
+
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_xmllint</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <architecture_independent/>
+    <rqt_gui plugin="${prefix}/plugin.xml"/>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
