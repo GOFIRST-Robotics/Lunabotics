@@ -344,7 +344,7 @@ class MainControlNode(Node):
 
     async def stream_deck_callback(self, msg: StreamDeckState) -> None:
         print(msg.button_states)
-    
+
     # def watchdog_callback(self):
     #     """Check if we've received joystick messages recently"""
     #     current_time = time.time()

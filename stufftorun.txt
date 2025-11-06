@@ -1,4 +1,0 @@
-sudo apt install -y libudev-dev libusb-1.0-0-dev libhidapi-libusb0
-echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0fd9", MODE="0666"' | sudo tee /etc/udev/rules.d/99-streamdeck.rules
-sudo udevadm control --reload-rules && sudo udevadm trigger
-python3 -m pip install streamdeck

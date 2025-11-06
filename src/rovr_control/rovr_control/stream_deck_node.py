@@ -20,11 +20,11 @@ class StreamDeckNode(Node):
 
     def __init__(self) -> None:
         super().__init__("StreamDeckNode")
-        self.publisher = self.create_publisher(StreamDeckState, 'control/stream_deck', 10)
+        self.publisher = self.create_publisher(StreamDeckState, "control/stream_deck", 10)
         msg = StreamDeckState()
         msg.button_states = self.button_states
         self.publisher.publish(msg)
-        
+
         self.queue = Queue()
 
         streamdecks = DeviceManager().enumerate()
@@ -66,7 +66,8 @@ class StreamDeckNode(Node):
         image = PILHelper.create_scaled_key_image(self.deck, icon, margins=[0, 0, 20, 0])
         draw = ImageDraw.Draw(image)
         font = ImageFont.load_default()
-        draw.text((image.width / 2, image.height - 5), text=label_text, font=font, anchor="ms", fill="white")
+        draw.text((image.width / 2, image.height - 5), text=label_text, font=font, anchor="ms",
+                  fill="white")
 
         return PILHelper.to_native_key_format(self.deck, image)
 
