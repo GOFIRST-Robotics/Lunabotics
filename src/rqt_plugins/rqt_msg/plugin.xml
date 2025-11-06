@@ -5,7 +5,7 @@
     </description>
     <qtgui>
       <group>
-        <label>Topics</label>
+        <label>Messages</label>
         <icon type="theme">folder</icon>
         <statustip>Plugins related to ROS topics.</statustip>
       </group>
