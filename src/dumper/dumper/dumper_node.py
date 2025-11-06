@@ -69,6 +69,12 @@ class DumperNode(Node):
 
         self.dumper_current_sub = self.create_subscription(Float32, "Dumper_Current", self.dumper_current_callback, 10)
 
+        self.limitSwitch1 = False #Placeholder until we have a limit switch
+        self.limitSwitch2 = True #Placeholder until we have a limit switch
+
+        self.limitSwitch1_storage = False
+        self.limitSwitch2_storage = True
+
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
@@ -108,25 +114,46 @@ class DumperNode(Node):
         response.success = True
         return response
 
+    # Old Dumper Extend Function: 
+    # 
+    # def extend_dumper(self) -> None:
+    #     self.get_logger().info("Extending the dumper")
+    #     self.extended_state = True
+    #     self.long_service_running = True
+    #     self.set_power(self.DUMPER_POWER)
+    #     lastPowerTime = time.time()
+    #     # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
+    #     while time.time() - lastPowerTime < 0.5:
+    #         if self.cancel_current_srv:
+    #             self.cancel_current_srv = False
+    #             break
+    #         # If the dumper current is not below the threshold, update the last power time
+    #         if not self.dumper_current < self.current_threshold:
+    #             lastPowerTime = time.time()
+    #         time.sleep(0.1)  # We don't want to spam loop iterations too fast
+    #         # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+    #     self.stop()
+    #     self.long_service_running = False
+    #     self.get_logger().info("Done extending the dumper")
+
     def extend_dumper(self) -> None:
         self.get_logger().info("Extending the dumper")
         self.extended_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
-        lastPowerTime = time.time()
-        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
-        while time.time() - lastPowerTime < 0.5:
+
+
+        while not self.limitSwitch2:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
-            # If the dumper current is not below the threshold, update the last power time
-            if not self.dumper_current < self.current_threshold:
-                lastPowerTime = time.time()
-            time.sleep(0.1)  # We don't want to spam loop iterations too fast
-            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+            time.sleep(0.1)
+
         self.stop()
         self.long_service_running = False
         self.get_logger().info("Done extending the dumper")
+
+
 
     def extend_callback(self, request, response):
         """This service request extends the dumper"""
@@ -134,25 +161,47 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def retract_dumper(self) -> None:
+    # def retract_dumper(self) -> None: # get the variables
+    #     self.get_logger().info("Retracting the dumper")
+    #     self.extended_state = False
+    #     self.long_service_running = True
+    #     self.set_power(-self.DUMPER_POWER)
+    #     lastPowerTime = time.time()
+    #     # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
+    #     while time.time() - lastPowerTime < 0.5:
+    #         if self.cancel_current_srv:
+    #             self.cancel_current_srv = False
+    #             break
+    #         # If the dumper current is not below the threshold, update the last power time
+    #         if not self.dumper_current < self.current_threshold:
+    #             lastPowerTime = time.time()
+    #         time.sleep(0.1)  # We don't want to spam loop iterations too fast
+    #         # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+    #     self.stop()
+    #     self.long_service_running = False
+    #     self.get_logger().info("Done retracting the dumper")
+
+    def retract_dumper(self) -> None: # get the variables
+
+        actuator1_retracted = self.limitSwitch1_auger
+        actuator2_retracted= self.limitSwitch2_auger
         self.get_logger().info("Retracting the dumper")
         self.extended_state = False
         self.long_service_running = True
         self.set_power(-self.DUMPER_POWER)
-        lastPowerTime = time.time()
-        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
-        while time.time() - lastPowerTime < 0.5:
+
+        while not self.limitSwitch1:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
-            # If the dumper current is not below the threshold, update the last power time
-            if not self.dumper_current < self.current_threshold:
-                lastPowerTime = time.time()
-            time.sleep(0.1)  # We don't want to spam loop iterations too fast
-            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+            time.sleep(0.1)
+
         self.stop()
         self.long_service_running = False
         self.get_logger().info("Done retracting the dumper")
+
+# the storage bin can only be pulled back 
+# when the auger is completely stowed (both actuators fully retracted)
 
     def retract_callback(self, request, response):
         """This service request retracts the dumper"""
@@ -163,6 +212,11 @@ class DumperNode(Node):
     def dumper_current_callback(self, msg):
         self.dumper_current = msg.data
         # self.get_logger().info("Dumper current: " + str(self.dumper_current))
+
+# A motorized winch that pulls the storage box up and back to dump.
+# This will likely have 2 limit switches as well for 
+# the stowed and dumping positions of the dump box
+
 
 
 def main(args=None):
