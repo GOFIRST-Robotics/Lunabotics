@@ -43,11 +43,11 @@ class DumperNode(Node):
             SetPower, "dumper/setPower", self.set_power_callback, callback_group=self.service_cb_group
         )
 
-        self.srv_extendDumper = self.create_service(
-            Trigger, "dumper/extendDumper", self.extend_callback, callback_group=self.service_cb_group
+        self.srv_pullDumper = self.create_service(
+            Trigger, "dumper/pullDumper", self.pull_callback, callback_group=self.service_cb_group
         )
-        self.srv_retractDumper = self.create_service(
-            Trigger, "dumper/retractDumper", self.retract_callback, callback_group=self.service_cb_group
+        self.srv_dropDumper = self.create_service(
+            Trigger, "dumper/dropDumper", self.drop_callback, callback_group=self.service_cb_group
         )
 
         # Define default values for our ROS parameters below #
@@ -61,7 +61,7 @@ class DumperNode(Node):
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
 
         # Current state of the dumper
-        self.extended_state = False
+        self.pulled_state = False
 
         # Dumper Current Threshold
         self.current_threshold = 0.3
@@ -69,12 +69,12 @@ class DumperNode(Node):
 
         self.dumper_current_sub = self.create_subscription(Float32, "Dumper_Current", self.dumper_current_callback, 10)
 
-        self.limitSwitch1 = False #Placeholder until we have a limit switch
-        self.limitSwitch2 = True #Placeholder until we have a limit switch
+        self.KillSwitch_sub = self.create_subscription(Float32, "Limit Switches", self.killSwitch_callback, 10)
+        self.limitSwitchBottom = False #Placeholder until we have a limit switch
+        self.limitSwitchTop = True #Placeholder until we have a limit switch
 
-        self.limitSwitch1_storage = False
-        self.limitSwitch2_storage = True
-
+        self.limitSwitch1_auger = False
+        self.limitSwitch2_auger = False # To do add subscriber and publisher
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
@@ -88,10 +88,10 @@ class DumperNode(Node):
 
     def toggle(self) -> None:
         """This method toggles the dumper."""
-        if not self.extended_state:
-            self.extend_dumper()
+        if not self.pulled_state:
+            self.pull_dumper()
         else:
-            self.retract_dumper()
+            self.drop_dumper()
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -116,9 +116,9 @@ class DumperNode(Node):
 
     # Old Dumper Extend Function: 
     # 
-    # def extend_dumper(self) -> None:
+    # def pull_dumper(self) -> None:
     #     self.get_logger().info("Extending the dumper")
-    #     self.extended_state = True
+    #     self.pulled_state = True
     #     self.long_service_running = True
     #     self.set_power(self.DUMPER_POWER)
     #     lastPowerTime = time.time()
@@ -134,11 +134,11 @@ class DumperNode(Node):
     #         # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
     #     self.stop()
     #     self.long_service_running = False
-    #     self.get_logger().info("Done extending the dumper")
+    #     self.get_logger().info("Done pulling the dumper")
 
-    def extend_dumper(self) -> None:
+    def pull_dumper(self) -> None:
         self.get_logger().info("Extending the dumper")
-        self.extended_state = True
+        self.pulled_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
 
@@ -151,19 +151,19 @@ class DumperNode(Node):
 
         self.stop()
         self.long_service_running = False
-        self.get_logger().info("Done extending the dumper")
+        self.get_logger().info("Done pulling the dumper")
 
 
 
-    def extend_callback(self, request, response):
-        """This service request extends the dumper"""
-        self.extend_dumper()
+    def pull_callback(self, request, response):
+        
+        self.pull_dumper()
         response.success = True
         return response
 
-    # def retract_dumper(self) -> None: # get the variables
+    # def drop_dumper(self) -> None: # get the variables
     #     self.get_logger().info("Retracting the dumper")
-    #     self.extended_state = False
+    #     self.pulled_state = False
     #     self.long_service_running = True
     #     self.set_power(-self.DUMPER_POWER)
     #     lastPowerTime = time.time()
@@ -179,38 +179,44 @@ class DumperNode(Node):
     #         # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
     #     self.stop()
     #     self.long_service_running = False
-    #     self.get_logger().info("Done retracting the dumper")
+    #     self.get_logger().info("Done droping the dumper")
 
-    def retract_dumper(self) -> None: # get the variables
+    def drop_dumper(self) -> None: # get the variables
 
         actuator1_retracted = self.limitSwitch1_auger
-        actuator2_retracted= self.limitSwitch2_auger
-        self.get_logger().info("Retracting the dumper")
-        self.extended_state = False
-        self.long_service_running = True
-        self.set_power(-self.DUMPER_POWER)
+        actuator2_retracted = self.limitSwitch2_auger
 
-        while not self.limitSwitch1:
-            if self.cancel_current_srv:
-                self.cancel_current_srv = False
-                break
-            time.sleep(0.1)
+        if actuator1_retracted and actuator2_retracted:
+            self.get_logger().info("Retracting the dumper")
+            self.pulled_state = False
+            self.long_service_running = True
+            self.set_power(-self.DUMPER_POWER)
 
-        self.stop()
-        self.long_service_running = False
-        self.get_logger().info("Done retracting the dumper")
+            while not self.limitSwitch1:
+                if self.cancel_current_srv:
+                    self.cancel_current_srv = False
+                    break
+                time.sleep(0.1)
+
+            self.stop()
+            self.long_service_running = False
+            self.get_logger().info("Done droping the dumper")
 
 # the storage bin can only be pulled back 
-# when the auger is completely stowed (both actuators fully retracted)
+# when the auger is completely stowed (both actuators fully droped)
 
-    def retract_callback(self, request, response):
-        """This service request retracts the dumper"""
-        self.retract_dumper()
+    def drop_callback(self, request, response):
+        
+        self.drop_dumper()
         response.success = True
         return response
 
     def dumper_current_callback(self, msg):
         self.dumper_current = msg.data
+
+    def killSwitch_callback(self, msg):
+        self.LimitSwitchTop = msg.top_limit_switch
+        self.LimitSwitchBottom = msg.bottom_limit_switch
         # self.get_logger().info("Dumper current: " + str(self.dumper_current))
 
 # A motorized winch that pulls the storage box up and back to dump.
