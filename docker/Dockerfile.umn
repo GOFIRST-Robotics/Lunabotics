@@ -3,6 +3,8 @@ FROM ${BASE_IMAGE}
 
 USER root
 
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 # To get list of packages currently missing run: rosdep install --simulate --from-path src --ignore-src --skip-keys "ros-humble-isaac-ros-h264-decoder ros-humble-nova-carter-navigation ros-humble-isaac-ros-dnn-image-encoder ros-humble-isaac-ros-triton ros-humble-isaac-ros-unet ros-humble-isaac-ros-peoplesemseg-models-install" | awk '{print $5 }'
 RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install -y \
     ros-humble-rclc \
@@ -38,11 +40,17 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update  && apt-get install 
     ros-humble-ffmpeg-image-transport \
     ros-humble-ffmpeg-encoder-decoder \
     ros-humble-zed-msgs \
+    libudev-dev \
+    libusb-1.0-0-dev \
+    libhidapi-libusb0 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip install -U \
-    pyvista
+    pyvista \
+    streamdeck
 
+RUN echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0fd9", MODE="0666"' | sudo tee /etc/udev/rules.d/99-streamdeck.rules
+# RUN udevadm control --reload-rules && sudo udevadm trigger
 
 ARG USERNAME=admin
 RUN adduser ${USERNAME} dialout && adduser ${USERNAME} tty && adduser ${USERNAME} input
