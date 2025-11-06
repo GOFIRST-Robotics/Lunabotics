@@ -2,6 +2,7 @@
 # Import the ROS 2 module
 import os
 import time
+from queue import Queue
 
 import rclpy
 from PIL import Image, ImageDraw, ImageFont
@@ -24,6 +25,8 @@ class StreamDeckNode(Node):
         msg.button_states = self.button_states
         self.publisher.publish(msg)
         
+        self.queue = Queue()
+
         streamdecks = DeviceManager().enumerate()
         while len(streamdecks) == 0:
             print("No Stream Decks found. Retrying...")
@@ -37,12 +40,18 @@ class StreamDeckNode(Node):
             self.set_key_image(key)
         self.deck.set_key_callback(self.key_change_callback)
 
+        self.timer = self.create_timer(0.1, self.timer_callback)
+
+    def timer_callback(self) -> None:
+        while not self.queue.empty():
+            msg = self.queue.get()
+            self.publisher.publish(msg)
+
     def key_change_callback(self, _, key: int, state: bool) -> None:
         self.button_states[key] = state
         msg = StreamDeckState()
         msg.button_states = self.button_states
-        print("Publishing button states: {}".format(self.button_states))
-        self.publisher.publish(msg)
+        self.queue.put(msg)
 
     def set_key_image(self, key: int) -> None:
         image = self.render_image("test.png", "Hi!")
@@ -55,7 +64,6 @@ class StreamDeckNode(Node):
         # afterwards.
         icon = Image.open(os.path.join(self.ASSETS_PATH, icon_filename))
         image = PILHelper.create_scaled_key_image(self.deck, icon, margins=[0, 0, 20, 0])
-
         draw = ImageDraw.Draw(image)
         font = ImageFont.load_default()
         draw.text((image.width / 2, image.height - 5), text=label_text, font=font, anchor="ms", fill="white")
