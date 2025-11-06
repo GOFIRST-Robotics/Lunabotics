@@ -34,7 +34,7 @@ class StreamDeckNode(Node):
         self.deck.open()
         self.deck.reset()
         for key in range(self.deck.key_count()):
-            self.render_key_image(key)
+            self.set_key_image(key)
         self.deck.set_key_callback(self.key_change_callback)
 
     def key_change_callback(self, _, key: int, state: bool) -> None:
@@ -44,12 +44,12 @@ class StreamDeckNode(Node):
         print("Publishing button states: {}".format(self.button_states))
         self.publisher.publish(msg)
 
-    def render_key_image(self, key: int) -> None:
-        image = self.render_key_image("test.png", "Hi!")
+    def set_key_image(self, key: int) -> None:
+        image = self.render_image("test.png", "Hi!")
         with self.deck:
             self.deck.set_key_image(key, image)
 
-    def render_key_image(self, icon_filename: str, label_text: str) -> bytes:
+    def render_image(self, icon_filename: str, label_text: str) -> bytes:
         # Resize the source image asset to best-fit the dimensions of a single key,
         # leaving a margin at the bottom so that we can draw the key title
         # afterwards.
@@ -67,9 +67,10 @@ def main(args=None) -> None:
 
     stream_deck = StreamDeckNode()
 
-    rclpy.spin(stream_deck)
-
-    stream_deck.deck.close()
+    try:
+        rclpy.spin(stream_deck)
+    finally:
+        stream_deck.deck.close()
     stream_deck.destroy_node()
     rclpy.shutdown()
 
