@@ -71,6 +71,7 @@ class StreamDeckNode(Node):
 
         return PILHelper.to_native_key_format(self.deck, image)
 
+
 def main(args=None) -> None:
     rclpy.init(args=args)
 
