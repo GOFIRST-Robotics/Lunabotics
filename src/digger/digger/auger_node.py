@@ -25,10 +25,17 @@ class Auger(Node):
         # TODO Get real can ids
         self.TILT_MOTOR_ID = 0
         self.PUSH_MOTOR_ID = 0
-        self.SPIN_MOTOR_ID = 0
+        self.SPIN_MOTOR_ID = 0 
+
+        #Position
+        self.position = 0
 
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
         self.stop_cb_group = MutuallyExclusiveCallbackGroup()
+
+        # Subscriber Stuff
+
+        self.PotentiometerSub = self.create_subscription(int, "potentiometer", 10)
 
         # TODO Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
@@ -197,6 +204,9 @@ class Auger(Node):
         self.stop_auger_spin()
         response.success = True
         return response
+
+    def position_callback(self, msg):
+        self.position = msg.data
 
 
 def main(args=None):

@@ -12,7 +12,7 @@ class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
 
-        self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
+        self.potentiometerPub = self.create_publisher(int, "potentiometer", 10)
 
         # Services to control the relay-driven agitator motor
         self.srv_onoff = self.create_service(SetBool, "motor_on_off", self.on_off_callback)
@@ -39,9 +39,7 @@ class read_serial(Node):
         data = self.arduino.read(4)  # Pause until 4 bytes are read
         decoded = struct.unpack("hh", data)  # Use h for integers and ? for booleans
 
-        msg = Potentiometers()
-        msg.left_motor_pot = decoded[0]
-        msg.right_motor_pot = decoded[1]
+        msg = decoded[0];
         self.potentiometerPub.publish(msg)
         self.lastMsg = msg
 
