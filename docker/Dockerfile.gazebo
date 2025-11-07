@@ -3,6 +3,8 @@ FROM ${BASE_IMAGE}
 
 USER root
 
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 RUN --mount=type=cache,target=/var/cache/apt apt-get update && apt-get install -y \
     ros-humble-ros-gz \
     ros-humble-sdformat-urdf \

@@ -4,31 +4,38 @@
 # Last Updated: November 2023
 
 
+import time
+
 # Import the ROS 2 module
 import rclpy
-import time
+from action_msgs.msg import GoalStatus
+
+# Import ROS 2 formatted message types
+from geometry_msgs.msg import PoseStamped, Twist, Vector3
 from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.client import Future
 from rclpy.node import Node
 
-# Import ROS 2 formatted message types
-from geometry_msgs.msg import Twist, Vector3, PoseStamped
-from sensor_msgs.msg import Joy
-from action_msgs.msg import GoalStatus
-from std_msgs.msg import Float32
-
-# Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower
-from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
-from std_srvs.srv import Trigger, SetBool
-
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
+from sensor_msgs.msg import Joy
+from std_msgs.msg import Float32
+from std_srvs.srv import SetBool, Trigger
 
 # Import our logitech gamepad button mappings
 from rovr_control import gamepad_constants as bindings
+from rovr_interfaces.action import (
+    AutoDig,
+    AutoDigNavOffload,
+    AutoOffload,
+    CalibrateFieldCoordinates,
+)
+from rovr_interfaces.msg import StreamDeckState
+
+# Import custom ROS 2 interfaces
+from rovr_interfaces.srv import SetPower
 
 # Uncomment the line below to use the Xbox controller mappings instead
 # from rovr_control import xbox_controller_constants as bindings
@@ -127,6 +134,13 @@ class MainControlNode(Node):
             Joy,
             "joy",
             self.joystick_callback,
+            10,
+            callback_group=ReentrantCallbackGroup(),
+        )
+        self.stream_deck_subscription = self.create_subscription(
+            StreamDeckState,
+            "control/stream_deck",
+            self.stream_deck_callback,
             10,
             callback_group=ReentrantCallbackGroup(),
         )
@@ -327,6 +341,9 @@ class MainControlNode(Node):
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
+
+    async def stream_deck_callback(self, msg: StreamDeckState) -> None:
+        print(msg.button_states)
 
     # def watchdog_callback(self):
     #     """Check if we've received joystick messages recently"""
