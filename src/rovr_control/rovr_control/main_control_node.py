@@ -4,38 +4,31 @@
 # Last Updated: November 2023
 
 
-import time
-
 # Import the ROS 2 module
 import rclpy
-from action_msgs.msg import GoalStatus
-
-# Import ROS 2 formatted message types
-from geometry_msgs.msg import PoseStamped, Twist, Vector3
+import time
 from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.client import Future
 from rclpy.node import Node
 
-# Import Python Modules
-from scipy.spatial.transform import Rotation as R
+# Import ROS 2 formatted message types
+from geometry_msgs.msg import Twist, Vector3, PoseStamped
 from sensor_msgs.msg import Joy
+from action_msgs.msg import GoalStatus
 from std_msgs.msg import Float32
-from std_srvs.srv import SetBool, Trigger
-
-# Import our logitech gamepad button mappings
-from rovr_control import gamepad_constants as bindings
-from rovr_interfaces.action import (
-    AutoDig,
-    AutoDigNavOffload,
-    AutoOffload,
-    CalibrateFieldCoordinates,
-)
-from rovr_interfaces.msg import StreamDeckState
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import SetPower
+from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
+from std_srvs.srv import Trigger, SetBool
+
+# Import Python Modules
+from scipy.spatial.transform import Rotation as R
+
+# Import our logitech gamepad button mappings
+from rovr_control import gamepad_constants as bindings
 
 # Uncomment the line below to use the Xbox controller mappings instead
 # from rovr_control import xbox_controller_constants as bindings
@@ -76,11 +69,15 @@ class MainControlNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("max_drive_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_chain_power", 0.18)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_lift_manual_power_down", 0.12)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
+    
+        # self.declare_parameter("digger_chain_power", 0.18)  # Measured in Duty Cycle (0.0-1.0)
+        # self.declare_parameter("digger_lift_manual_power_down", 0.12)  # Measured in Duty Cycle (0.0-1.0)
+        # self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
+
         self.declare_parameter("lift_digging_start_position", 125.0)  # Measured in encoder counts
-        self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
+
+        # self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
+
         self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
         self.declare_parameter("autonomous_field_type", "cosmic")
@@ -88,26 +85,35 @@ class MainControlNode(Node):
         # Assign the ROS Parameters to member variables below #
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
-        self.digger_chain_power = self.get_parameter("digger_chain_power").value
-        self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
-        self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
+
+        # self.digger_chain_power = self.get_parameter("digger_chain_power").value
+        # self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
+        # self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
+
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
         self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value
         self.dumper_power = self.get_parameter("dumper_power").value
-        self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
+
+        # self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
 
         # Print the ROS Parameters to the terminal below #
+
         self.get_logger().info("max_drive_power has been set to: " + str(self.max_drive_power))
         self.get_logger().info("max_turn_power has been set to: " + str(self.max_turn_power))
-        self.get_logger().info("digger_chain_power has been set to: " + str(self.digger_chain_power))
-        self.get_logger().info(
-            "digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down)
-        )
-        self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
+
+        # self.get_logger().info("digger_chain_power has been set to: " + str(self.digger_chain_power))
+        # self.get_logger().info(
+        #     "digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down)
+        # )
+        # self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
+
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
-        self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+
+        # self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+
         self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
-        self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
+
+        # self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -116,9 +122,11 @@ class MainControlNode(Node):
         self.cli_dumper_toggle = self.create_client(Trigger, "dumper/toggle")
         self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
-        self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
-        self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
-        self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
+
+        # self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
+        # self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
+        # self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
+
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
@@ -134,13 +142,6 @@ class MainControlNode(Node):
             Joy,
             "joy",
             self.joystick_callback,
-            10,
-            callback_group=ReentrantCallbackGroup(),
-        )
-        self.stream_deck_subscription = self.create_subscription(
-            StreamDeckState,
-            "control/stream_deck",
-            self.stream_deck_callback,
             10,
             callback_group=ReentrantCallbackGroup(),
         )
@@ -172,10 +173,15 @@ class MainControlNode(Node):
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_digger_stop.call_async(Trigger.Request())  # Stop the digger chain
+
+        # self.cli_digger_stop.call_async(Trigger.Request())  # Stop the digger chain
+
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
-        self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
+
+        # self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
+
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
+
         self.cli_big_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
         self.cli_small_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
 
@@ -208,8 +214,11 @@ class MainControlNode(Node):
             self.drive_power_publisher.publish(Twist(linear=Vector3(x=forward_power), angular=Vector3(z=turning_power)))
 
             # Check if the digger button is pressed #
-            if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
-                self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_chain_power))
+
+            # Unused #
+
+            # if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
+            #     self.cli_digger_toggle.call_async(SetPower.Request(power=self.digger_chain_power))
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
@@ -222,6 +231,7 @@ class MainControlNode(Node):
                 # self.cli_small_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
+
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
                 self.cli_dumper_setPower.call_async(SetPower.Request(power=self.dumper_power))
             elif msg.buttons[bindings.RIGHT_BUMPER] == 0 and buttons[bindings.RIGHT_BUMPER] == 1:
@@ -232,17 +242,18 @@ class MainControlNode(Node):
                 self.cli_dumper_stop.call_async(Trigger.Request())
 
             # Manually adjust the height of the digger with the left and right triggers
-            if msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power_up))
-            elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
-                self.cli_lift_stop.call_async(Trigger.Request())
-            elif msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
-                if self.current_lift_position and self.current_lift_position < self.DIGGER_SAFETY_ZONE:
-                    self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_up))
-                else:
-                    self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_down))
-            elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
-                self.cli_lift_stop.call_async(Trigger.Request())
+
+            # if msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
+            #     self.cli_lift_set_power.call_async(SetPower.Request(power=self.digger_lift_manual_power_up))
+            # elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
+            #     self.cli_lift_stop.call_async(Trigger.Request())
+            # elif msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
+            #     if self.current_lift_position and self.current_lift_position < self.DIGGER_SAFETY_ZONE:
+            #         self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_up))
+            #     else:
+            #         self.cli_lift_set_power.call_async(SetPower.Request(power=-self.digger_lift_manual_power_down))
+            # elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
+            #     self.cli_lift_stop.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
@@ -271,8 +282,13 @@ class MainControlNode(Node):
         #         future.add_done_callback(self.cancel_done)
 
         # Check if the Auto Dig Nav button is pressed
+
         if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
+
             # Check if the Auto Dig Nav Offload process is not running
+        
+        #///////////////////////////////////////////////////////////////////////////////////#
+
             if self.auto_dig_nav_offload_handle.status != GoalStatus.STATUS_EXECUTING:
                 if not self.act_auto_dig_nav_offload.wait_for_server(timeout_sec=1.0):
                     self.get_logger().error("Auto Dig Nav Offload action not available")
@@ -281,18 +297,26 @@ class MainControlNode(Node):
                 self.auto_dig_nav_offload_handle = await self.act_auto_dig_nav_offload.send_goal_async(
                     AutoDigNavOffload.Goal(
                         lift_digging_start_position=self.lift_digging_start_position,
-                        digger_chain_power=self.digger_chain_power,
+
+                        # digger_chain_power=self.digger_chain_power,
+                        
                         backward_distance=1.8,  # meters
                     )
                 )
+
                 if not self.auto_dig_nav_offload_handle.accepted:
                     self.get_logger().info("Auto Dig Nav Offload Goal rejected")
                     return
                 self.auto_dig_nav_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
                 self.state = states["Autonomous"]
+
+        #/////////////////////////////////////////////////////////////////////////////////////#
+
             # Terminate the Auto Dig Nav Offload process
+
             else:
                 self.get_logger().warn("Auto Dig Nav Offload Terminated")
+
                 # Cancel the goal
                 future = self.auto_dig_nav_offload_handle.cancel_goal_async()
                 future.add_done_callback(self.cancel_done)
@@ -307,7 +331,9 @@ class MainControlNode(Node):
                 self.stop_all_subsystems()
                 goal = AutoDig.Goal(
                     lift_digging_start_position=self.lift_digging_start_position,
-                    digger_chain_power=self.digger_chain_power,
+
+                    # digger_chain_power=self.digger_chain_power,
+
                 )
                 self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
                 self.auto_dig_handle.get_result_async().add_done_callback(self.get_result_callback)
@@ -341,9 +367,6 @@ class MainControlNode(Node):
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
-
-    async def stream_deck_callback(self, msg: StreamDeckState) -> None:
-        print(msg.button_states)
 
     # def watchdog_callback(self):
     #     """Check if we've received joystick messages recently"""
