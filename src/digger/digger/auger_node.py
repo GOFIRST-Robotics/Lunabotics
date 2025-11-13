@@ -131,6 +131,14 @@ class Auger(Node):
             )
         )
 
+    def set_actuator_velocity(self, velocity: float) -> None:
+
+        self.get_logger().info("Setting actuator position to: " + str(velocity))
+        self.target_actuator_velocity = velocity
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request( type = "velocity", value = float(velocity))
+        )
+
     def stop_actuator_push(self) -> None:
         """Stop the linear actuator that pushes the auger into the ground."""
         self.cli_motor_set.call_async(
