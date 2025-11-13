@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from rqt_msg.messages_tree_model import MessagesTreeModel
+from rqt_camera.messages_tree_model import MessagesTreeModel
 
 from rqt_py_common.message_tree_widget import MessageTreeWidget
 

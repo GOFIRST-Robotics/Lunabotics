@@ -1,7 +1,7 @@
 <library path="src">
   <class name="Cameras" type="rqt_camera.cameras.Cameras" base_class_type="rqt_gui_py::Plugin">
     <description>
-      A Python GUI plugin for loading lunabotics cameras.
+      A Python GUI plugin for browsing available ROS message types.
     </description>
     <qtgui>
       <group>

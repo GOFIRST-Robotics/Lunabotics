@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MessagesWidget</class>
- <widget class="QWidget" name="MessagesWidget">
+ <class>CamerasWidget</class>
+ <widget class="QWidget" name="CamerasWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Message Type Browser</string>
+   <string>Camera Type Browser</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="margin">
@@ -30,7 +30,7 @@
        <item>
         <widget class="QLabel" name="type_label">
          <property name="text">
-          <string>Message:</string>
+          <string>Camera:</string>
          </property>
         </widget>
        </item>
@@ -66,7 +66,7 @@
           </size>
          </property>
          <property name="toolTip">
-          <string>Message Name</string>
+          <string>Camera Name</string>
          </property>
         </widget>
        </item>
@@ -114,9 +114,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>MessagesTreeView</class>
+   <class>CamerasTreeView</class>
    <extends>QTreeView</extends>
-   <header>rqt_msg.messages_widget</header>
+   <header>rqt_camera.messages_widget</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -4,7 +4,7 @@ from rqt_gui.main import Main
 
 
 def main():
-    plugin = 'rqt_msg.messages.Messages'
+    plugin = 'rqt_camera.cameras.Cameras'
     main = Main(filename=plugin)
     sys.exit(main.main(standalone=plugin))
 

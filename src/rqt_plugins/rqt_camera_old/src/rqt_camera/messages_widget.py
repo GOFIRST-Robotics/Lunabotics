@@ -47,7 +47,7 @@ from rosidl_runtime_py.utilities import get_action, get_message, get_service
 
 from rqt_console.text_browse_dialog import TextBrowseDialog
 
-from rqt_msg.messages_tree_view import MessagesTreeView
+from rqt_camera.messages_tree_view import MessagesTreeView
 
 from rqt_py_common import message_helpers
 from rqt_py_common.message_helpers import \
@@ -64,7 +64,7 @@ class MessagesWidget(QWidget):
     """
 
     def __init__(self, mode=message_helpers.MSG_MODE,
-                 pkg_name='rqt_msg',
+                 pkg_name='rqt_camera',
                  ui_filename='messages.ui'):
         """
         Construct a new MessagesWidget.
@@ -74,7 +74,7 @@ class MessagesWidget(QWidget):
                             errors are likely to happen. Best way to avoid that
                             situation when you want to give your own .ui file
                             is to implement all Qt components in
-                            rqt_msg/resource/message.ui file.
+                            rqt_camera/resource/message.ui file.
         """
         super(MessagesWidget, self).__init__()
 
