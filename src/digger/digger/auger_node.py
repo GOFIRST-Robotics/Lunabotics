@@ -22,18 +22,11 @@ class Auger(Node):
         "Initialize the ROS 2 Auger node"
         super().__init__("auger")
 
-        # TODO Get real can ids
-        self.TILT_MOTOR_ID = 0
-        self.PUSH_MOTOR_ID = 0
-        self.SPIN_MOTOR_ID = 0 
-
         #Position
         self.position = 0
 
         self.service_cb_group = MutuallyExclusiveCallbackGroup()
         self.stop_cb_group = MutuallyExclusiveCallbackGroup()
-
-        # Subscriber Stuff
 
     
         # TODO Define service clients here
@@ -43,11 +36,23 @@ class Auger(Node):
         # Define parameters here
         self.declare_parameter("push_position_limit", 1.0)
         self.declare_parameter("spin_velocity", 0.0)
+        self.declare_parameter("push_actuator_position", 0)
+        # TODO: Find real value for this
+        self.declare_parameter("MAX_PUSH_ACTUATOR_POSITION", 0)
+        self.declare_parameter("MIN_PUSH_ACTUATOR_POSITION", 0)
+        # TODO Get real can ids
+        self.declare_parameter("TILT_MOTOR_ID", 0)
+        self.declare_parameter("PUSH_MOTOR_ID", 0)
+        self.declare_parameter("SPIN_MOTOR_ID", 0)
 
         # Local variables here
         self.tilt_limit = self.get_parameter("tilt_limit").value
         self.push_position_limit = self.get_parameter("push_position_limit").value
         self.spin_velocity = self.get_parameter("spin_velocity").value
+        self.push_actuator_position = self.get_parameter("push_actuator_position").value
+        self.TILT_MOTOR_ID = self.get_parameter("TILT_MOTOR_ID")
+        self.PUSH_MOTOR_ID = self.get_parameter("PUSH_MOTOR_ID")
+        self.SPIN_MOTOR_ID = self.get_parameter("SPIN_MOTOR_ID")
 
         # TODO Define services (methods callable from the outside) here
         self.srv_set_tilt_extension = self.create_service(
