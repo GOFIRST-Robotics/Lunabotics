@@ -372,17 +372,17 @@ class MainControlNode(Node):
             await self.auto_offload_sequence()
 
         if (button_states[bindings.STREAMDECK_GO_TO_DIG_SITE] and
-            not old_streamdeck_buttons[bindings.STREAMDECK_GO_TO_DIG_SITE]):
-                await self.auto_dig_nav_offload_sequence()
+                not old_streamdeck_buttons[bindings.STREAMDECK_GO_TO_DIG_SITE]):
+            await self.auto_dig_nav_offload_sequence()
 
         if button_states[bindings.STREAMDECK_START_AUTO] and not old_streamdeck_buttons[bindings.STREAMDECK_START_AUTO]:
             # Placeholder for future autonomous mode
             self.get_logger().info("Streamdeck Start Auto button pressed - no action assigned yet.")
 
         if (button_states[bindings.STREAMDECK_APRILTAG_DETECT] and
-            not old_streamdeck_buttons[bindings.STREAMDECK_APRILTAG_DETECT]):
-                # Placeholder for future AprilTag detection calibration
-                self.get_logger().info("Streamdeck AprilTag Detect button pressed - no action assigned yet.")
+                not old_streamdeck_buttons[bindings.STREAMDECK_APRILTAG_DETECT]):
+            # Placeholder for future AprilTag detection calibration
+            self.get_logger().info("Streamdeck AprilTag Detect button pressed - no action assigned yet.")
 
         for index in range(len(button_states)):
             old_streamdeck_buttons[index] = button_states[index]
