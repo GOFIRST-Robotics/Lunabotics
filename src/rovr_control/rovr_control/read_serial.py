@@ -37,11 +37,11 @@ class read_serial(Node):
             self.destroy_node()
             return
         data = self.arduino.read(4)  # Pause until 4 bytes are read
-        decoded = struct.unpack("hh", data)  # Use h for integers and ? for booleans
+        decoded = struct.unpack("h", data)  # Use h for integers and ? for booleans
 
-        msg = decoded[0];
-        self.potentiometerPub.publish(msg)
-        self.lastMsg = msg
+        
+        self.potentiometerPub.publish(decoded[0])
+        self.lastMsg = decoded[0]
 
     def on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF

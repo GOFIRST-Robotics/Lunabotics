@@ -35,8 +35,7 @@ class Auger(Node):
 
         # Subscriber Stuff
 
-        self.PotentiometerSub = self.create_subscription(int, "potentiometer", 10)
-
+    
         # TODO Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
@@ -93,7 +92,7 @@ class Auger(Node):
 
         # TODO Define subscribers here - need to subscribe to potentiometer readings?
         self.potentiometer_sub = self.create_subscription(
-            Potentiometers, "potentiometers", self.pot_callback, 10
+            Potentiometers, "potentiometers", self.position_callback, 10
         )
         # TODO Define publishers here
 
