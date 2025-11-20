@@ -11,6 +11,7 @@ from StreamDeck.DeviceManager import DeviceManager, StreamDeckMini
 from StreamDeck.ImageHelpers import PILHelper
 
 from rovr_interfaces.msg import StreamDeckState
+from rovr_control import gamepad_constants as bindings
 
 
 class StreamDeckNode(Node):
@@ -24,6 +25,9 @@ class StreamDeckNode(Node):
         msg = StreamDeckState()
         msg.button_states = self.button_states
         self.publisher.publish(msg)
+
+        self.all_buttons = [name for name in dir(bindings) if name.startswith("STREAMDECK_")]
+        self.indexToBinding = {getattr(bindings, name): name for name in self.all_buttons}
 
         self.queue = Queue()
 
@@ -54,7 +58,12 @@ class StreamDeckNode(Node):
         self.queue.put(msg)
 
     def set_key_image(self, key: int) -> None:
-        image = self.render_image("test.png", "Hi!")
+        button_name = self.indexToBinding.get(key, "test")
+        image_path = self.indexToBinding.get(key, "test")
+        image = self.render_image(
+            f"{image_path}.png",
+            str.lower(button_name.replace("STREAMDECK_", "").replace("_", " "))
+        )
         with self.deck:
             self.deck.set_key_image(key, image)
 
@@ -62,6 +71,8 @@ class StreamDeckNode(Node):
         # Resize the source image asset to best-fit the dimensions of a single key,
         # leaving a margin at the bottom so that we can draw the key title
         # afterwards.
+        if not os.path.exists(os.path.join(self.ASSETS_PATH, icon_filename)):
+            icon_filename = "test.png"
         icon = Image.open(os.path.join(self.ASSETS_PATH, icon_filename))
         image = PILHelper.create_scaled_key_image(self.deck, icon, margins=[0, 0, 20, 0])
         draw = ImageDraw.Draw(image)
