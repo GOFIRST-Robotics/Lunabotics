@@ -281,23 +281,13 @@ public:
     // Define default values for our ROS parameters below #
     this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
-    this->declare_parameter("MAX_POS_DIFF", 30);
-    this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", false);
-    this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0);
-    this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2);
     this->declare_parameter("DUMPER_MOTOR", 2);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
-    RCLCPP_INFO(this->get_logger(), "MAX_POS_DIFF parameter set to: %ld", this->get_parameter("MAX_POS_DIFF").as_int());
     RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
-    RCLCPP_INFO(this->get_logger(), "TIPPING_SPEED_ADJUSTMENT parameter set to: %d", this->get_parameter("TIPPING_SPEED_ADJUSTMENT").as_bool());
-    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_THRESHOLD parameter set to: %f", this->get_parameter("CURRENT_SPIKE_THRESHOLD").as_double());
-    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_TIME parameter set to: %f", this->get_parameter("CURRENT_SPIKE_TIME").as_double());
-    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_THRESHOLD parameter set to: %f", this->get_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD").as_double());
-    RCLCPP_INFO(this->get_logger(), "CURRENT_SPIKE_TIME parameter set to: %f", this->get_parameter("BUCKETS_CURRENT_SPIKE_TIME").as_double());
-
+  
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
@@ -385,9 +375,7 @@ private:
   std::map<uint32_t, MotorData> can_data;
   std::map<uint32_t, PIDController*> pid_controllers;
 
-  double pitch = 0.0;
   std::optional<std::chrono::steady_clock::time_point> start;
-  std::optional<std::chrono::steady_clock::time_point> buckets_start;
   
 
   // Adjust this data retention threshold as needed
