@@ -9,7 +9,6 @@
 // Import ROS 2 Formatted Message Types
 #include "can_msgs/msg/frame.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "std_msgs/msg/float32.hpp"
 // #include <std_msgs/msg/float32_multi_array.hpp>
 #include "std_msgs/msg/string.hpp"
@@ -286,6 +285,7 @@ public:
     this->declare_parameter("TIPPING_SPEED_ADJUSTMENT", false);
     this->declare_parameter("BUCKETS_CURRENT_SPIKE_THRESHOLD", 8.0);
     this->declare_parameter("BUCKETS_CURRENT_SPIKE_TIME", 0.2);
+    this->declare_parameter("DUMPER_MOTOR", 2);
 
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
@@ -308,8 +308,6 @@ public:
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
-    cli_lift_stop = this->create_client<std_srvs::srv::Trigger>("lift/stop");
-
     dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 5);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
@@ -317,9 +315,7 @@ public:
     // The name of this topic is determined by ros2socketcan_bridge
     can_sub = this->create_subscription<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_RECEIVE").as_string() + "/receive", 10, std::bind(&MotorControlNode::CAN_callback, this, _1));
 
-    potentiometer_sub = this->create_subscription<rovr_interfaces::msg::Potentiometers>("potentiometers", 10, std::bind(&MotorControlNode::Potentiometer_callback, this, _1));
-    pose_sub = this->create_subscription<geometry_msgs::msg::PoseStamped>("/zed2i/zed_node_zed2i/pose", 10, std::bind(&MotorControlNode::Pose_callback, this, _1));
-
+   
   }
 
 private:
@@ -384,12 +380,6 @@ private:
 
   //TODO Can we just completely get rid of this callback? - earlier we had: potentiometer readings for digger position control
 
-  void Pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-      tf2::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
-      tf2::Matrix3x3 m(q);
-      double roll, yaw;
-      m.getRPY(roll, pitch, yaw);
-  }
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID
   std::map<uint32_t, MotorData> can_data;
@@ -455,12 +445,9 @@ private:
   }
 
   rclcpp::TimerBase::SharedPtr timer;
-  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr cli_lift_stop;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr dumper_linear_actuator_pub;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
-  rclcpp::Subscription<rovr_interfaces::msg::Potentiometers>::SharedPtr potentiometer_sub; 
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandGet>::SharedPtr srv_motor_get;
 };
