@@ -30,14 +30,28 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+from qt_gui.plugin import Plugin
 
-from rqt_py_common.message_tree_model import MessageTreeModel
+from rqt_camera.cameras_widget import CameraWidget
 
+class Cameras(Plugin):
+    def __init__(self, context):
+        super().__init__(context)
+        self.setObjectName('Cameras')
+        
+        self._widget = CameraWidget()
+        if context.serial_number() > 1:
+            self._widget.setWindowTitle(
+                self._widget.windowTitle() + (' (%d)' % context.serial_number()))
+        context.add_widget(self._widget)
 
-class MessagesTreeModel(MessageTreeModel):
+    def shutdown_plugin(self):
+        self._widget.shutdown()
 
-    def __init__(self, parent=None):
-        super(MessagesTreeModel, self).__init__()
-        self.setHorizontalHeaderLabels([self.tr('Tree'),
-                                        self.tr('Type'),
-                                        self.tr('Path')])
+    def save_settings(self, plugin_settings, instance_settings):
+        # instance_settings.set_value(k, v)
+        pass
+
+    def restore_settings(self, plugin_settings, instance_settings):
+        # v = instance_settings.value(k)
+        pass
