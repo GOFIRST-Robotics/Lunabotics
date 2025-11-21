@@ -34,28 +34,29 @@ class Auger(Node):
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define parameters here
-        self.declare_parameter("tilit_limit", 1.0)
-        self.declare_parameter("push_position_limit", 1.0)
         self.declare_parameter("spin_velocity", 0.0)
         self.declare_parameter("push_actuator_position", 0)
         # TODO: Find real value for this
         self.declare_parameter("MAX_PUSH_ACTUATOR_POSITION", 0)
         self.declare_parameter("MIN_PUSH_ACTUATOR_POSITION", 0)
+        self.declare_parameter("MAX_PUSH_ACTUATOR_VELOCITY", 0) # should this be absolute velocity ?
+        # Since we only care if the tilt actuator is fully extened or fully retracted then we should only need to care about the speed it moves
+        self.declare_parameter("TILT_ACTUATOR_SPEED", 0) # make sure to verify direction of this velocity
         # TODO Get real can ids
         self.declare_parameter("TILT_MOTOR_ID", 0)
         self.declare_parameter("PUSH_MOTOR_ID", 0)
         self.declare_parameter("SPIN_MOTOR_ID", 0)
 
         # Local variables here
-        self.tilt_limit = self.get_parameter("tilt_limit").value
-        self.push_position_limit = self.get_parameter("push_position_limit").value
         self.spin_velocity = self.get_parameter("spin_velocity").value
         self.push_actuator_position = self.get_parameter("push_actuator_position").value
-        self.MAX_PUSH_ACTUATOR_POSITION = self.get_parameter("MAX_PUSH_ACTUATOR_POSITION")
-        self.MIN_PUSH_ACTUATOR_POSITION = self.get_parameter("MIN_PUSH_ACTUATOR_POSITION", 0)
-        self.TILT_MOTOR_ID = self.get_parameter("TILT_MOTOR_ID")
-        self.PUSH_MOTOR_ID = self.get_parameter("PUSH_MOTOR_ID")
-        self.SPIN_MOTOR_ID = self.get_parameter("SPIN_MOTOR_ID")
+        self.MAX_PUSH_ACTUATOR_POSITION = self.get_parameter("MAX_PUSH_ACTUATOR_POSITION").value
+        self.MIN_PUSH_ACTUATOR_POSITION = self.get_parameter("MIN_PUSH_ACTUATOR_POSITION").value
+        self.MAX_PUSH_ACTUATOR_VELOCITY = self.get_parameter("MAX_PUSH_ACTUATOR_VELOCITY").value
+        self.TILT_ACTUATOR_SPEED = self.get_parameter("TILT_ACTUATOR_SPEED")
+        self.TILT_MOTOR_ID = self.get_parameter("TILT_MOTOR_ID").value
+        self.PUSH_MOTOR_ID = self.get_parameter("PUSH_MOTOR_ID").value
+        self.SPIN_MOTOR_ID = self.get_parameter("SPIN_MOTOR_ID").value
 
         # TODO Define services (methods callable from the outside) here
         self.srv_set_tilt_extension = self.create_service(
@@ -104,28 +105,30 @@ class Auger(Node):
         )
         # TODO Define publishers here
 
-        self.get_logger().info("tilt_limit is set to: " + str(self.tilt_limit))
-        self.get_logger().info("push_position_limit is set to: " + str(self.push_position_limit))
         self.get_logger().info("spin_velocity is set to: " + str(self.spin_velocity))
 
     # Define subsystem methods here
 
-    # TODO set tilt position - is this really an angle? More likely a max position.
-    # TODO shouldn't we rather have just the two options exctract fully and retract fully? - introduce two loc vals for max and min position?
     def set_actuator_tilt_extension(self, tilt: bool) -> None:
-        """Set the auger tilt position of the actuator."""
-        self.get_logger().info("The : " + str(tilt))
+        """Set the auger tilt position of the actuator. True for extend, False for retract"""
+        if tilt:
+            self.get_logger().info("Extending tilt actuator")
+        else:
+            self.get_logger().info("Retracting tilt actuator")
+
+        speed = self.TILT_ACTUATOR_SPEED * 1 if tilt else -1
 
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="velocity",
                 can_id=self.TILT_MOTOR_ID,
-                value=1 if tilt else -1,
+                value=speed
             )
         )
 
     def stop_actuator_tilt(self) -> None:
         """Stop the auger angular position of the auger motor."""
+        self.get_logger().info("Stopping tilt actuator")
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="duty_cycle",
@@ -135,10 +138,13 @@ class Auger(Node):
         )
 
     # TODO set position of the actuator that pushes the auger into the ground
-    def set_actuator_push_position(self, position: float, power_limit: float) -> None:
+    def set_actuator_push_position(self, position: float) -> None:
         """Set the target position of the linear actuator that pushes the auger into the ground."""
-        self.get_logger().info("Setting actuator position to: " + str(position))
-        self.target_actuator_position = position
+        if position > self.MAX_PUSH_ACTUATOR_POSITION or position < self.MIN_PUSH_ACTUATOR_POSITION:
+            self.get_logger().warn(f"WARNING: Requested push actuator position is out of range, clamping value; requested: {position}")
+            position = max(self.MIN_PUSH_ACTUATOR_POSITION, min(position, self.MAX_PUSH_ACTUATOR_POSITION)) # clamp the value to be within range
+        self.get_logger().info("Setting auger push actuator position to: " + str(position))
+
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
@@ -148,8 +154,15 @@ class Auger(Node):
         )
 
     def set_actuator_push_velocity(self, velocity: float) -> None:
-
-        self.get_logger().info("Setting actuator position to: " + str(velocity))
+        """Set the target velocity of the linear actuator that pushes the auger into the ground."""
+        if abs(velocity) > self.MAX_PUSH_ACTUATOR_VELOCITY:
+            self.get_logger().warn(f"WARNING: Requested push actuator velocity is too high, clamping value; requested: {velocity}")
+            if velocity < 0:
+                velocity = -self.MAX_PUSH_ACTUATOR_VELOCITY
+            else:
+                velocity = self.MAX_PUSH_ACTUATOR_VELOCITY
+        self.get_logger().info("Setting auger push actuator velocity to: " + str(velocity))
+        
         self.target_actuator_velocity = velocity
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
