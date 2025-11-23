@@ -4,37 +4,46 @@
 # Last Updated: November 2023
 
 
+import time
+
 # Import the ROS 2 module
 import rclpy
-import time
+from action_msgs.msg import GoalStatus
+
+# Import ROS 2 formatted message types
+from geometry_msgs.msg import PoseStamped, Twist, Vector3
 from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.client import Future
 from rclpy.node import Node
 
-# Import ROS 2 formatted message types
-from geometry_msgs.msg import Twist, Vector3, PoseStamped
-from sensor_msgs.msg import Joy
-from action_msgs.msg import GoalStatus
-from std_msgs.msg import Float32
-
-# Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower
-from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
-from std_srvs.srv import Trigger, SetBool
-
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
+from sensor_msgs.msg import Joy
+from std_msgs.msg import Float32
+from std_srvs.srv import SetBool, Trigger
 
 # Import our logitech gamepad button mappings
 from rovr_control import gamepad_constants as bindings
+from rovr_interfaces.action import (
+    AutoDig,
+    AutoDigNavOffload,
+    AutoOffload,
+    CalibrateFieldCoordinates,
+)
+from rovr_interfaces.msg import StreamDeckState
+
+# Import custom ROS 2 interfaces
+from rovr_interfaces.srv import SetPower
 
 # Uncomment the line below to use the Xbox controller mappings instead
 # from rovr_control import xbox_controller_constants as bindings
 
 # GLOBAL VARIABLES #
 buttons = [0] * 11  # This is to help with button press detection
+old_streamdeck_buttons = [False] * 6  # To track previous states of streamdeck buttons
+
 # Define the possible states of our robot
 states = {"Teleop": 0, "Autonomous": 1}
 
@@ -115,8 +124,10 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
         self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
-        self.cli_motor_on_off = self.create_client(SetBool, "motor_on_off")
-        self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
+        self.cli_big_agitator_on_off = self.create_client(SetBool, "big_agitator_on_off")
+        self.cli_big_agitator_toggle = self.create_client(Trigger, "big_agitator_toggle")
+        self.cli_small_agitator_on_off = self.create_client(SetBool, "small_agitator_on_off")
+        self.cli_small_agitator_toggle = self.create_client(Trigger, "small_agitator_toggle")
 
         # Define publishers and subscribers here
         self.drive_power_publisher = self.create_publisher(Twist, "cmd_vel", 10)
@@ -125,6 +136,13 @@ class MainControlNode(Node):
             Joy,
             "joy",
             self.joystick_callback,
+            10,
+            callback_group=ReentrantCallbackGroup(),
+        )
+        self.stream_deck_subscription = self.create_subscription(
+            StreamDeckState,
+            "control/stream_deck",
+            self.stream_deck_callback,
             10,
             callback_group=ReentrantCallbackGroup(),
         )
@@ -160,7 +178,8 @@ class MainControlNode(Node):
         self.cli_drivetrain_stop.call_async(Trigger.Request())  # Stop the drivetrain
         self.cli_lift_stop.call_async(Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
-        self.cli_motor_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
+        self.cli_big_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
+        self.cli_small_agitator_on_off.call_async(SetBool.Request(data=False))  # Stop the agitator motor
 
     def end_autonomous(self) -> None:
         """This method returns to teleop control."""
@@ -176,6 +195,93 @@ class MainControlNode(Node):
             self.get_logger().info("Autonomous Goal failed (or terminated)!")
             self.end_autonomous()
 
+    async def auto_dig_nav_offload_sequence(self) -> None:
+        # Check if the Auto Dig Nav Offload process is not running
+        if self.auto_dig_nav_offload_handle.status != GoalStatus.STATUS_EXECUTING:
+            if not self.act_auto_dig_nav_offload.wait_for_server(timeout_sec=1.0):
+                self.get_logger().error("Auto Dig Nav Offload action not available")
+                return
+            self.stop_all_subsystems()
+            self.auto_dig_nav_offload_handle = await self.act_auto_dig_nav_offload.send_goal_async(
+                AutoDigNavOffload.Goal(
+                    lift_digging_start_position=self.lift_digging_start_position,
+                    digger_chain_power=self.digger_chain_power,
+                    backward_distance=1.8,  # meters
+                )
+            )
+            if not self.auto_dig_nav_offload_handle.accepted:
+                self.get_logger().info("Auto Dig Nav Offload Goal rejected")
+                return
+            self.auto_dig_nav_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
+            self.state = states["Autonomous"]
+        # Terminate the Auto Dig Nav Offload process
+        else:
+            self.get_logger().warn("Auto Dig Nav Offload Terminated")
+            # Cancel the goal
+            future = self.auto_dig_nav_offload_handle.cancel_goal_async()
+            future.add_done_callback(self.cancel_done)
+
+    async def auto_dig_sequence(self) -> None:
+        # Check if the auto digging process is not running
+        if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
+            if not self.act_auto_dig.wait_for_server(timeout_sec=1.0):
+                self.get_logger().error("Auto dig action not available")
+                return
+            self.stop_all_subsystems()
+            goal = AutoDig.Goal(
+                lift_digging_start_position=self.lift_digging_start_position,
+                digger_chain_power=self.digger_chain_power,
+            )
+            self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
+            self.auto_dig_handle.get_result_async().add_done_callback(self.get_result_callback)
+            self.state = states["Autonomous"]
+        # Terminate the auto dig process
+        else:
+            self.get_logger().warn("Auto Dig Terminated")
+            # Cancel the goal
+            future = self.auto_dig_handle.cancel_goal_async()
+            future.add_done_callback(self.cancel_done)
+
+    async def auto_offload_sequence(self) -> None:
+        # Check if the auto offload process is not running
+        if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
+            if not self.act_auto_offload.wait_for_server(timeout_sec=1.0):
+                self.get_logger().error("Auto offload action not available")
+                return
+            self.stop_all_subsystems()
+            goal = AutoOffload.Goal()
+            self.auto_offload_handle = await self.act_auto_offload.send_goal_async(goal)
+            self.auto_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
+            self.state = states["Autonomous"]
+        # Terminate the auto offload process
+        else:
+            self.get_logger().warn("Auto Offload Terminated")
+            # Cancel the goal
+            future = self.auto_offload_handle.cancel_goal_async()
+            future.add_done_callback(self.cancel_done)
+
+    async def calibrate_field_coordinates(self) -> None:
+        # Check if the field calibration process is not running
+        if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
+            if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
+                self.get_logger().error("Field calibration action not available")
+                return
+            self.stop_all_subsystems()
+            self.field_calibrated_handle = await self.act_calibrate_field_coordinates.send_goal_async(
+                CalibrateFieldCoordinates.Goal()
+            )
+            if not self.field_calibrated_handle.accepted:
+                self.get_logger().info("Field calibration Goal rejected")
+                return
+            self.field_calibrated_handle.get_result_async().add_done_callback(self.get_result_callback)
+            self.state = states["Autonomous"]
+        # Terminate the field calibration process
+        else:
+            self.get_logger().warn("Field Calibration Terminated")
+            # Cancel the goal
+            future = self.field_calibrated_handle.cancel_goal_async()
+            future.add_done_callback(self.cancel_done)
+
     async def joystick_callback(self, msg: Joy) -> None:
         """This method is called whenever a joystick message is received."""
 
@@ -183,7 +289,6 @@ class MainControlNode(Node):
         self.last_joy_timestamp = time.time()
 
         # PUT TELEOP CONTROLS BELOW #
-
         if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop (Arcade Drive)
             forward_power = msg.axes[bindings.RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power  # Forward power
@@ -201,7 +306,8 @@ class MainControlNode(Node):
 
             # Check if the agitator button is pressed #
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.cli_motor_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
+                self.cli_big_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
+                # self.cli_small_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
             # Manually adjust the dumper position with the left and right bumpers
             if msg.buttons[bindings.RIGHT_BUMPER] == 1 and buttons[bindings.RIGHT_BUMPER] == 0:
@@ -231,98 +337,55 @@ class MainControlNode(Node):
         # # Check if the Apriltag calibration button is pressed
         # # TODO: This autonomous action needs to be tested on the physical robot!
         # if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
-        #     # Check if the field calibration process is not running
-        #     if self.field_calibrated_handle.status != GoalStatus.STATUS_EXECUTING:
-        #         if not self.act_calibrate_field_coordinates.wait_for_server(timeout_sec=1.0):
-        #             self.get_logger().error("Field calibration action not available")
-        #             return
-        #         self.stop_all_subsystems()
-        #         self.field_calibrated_handle = await self.act_calibrate_field_coordinates.send_goal_async(
-        #             CalibrateFieldCoordinates.Goal()
-        #         )
-        #         if not self.field_calibrated_handle.accepted:
-        #             self.get_logger().info("Field calibration Goal rejected")
-        #             return
-        #         self.field_calibrated_handle.get_result_async().add_done_callback(self.get_result_callback)
-        #         self.state = states["Autonomous"]
-        #     # Terminate the field calibration process
-        #     else:
-        #         self.get_logger().warn("Field Calibration Terminated")
-        #         # Cancel the goal
-        #         future = self.field_calibrated_handle.cancel_goal_async()
-        #         future.add_done_callback(self.cancel_done)
+        #     await self.calibrate_field_coordinates()
 
         # Check if the Auto Dig Nav button is pressed
         if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
-            # Check if the Auto Dig Nav Offload process is not running
-            if self.auto_dig_nav_offload_handle.status != GoalStatus.STATUS_EXECUTING:
-                if not self.act_auto_dig_nav_offload.wait_for_server(timeout_sec=1.0):
-                    self.get_logger().error("Auto Dig Nav Offload action not available")
-                    return
-                self.stop_all_subsystems()
-                self.auto_dig_nav_offload_handle = await self.act_auto_dig_nav_offload.send_goal_async(
-                    AutoDigNavOffload.Goal(
-                        lift_digging_start_position=self.lift_digging_start_position,
-                        digger_chain_power=self.digger_chain_power,
-                        backward_distance=1.8,  # meters
-                    )
-                )
-                if not self.auto_dig_nav_offload_handle.accepted:
-                    self.get_logger().info("Auto Dig Nav Offload Goal rejected")
-                    return
-                self.auto_dig_nav_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
-                self.state = states["Autonomous"]
-            # Terminate the Auto Dig Nav Offload process
-            else:
-                self.get_logger().warn("Auto Dig Nav Offload Terminated")
-                # Cancel the goal
-                future = self.auto_dig_nav_offload_handle.cancel_goal_async()
-                future.add_done_callback(self.cancel_done)
+            await self.auto_dig_nav_offload_sequence()
 
         # Check if the autonomous digging button is pressed
         if msg.buttons[bindings.START_BUTTON] == 1 and buttons[bindings.START_BUTTON] == 0:
-            # Check if the auto digging process is not running
-            if self.auto_dig_handle.status != GoalStatus.STATUS_EXECUTING:
-                if not self.act_auto_dig.wait_for_server(timeout_sec=1.0):
-                    self.get_logger().error("Auto dig action not available")
-                    return
-                self.stop_all_subsystems()
-                goal = AutoDig.Goal(
-                    lift_digging_start_position=self.lift_digging_start_position,
-                    digger_chain_power=self.digger_chain_power,
-                )
-                self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
-                self.auto_dig_handle.get_result_async().add_done_callback(self.get_result_callback)
-                self.state = states["Autonomous"]
-            # Terminate the auto dig process
-            else:
-                self.get_logger().warn("Auto Dig Terminated")
-                # Cancel the goal
-                future = self.auto_dig_handle.cancel_goal_async()
-                future.add_done_callback(self.cancel_done)
+            await self.auto_dig_sequence()
 
         # Check if the autonomous offload button is pressed
         if msg.buttons[bindings.BACK_BUTTON] == 1 and buttons[bindings.BACK_BUTTON] == 0:
-            # Check if the auto offload process is not running
-            if self.auto_offload_handle.status != GoalStatus.STATUS_EXECUTING:
-                if not self.act_auto_offload.wait_for_server(timeout_sec=1.0):
-                    self.get_logger().error("Auto offload action not available")
-                    return
-                self.stop_all_subsystems()
-                goal = AutoOffload.Goal()
-                self.auto_offload_handle = await self.act_auto_offload.send_goal_async(goal)
-                self.auto_offload_handle.get_result_async().add_done_callback(self.get_result_callback)
-                self.state = states["Autonomous"]
-            # Terminate the auto offload process
-            else:
-                self.get_logger().warn("Auto Offload Terminated")
-                # Cancel the goal
-                future = self.auto_offload_handle.cancel_goal_async()
-                future.add_done_callback(self.cancel_done)
+            await self.auto_offload_sequence()
 
         # Update button states (this allows us to detect changing button states)
         for index in range(len(buttons)):
             buttons[index] = msg.buttons[index]
+
+    async def stream_deck_callback(self, msg: StreamDeckState) -> None:
+        button_states = msg.button_states
+
+        # emergency stop. not a toggle
+        if button_states[bindings.STREAMDECK_ESTOP]:
+            self.get_logger().warn("EMERGENCY STOP ACTIVATED FROM STREAM DECK!")
+            self.stop_all_subsystems()
+            self.state = states["Teleop"]
+            return
+
+        if button_states[bindings.STREAMDECK_AUTO_DIG] and not old_streamdeck_buttons[bindings.STREAMDECK_AUTO_DIG]:
+            await self.auto_dig_sequence()
+
+        if button_states[bindings.STREAMDECK_AUTO_DUMP] and not old_streamdeck_buttons[bindings.STREAMDECK_AUTO_DUMP]:
+            await self.auto_offload_sequence()
+
+        if (button_states[bindings.STREAMDECK_GO_TO_DIG_SITE] and
+                not old_streamdeck_buttons[bindings.STREAMDECK_GO_TO_DIG_SITE]):
+            await self.auto_dig_nav_offload_sequence()
+
+        if button_states[bindings.STREAMDECK_START_AUTO] and not old_streamdeck_buttons[bindings.STREAMDECK_START_AUTO]:
+            # Placeholder for future autonomous mode
+            self.get_logger().info("Streamdeck Start Auto button pressed - no action assigned yet.")
+
+        if (button_states[bindings.STREAMDECK_APRILTAG_DETECT] and
+                not old_streamdeck_buttons[bindings.STREAMDECK_APRILTAG_DETECT]):
+            # Placeholder for future AprilTag detection calibration
+            self.get_logger().info("Streamdeck AprilTag Detect button pressed - no action assigned yet.")
+
+        for index in range(len(button_states)):
+            old_streamdeck_buttons[index] = button_states[index]
 
     # def watchdog_callback(self):
     #     """Check if we've received joystick messages recently"""
