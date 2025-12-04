@@ -47,20 +47,17 @@ class read_serial(Node):
         data = self.arduino.read(4)  # Pause until 4 bytes are read
         decoded = struct.unpack("hh??", data)  # Use h for integers and ? for booleans
 
-
         msg = Potentiometers()
         msg.left_motor_pot = decoded[0]
         msg.right_motor_pot = decoded[1]
         self.potentiometerPub.publish(msg)
         self.lastMsg = msg
-        
+
         msg = LimitSwitches()
         msg.bottom_limit_switch = decoded[2]
         msg.top_limit_switch = decoded[3]
         self.LimitSwitchPub.publish(msg)
         self.lastMsg = msg
-
-
 
     def big_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
