@@ -45,7 +45,7 @@ class read_serial(Node):
             self.destroy_node()
             return
         data = self.arduino.read(4)  # Pause until 4 bytes are read
-        decoded = struct.unpack("hh", data)  # Use h for integers and ? for booleans
+        decoded = struct.unpack("hh??", data)  # Use h for integers and ? for booleans
 
 
         msg = Potentiometers()
