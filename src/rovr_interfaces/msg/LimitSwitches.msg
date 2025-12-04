@@ -1,2 +1,2 @@
-int1 bottom_limit_switch;
-int1 top_limit_switch;
+bool bottom_limit_switch;
+bool top_limit_switch;
