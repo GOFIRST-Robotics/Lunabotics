@@ -70,11 +70,12 @@ class DumperNode(Node):
         self.dumper_current_sub = self.create_subscription(Float32, "Dumper_Current", self.dumper_current_callback, 10)
 
         self.KillSwitch_sub = self.create_subscription(Float32, "Limit Switches", self.killSwitch_callback, 10)
-        self.limitSwitchBottom = False #Placeholder until we have a limit switch
-        self.limitSwitchTop = True #Placeholder until we have a limit switch
+        self.limitSwitchBottom = False
+        self.limitSwitchTop = True
 
         self.limitSwitch1_auger = False
-        self.limitSwitch2_auger = False # To do add subscriber and publisher
+        self.limitSwitch2_auger = False  # To do add subscriber and publisher
+
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
@@ -115,18 +116,14 @@ class DumperNode(Node):
         return response
 
     def pull_dumper(self) -> None:
-
         if self.limitSwitch1_auger and self.limitSwitch2_auger:
             self.get_logger().info("The auger is already extended")
-            return
-            
+            return  
 
         self.get_logger().info("Extending the dumper")
         self.pulled_state = True
         self.long_service_running = True
         self.set_power(self.DUMPER_POWER)
-
-
         while not self.limitSwitch2:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
@@ -137,20 +134,14 @@ class DumperNode(Node):
         self.long_service_running = False
         self.get_logger().info("Done pulling the dumper")
 
-
-
     def pull_callback(self, request, response):
-        
         self.pull_dumper()
         response.success = True
         return response
 
-
     def drop_dumper(self) -> None: # get the variables
-
         actuator1_retracted = self.limitSwitch1_auger
         actuator2_retracted = self.limitSwitch2_auger
-
         if actuator1_retracted and actuator2_retracted:
             self.get_logger().info("The Auger is already retracted")
             return
@@ -162,15 +153,13 @@ class DumperNode(Node):
                 break
             time.sleep(0.1)
 
-            self.stop()
-            self.long_service_running = False
-            self.get_logger().info("Done droping the dumper")
+        self.stop()
+        self.long_service_running = False
+        self.get_logger().info("Done droping the dumper")
 
 # the storage bin can only be pulled back 
 # when the auger is completely stowed (both actuators fully droped)
-
     def drop_callback(self, request, response):
-        
         self.drop_dumper()
         response.success = True
         return response
@@ -181,13 +170,6 @@ class DumperNode(Node):
     def killSwitch_callback(self, msg):
         self.LimitSwitchTop = msg.top_limit_switch
         self.LimitSwitchBottom = msg.bottom_limit_switch
-        # self.get_logger().info("Dumper current: " + str(self.dumper_current))
-
-# A motorized winch that pulls the storage box up and back to dump.
-# This will likely have 2 limit switches as well for 
-# the stowed and dumping positions of the dump box
-
-
 
 def main(args=None):
     """The main function."""
