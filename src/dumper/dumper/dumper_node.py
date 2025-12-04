@@ -52,7 +52,7 @@ class DumperNode(Node):
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
-        self.declare_parameter("DUMPER_POWER", 0.75)
+        self.declare_parameter("DUMPER_POWER", 0.3)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
@@ -114,29 +114,13 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    # Old Dumper Extend Function: 
-    # 
-    # def pull_dumper(self) -> None:
-    #     self.get_logger().info("Extending the dumper")
-    #     self.pulled_state = True
-    #     self.long_service_running = True
-    #     self.set_power(self.DUMPER_POWER)
-    #     lastPowerTime = time.time()
-    #     # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
-    #     while time.time() - lastPowerTime < 0.5:
-    #         if self.cancel_current_srv:
-    #             self.cancel_current_srv = False
-    #             break
-    #         # If the dumper current is not below the threshold, update the last power time
-    #         if not self.dumper_current < self.current_threshold:
-    #             lastPowerTime = time.time()
-    #         time.sleep(0.1)  # We don't want to spam loop iterations too fast
-    #         # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
-    #     self.stop()
-    #     self.long_service_running = False
-    #     self.get_logger().info("Done pulling the dumper")
-
     def pull_dumper(self) -> None:
+
+        if self.limitSwitch1_auger and self.limitSwitch2_auger:
+            self.get_logger().info("The auger is already extended")
+            return
+            
+
         self.get_logger().info("Extending the dumper")
         self.pulled_state = True
         self.long_service_running = True
@@ -161,25 +145,6 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    # def drop_dumper(self) -> None: # get the variables
-    #     self.get_logger().info("Retracting the dumper")
-    #     self.pulled_state = False
-    #     self.long_service_running = True
-    #     self.set_power(-self.DUMPER_POWER)
-    #     lastPowerTime = time.time()
-    #     # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
-    #     while time.time() - lastPowerTime < 0.5:
-    #         if self.cancel_current_srv:
-    #             self.cancel_current_srv = False
-    #             break
-    #         # If the dumper current is not below the threshold, update the last power time
-    #         if not self.dumper_current < self.current_threshold:
-    #             lastPowerTime = time.time()
-    #         time.sleep(0.1)  # We don't want to spam loop iterations too fast
-    #         # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
-    #     self.stop()
-    #     self.long_service_running = False
-    #     self.get_logger().info("Done droping the dumper")
 
     def drop_dumper(self) -> None: # get the variables
 
@@ -187,16 +152,15 @@ class DumperNode(Node):
         actuator2_retracted = self.limitSwitch2_auger
 
         if actuator1_retracted and actuator2_retracted:
-            self.get_logger().info("Retracting the dumper")
-            self.pulled_state = False
-            self.long_service_running = True
-            self.set_power(-self.DUMPER_POWER)
+            self.get_logger().info("The Auger is already retracted")
+            return
+            
 
-            while not self.limitSwitch1:
-                if self.cancel_current_srv:
-                    self.cancel_current_srv = False
-                    break
-                time.sleep(0.1)
+        while not self.limitSwitch1:
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
+            time.sleep(0.1)
 
             self.stop()
             self.long_service_running = False
