@@ -2,8 +2,8 @@
 struct SensorData {
   int leftMotorPotentiometer;
   int rightMotorPotentiometer;
-  int bottomLimitSwitch;
-  int topLimitSwitch;
+  bool bottomLimitSwitch;
+  bool topLimitSwitch;
 };
 
 // Define the sensor pins here
