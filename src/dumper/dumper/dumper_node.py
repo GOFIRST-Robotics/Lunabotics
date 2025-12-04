@@ -155,7 +155,7 @@ class DumperNode(Node):
             self.get_logger().info("The Auger is already retracted")
             return
             
-
+        self.pulled_state = False
         while not self.limitSwitch1:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
