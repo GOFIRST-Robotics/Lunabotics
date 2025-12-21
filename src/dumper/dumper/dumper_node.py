@@ -135,24 +135,21 @@ class DumperNode(Node):
         return response
 
     def retract_dumper(self) -> None:
-        self.get_logger().info("Retracting the dumper")
-        self.extended_state = False
-        self.long_service_running = True
-        self.set_power(-self.DUMPER_POWER)
-        lastPowerTime = time.time()
-        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
-        while time.time() - lastPowerTime < 0.5:
-            if self.cancel_current_srv:
+        lastPowerKnown = time.time()
+        self.set_power(self.DUMPER_POWER)
+        
+        while time.time() - lastPowerKnown < 0.5:
+        
+        if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
-            # If the dumper current is not below the threshold, update the last power time
-            if not self.dumper_current < self.current_threshold:
-                lastPowerTime = time.time()
-            time.sleep(0.1)  # We don't want to spam loop iterations too fast
-            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+        if not self.cancel_current_srv < self.current_threshold:
+            lastPowerKnown = time.time()
+        
+        time.sleep(0.1)  
         self.stop()
         self.long_service_running = False
-        self.get_logger().info("Done retracting the dumper")
+
 
     def retract_callback(self, request, response):
         """This service request retracts the dumper"""
@@ -160,10 +157,9 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def dumper_current_callback(self, msg):
+    def dumper_current_callback(self, msg: Float32) -> None:
         self.dumper_current = msg.data
-        # self.get_logger().info("Dumper current: " + str(self.dumper_current))
-
+        self.get_logger().info('I heard: "%f"' % msg.data)
 
 def main(args=None):
     """The main function."""

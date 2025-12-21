@@ -6,39 +6,32 @@ from gi.repository import Gst  # noqa: E402
 
 
 class GstreamerClient:
-    def __init__(self, port=5000, encoding="av1"):
-    # Initialize GStreamer
+    def __init__(self,port = 5000, encoding = "av1"):
+        # Initialize GStreamer
         Gst.init(None)
-        self.port = port
-        self.encoding = encoding
+        # print("Creating Pipeline")
         self.pipeline = Gst.Pipeline()
 
-        source = Gst.ElementFactory.make("udpsrc", f"src_{port}")
+        source = Gst.ElementFactory.make("udpsrc", "src")
         source.set_property("port", port)
 
-        queue = Gst.ElementFactory.make("queue", f"queue_{port}")
+        queue = Gst.ElementFactory.make("queue", "queue")
         self.pipeline.add(queue)
 
-        # Use generic videoconvert instead of nvvideoconvert
-        vid_conv = Gst.ElementFactory.make("videoconvert", f"vid_conv_{port}")
+        vid_conv = Gst.ElementFactory.make("videoconvert", "vid_conv")
         self.pipeline.add(vid_conv)
 
-        sink = Gst.ElementFactory.make("ximagesink", f"sink_{port}")
+        sink = Gst.ElementFactory.make("ximagesink", "sink")
         self.pipeline.add(sink)
 
         self.pipeline.add(source)
-        
+        self.encoding = encoding
         if encoding == "h265":
             self.init_h265(source, queue)
         elif encoding == "av1":
             self.init_av1(source, queue)
 
-        # Use avdec_h265 or avdec_av1 instead of nvv4l2decoder
-        if encoding == "h265":
-            decoder = Gst.ElementFactory.make("avdec_h265", f"decoder_{port}")
-        else:  # av1
-            decoder = Gst.ElementFactory.make("av1dec", f"decoder_{port}")
-        
+        decoder = Gst.ElementFactory.make("avdec_h264", "decoder")
         self.pipeline.add(decoder)
         queue.link(decoder)
 

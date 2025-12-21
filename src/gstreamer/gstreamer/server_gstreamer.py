@@ -9,7 +9,6 @@ from gi.repository import Gst  # noqa: E402
 
 
 class GstreamerServer:
-
     def __init__(self, ip_srv: SetClientIp, camera_srv: SetActiveCamera, encod_srv: SetEncoding):
         Gst.init(None)
         self.pipeline = Gst.Pipeline()

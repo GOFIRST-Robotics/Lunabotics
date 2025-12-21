@@ -27,6 +27,7 @@ setup(
     entry_points={
         "console_scripts": [
             "server_node = gstreamer.server_node:main",
+            "standalone_client = gstreamer.standalone_client:main",
         ],
     },
 )

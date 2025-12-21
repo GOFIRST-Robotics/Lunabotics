@@ -2,8 +2,8 @@ import os
 from rclpy.node import Node, Client
 from ament_index_python import get_package_share_directory
 from python_qt_binding import loadUi
-from python_qt_binding.QtCore import Slot
-from python_qt_binding.QtWidgets import QWidget, QComboBox
+from python_qt_binding.QtCore import Slot, Qt
+from python_qt_binding.QtWidgets import QWidget, QComboBox, QCheckBox
 from rovr_interfaces.srv import SetClientIp, SetActiveCamera, SetEncoding
 from .client_gstreamer import GstreamerClient
 import rclpy
@@ -23,7 +23,9 @@ class ClientWidget(QWidget):
         self.node = node
         self.display_window = GstreamerClient()
         self.display_window.run()
-        ui_file = os.path.join(get_package_share_directory("gstreamer"), "resource", "gstreamer-select.ui")
+        ui_file = os.path.join(
+            get_package_share_directory("gstreamer"), "resource", "gstreamer-select.ui"
+        )
         loadUi(ui_file, self, {"ExtendedComboBox": ExtendedComboBox})
         network_dropdown: QComboBox = self.findChild(QComboBox, "network_dropdown")
         self.add_network_interfaces(network_dropdown)
@@ -61,7 +63,11 @@ class ClientWidget(QWidget):
         start_time = self.node.get_clock().now().nanoseconds
 
         # Block while waiting for server to respond
-        while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:
+        while (
+            rclpy.ok()
+            and not future.done()
+            and self.node.get_clock().now().nanoseconds - start_time < self.timeout
+        ):
             pass
         if not future.done():
             print("Service Call Failed")
@@ -153,3 +159,18 @@ class ClientWidget(QWidget):
         req.encoding = str(self.encoding_dropdown.currentText())
         cli = self.node.create_client(SetEncoding, "/set_encoding")
         self.wait_cli(cli, req)
+
+    @Slot(int)  # The stateChanged signal passes an int (the state)
+    def on_camera1_checkbox_stateChanged(self, state):
+        if state == Qt.Checked:
+            # Create and start the camera 1 window
+            self.camera1_window = GstreamerClient(port=5000, encoding="av1")
+            self.camera1_window.run()
+
+            # Tell server to start streaming camera 1
+            # (your existing service call code)
+
+        else:  # Qt.Unchecked
+            # Stop and destroy the camera 1 window
+            if hasattr(self, "camera1_window"):
+                self.camera1_window.stop()

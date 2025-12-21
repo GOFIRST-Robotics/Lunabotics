@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>344</height>
+    <height>480</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Camera Control</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,0,0,0,0">
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
@@ -92,6 +92,41 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Toggle Camera Streams</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="camera1_checkbox">
+     <property name="text">
+      <string>Camera 1</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="camera2_checkbox">
+     <property name="text">
+      <string>Camera 2</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="camera3_checkbox">
+     <property name="text">
+      <string>Camera 3</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="camera4_checkbox">
+     <property name="text">
+      <string>Camera 4</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
