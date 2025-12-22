@@ -4,5 +4,6 @@ uint16 width
 uint16 height
 uint16 framerate
 string format
+int32 port
 ---
 int32 success

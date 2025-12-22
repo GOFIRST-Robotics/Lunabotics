@@ -160,17 +160,122 @@ class ClientWidget(QWidget):
         cli = self.node.create_client(SetEncoding, "/set_encoding")
         self.wait_cli(cli, req)
 
-    @Slot(int)  # The stateChanged signal passes an int (the state)
+    @Slot(int)
     def on_camera1_checkbox_stateChanged(self, state):
         if state == Qt.Checked:
-            # Create and start the camera 1 window
+            # First, configure the server via ROS service
+            req = SetActiveCamera.Request()
+            req.srctype = "v4l2src"
+            req.device = "/dev/video0"
+            req.width = 640
+            req.height = 480
+            req.framerate = 30
+            req.format = "NV12"
+            req.port = 5000  # Add port to the request
+
+            cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
+            self.wait_cli(cli, req)
+
+            # Also set encoding for this port
+            enc_req = SetEncoding.Request()
+            enc_req.encoding = "av1"
+            enc_req.port = 5000  # Add port to the request
+            enc_cli = self.node.create_client(SetEncoding, "/set_encoding")
+            self.wait_cli(enc_cli, enc_req)
+
+            # Then start the client to receive the stream
             self.camera1_window = GstreamerClient(port=5000, encoding="av1")
             self.camera1_window.run()
-
-            # Tell server to start streaming camera 1
-            # (your existing service call code)
-
-        else:  # Qt.Unchecked
-            # Stop and destroy the camera 1 window
+        else:
             if hasattr(self, "camera1_window"):
                 self.camera1_window.stop()
+
+    @Slot(int)
+    def on_camera2_checkbox_stateChanged(self, state):
+        if state == Qt.Checked:
+            # Configure the server
+            req = SetActiveCamera.Request()
+            req.srctype = "v4l2src"
+            req.device = "/dev/video2"
+            req.width = 640
+            req.height = 480
+            req.framerate = 30
+            req.format = "NV12"
+            req.port = 5001  # Different port for camera 2
+
+            cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
+            self.wait_cli(cli, req)
+
+            # Set encoding
+            enc_req = SetEncoding.Request()
+            enc_req.encoding = "av1"
+            enc_req.port = 5001
+            enc_cli = self.node.create_client(SetEncoding, "/set_encoding")
+            self.wait_cli(enc_cli, enc_req)
+
+            # Start the client
+            self.camera2_window = GstreamerClient(port=5001, encoding="av1")
+            self.camera2_window.run()
+        else:
+            if hasattr(self, "camera2_window"):
+                self.camera2_window.stop()
+
+    @Slot(int)
+    def on_camera3_checkbox_stateChanged(self, state):
+        if state == Qt.Checked:
+            # Configure the server
+            req = SetActiveCamera.Request()
+            req.srctype = "v4l2src"
+            req.device = "/dev/video2"
+            req.width = 640
+            req.height = 480
+            req.framerate = 30
+            req.format = "NV12"
+            req.port = 5002  # Different port for camera 2
+
+            cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
+            self.wait_cli(cli, req)
+
+            # Set encoding
+            enc_req = SetEncoding.Request()
+            enc_req.encoding = "av1"
+            enc_req.port = 5002
+            enc_cli = self.node.create_client(SetEncoding, "/set_encoding")
+            self.wait_cli(enc_cli, enc_req)
+
+            # Start the client
+            self.camera2_window = GstreamerClient(port=5002, encoding="av1")
+            self.camera2_window.run()
+        else:
+            if hasattr(self, "camera2_window"):
+                self.camera2_window.stop()
+
+    @Slot(int)
+    def on_camera4_checkbox_stateChanged(self, state):
+        if state == Qt.Checked:
+            # Configure the server
+            req = SetActiveCamera.Request()
+            req.srctype = "v4l2src"
+            req.device = "/dev/video2"
+            req.width = 640
+            req.height = 480
+            req.framerate = 30
+            req.format = "NV12"
+            req.port = 5003  # Different port for camera 2
+
+            cli = self.node.create_client(SetActiveCamera, "/set_active_camera")
+            self.wait_cli(cli, req)
+
+            # Set encoding
+            enc_req = SetEncoding.Request()
+            enc_req.encoding = "av1"
+            enc_req.port = 5003
+            enc_cli = self.node.create_client(SetEncoding, "/set_encoding")
+            self.wait_cli(enc_cli, enc_req)
+
+            # Start the client
+            self.camera2_window = GstreamerClient(port=5003, encoding="av1")
+            self.camera2_window.run()
+        else:
+            if hasattr(self, "camera2_window"):
+                self.camera2_window.stop()
