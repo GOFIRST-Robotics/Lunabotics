@@ -1,12 +1,16 @@
 /**:
   ros__parameters:
     #TODO: Figure out all of these values
-    spin_velocity: 0
-    push_actuator_position: 0
-    MAX_PUSH_ACTUATOR_POSITION: 0
-    MIN_PUSH_ACTUATOR_POSITION: 0
-    MAX_PUSH_ACTUATOR_VELOCITY: 0
+    SPIN_VELOCITY: 4000 # in RPM
+    MAX_RETRACT_PUSH_MOTOR_VELOCITY: -600 # in RPM, potentially could be faster
+    MAX_EXTEND_PUSH_MOTOR_VELOCITY: 600 # in RPM
+    push_motor_position: 0
+    tilt_actuator_position: 0
+    MAX_PUSH_MOTOR_POSITION: 0
+    MIN_PUSH_MOTOR_POSITION: 0
+    MAX_PUSH_MOTOR_VELOCITY: 0
     TILT_ACTUATOR_SPEED: 0
-    TILT_MOTOR_ID: 0
+    TILT_ACTUATOR_MIN_EXTENSION: 0
+    TILT_ACTUATOR_ID: 0
     PUSH_MOTOR_ID: 0
     SPIN_MOTOR_ID: 0
