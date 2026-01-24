@@ -56,9 +56,9 @@ class Auger(Node):
         self.MIN_PUSH_MOTOR_POSITION = self.get_parameter("MIN_PUSH_MOTOR_POSITION").value
         self.MAX_RETRACT_PUSH_MOTOR_VELOCITY = self.get_parameter("MAX_RETRACT_PUSH_MOTOR_VELOCITY").value
         self.MAX_EXTEND_PUSH_MOTOR_VELOCITY = self.get_parameter("MAX_EXTEND_PUSH_MOTOR_VELOCITY").value
-        self.TILT_ACTUATOR_SPEED = self.get_parameter("TILT_ACTUATOR_SPEED")
-        self.TILT_ACTUATOR_MIN_EXTENSION = self.get_parameter("TILT_ACTUATOR_MIN_EXTENSION")
-        self.PUSH_MOTOR_MIN_RETRACTION = self.get_parameter("PUSH_MOTOR_MIN_RETRACTION")
+        self.TILT_ACTUATOR_SPEED = self.get_parameter("TILT_ACTUATOR_SPEED").value
+        self.TILT_ACTUATOR_MIN_EXTENSION = self.get_parameter("TILT_ACTUATOR_MIN_EXTENSION").value
+        self.PUSH_MOTOR_MIN_RETRACTION = self.get_parameter("PUSH_MOTOR_MIN_RETRACTION").value
         self.TILT_ACTUATOR_ID = self.get_parameter("TILT_ACTUATOR_ID").value
         self.PUSH_MOTOR_ID = self.get_parameter("PUSH_MOTOR_ID").value
         self.SPIN_MOTOR_ID = self.get_parameter("SPIN_MOTOR_ID").value
@@ -133,7 +133,10 @@ class Auger(Node):
     def set_actuator_tilt_extension(self, tilt: bool) -> bool:
         """Set the auger tilt position of the actuator. True for extend, False for retract.
         This will return false and do nothing if the push motor is currently extended."""
-        push_motor_pos = self.cli_motor_get.send_request("position", self.PUSH_MOTOR_ID)
+        # push_motor_pos = self.cli_motor_get.send_request("position", self.PUSH_MOTOR_ID)
+        push_motor_pos_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.PUSH_MOTOR_ID))
+        rclpy.spin_until_future_complete(self, push_motor_pos_future)
+        push_motor_pos = push_motor_pos_future.result()
         if not push_motor_pos.success:
             self.get_logger().info("Failed to move the tilt actuator because the push motor position could not be determined")
             return False
@@ -167,7 +170,7 @@ class Auger(Node):
             )
         )
 
-    def set_motor_push_position(self, position: float) -> None:
+    def set_motor_push_position(self, position: float, power_limit: float) -> bool:
         """Set the target position of the motor that pushes the auger into the ground."""
         if self.tilt_actuator_position < self.TILT_ACTUATOR_MIN_EXTENSION:
             self.get_logger().warn("WARNING: Push motor will not move because the tilt actuator is not extended")
@@ -180,10 +183,12 @@ class Auger(Node):
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
+                power_limit=power_limit,
                 can_id=self.PUSH_MOTOR_ID,
                 value=float(position),
             )
         )
+        return True
 
     def extend_motor_push(self) -> bool:
         """Extends the push motor at max extend speed, returns false if it is not able to due to the tilt actuator not being fully extended."""
@@ -210,8 +215,9 @@ class Auger(Node):
                 value = float(velocity)
             )
         )
+        return True
 
-    def stop_motor_push(self) -> None:
+    def stop_motor_push(self) -> bool:
         """Stop the motor that pushes the auger into the ground."""
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
@@ -220,21 +226,25 @@ class Auger(Node):
                 value=0.0,
             )
         )
+        return True
 
-    def run_auger_spin_velocity(self) -> None:
+    def run_auger_spin_velocity(self) -> bool:
         """Set the auger spin velocity of the auger motor."""
-        self.get_logger().info("Running auger spin at velocity: " + self.SPIN_VELOCITY)
+        self.get_logger().info(f"Running auger spin at velocity: {self.SPIN_VELOCITY}")
 
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="velocity",
                 can_id=self.SPIN_MOTOR_ID,
-                value=self.SPIN_VELOCITY,
+                value=float(self.SPIN_VELOCITY),
             )
         )
+        return True
 
-    def stop_auger_spin(self) -> None:
+    def stop_auger_spin(self) -> bool:
         """Stop the auger motor from spinning."""
+        self.get_logger().info("Stopping auger spin")
+
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="duty_cycle",
@@ -242,6 +252,7 @@ class Auger(Node):
                 value=0.0,
             )
         )
+        return True
 
     # TODO  Define service callback methods here
     def set_tilt_extension_callback(self, request, response):
@@ -262,20 +273,17 @@ class Auger(Node):
 
     def stop_push_callback(self, request, response):
         """This service request stops the motor that pushes the auger into the ground."""
-        self.stop_motor_push()
-        response.success = True
+        response.success = self.stop_motor_push()
         return response
 
     def run_auger_spin_velocity_callback(self, request, response):
         """This service request sets the turn velocity of the auger"""
-        self.run_auger_spin_velocity()
-        response.success = True
+        response.success = self.run_auger_spin_velocity()
         return response
 
     def stop_spin_callback(self, request, response):
         """This service request stops the motor that spins the auger."""
-        self.stop_auger_spin()
-        response.success = True
+        response.success = self.stop_auger_spin()
         return response
 
     def push_motor_position_callback(self, msg):
