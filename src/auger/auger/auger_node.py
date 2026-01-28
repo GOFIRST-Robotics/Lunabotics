@@ -129,7 +129,7 @@ class Auger(Node):
 
 
     # Define subsystem methods here
-
+    
     def set_actuator_tilt_extension(self, tilt: bool) -> bool:
         """Set the auger tilt position of the actuator. True for extend, False for retract.
         This will return false and do nothing if the push motor is currently extended."""
@@ -150,7 +150,7 @@ class Auger(Node):
             self.get_logger().info("Retracting tilt actuator")
 
         speed = self.TILT_ACTUATOR_SPEED * (1 if tilt else -1)
-
+        #TODO: Don't want to move if push motor is extended
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="velocity",
@@ -158,6 +158,7 @@ class Auger(Node):
                 value=speed
             )
         )
+        #TODO: Need to stop running actuator when current is below threshold (the actuator is done extending/retracting)
 
     def stop_actuator_tilt(self) -> None:
         """Stop the auger angular position of the auger motor."""
@@ -188,6 +189,7 @@ class Auger(Node):
                 value=float(position),
             )
         )
+        # TODO: need to wait till motor is at given position to return true
         return True
 
     def extend_motor_push(self) -> bool:
