@@ -34,9 +34,11 @@ class Auger(Node):
         self.declare_parameter("SPIN_VELOCITY", 4_000) # in RPM
         self.declare_parameter("push_motor_position", 0)
         self.declare_parameter("tilt_actuator_position", 0)
+        self.declare_parameter("TILT_ACTUATOR_CURRENT_THRESHOLD") # The error range to consider the current voltage 0
         # TODO: Find real value for this
         self.declare_parameter("MAX_PUSH_MOTOR_POSITION", 0)
         self.declare_parameter("MIN_PUSH_MOTOR_POSITION", 0)
+        self.declare_parameter("PUSH_MOTOR_POS_TOLERANCE", 0)
         self.declare_parameter("MAX_RETRACT_PUSH_MOTOR_VELOCITY", -600) # Could potentially be faster
         self.declare_parameter("MAX_EXTEND_PUSH_MOTOR_VELOCITY", 600)
         # Since we only care if the tilt actuator is fully extened or fully retracted then we should only need to care about the speed it moves
@@ -52,8 +54,10 @@ class Auger(Node):
         self.SPIN_VELOCITY = self.get_parameter("SPIN_VELOCITY").value
         self.push_motor_position = self.get_parameter("push_motor_position").value
         self.tilt_actuator_position = self.get_parameter("tilt_actuator_position").value
+        self.TILT_ACTUATOR_CURRENT_THRESHOLD = self.get_parameter("TILT_ACTUATOR_CURRENT_THRESHOLD")
         self.MAX_PUSH_MOTOR_POSITION = self.get_parameter("MAX_PUSH_MOTOR_POSITION").value
         self.MIN_PUSH_MOTOR_POSITION = self.get_parameter("MIN_PUSH_MOTOR_POSITION").value
+        self.PUSH_MOTOR_POS_TOLERANCE = self.get_parameter("PUSH_MOTOR_POS_TOLERANCE").value
         self.MAX_RETRACT_PUSH_MOTOR_VELOCITY = self.get_parameter("MAX_RETRACT_PUSH_MOTOR_VELOCITY").value
         self.MAX_EXTEND_PUSH_MOTOR_VELOCITY = self.get_parameter("MAX_EXTEND_PUSH_MOTOR_VELOCITY").value
         self.TILT_ACTUATOR_SPEED = self.get_parameter("TILT_ACTUATOR_SPEED").value
@@ -131,17 +135,20 @@ class Auger(Node):
     # Define subsystem methods here
     
     def set_actuator_tilt_extension(self, tilt: bool) -> bool:
-        """Set the auger tilt position of the actuator. True for extend, False for retract.
-        This will return false and do nothing if the push motor is currently extended."""
-        # push_motor_pos = self.cli_motor_get.send_request("position", self.PUSH_MOTOR_ID)
+        """
+        Sets the auger tilt position of the actuator. True for extend, False for retract.
+        This method will spin until the actuator has hit a limit switch.
+        This will return false and do nothing if the push motor is currently extended.
+        Caller is responsible for timeouts.
+        """
         push_motor_pos_future = self.cli_motor_get.call_async(MotorCommandGet.Request(type="position", can_id=self.PUSH_MOTOR_ID))
         rclpy.spin_until_future_complete(self, push_motor_pos_future)
         push_motor_pos = push_motor_pos_future.result()
         if not push_motor_pos.success:
-            self.get_logger().info("Failed to move the tilt actuator because the push motor position could not be determined")
+            self.get_logger().info("WARNING: Failed to move the tilt actuator because the push motor position could not be determined")
             return False
         if push_motor_pos.data > self.PUSH_MOTOR_MIN_RETRACTION:
-            self.get_logger().info("Failed to move the tilt actuator because the push motor is extended too far")
+            self.get_logger().info("WARNING: Failed to move the tilt actuator because the push motor is extended too far")
             return False
 
         if tilt:
@@ -150,29 +157,61 @@ class Auger(Node):
             self.get_logger().info("Retracting tilt actuator")
 
         speed = self.TILT_ACTUATOR_SPEED * (1 if tilt else -1)
-        #TODO: Don't want to move if push motor is extended
-        self.cli_motor_set.call_async(
+
+        motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="velocity",
                 can_id=self.TILT_ACTUATOR_ID,
                 value=speed
             )
         )
-        #TODO: Need to stop running actuator when current is below threshold (the actuator is done extending/retracting)
+        rclpy.spin_until_future_complete(motor_set_future)
+        if not motor_set_future.result().success:
+            self.get_logger().info("WARNING: Failed to set tilt motor velocity")
+            return False
+        
+        # gets motor current until it is 0 which means it has hit an limit switch
+        motor_get_future = self.cli_motor_get.call_async(
+            MotorCommandGet.Request(
+                type="current",
+                can_id=self.TILT_ACTUATOR_ID,
+            )
+        )
+        rclpy.spin_until_future_complete(motor_get_future)
+        while not motor_get_future.result().success and abs(motor_get_future.result().data) > self.TILT_ACTUATOR_CURRENT_THRESHOLD:
+            motor_get_future = self.cli_motor_get.call_async(
+                MotorCommandGet.Request(
+                    type="current",
+                    can_id=self.TILT_ACTUATOR_ID,
+                )
+            )
+            rclpy.spin_until_future_complete(motor_get_future)
+            if not motor_get_future.result().success:
+                self.get_logger().info("WARNING: Failed to read tilt actuator position")
+            time.sleep(0.1)
+        
+        return True
+            
 
     def stop_actuator_tilt(self) -> None:
         """Stop the auger angular position of the auger motor."""
         self.get_logger().info("Stopping tilt actuator")
-        self.cli_motor_set.call_async(
+        motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="duty_cycle",
                 can_id=self.TILT_ACTUATOR_ID,
                 value=0.0,
             )
         )
+        rclpy.spin_until_future_complete(motor_set_future)
+        return motor_set_future.result().success
 
     def set_motor_push_position(self, position: float, power_limit: float) -> bool:
-        """Set the target position of the motor that pushes the auger into the ground."""
+        """
+        Set the target position of the motor that pushes the auger into the ground.
+        This will spin until the motor reaches given setpoint.
+        Caller is responsible for timeouts.
+        """
         if self.tilt_actuator_position < self.TILT_ACTUATOR_MIN_EXTENSION:
             self.get_logger().warn("WARNING: Push motor will not move because the tilt actuator is not extended")
             return False
@@ -181,7 +220,7 @@ class Auger(Node):
             position = max(self.MIN_PUSH_MOTOR_POSITION, min(position, self.MAX_PUSH_MOTOR_POSITION)) # clamp the value to be within range
         self.get_logger().info("Setting auger push motor position to: " + str(position))
 
-        self.cli_motor_set.call_async(
+        motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="position",
                 power_limit=power_limit,
@@ -189,72 +228,79 @@ class Auger(Node):
                 value=float(position),
             )
         )
-        # TODO: need to wait till motor is at given position to return true
+        rclpy.spin_until_future_complete(self, motor_set_future)
+
+        if not motor_set_future.result().success:
+            self.get_logger().warn("WARNING: Failed to set push motor voltage")
+            return False
+
+        # wait till motor reaches setpoint
+        motor_get_pos_future = self.cli_motor_get.call_async(
+            MotorCommandGet.Request(
+                type="position",
+                can_id=self.PUSH_MOTOR_ID,
+            )
+        )
+        rclpy.spin_until_future_complete(self, motor_get_pos_future)
+        while abs(motor_get_pos_future.result().data - position) > self.PUSH_MOTOR_POS_TOLERANCE :
+            motor_get_pos_future = self.cli_motor_get.call_async(
+                MotorCommandGet.Request(
+                    type="position",
+                    can_id=self.PUSH_MOTOR_ID,
+                )
+            )
+            rclpy.spin_until_future_complete(self, motor_get_pos_future)
+            time.sleep(0.1)
+        
         return True
 
     def extend_motor_push(self) -> bool:
         """Extends the push motor at max extend speed, returns false if it is not able to due to the tilt actuator not being fully extended."""
-        return self.set_motor_push_velocity(self.MAX_EXTEND_PUSH_MOTOR_VELOCITY)
-
+        return self.set_motor_push_position(self.MAX_PUSH_MOTOR_POSITION, 0.5)
+    
     def retract_motor_push(self) -> bool:
         """Run the push motor at max retract speed. Returns false if it is not able to due to the tilt actuator not being fully extended."""
-        return self.set_motor_push_velocity(self.MAX_RETRACT_PUSH_MOTOR_VELOCITY)
-
-    def set_motor_push_velocity(self, velocity: float) -> bool:
-        """Set the target velocity of the motor that pushes the auger into the ground. Returns false if it is not able to due to the tilt actuator not being fully extended."""
-        if self.tilt_actuator_position < self.TILT_ACTUATOR_MIN_EXTENSION:
-            self.get_logger().warn("WARNING: Push motor will not move because the tilt actuator is not extended")
-            return False
-        if velocity > self.MAX_EXTEND_PUSH_MOTOR_VELOCITY or velocity < self.MAX_RETRACT_PUSH_MOTOR_VELOCITY:
-            self.get_logger().warn(f"WARNING: Requested push motor velocity is too fast, clamping value; requested: {velocity}")
-            velocity = min(self.MAX_EXTEND_PUSH_MOTOR_VELOCITY, max(self.MAX_RETRACT_PUSH_MOTOR_VELOCITY, velocity)) # clamp value
-        self.get_logger().info("Setting auger push motor velocity to: " + str(velocity))
-        
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(
-                type = "velocity",
-                can_id=self.PUSH_MOTOR_ID, 
-                value = float(velocity)
-            )
-        )
-        return True
+        return self.set_motor_push_position(self.MIN_PUSH_MOTOR_POSITION, 0.5)
 
     def stop_motor_push(self) -> bool:
         """Stop the motor that pushes the auger into the ground."""
-        self.cli_motor_set.call_async(
+        motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="duty_cycle",
                 can_id=self.PUSH_MOTOR_ID,
                 value=0.0,
             )
         )
-        return True
+        rclpy.spin_until_future_complete(motor_set_future)
+        return motor_set_future.result().success
 
     def run_auger_spin_velocity(self) -> bool:
         """Set the auger spin velocity of the auger motor."""
         self.get_logger().info(f"Running auger spin at velocity: {self.SPIN_VELOCITY}")
 
-        self.cli_motor_set.call_async(
+        motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="velocity",
                 can_id=self.SPIN_MOTOR_ID,
                 value=float(self.SPIN_VELOCITY),
             )
         )
-        return True
+        rclpy.spin_until_future_complete(motor_set_future)
+        return motor_set_future.result().success
 
     def stop_auger_spin(self) -> bool:
         """Stop the auger motor from spinning."""
         self.get_logger().info("Stopping auger spin")
 
-        self.cli_motor_set.call_async(
+        motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="duty_cycle",
                 can_id=self.SPIN_MOTOR_ID,
                 value=0.0,
             )
         )
-        return True
+        rclpy.spin_until_future_complete(motor_set_future)
+        return motor_set_future.result().success
 
     # TODO  Define service callback methods here
     def set_tilt_extension_callback(self, request, response):
