@@ -40,7 +40,10 @@ class DumperNode(Node):
             Trigger, "dumper/stop", self.stop_callback, callback_group=self.stop_service_cb_group
         )
         self.srv_setPower = self.create_service(
-            SetPower, "dumper/setPower", self.set_power_callback, callback_group=self.service_cb_group
+            SetPower,
+            "dumper/setPower",
+            self.set_power_callback,
+            callback_group=self.service_cb_group,
         )
 
         self.srv_pullDumper = self.create_service(
@@ -67,25 +70,32 @@ class DumperNode(Node):
         self.current_threshold = 0.3
         self.dumper_current = 0.0
 
-        self.dumper_current_sub = self.create_subscription(Float32, "Dumper_Current", self.dumper_current_callback, 10)
+        self.dumper_current_sub = self.create_subscription(
+            Float32, "Dumper_Current", self.dumper_current_callback, 10
+        )
 
-        self.KillSwitch_sub = self.create_subscription(Float32, "Limit Switches", self.killSwitch_callback, 10)
+        self.KillSwitch_sub = self.create_subscription(
+            Float32, "Limit Switches", self.killSwitch_callback, 10
+        )
         self.limitSwitchBottom = False
-        self.limitSwitchTop = True
 
-        self.limitSwitch1_auger = False
-        self.limitSwitch2_auger = False  # To do add subscriber and publisher
+        # self.limitSwitch1_auger = False
+        # self.limitSwitch2_auger = False  # To do add subscriber and publisher
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=-1*dumper_power)
+            MotorCommandSet.Request(
+                type="duty_cycle", can_id=self.DUMPER_MOTOR, value=-1 * dumper_power
+            )
         )
 
     def stop(self) -> None:
         """This method stops the dumper."""
-        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0)
+        )
 
     def toggle(self) -> None:
         """This method toggles the dumper."""
@@ -123,8 +133,12 @@ class DumperNode(Node):
         self.get_logger().info("Extending the dumper")
         self.pulled_state = True
         self.long_service_running = True
-        self.set_power(self.DUMPER_POWER)
-        while not self.limitSwitch2:
+
+        motorComplete = self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="position", can_id=self.DUMPER_MOTOR, value=90)
+        )
+
+        while not motorComplete:  # While loop makes the motor keep going till limit switch is hit
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -157,8 +171,8 @@ class DumperNode(Node):
         self.long_service_running = False
         self.get_logger().info("Done droping the dumper")
 
-# the storage bin can only be pulled back
-# when the auger is completely stowed (both actuators fully droped)
+    # the storage bin can only be pulled back
+    # when the auger is completely stowed (both actuators fully droped)
     def drop_callback(self, request, response):
         self.drop_dumper()
         response.success = True
@@ -168,7 +182,7 @@ class DumperNode(Node):
         self.dumper_current = msg.data
 
     def killSwitch_callback(self, msg):
-        self.LimitSwitchTop = msg.top_limit_switch
+        # position control...
         self.LimitSwitchBottom = msg.bottom_limit_switch
 
 

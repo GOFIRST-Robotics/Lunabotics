@@ -16,7 +16,10 @@
 		// "ROS_DOMAIN_ID": "${localEnv:ROS_DOMAIN_ID}"
 	},
 	"initializeCommand": "git config --global --add safe.directory '*' && git reset --soft && git submodule update --init --recursive && git config --global submodule.recurse true && git pull || true",
-	"postCreateCommand": "echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics/install/setup.bash' >> ~/.bashrc && sudo apt-get update && sudo apt install git-lfs",
+	"updateRemoteUserUID": true,
+	
+	"postCreateCommand": "sudo rm -f /etc/apt/sources.list.d/ros2.list && sudo rm -f /etc/apt/sources.list.d/ros2-latest.list && sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu jammy main\" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null && sudo apt-get update && sudo apt install -y git-lfs && echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && echo 'source /workspaces/Lunabotics/install/setup.bash' >> ~/.bashrc && sudo chown -R admin:admin /workspaces/Lunabotics",
+
 	"postStartCommand": "rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys 'nvblox negotiated draco_point_cloud_transport point_cloud_transport_plugins ffmpeg_encoder_decoder ffmpeg_image_transport isaac_ros_peoplesemseg_models_install isaac_ros_h264_decoder isaac_ros_unet isaac_ros_triton isaac_ros_dnn_image_encoder nova_carter_navigation'",
 	// "mounts": [
 	// 	"type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix",
