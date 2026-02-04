@@ -1,8 +1,8 @@
 from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.conditions import IfCondition
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
 
 
 # Launches the joystick node and rviz and the gstreamer camera client on the operator laptop
@@ -22,6 +22,13 @@ def generate_launch_description():
     #     parameters=["config/joy_node.yaml"],
     # )
 
+    stream_deck_node = Node(
+        package="rovr_control",
+        executable="stream_deck_node",
+        name="stream_deck_node",
+        output="screen",
+    )
+
     # start_gStreamer_client = ExecuteProcess(
     #     cmd=["rqt", "--force-discover", "--standalone", "CameraClient"], shell=True, output="screen"
     # )
@@ -37,6 +44,7 @@ def generate_launch_description():
     )
 
     ld.add_action(run_rviz_arg)
+    ld.add_action(stream_deck_node)
     # ld.add_action(joystick_node)  # TODO: The joystick node currently does not work inside the container!
     # ld.add_action(start_gStreamer_client)
     ld.add_action(rviz_node)

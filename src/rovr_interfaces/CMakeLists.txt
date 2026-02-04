@@ -25,6 +25,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/GoToDigLocation.action"
   "action/AutoDigNavOffload.action"
   "msg/Potentiometers.msg"
+  "msg/StreamDeckState.msg"
   "srv/Drive.srv"
   "srv/MotorCommandGet.srv"
   "srv/MotorCommandSet.srv"
