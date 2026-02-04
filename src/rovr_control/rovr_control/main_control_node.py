@@ -72,7 +72,7 @@ class MainControlNode(Node):
         self.declare_parameter("digger_chain_power", 0.18)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_down", 0.12)  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("digger_lift_manual_power_up", 0.5)  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("lift_digging_start_position", 125.0)  # Measured in encoder counts
+        self.declare_parameter("tilt_digging_start_position", 125.0)  # Measured in encoder counts
         self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
         self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
@@ -85,7 +85,7 @@ class MainControlNode(Node):
         self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
         self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.lift_digging_start_position = self.get_parameter("lift_digging_start_position").value
+        self.tilt_digging_start_position = self.get_parameter("tilt_digging_start_position").value
         self.dumper_power = self.get_parameter("dumper_power").value
         self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
 
@@ -98,7 +98,7 @@ class MainControlNode(Node):
         )
         self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
         self.get_logger().info("autonomous_field_type has been set to: " + str(self.autonomous_field_type))
-        self.get_logger().info("lift_digging_start_position has been set to: " + str(self.lift_digging_start_position))
+        self.get_logger().info("tilt_digging_start_position has been set to: " + str(self.tilt_digging_start_position))
         self.get_logger().info("dumper_power has been set to: " + str(self.dumper_power))
         self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
 
@@ -262,7 +262,7 @@ class MainControlNode(Node):
                 self.stop_all_subsystems()
                 self.auto_dig_nav_offload_handle = await self.act_auto_dig_nav_offload.send_goal_async(
                     AutoDigNavOffload.Goal(
-                        lift_digging_start_position=self.lift_digging_start_position,
+                        tilt_digging_start_position=self.tilt_digging_start_position,
                         digger_chain_power=self.digger_chain_power,
                         backward_distance=1.8,  # meters
                     )
@@ -288,7 +288,7 @@ class MainControlNode(Node):
                     return
                 self.stop_all_subsystems()
                 goal = AutoDig.Goal(
-                    lift_digging_start_position=self.lift_digging_start_position,
+                    tilt_digging_start_position=self.tilt_digging_start_position,
                     digger_chain_power=self.digger_chain_power,
                 )
                 self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)

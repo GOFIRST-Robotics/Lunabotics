@@ -146,7 +146,7 @@ class Auger(Node):
 
         # TODO Define subscribers here - need to subscribe to potentiometer readings?
         self.potentiometer_sub = self.create_subscription(
-            Potentiometers, "potentiometers", self.push_motor_position_callback, 10
+            Potentiometers, "potentiometer", self.push_motor_position_callback, 10
         )
 
         # TODO Define publishers here

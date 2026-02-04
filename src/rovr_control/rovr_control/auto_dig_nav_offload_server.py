@@ -78,7 +78,7 @@ class AutoDigNavOffloadServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             self.dig_in_progress = True
             dig_goal = AutoDig.Goal(
-                lift_digging_start_position=goal_handle.request.lift_digging_start_position,
+                tilt_digging_start_position=goal_handle.request.tilt_digging_start_position,
                 digger_chain_power=goal_handle.request.digger_chain_power,
             )
             self.dig_handle = await self._auto_dig_client.send_goal_async(dig_goal)

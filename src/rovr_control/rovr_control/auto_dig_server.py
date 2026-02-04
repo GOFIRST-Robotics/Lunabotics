@@ -1,14 +1,12 @@
 import rclpy
 from rclpy.action import ActionServer
 
-
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import SetPosition, SetPower
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger, SetBool
 
 from rovr_control.node_util import AsyncNode
-
 
 class AutoDigServer(AsyncNode):
     def __init__(self):
@@ -17,12 +15,20 @@ class AutoDigServer(AsyncNode):
             self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
         )
 
-        self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
-        self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
-        self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
-        self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
-        self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
-        self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
+        # tilt
+        self.set_tilt = self.create_client(Trigger, "lift/zero") # /actuator_tilt/setExtension
+        self.stop_tilt = self.create_client(SetPosition, "lift/setPosition") # /actuator_tilt/stop
+
+        # extend
+        self.set_extension = self.create_client(SetPower, "lift/setPower") # /motor_push/setPosition
+        self.stop_extension = self.create_client(Trigger, "lift/stop") # /motor_push/stop
+        self.retract_extender = self.create_client(Trigger, "lift/retractExtender") # /actuator_extender/retractExtender
+
+        # spin auger
+        self.auger_stop = self.create_client(Trigger, "digger/stop") # /motor_spin/stop
+        self.auger_start = self.create_client(Trigger, "digger/setPower") # /motor_spin/run 
+
+        # agitator
         self.cli_motor_on_off = self.create_client(SetBool, "motor_on_off")
         self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
 
@@ -63,13 +69,15 @@ class AutoDigServer(AsyncNode):
             self.get_logger().error("Agitator motor toggle service not available")
             goal_handle.abort()
             return result
-
-        # Lower the digger so that it is just above the ground (get to this position fast)
+        
+        # Tilt the auger into digging position
         if not goal_handle.is_cancel_requested:
-            self.get_logger().info("Lowering the digger to the starting position")
-            await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
+            self.get_logger().info("Tilting the auger into digging position")
+            await self.set_tilt.call_async(
+                position=goal_handle.request.tilt_digging_start_position
             )
+            await self.auger_start.call_async(Trigger.request())
+
         fails = 0
         max_fails = 4
         self.goal_handle = goal_handle
@@ -114,7 +122,7 @@ class AutoDigServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Raising the digger to the starting position")
             await self.cli_lift_setPosition.call_async(
-                SetPosition.Request(position=goal_handle.request.lift_digging_start_position)
+                SetPosition.Request(position=goal_handle.request.tilt_digging_start_position)
             )
 
         # Start the digger chain
