@@ -78,9 +78,7 @@ class DumperNode(Node):
             Float32, "Limit Switches", self.killSwitch_callback, 10
         )
         self.limitSwitchBottom = False
-
-        # self.limitSwitch1_auger = False
-        # self.limitSwitch2_auger = False  # To do add subscriber and publisher
+        # self.auger_stowed = True
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
@@ -126,19 +124,19 @@ class DumperNode(Node):
         return response
 
     def pull_dumper(self) -> None:
-        if self.limitSwitch1_auger and self.limitSwitch2_auger:
-            self.get_logger().info("The auger is already extended")
-            return
+        # if not self.auger_stowed:
+        #     self.get_logger().info("The auger is already extended")
+        #     return
 
         self.get_logger().info("Extending the dumper")
         self.pulled_state = True
         self.long_service_running = True
 
-        motorComplete = self.cli_motor_set.call_async(
+        future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="position", can_id=self.DUMPER_MOTOR, value=90)
         )
 
-        while not motorComplete:  # While loop makes the motor keep going till limit switch is hit
+        while not future.done():  # While loop makes the motor keep going till limit switch is hit
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -154,13 +152,15 @@ class DumperNode(Node):
         return response
 
     def drop_dumper(self) -> None:  # get the variables
-        actuator1_retracted = self.limitSwitch1_auger
-        actuator2_retracted = self.limitSwitch2_auger
-        if actuator1_retracted and actuator2_retracted:
-            self.get_logger().info("The Auger is already retracted")
-            return
-
+        # if not self.auger_stowed:
+        #     self.get_logger().info("The Auger is already extended")
+        #     return
+        self.get_logger().info("Retracting the dumper")
         self.pulled_state = False
+        self.long_service_running = True
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER)
+        )
         while not self.limitSwitch1:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
