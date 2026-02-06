@@ -1,0 +1,4 @@
+# True to extend and false to retract the auger
+bool extension
+---
+bool success

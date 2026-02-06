@@ -24,7 +24,9 @@ def generate_launch_description():
         package="motor_control",
         executable="motor_control_node",
         name="motor_control_node",
-        parameters=["config/drivetrain_config.yaml", "config/motor_control.yaml"],
+        parameters=[
+            "config/drivetrain_config.yaml",
+            "config/motor_control.yaml"],
         output="screen",
         emulate_tty=True,
     )
@@ -33,16 +35,18 @@ def generate_launch_description():
         package="drivetrain",
         executable="drivetrain_node",
         name="drivetrain_node",
-        parameters=["config/drivetrain_config.yaml", "config/motor_control.yaml"],
+        parameters=[
+            "config/drivetrain_config.yaml",
+            "config/motor_control.yaml"],
         output="screen",
         emulate_tty=True,
     )
 
-    digger = Node(
-        package="digger",
-        executable="digger_node",
-        name="digger_node",
-        parameters=["config/motor_control.yaml"],
+    auger = Node(
+        package="auger",
+        executable="auger_node",
+        name="auger_node",
+        parameters=["config/auger_config.yaml"],
         output="screen",
     )
 
@@ -92,7 +96,7 @@ def generate_launch_description():
     ld.add_action(motor_control)
     ld.add_action(joystick_node)
     ld.add_action(drivetrain)
-    ld.add_action(digger)
+    ld.add_action(auger)
     ld.add_action(dumper)
     ld.add_action(read_serial)
     ld.add_action(can_bus)

@@ -1,0 +1,6 @@
+# This service sets the position of a subsystem with 1 motor
+float32 speed # rpm
+float32 position 
+float32 power_limit 0.5 # optional power cap
+---
+bool success
