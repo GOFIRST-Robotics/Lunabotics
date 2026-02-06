@@ -19,8 +19,8 @@ class AutoOffloadServer(AsyncNode):
             cancel_callback=self.cancel_callback,
         )
 
-        self.cli_dumper_extend = self.create_client(Trigger, "dumper/extendDumper")
-        self.cli_dumper_retract = self.create_client(Trigger, "dumper/retractDumper")
+        self.cli_dumper_dump = self.create_client(Trigger, "dumper/dumpDumper")
+        self.cli_dumper_store = self.create_client(Trigger, "dumper/storeDumper")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
@@ -29,12 +29,12 @@ class AutoOffloadServer(AsyncNode):
         result = AutoOffload.Result()
 
         # Make sure the services are available
-        if not self.cli_dumper_extend.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Dumper extend service not available")
+        if not self.cli_dumper_dump.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Dumper dump service not available")
             goal_handle.abort()
             return result
-        if not self.cli_dumper_retract.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Dumper retract service not available")
+        if not self.cli_dumper_store.wait_for_service(timeout_sec=1.0):
+            self.get_logger().error("Dumper store service not available")
             goal_handle.abort()
             return result
         if not self.cli_dumper_stop.wait_for_service(timeout_sec=1.0):
@@ -45,13 +45,13 @@ class AutoOffloadServer(AsyncNode):
         # Dump the material
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Auto Dumping")
-            await self.cli_dumper_extend.call_async(Trigger.Request())
+            await self.cli_dumper_dump.call_async(Trigger.Request())
         if not goal_handle.is_cancel_requested:
-            # wait for 2 seconds before retracting the dumper
+            # wait for 2 seconds before storing the dumper
             await self.async_sleep(2)  # Allows for task to be canceled
         if not goal_handle.is_cancel_requested:
-            # retract the dumper
-            await self.cli_dumper_retract.call_async(Trigger.Request())
+            # store the dumper
+            await self.cli_dumper_store.call_async(Trigger.Request())
 
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Autonomous Offload Procedure Complete!")

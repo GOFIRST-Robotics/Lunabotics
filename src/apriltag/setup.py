@@ -24,6 +24,6 @@ setup(
     license="MIT License",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": ["apriltag_node = apriltag.apriltag_node:main", "testingESDF = apriltag.testingESDF:main"],
+        "console_scripts": ["apriltag_node = apriltag.apriltag_node:main"],
     },
 )

@@ -3,7 +3,7 @@
     "tasks": [
         {
             "label": "Build All Task",
-            "type": "colcon",
+            "command": "colcon",
             "args": [
                 "build",
                 "--symlink-install"
@@ -13,7 +13,7 @@
         },
         {
             "label": "Build No GPU Task",
-            "type": "colcon",
+            "command": "colcon",
             "args": [
                 "build",
                 "--symlink-install",
@@ -24,15 +24,6 @@
             ],
             "problemMatcher": [],
             "group": "build"
-        },
-        {
-            "label": "Test All",
-            "type": "colcon",
-            "args": [
-                "test"
-            ],
-            "problemMatcher": [],
-            "group": "test"
-        },
+        }
     ]
 }

@@ -13,7 +13,9 @@ class AutoDigServer(AsyncNode):
     def __init__(self):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
-            self, AutoDig, "auto_dig", self.execute_callback, cancel_callback=self.cancel_callback
+            self, AutoDig, "auto_dig", self.execute_callback,
+            goal_callback=self.goal_callback, handle_accepted_callback=self.handle_accepted_callback,
+            cancel_callback=self.cancel_callback
         )
 
         # tilt
@@ -32,6 +34,14 @@ class AutoDigServer(AsyncNode):
         # agitator #TODO: uncomment if needed.
         # self.agitator = self.create_client(SetBool, "motor_on_off")
         # self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
+
+    def goal_callback(self, goal_request):
+        self.get_logger().info('Received goal request')
+        return GoalResponse.ACCEPT
+
+    def handle_accepted_callback(self, goal_handle):
+        self.get_logger().info('Starting new goal')
+        goal_handle.execute()
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
         self.get_logger().info("Starting Autonomous Digging Procedure!")
@@ -88,26 +98,28 @@ class AutoDigServer(AsyncNode):
         #TODO: All of these numbers need to be tuned based on the actual robot and digging conditions.
         fails += await self.set_position_retry(400.0, 0.12, max_fails - fails)
 
-        fails += await self.set_position_retry(475.0, 0.11, max_fails - fails)
+        fails += await self.set_position_retry(475.0, 0.108, max_fails-fails)
 
-        fails += await self.set_position_retry(550.0, 0.10, max_fails - fails)
+        fails += await self.set_position_retry(525.0, 0.098, max_fails-fails)
 
-        if not goal_handle.is_cancel_requested and fails < max_fails:
-            # Start the agitator motor
-            self.get_logger().info("Starting Agitator Motor")
-            await self.agitator.call_async(SetBool.Request(data=True))
+        # if not goal_handle.is_cancel_requested and fails < max_fails:
+        #    # Start the agitator motor
+        #    self.get_logger().info("Starting Agitator Motor")
+        #    await self.agitator.call_async(SetBool.Request(data=True))
 
-        fails += await self.set_position_retry(650.0, 0.09, max_fails - fails)
+        fails += await self.set_position_retry(575.0, 0.098, max_fails-fails)
 
-        fails += await self.set_position_retry(725.0, 0.10, max_fails - fails)
+        fails += await self.set_position_retry(650.0, 0.088, max_fails - fails)
+
+        fails += await self.set_position_retry(725.0, 0.098, max_fails - fails)
 
         # fails += await self.set_position_retry(750.0, 0.105, max_fails-fails)
 
-        fails += await self.set_position_retry(800.0, 0.105, max_fails - fails)
+        fails += await self.set_position_retry(800.0, 0.103, max_fails - fails)
 
         # fails += await self.set_position_retry(850.0, 0.11, max_fails-fails)
 
-        fails += await self.set_position_retry(900.0, 0.11, max_fails - fails)
+        fails += await self.set_position_retry(900.0, 0.108, max_fails - fails)
 
         # Dig in place (no lift lowering) for 5 seconds
         if not goal_handle.is_cancel_requested:
@@ -158,7 +170,7 @@ class AutoDigServer(AsyncNode):
             goal_handle.canceled()
             return result
 
-    def cancel_callback(self, cancel_request: ServerGoalHandle):
+    async def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
         super().cancel_callback(cancel_request)
         self.get_logger().info("Goal is cancelling")

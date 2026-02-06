@@ -13,7 +13,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from std_srvs.srv import Trigger
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 
 
 class DumperNode(Node):
@@ -40,19 +40,22 @@ class DumperNode(Node):
             Trigger, "dumper/stop", self.stop_callback, callback_group=self.stop_service_cb_group
         )
         self.srv_setPower = self.create_service(
-            SetPower, "dumper/setPower", self.set_power_callback, callback_group=self.service_cb_group
+            SetPower,
+            "dumper/setPower",
+            self.set_power_callback,
+            callback_group=self.service_cb_group,
         )
 
-        self.srv_extendDumper = self.create_service(
-            Trigger, "dumper/extendDumper", self.extend_callback, callback_group=self.service_cb_group
+        self.srv_dumpDumper = self.create_service(
+            Trigger, "dumper/storeDumper", self.dump_callback, callback_group=self.service_cb_group
         )
-        self.srv_retractDumper = self.create_service(
-            Trigger, "dumper/retractDumper", self.retract_callback, callback_group=self.service_cb_group
+        self.srv_storeDumper = self.create_service(
+            Trigger, "dumper/dumpDumper", self.store_callback, callback_group=self.service_cb_group
         )
 
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 11)
-        self.declare_parameter("DUMPER_POWER", 0.75)
+        self.declare_parameter("DUMPER_POWER", 0.3)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
@@ -61,31 +64,43 @@ class DumperNode(Node):
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
 
         # Current state of the dumper
-        self.extended_state = False
+        self.dumped_state = False
 
         # Dumper Current Threshold
         self.current_threshold = 0.3
         self.dumper_current = 0.0
 
-        self.dumper_current_sub = self.create_subscription(Float32, "Dumper_Current", self.dumper_current_callback, 10)
+        self.dumper_current_sub = self.create_subscription(
+            Float32, "Dumper_Current", self.dumper_current_callback, 10
+        )
+
+        self.KillSwitch_sub = self.create_subscription(
+            Bool, "DumperLimitSwitch", self.killSwitch_callback, 10
+        )
+        self.limitSwitchBottom = False
+        # self.auger_stowed = True
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
         """This method sets power to the dumper."""
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=-1*dumper_power)
+            MotorCommandSet.Request(
+                type="duty_cycle", can_id=self.DUMPER_MOTOR, value=-1 * dumper_power
+            )
         )
 
     def stop(self) -> None:
         """This method stops the dumper."""
-        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0))
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0)
+        )
 
     def toggle(self) -> None:
         """This method toggles the dumper."""
-        if not self.extended_state:
-            self.extend_dumper()
+        if not self.dumped_state:
+            self.dump_dumper()
         else:
-            self.retract_dumper()
+            self.store_dumper()
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -108,61 +123,67 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def extend_dumper(self) -> None:
+    def dump_dumper(self) -> None:
+        # if not self.auger_stowed:
+        #     self.get_logger().info("The auger is already extended")
+        #     return
+
         self.get_logger().info("Extending the dumper")
-        self.extended_state = True
+        self.dumped_state = True
         self.long_service_running = True
-        self.set_power(self.DUMPER_POWER)
-        lastPowerTime = time.time()
-        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
-        while time.time() - lastPowerTime < 0.5:
+
+        future = self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="position", can_id=self.DUMPER_MOTOR, value=90)
+        )
+
+        while not future.done():  # While loop makes the motor keep going till limit switch is hit
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
-            # If the dumper current is not below the threshold, update the last power time
-            if not self.dumper_current < self.current_threshold:
-                lastPowerTime = time.time()
-            time.sleep(0.1)  # We don't want to spam loop iterations too fast
-            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+            time.sleep(0.1)
+
         self.stop()
         self.long_service_running = False
-        self.get_logger().info("Done extending the dumper")
+        self.get_logger().info("Done dumping the dumper")
 
-    def extend_callback(self, request, response):
-        """This service request extends the dumper"""
-        self.extend_dumper()
+    def dump_callback(self, request, response):
+        self.dump_dumper()
         response.success = True
         return response
 
-    def retract_dumper(self) -> None:
+    def store_dumper(self) -> None:  # get the variables
+        # if not self.auger_stowed:
+        #     self.get_logger().info("The Auger is already extended")
+        #     return
         self.get_logger().info("Retracting the dumper")
-        self.extended_state = False
+        self.dumped_state = False
         self.long_service_running = True
-        self.set_power(-self.DUMPER_POWER)
-        lastPowerTime = time.time()
-        # Wait 0.5 seconds after the dumper current goes below the threshold before stopping the motor
-        while time.time() - lastPowerTime < 0.5:
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER)
+        )
+        while not self.limitSwitchBottom:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
-            # If the dumper current is not below the threshold, update the last power time
-            if not self.dumper_current < self.current_threshold:
-                lastPowerTime = time.time()
-            time.sleep(0.1)  # We don't want to spam loop iterations too fast
-            # self.get_logger().info("time.time() - lastPowerTime is currently: " + str(time.time() - lastPowerTime))
+            time.sleep(0.1)
+
         self.stop()
         self.long_service_running = False
-        self.get_logger().info("Done retracting the dumper")
+        self.get_logger().info("Done storing the dumper")
 
-    def retract_callback(self, request, response):
-        """This service request retracts the dumper"""
-        self.retract_dumper()
+    # the storage bin can only be dumped back
+    # when the auger is completely stowed (both actuators fully stored)
+    def store_callback(self, request, response):
+        self.store_dumper()
         response.success = True
         return response
 
     def dumper_current_callback(self, msg):
         self.dumper_current = msg.data
-        # self.get_logger().info("Dumper current: " + str(self.dumper_current))
+
+    def killSwitch_callback(self, msg):
+        # position control...
+        self.LimitSwitchBottom = msg.data
 
 
 def main(args=None):

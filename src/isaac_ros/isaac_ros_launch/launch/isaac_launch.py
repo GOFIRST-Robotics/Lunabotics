@@ -15,7 +15,7 @@ def generate_launch_description():
 
     # Launch Configurations
     setup_for_zed = LaunchConfiguration("setup_for_zed", default="True")
-    use_nvblox = LaunchConfiguration("use_nvblox", default="True")
+    # use_nvblox = LaunchConfiguration("use_nvblox", default="False")
     zed_multicam = LaunchConfiguration("zed_multicam", default="False")
     use_apriltags = LaunchConfiguration("use_apriltags", default="True")
     setup_for_gazebo = LaunchConfiguration("setup_for_gazebo", default="False")
@@ -46,6 +46,12 @@ def generate_launch_description():
         package="rovr_control",
         executable="dig_location_server",
         name="dig_location_server",
+    )
+    alexblox_server = Node(
+        package="alexblox",
+        executable="costmapGenerator",
+        name="costmapGenerator",
+        parameters=["config/costmap_config.yaml"],
     )
     record_svo_arg = DeclareLaunchArgument(
         "record_svo",
@@ -105,32 +111,32 @@ def generate_launch_description():
     )
 
     # Nvblox
-    nvblox_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox.launch.py"])]
-        ),
-        launch_arguments={
-            "global_frame": global_frame,
-            "setup_for_zed": LaunchConfiguration("setup_for_zed"),
-            "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
-            "attach_to_shared_component_container": "True",
-            "component_container_name": shared_container_name,
-        }.items(),
-        condition=IfCondition(PythonExpression([use_nvblox, " and not ", zed_multicam])),
-    )
-    nvblox_multicam_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox_multicam.launch.py"])]
-        ),
-        launch_arguments={
-            "global_frame": global_frame,
-            "setup_for_zed": LaunchConfiguration("setup_for_zed"),
-            "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
-            "attach_to_shared_component_container": "True",
-            "component_container_name": shared_container_name,
-        }.items(),
-        condition=IfCondition(PythonExpression([use_nvblox, " and ", zed_multicam])),
-    )
+    # nvblox_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox.launch.py"])]
+    #     ),
+    #     launch_arguments={
+    #         "global_frame": global_frame,
+    #         "setup_for_zed": LaunchConfiguration("setup_for_zed"),
+    #         "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
+    #         "attach_to_shared_component_container": "True",
+    #         "component_container_name": shared_container_name,
+    #     }.items(),
+    #     condition=IfCondition(PythonExpression([use_nvblox, " and not ", zed_multicam])),
+    # )
+    # nvblox_multicam_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "nvblox_multicam.launch.py"])]
+    #     ),
+    #     launch_arguments={
+    #         "global_frame": global_frame,
+    #         "setup_for_zed": LaunchConfiguration("setup_for_zed"),
+    #         "setup_for_gazebo": LaunchConfiguration("setup_for_gazebo"),
+    #         "attach_to_shared_component_container": "True",
+    #         "component_container_name": shared_container_name,
+    #     }.items(),
+    #     condition=IfCondition(PythonExpression([use_nvblox, " and ", zed_multicam])),
+    # )
 
     # Rviz
     rviz_launch = IncludeLaunchDescription(
@@ -189,8 +195,8 @@ def generate_launch_description():
             zed_multicam_arg,
             use_apriltags_arg,
             shared_container,
-            nvblox_launch,
-            nvblox_multicam_launch,
+            # nvblox_launch,
+            # nvblox_multicam_launch,
             nav2_launch,
             zed_launch,
             zed_multicam_launch,
@@ -199,5 +205,6 @@ def generate_launch_description():
             apriltag_launch,
             apriltag_gazebo_launch,
             dig_location_server,
+            alexblox_server,
         ]
     )

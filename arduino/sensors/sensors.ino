@@ -19,6 +19,8 @@ void loop() {
   // Create a SensorData struct
   int data = analogRead(MOTOR_POT_PIN);
 
+  data.bottomLimitSwitch  = analogRead(bottom_limit_switch); //bottom limit switch value
+
   // Send the struct over the serial bus to the Nvidia Jetson
   Serial.write((byte *)&data, sizeof(int));
 
