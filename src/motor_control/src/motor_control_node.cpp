@@ -281,13 +281,11 @@ public:
     // Define default values for our ROS parameters below #
     this->declare_parameter("CAN_INTERFACE_TRANSMIT", "can0");
     this->declare_parameter("CAN_INTERFACE_RECEIVE", "can0");
-    this->declare_parameter("DUMPER_MOTOR", 2);
-
+    
     // Print the ROS Parameters to the terminal below #
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_TRANSMIT parameter set to: %s", this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string().c_str());
     RCLCPP_INFO(this->get_logger(), "CAN_INTERFACE_RECEIVE parameter set to: %s", this->get_parameter("CAN_INTERFACE_RECEIVE").as_string().c_str());
-    RCLCPP_INFO(this->get_logger(), "DUMPER_MOTOR parameter set to: %ld", this->get_parameter("DUMPER_MOTOR").as_int());
-  
+    
     // Initialize services below //
     srv_motor_set = this->create_service<rovr_interfaces::srv::MotorCommandSet>(
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
@@ -298,7 +296,6 @@ public:
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
 
-    dumper_linear_actuator_pub = this->create_publisher<std_msgs::msg::Float32>("Dumper_Current", 5);
     // Initialize publishers and subscribers below //
     // The name of this topic is determined by ros2socketcan_bridge
     can_pub = this->create_publisher<can_msgs::msg::Frame>("CAN/" + this->get_parameter("CAN_INTERFACE_TRANSMIT").as_string() + "/transmit", 100);
@@ -335,17 +332,12 @@ private:
     float RPM = this->can_data[motorId].velocity;
     float current = this->can_data[motorId].current;
     int32_t tachometer = this->can_data[motorId].tachometer;
-    std_msgs::msg::Float32 dumper_linear_actuator_msg;
-
+  
     switch (statusId) {
     case 9: // Packet Status 9 (RPM & Duty Cycle)
       RPM = static_cast<float>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
       current = static_cast<float>(static_cast<short>((can_msg->data[4] << 8) + can_msg->data[5])) / 10.0; 
       dutyCycleNow = static_cast<float>(static_cast<short>((can_msg->data[6] << 8) + can_msg->data[7])) / 10.0 / 100.0;
-      if (motorId == this->get_parameter("DUMPER_MOTOR").as_int()) {
-        dumper_linear_actuator_msg.data = this->can_data[this->get_parameter("DUMPER_MOTOR").as_int()].current;
-        dumper_linear_actuator_pub->publish(dumper_linear_actuator_msg);
-      }
       break;
     case 27: // Packet Status 27 (Tachometer)
       tachometer = static_cast<int32_t>((can_msg->data[0] << 24) + (can_msg->data[1] << 16) + (can_msg->data[2] << 8) + can_msg->data[3]);
@@ -433,7 +425,6 @@ private:
   }
 
   rclcpp::TimerBase::SharedPtr timer;
-  rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr dumper_linear_actuator_pub;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_pub;
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_sub;
   rclcpp::Service<rovr_interfaces::srv::MotorCommandSet>::SharedPtr srv_motor_set;

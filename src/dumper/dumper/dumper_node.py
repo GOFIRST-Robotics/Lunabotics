@@ -69,11 +69,7 @@ class DumperNode(Node):
         # Dumper Current Threshold
         self.current_threshold = 0.3
         self.dumper_current = 0.0
-
-        self.dumper_current_sub = self.create_subscription(
-            Float32, "Dumper_Current", self.dumper_current_callback, 10
-        )
-
+    
         self.KillSwitch_sub = self.create_subscription(
             Bool, "DumperLimitSwitch", self.killSwitch_callback, 10
         )
@@ -177,9 +173,6 @@ class DumperNode(Node):
         self.store_dumper()
         response.success = True
         return response
-
-    def dumper_current_callback(self, msg):
-        self.dumper_current = msg.data
 
     def killSwitch_callback(self, msg):
         # position control...
