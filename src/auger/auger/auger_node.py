@@ -199,13 +199,14 @@ class Auger(Node):
                 )
             )
             rclpy.spin_until_future_complete(self, motor_get_future)
-            if not motor_get_future.result().success:
+
+            if motor_get_future.result().success:
+                if abs(motor_get_future.result().data) < self.TILT_ACTUATOR_CURRENT_THRESHOLD:
+                    break
+            else:
                 self.get_logger().info("WARNING: Failed to read tilt actuator position")
 
             time.sleep(0.1)
-
-            if motor_get_future.result().success and abs(motor_get_future.result().data) < self.TILT_ACTUATOR_CURRENT_THRESHOLD:
-                break
         
         return True
             
@@ -260,10 +261,15 @@ class Auger(Node):
                 )
             )
             rclpy.spin_until_future_complete(self, motor_get_pos_future)
+
+            if motor_get_pos_future.result().success:
+                current_pos = motor_get_pos_future.result().data
+                if (speed <= 0 and current_pos <= desired_position) or (speed > 0 and current_pos >= desired_position):
+                    break
+            else:
+                self.get_logger().warn("WARNING: Failed to read push motor position")
+
             time.sleep(0.1)
-            current_pos = motor_get_pos_future.result().data
-            if (speed <= 0 and current_pos <= desired_position) or (speed > 0 and current_pos >= desired_position):
-                break
             
         stop_motor_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
@@ -275,7 +281,7 @@ class Auger(Node):
         )
         stop_motor_response = rclpy.spin_until_future_complete(self, stop_motor_future)
         if not stop_motor_response.result().success:
-            self.get_logger().warn("WARNING: Failed to stop the auger spring")
+            self.get_logger().warn("WARNING: Failed to stop the auger screw")
             return False
 
         return True
