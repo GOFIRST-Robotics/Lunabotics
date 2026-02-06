@@ -1,7 +1,6 @@
 import rclpy
 from rclpy.node import Node
 from rovr_interfaces.msg import Potentiometers
-from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import SetBool, Trigger
 from std_msgs.msg import Bool
 
@@ -15,7 +14,7 @@ class read_serial(Node):
         super().__init__("read_serial")
 
         self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
-        self.LimitSwitchPub = self.create_publisher(LimitSwitches, "DumperLimitSwitch", 10)
+        self.LimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
 
         # Services to control the relay-driven agitator motor
         self.srv_bigonoff = self.create_service(SetBool, "big_agitator_on_off", self.big_on_off_callback)
@@ -46,7 +45,7 @@ class read_serial(Node):
             self.destroy_node()
             return
         data = self.arduino.read(4)  # Pause until 4 bytes are read
-        decoded = struct.unpack("hh??", data)  # Use h for integers and ? for booleans
+        decoded = struct.unpack("hh?", data)  # Use h for integers and ? for booleans
 
         msg = Potentiometers()
         msg.left_motor_pot = decoded[0]

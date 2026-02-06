@@ -46,11 +46,11 @@ class DumperNode(Node):
             callback_group=self.service_cb_group,
         )
 
-        self.srv_pullDumper = self.create_service(
-            Trigger, "dumper/storeDumper", self.pull_callback, callback_group=self.service_cb_group
+        self.srv_dumpDumper = self.create_service(
+            Trigger, "dumper/storeDumper", self.dump_callback, callback_group=self.service_cb_group
         )
-        self.srv_dropDumper = self.create_service(
-            Trigger, "dumper/dumpDumper", self.drop_callback, callback_group=self.service_cb_group
+        self.srv_storeDumper = self.create_service(
+            Trigger, "dumper/dumpDumper", self.store_callback, callback_group=self.service_cb_group
         )
 
         # Define default values for our ROS parameters below #
@@ -64,7 +64,7 @@ class DumperNode(Node):
         self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
 
         # Current state of the dumper
-        self.pulled_state = False
+        self.dumped_state = False
 
         # Dumper Current Threshold
         self.current_threshold = 0.3
@@ -75,7 +75,7 @@ class DumperNode(Node):
         )
 
         self.KillSwitch_sub = self.create_subscription(
-            Float32, "DumperLimitSwitch", self.killSwitch_callback, 10
+            Bool, "DumperLimitSwitch", self.killSwitch_callback, 10
         )
         self.limitSwitchBottom = False
         # self.auger_stowed = True
@@ -97,10 +97,10 @@ class DumperNode(Node):
 
     def toggle(self) -> None:
         """This method toggles the dumper."""
-        if not self.pulled_state:
-            self.pull_dumper()
+        if not self.dumped_state:
+            self.dump_dumper()
         else:
-            self.drop_dumper()
+            self.store_dumper()
 
     # Define service callback methods here
     def set_power_callback(self, request, response):
@@ -123,13 +123,13 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def pull_dumper(self) -> None:
+    def dump_dumper(self) -> None:
         # if not self.auger_stowed:
         #     self.get_logger().info("The auger is already extended")
         #     return
 
         self.get_logger().info("Extending the dumper")
-        self.pulled_state = True
+        self.dumped_state = True
         self.long_service_running = True
 
         future = self.cli_motor_set.call_async(
@@ -144,19 +144,19 @@ class DumperNode(Node):
 
         self.stop()
         self.long_service_running = False
-        self.get_logger().info("Done pulling the dumper")
+        self.get_logger().info("Done dumping the dumper")
 
-    def pull_callback(self, request, response):
-        self.pull_dumper()
+    def dump_callback(self, request, response):
+        self.dump_dumper()
         response.success = True
         return response
 
-    def drop_dumper(self) -> None:  # get the variables
+    def store_dumper(self) -> None:  # get the variables
         # if not self.auger_stowed:
         #     self.get_logger().info("The Auger is already extended")
         #     return
         self.get_logger().info("Retracting the dumper")
-        self.pulled_state = False
+        self.dumped_state = False
         self.long_service_running = True
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER)
@@ -169,12 +169,12 @@ class DumperNode(Node):
 
         self.stop()
         self.long_service_running = False
-        self.get_logger().info("Done droping the dumper")
+        self.get_logger().info("Done storing the dumper")
 
-    # the storage bin can only be pulled back
-    # when the auger is completely stowed (both actuators fully droped)
-    def drop_callback(self, request, response):
-        self.drop_dumper()
+    # the storage bin can only be dumped back
+    # when the auger is completely stowed (both actuators fully stored)
+    def store_callback(self, request, response):
+        self.store_dumper()
         response.success = True
         return response
 
