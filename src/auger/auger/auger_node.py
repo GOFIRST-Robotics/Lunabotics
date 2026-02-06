@@ -11,8 +11,8 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from std_msgs.msg import Float32, Float32MultiArray
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet
-from rovr_interfaces.srv import SetPower, SetPosition, SetExtension, AugerSetPositionMotor
+from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, AugerSetPushMotor
+from rovr_interfaces.srv import SetPower, SetPosition, SetExtension
 from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import Trigger
 
@@ -89,7 +89,7 @@ class Auger(Node):
         )
 
         self.srv_set_push_position = self.create_service(
-            AugerSetPositionMotor,
+            AugerSetPushMotor,
             "auger/push_motor/setPosition",
             self.set_push_position_callback,
             callback_group=self.service_cb_group,
@@ -185,35 +185,32 @@ class Auger(Node):
                 value=speed
             )
         )
-        rclpy.spin_until_future_complete(motor_set_future)
+        rclpy.spin_until_future_complete(self, motor_set_future)
         if not motor_set_future.result().success:
             self.get_logger().info("WARNING: Failed to set tilt motor velocity")
             return False
         
         # gets motor current until it is 0 which means it has hit an limit switch
-        motor_get_future = self.cli_motor_get.call_async(
-            MotorCommandGet.Request(
-                type="current",
-                can_id=self.TILT_ACTUATOR_ID,
-            )
-        )
-        rclpy.spin_until_future_complete(motor_get_future)
-        while not motor_get_future.result().success and abs(motor_get_future.result().data) > self.TILT_ACTUATOR_CURRENT_THRESHOLD:
+        while True:
             motor_get_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(
                     type="current",
                     can_id=self.TILT_ACTUATOR_ID,
                 )
             )
-            rclpy.spin_until_future_complete(motor_get_future)
+            rclpy.spin_until_future_complete(self, motor_get_future)
             if not motor_get_future.result().success:
                 self.get_logger().info("WARNING: Failed to read tilt actuator position")
+
             time.sleep(0.1)
+
+            if motor_get_future.result().success and abs(motor_get_future.result().data) < self.TILT_ACTUATOR_CURRENT_THRESHOLD:
+                break
         
         return True
             
 
-    def stop_actuator_tilt(self) -> None:
+    def stop_actuator_tilt(self) -> bool:
         """Stop the auger angular position of the auger motor."""
         self.get_logger().info("Stopping tilt actuator")
         motor_set_future = self.cli_motor_set.call_async(
@@ -223,7 +220,7 @@ class Auger(Node):
                 value=0.0,
             )
         )
-        rclpy.spin_until_future_complete(motor_set_future)
+        rclpy.spin_until_future_complete(self, motor_set_future)
         return motor_set_future.result().success
 
     def set_motor_push_position(self, speed: float, desired_position: float, power_limit: float) -> bool:
@@ -300,7 +297,7 @@ class Auger(Node):
                 value=0.0,
             )
         )
-        rclpy.spin_until_future_complete(motor_set_future)
+        rclpy.spin_until_future_complete(self, motor_set_future)
         return motor_set_future.result().success
 
     def run_auger_spin_velocity(self) -> bool:
@@ -314,7 +311,7 @@ class Auger(Node):
                 value=float(self.SPIN_VELOCITY),
             )
         )
-        rclpy.spin_until_future_complete(motor_set_future)
+        rclpy.spin_until_future_complete(self, motor_set_future)
         return motor_set_future.result().success
 
     def stop_auger_spin(self) -> bool:
@@ -328,7 +325,7 @@ class Auger(Node):
                 value=0.0,
             )
         )
-        rclpy.spin_until_future_complete(motor_set_future)
+        rclpy.spin_until_future_complete(self, motor_set_future)
         return motor_set_future.result().success
 
     def extend_digger(self) -> bool:
