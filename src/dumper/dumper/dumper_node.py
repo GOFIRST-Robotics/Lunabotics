@@ -47,10 +47,10 @@ class DumperNode(Node):
         )
 
         self.srv_dumpDumper = self.create_service(
-            Trigger, "dumper/storeDumper", self.dump_callback, callback_group=self.service_cb_group
+            Trigger, "dumper/dumpDumper", self.dump_callback, callback_group=self.service_cb_group
         )
         self.srv_storeDumper = self.create_service(
-            Trigger, "dumper/dumpDumper", self.store_callback, callback_group=self.service_cb_group
+            Trigger, "dumper/storeDumper", self.store_callback, callback_group=self.service_cb_group
         )
 
         # Define default values for our ROS parameters below #
