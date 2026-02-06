@@ -1,8 +1,7 @@
 import rclpy
 from rclpy.node import Node
-from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import SetBool, Trigger
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int16
 
 import serial
 import struct
@@ -13,7 +12,7 @@ class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
 
-        self.potentiometerPub = self.create_publisher(int, "potentiometer", 10)
+        self.potentiometerPub = self.create_publisher(Int16, "potentiometer", 10)
         # self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
         self.LimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
 
@@ -35,8 +34,6 @@ class read_serial(Node):
 
         self.timer = self.create_timer(0.1, self.timer_callback)
 
-        self.lastMsg = Potentiometers()
-
         self.bigAgitatorOn = False
         self.smallAgitatorOn = False
 
@@ -46,17 +43,16 @@ class read_serial(Node):
             self.destroy_node()
             return
         data = self.arduino.read(4)  # Pause until 4 bytes are read
-        decoded = struct.unpack("h", data)  # Use h for integers and ? for booleans
+        decoded = struct.unpack("h?", data)  # Use h for integers and ? for booleans
 
-        
-        self.potentiometerPub.publish(decoded[0])
-        self.lastMsg = decoded[0]
+        potentiometer_msg = int16()
+        potentiometer_msg.data = decoded[0]
+        self.potentiometerPub.publish(potentiometer_msg)
 
         bool_msg = Bool()
-        bool_msg.data = decoded[2]
+        bool_msg.data = decoded[1]
         self.LimitSwitchPub.publish(bool_msg)
-        self.lastMsg = bool_msg
-
+        
     def big_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
         cmd = b"1" if request.data else b"0"
