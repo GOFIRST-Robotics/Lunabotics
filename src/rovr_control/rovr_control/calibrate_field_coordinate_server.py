@@ -23,7 +23,8 @@ class CalibrateFieldCoordinateServer(Node):
             self.execute_callback,
             cancel_callback=self.cancel_callback,
         )
-        self.cli_set_apriltag_odometry = self.create_client(Trigger, "resetOdom")
+        self.cli_set_apriltag_odometry = self.create_client(
+            Trigger, "resetOdom")
         self.future_odom = Future()
 
         self.cli_spin = ActionClient(self, Spin, "spin")
@@ -35,7 +36,8 @@ class CalibrateFieldCoordinateServer(Node):
         result = CalibrateFieldCoordinates.Result()
 
         # Make sure the services are available
-        if not self.cli_set_apriltag_odometry.wait_for_service(timeout_sec=1.0):
+        if not self.cli_set_apriltag_odometry.wait_for_service(
+                timeout_sec=1.0):
             self.get_logger().error("Apriltag odom service not available")
             goal_handle.abort()
             return result
@@ -51,7 +53,8 @@ class CalibrateFieldCoordinateServer(Node):
         self.future_odom = Future()
 
         while not future_spin.done():
-            self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
+            self.future_odom = self.cli_set_apriltag_odometry.call_async(
+                Trigger.Request())
             if (await self.future_odom).success is True:
                 self.get_logger().info("Found an apriltag!")
                 await self.spin_handle.cancel_goal_async()

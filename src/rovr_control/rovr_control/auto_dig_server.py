@@ -9,27 +9,38 @@ from std_srvs.srv import Trigger, SetBool
 
 from rovr_control.node_util import AsyncNode
 
+
 class AutoDigServer(AsyncNode):
     def __init__(self):
         super().__init__("auto_dig_server")
         self._action_server = ActionServer(
-            self, AutoDig, "auto_dig", self.execute_callback,
-            goal_callback=self.goal_callback, handle_accepted_callback=self.handle_accepted_callback,
-            cancel_callback=self.cancel_callback
-        )
+            self,
+            AutoDig,
+            "auto_dig",
+            self.execute_callback,
+            goal_callback=self.goal_callback,
+            handle_accepted_callback=self.handle_accepted_callback,
+            cancel_callback=self.cancel_callback)
 
         # tilt
-        self.set_tilt = self.create_client(SetExtension, "auger/tilt_actuator/setExtension") # /actuator_tilt/setExtension
-        self.stop_tilt = self.create_client(Trigger, "auger/tilt_actuator/stop") # /actuator_tilt/stop
+        self.set_tilt = self.create_client(
+            SetExtension, "auger/tilt_actuator/setExtension")  # /actuator_tilt/setExtension
+        self.stop_tilt = self.create_client(
+            Trigger, "auger/tilt_actuator/stop")  # /actuator_tilt/stop
 
         # extend
-        self.set_extension = self.create_client(AugerSetPushMotor, "auger/push_motor/setPosition")
-        self.stop_extension = self.create_client(Trigger, "auger/push_motor/stop")
-        self.retract_extender = self.create_client(Trigger, "auger/push_motor/retract")
+        self.set_extension = self.create_client(
+            AugerSetPushMotor, "auger/push_motor/setPosition")
+        self.stop_extension = self.create_client(
+            Trigger, "auger/push_motor/stop")
+        self.retract_extender = self.create_client(
+            Trigger, "auger/push_motor/retract")
 
         # spin auger
-        self.screw_stop = self.create_client(Trigger, "auger/screw/stop") # /motor_spin/stop
-        self.screw_start = self.create_client(Trigger, "auger/screw/run") # /motor_spin/run 
+        self.screw_stop = self.create_client(
+            Trigger, "auger/screw/stop")  # /motor_spin/stop
+        self.screw_start = self.create_client(
+            Trigger, "auger/screw/run")  # /motor_spin/run
 
         # agitator #TODO: uncomment if needed.
         # self.agitator = self.create_client(SetBool, "motor_on_off")
@@ -84,7 +95,7 @@ class AutoDigServer(AsyncNode):
         #     self.get_logger().error("Agitator motor toggle service not available")
         #     goal_handle.abort()
         #     return result
-        
+
         # Tilt the auger into digging position
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Tilting the auger into digging position")
@@ -95,19 +106,20 @@ class AutoDigServer(AsyncNode):
         max_fails = 4
         self.goal_handle = goal_handle
 
-        #TODO: All of these numbers need to be tuned based on the actual robot and digging conditions.
+        # TODO: All of these numbers need to be tuned based on the actual robot
+        # and digging conditions.
         fails += await self.set_position_retry(400.0, 0.12, max_fails - fails)
 
-        fails += await self.set_position_retry(475.0, 0.108, max_fails-fails)
+        fails += await self.set_position_retry(475.0, 0.108, max_fails - fails)
 
-        fails += await self.set_position_retry(525.0, 0.098, max_fails-fails)
+        fails += await self.set_position_retry(525.0, 0.098, max_fails - fails)
 
         # if not goal_handle.is_cancel_requested and fails < max_fails:
         #    # Start the agitator motor
         #    self.get_logger().info("Starting Agitator Motor")
         #    await self.agitator.call_async(SetBool.Request(data=True))
 
-        fails += await self.set_position_retry(575.0, 0.098, max_fails-fails)
+        fails += await self.set_position_retry(575.0, 0.098, max_fails - fails)
 
         fails += await self.set_position_retry(650.0, 0.088, max_fails - fails)
 
@@ -127,7 +139,7 @@ class AutoDigServer(AsyncNode):
             self.get_logger().info("Auto Digging in Place")
             await self.async_sleep(5)
             self.get_logger().info("Done Digging in Place")
-        
+
         # TODO: uncomment if using auger.
         # if not goal_handle.is_cancel_requested:
         #     # Stop the agitator motor
@@ -185,13 +197,15 @@ class AutoDigServer(AsyncNode):
 
         for i in range(max_retries):
             if not self.goal_handle.is_cancel_requested:
-                self.get_logger().info(f"Attempting to set position to {position} with power limit {power_limit}")
+                self.get_logger().info(
+                    f"Attempting to set position to {position} with power limit {power_limit}")
                 if (
                     await self.cli_lift_setPosition.call_async(
                         AugerSetPushMotor.Request(position=position, speed=power_limit)
                     )
                 ).success:
-                    self.get_logger().info(f"Successfully set position to {position}")
+                    self.get_logger().info(
+                        f"Successfully set position to {position}")
                     return i
 
                 if i == max_retries - 1:

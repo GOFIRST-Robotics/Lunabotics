@@ -26,7 +26,8 @@ class AutoDigNavOffloadServer(AsyncNode):
         # Sub‑actions: dig, backup, offload
         self._auto_dig_client = ActionClient(self, AutoDig, "auto_dig")
         self._backup_client = ActionClient(self, BackUp, "backup")
-        self._auto_offload_client = ActionClient(self, AutoOffload, "auto_offload")
+        self._auto_offload_client = ActionClient(
+            self, AutoOffload, "auto_offload")
 
         # Status tracking
         self.dig_in_progress = False
@@ -103,7 +104,8 @@ class AutoDigNavOffloadServer(AsyncNode):
             dist = goal_handle.request.backward_distance
             speed = 0.5  # duty cycle
             timeout = 9.0  # seconds
-            self.get_logger().info(f"→ Backing up {dist}m @ {speed} (duty cycle)")
+            self.get_logger().info(
+                f"→ Backing up {dist}m @ {speed} (duty cycle)")
 
             if not self._backup_client.wait_for_server(timeout_sec=5.0):
                 self.get_logger().error("BackUp server unavailable")
@@ -130,7 +132,8 @@ class AutoDigNavOffloadServer(AsyncNode):
             result_future = send.get_result_async()
             while not result_future.done():
                 if goal_handle.is_cancel_requested:
-                    self._backup_client.cancel_goal_async(send)  # ask Nav2 to stop
+                    self._backup_client.cancel_goal_async(
+                        send)  # ask Nav2 to stop
                     self.get_logger().info("BackUp canceled")
                     self.backup_in_progress = False
                     return False
