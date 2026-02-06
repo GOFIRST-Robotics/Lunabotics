@@ -75,7 +75,7 @@ class DumperNode(Node):
         )
 
         self.KillSwitch_sub = self.create_subscription(
-            Float32, "Limit Switches", self.killSwitch_callback, 10
+            Float32, "DumperLimitSwitch", self.killSwitch_callback, 10
         )
         self.limitSwitchBottom = False
         # self.auger_stowed = True
@@ -161,7 +161,7 @@ class DumperNode(Node):
         self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER)
         )
-        while not self.limitSwitch1:
+        while not self.limitSwitchBottom:
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -183,7 +183,7 @@ class DumperNode(Node):
 
     def killSwitch_callback(self, msg):
         # position control...
-        self.LimitSwitchBottom = msg.bottom_limit_switch
+        self.LimitSwitchBottom = msg.data
 
 
 def main(args=None):

@@ -3,6 +3,7 @@ from rclpy.node import Node
 from rovr_interfaces.msg import Potentiometers
 from rovr_interfaces.msg import LimitSwitches
 from std_srvs.srv import SetBool, Trigger
+from std_msgs.msg import Bool
 
 import serial
 import struct
@@ -14,7 +15,7 @@ class read_serial(Node):
         super().__init__("read_serial")
 
         self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
-        self.LimitSwitchPub = self.create_publisher(LimitSwitches, "Limit Switches", 10)
+        self.LimitSwitchPub = self.create_publisher(LimitSwitches, "DumperLimitSwitch", 10)
 
         # Services to control the relay-driven agitator motor
         self.srv_bigonoff = self.create_service(SetBool, "big_agitator_on_off", self.big_on_off_callback)
@@ -53,11 +54,10 @@ class read_serial(Node):
         self.potentiometerPub.publish(msg)
         self.lastMsg = msg
 
-        msg = LimitSwitches()
-        msg.bottom_limit_switch = decoded[2]
-        msg.top_limit_switch = decoded[3]
-        self.LimitSwitchPub.publish(msg)
-        self.lastMsg = msg
+        bool_msg = Bool()
+        bool_msg.data = decoded[2]
+        self.LimitSwitchPub.publish(bool_msg)
+        self.lastMsg = bool_msg
 
     def big_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
