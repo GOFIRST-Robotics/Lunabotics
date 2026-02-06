@@ -89,7 +89,7 @@ class Auger(Node):
         )
 
         self.srv_set_push_position = self.create_service(
-            SetPosition,
+            AugerSetPositionMotor,
             "auger/push_motor/setPosition",
             self.set_push_position_callback,
             callback_group=self.service_cb_group,
