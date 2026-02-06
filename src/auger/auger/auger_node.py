@@ -76,70 +76,70 @@ class Auger(Node):
         # TODO Define services (methods callable from the outside) here
         self.srv_set_tilt_extension = self.create_service(
             SetExtension,
-            "actuator_tilt/setExtension",
+            "auger/tilt_actuator/setExtension",
             self.set_tilt_extension_callback,
             callback_group=self.service_cb_group,
         )
 
         self.srv_stop_tilt = self.create_service(
             Trigger,
-            "actuator_tilt/stop",
+            "auger/tilt_actuator/stop",
             self.stop_tilt_callback,
             callback_group=self.service_cb_group,
         )
 
         self.srv_set_push_position = self.create_service(
             SetPosition,
-            "motor_push/setPosition",
+            "auger/push_motor/setPosition",
             self.set_push_position_callback,
             callback_group=self.service_cb_group,
         )
 
         self.srv_stop_push = self.create_service(
             Trigger,
-            "motor_push/stop",
+            "auger/push_motor/stop",
             self.stop_push_callback,
             callback_group=self.service_cb_group,
         )
 
         self.srv_extend_push = self.create_service(
             Trigger,
-            "motor_push/extend",
+            "auger/push_motor/extend",
             self.extend_push_callback,
             callback_group=self.service_cb_group
         )
 
         self.srv_retract_push = self.create_service(
             Trigger,
-            "motor_push/retract",
+            "auger/push_motor/retract",
             self.retract_push_callback,
             callback_group=self.service_cb_group
         )
 
         self.srv_run_auger_spin = self.create_service(
             Trigger,
-            "motor_spin/run",
+            "auger/screw/run",
             self.run_auger_spin_velocity_callback,
             callback_group=self.service_cb_group,
         )
 
         self.srv_stop_spin = self.create_service(
             Trigger,
-            "motor_spin/stop",
+            "auger/screw/stop",
             self.stop_spin_callback,
             callback_group=self.service_cb_group,
         )
 
         self.srv_extend_digger = self.create_service(
             Trigger,
-            "control/extend_digger",
+            "auger/control/extend_digger",
             self.extend_digger_callback,
             callback_group=self.service_cb_group,
         )
 
         self.srv_retract_digger = self.create_service(
             Trigger,
-            "control/retract_digger",
+            "auger/control/retract_digger",
             self.retract_digger_callback,
             callback_group=self.service_cb_group,
         )
