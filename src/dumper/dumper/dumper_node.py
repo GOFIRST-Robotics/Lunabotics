@@ -13,7 +13,7 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, SetPower
 from std_srvs.srv import Trigger
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 
 
 class DumperNode(Node):
