@@ -6,7 +6,7 @@ from rovr_interfaces.srv import SetExtension, SetPower
 from rovr_interfaces.srv import AugerSetPushMotor
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger, SetBool
-
+from action_msgs.msg import GoalStatus
 from rovr_control.node_util import AsyncNode
 
 
@@ -48,7 +48,7 @@ class AutoDigServer(AsyncNode):
 
     def goal_callback(self, goal_request):
         self.get_logger().info('Received goal request')
-        return GoalResponse.ACCEPT
+        return GoalStatus.STATUS_ACCEPTED
 
     def handle_accepted_callback(self, goal_handle):
         self.get_logger().info('Starting new goal')
