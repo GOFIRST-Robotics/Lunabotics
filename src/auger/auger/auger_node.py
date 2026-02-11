@@ -336,13 +336,19 @@ class Auger(Node):
         return True
 
     def extend_motor_push(self) -> bool:
-        """Extends the push motor at max extend speed, returns false if it is not able to due to the tilt actuator not being fully extended."""
+        """
+        Extends the push motor at max extend speed, returns false
+        if it is not able to due to the tilt actuator not being fully extended.
+        """
         return self.set_motor_push_position(
             self.DEFAULT_PUSH_MOTOR_SPEED, self.MAX_PUSH_MOTOR_POSITION, 0.5
         )
 
     def retract_motor_push(self) -> bool:
-        """Run the push motor at max retract speed. Returns false if it is not able to due to the tilt actuator not being fully extended."""
+        """
+        Run the push motor at max retract speed.
+        Returns false if it is not able to due to the tilt actuator not being fully extended.
+        """
         return self.set_motor_push_position(
             self.DEFAULT_PUSH_MOTOR_SPEED, self.MIN_PUSH_MOTOR_POSITION, 0.5
         )
@@ -428,7 +434,10 @@ class Auger(Node):
         return response
 
     def set_push_position_callback(self, request, response):
-        """This service request sets position of the motor that pushes the auger into the ground. It will fail if the tilt actuator is not fully extended"""
+        """
+        This service request sets position of the motor that pushes the auger into the ground.
+        It will fail if the tilt actuator is not fully extended
+        """
         response.success = self.set_motor_push_position(
             request.speed, request.position, request.power_limit
         )
@@ -453,12 +462,18 @@ class Auger(Node):
         self.tilt_actuator_position = msg.data
 
     def extend_push_callback(self, request, response):
-        """This service requests to extend the push motor at full speed. It will fail if the tilt actuator is not fully extended"""
+        """
+        This service requests to extend the push motor at full speed.
+        It will fail if the tilt actuator is not fully extended
+        """
         response.success = self.extend_motor_push()
         return response
 
     def retract_push_callback(self, request, response):
-        """This service requests to retract the push motor at full speed. It will fail if the tilt actuator is not fully extended"""
+        """
+        This service requests to retract the push motor at full speed.
+        It will fail if the tilt actuator is not fully extended
+        """
         response.success = self.retract_motor_push()
         return response
 
