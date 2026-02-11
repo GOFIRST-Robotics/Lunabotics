@@ -63,34 +63,38 @@ class Auger(Node):
 
         # Local variables here
         self.SPIN_VELOCITY = self.get_parameter("SPIN_VELOCITY").value
-        self.MAX_SPIN_MOTOR_CURRENT = self.get_parameter(
-            "MAX_SPIN_MOTOR_CURRENT").value
-        self.push_motor_position = self.get_parameter(
-            "push_motor_position").value
-        self.tilt_actuator_position = self.get_parameter(
-            "tilt_actuator_position").value
+        self.MAX_SPIN_MOTOR_CURRENT = self.get_parameter("MAX_SPIN_MOTOR_CURRENT").value
+        self.push_motor_position = self.get_parameter("push_motor_position").value
+        self.tilt_actuator_position = self.get_parameter("tilt_actuator_position").value
         self.TILT_ACTUATOR_CURRENT_THRESHOLD = self.get_parameter(
-            "TILT_ACTUATOR_CURRENT_THRESHOLD")
+            "TILT_ACTUATOR_CURRENT_THRESHOLD"
+        )
         self.MAX_PUSH_MOTOR_POSITION = self.get_parameter(
-            "MAX_PUSH_MOTOR_POSITION").value
+            "MAX_PUSH_MOTOR_POSITION"
+        ).value
         self.MIN_PUSH_MOTOR_POSITION = self.get_parameter(
-            "MIN_PUSH_MOTOR_POSITION").value
+            "MIN_PUSH_MOTOR_POSITION"
+        ).value
         self.DEFAULT_PUSH_MOTOR_SPEED = self.get_parameter(
-            "DEFAULT_PUSH_MOTOR_SPEED").value
-        self.MAX_PUSH_MOTOR_CURRENT = self.get_parameter(
-            "MAX_PUSH_MOTOR_CURRENT").value
+            "DEFAULT_PUSH_MOTOR_SPEED"
+        ).value
+        self.MAX_PUSH_MOTOR_CURRENT = self.get_parameter("MAX_PUSH_MOTOR_CURRENT").value
         self.PUSH_MOTOR_POS_TOLERANCE = self.get_parameter(
-            "PUSH_MOTOR_POS_TOLERANCE").value
+            "PUSH_MOTOR_POS_TOLERANCE"
+        ).value
         self.MAX_RETRACT_PUSH_MOTOR_VELOCITY = self.get_parameter(
-            "MAX_RETRACT_PUSH_MOTOR_VELOCITY").value
+            "MAX_RETRACT_PUSH_MOTOR_VELOCITY"
+        ).value
         self.MAX_EXTEND_PUSH_MOTOR_VELOCITY = self.get_parameter(
-            "MAX_EXTEND_PUSH_MOTOR_VELOCITY").value
-        self.TILT_ACTUATOR_SPEED = self.get_parameter(
-            "TILT_ACTUATOR_SPEED").value
+            "MAX_EXTEND_PUSH_MOTOR_VELOCITY"
+        ).value
+        self.TILT_ACTUATOR_SPEED = self.get_parameter("TILT_ACTUATOR_SPEED").value
         self.TILT_ACTUATOR_MIN_EXTENSION = self.get_parameter(
-            "TILT_ACTUATOR_MIN_EXTENSION").value
+            "TILT_ACTUATOR_MIN_EXTENSION"
+        ).value
         self.PUSH_MOTOR_MIN_RETRACTION = self.get_parameter(
-            "PUSH_MOTOR_MIN_RETRACTION").value
+            "PUSH_MOTOR_MIN_RETRACTION"
+        ).value
         self.TILT_ACTUATOR_ID = self.get_parameter("TILT_ACTUATOR_ID").value
         self.PUSH_MOTOR_ID = self.get_parameter("PUSH_MOTOR_ID").value
         self.SPIN_MOTOR_ID = self.get_parameter("SPIN_MOTOR_ID").value
@@ -128,14 +132,14 @@ class Auger(Node):
             Trigger,
             "auger/push_motor/extend",
             self.extend_push_callback,
-            callback_group=self.service_cb_group
+            callback_group=self.service_cb_group,
         )
 
         self.srv_retract_push = self.create_service(
             Trigger,
             "auger/push_motor/retract",
             self.retract_push_callback,
-            callback_group=self.service_cb_group
+            callback_group=self.service_cb_group,
         )
 
         self.srv_run_auger_spin = self.create_service(
@@ -169,7 +173,8 @@ class Auger(Node):
         # TODO Define subscribers here - need to subscribe to potentiometer
         # readings?
         self.potentiometer_sub = self.create_subscription(
-            Potentiometers, "potentiometer", self.push_motor_position_callback, 10)
+            Potentiometers, "potentiometer", self.push_motor_position_callback, 10
+        )
 
         # TODO Define publishers here
 
@@ -183,16 +188,19 @@ class Auger(Node):
         Caller is responsible for timeouts.
         """
         push_motor_pos_future = self.cli_motor_get.call_async(
-            MotorCommandGet.Request(type="position", can_id=self.PUSH_MOTOR_ID))
+            MotorCommandGet.Request(type="position", can_id=self.PUSH_MOTOR_ID)
+        )
         rclpy.spin_until_future_complete(self, push_motor_pos_future)
         push_motor_pos = push_motor_pos_future.result()
         if not push_motor_pos.success:
             self.get_logger().info(
-                "WARNING: Failed to move the tilt actuator because the push motor position could not be determined")
+                "WARNING: Failed to move the tilt actuator because the push motor position could not be determined"
+            )
             return False
         if push_motor_pos.data > self.PUSH_MOTOR_MIN_RETRACTION:
             self.get_logger().info(
-                "WARNING: Failed to move the tilt actuator because the push motor is extended too far")
+                "WARNING: Failed to move the tilt actuator because the push motor is extended too far"
+            )
             return False
 
         if tilt:
@@ -204,9 +212,7 @@ class Auger(Node):
 
         motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
-                type="velocity",
-                can_id=self.TILT_ACTUATOR_ID,
-                value=speed
+                type="velocity", can_id=self.TILT_ACTUATOR_ID, value=speed
             )
         )
         rclpy.spin_until_future_complete(self, motor_set_future)
@@ -226,8 +232,10 @@ class Auger(Node):
             rclpy.spin_until_future_complete(self, motor_get_future)
 
             if motor_get_future.result().success:
-                if abs(
-                        motor_get_future.result().data) < self.TILT_ACTUATOR_CURRENT_THRESHOLD:
+                if (
+                    abs(motor_get_future.result().data)
+                    < self.TILT_ACTUATOR_CURRENT_THRESHOLD
+                ):
                     break
             else:
                 self.get_logger().info("WARNING: Failed to read tilt actuator position")
@@ -250,10 +258,8 @@ class Auger(Node):
         return motor_set_future.result().success
 
     def set_motor_push_position(
-            self,
-            speed: float,
-            desired_position: float,
-            power_limit: float) -> bool:
+        self, speed: float, desired_position: float, power_limit: float
+    ) -> bool:
         """
         Set the target position of the motor that pushes the auger into the ground.
         This will spin until the motor reaches given setpoint.
@@ -261,16 +267,23 @@ class Auger(Node):
         """
         if self.tilt_actuator_position < self.TILT_ACTUATOR_MIN_EXTENSION:
             self.get_logger().warn(
-                "WARNING: Push motor will not move because the tilt actuator is not extended")
+                "WARNING: Push motor will not move because the tilt actuator is not extended"
+            )
             return False
-        if desired_position > self.MAX_PUSH_MOTOR_POSITION or desired_position < self.MIN_PUSH_MOTOR_POSITION:
+        if (
+            desired_position > self.MAX_PUSH_MOTOR_POSITION
+            or desired_position < self.MIN_PUSH_MOTOR_POSITION
+        ):
             self.get_logger().warn(
-                f"WARNING: Requested push motor position is out of range, clamping value; requested: {desired_position}")
-            desired_position = max(self.MIN_PUSH_MOTOR_POSITION, min(
-                desired_position, self.MAX_PUSH_MOTOR_POSITION))  # clamp the value to be within range
+                f"WARNING: Requested push motor position is out of range, clamping value; requested: {desired_position}"
+            )
+            desired_position = max(
+                self.MIN_PUSH_MOTOR_POSITION,
+                min(desired_position, self.MAX_PUSH_MOTOR_POSITION),
+            )  # clamp the value to be within range
         self.get_logger().info(
-            "Setting auger push motor position to: " +
-            str(desired_position))
+            "Setting auger push motor position to: " + str(desired_position)
+        )
 
         motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
@@ -299,7 +312,8 @@ class Auger(Node):
             if motor_get_pos_future.result().success:
                 current_pos = motor_get_pos_future.result().data
                 if (speed <= 0 and current_pos <= desired_position) or (
-                        speed > 0 and current_pos >= desired_position):
+                    speed > 0 and current_pos >= desired_position
+                ):
                     break
             else:
                 self.get_logger().warn("WARNING: Failed to read push motor position")
@@ -314,8 +328,7 @@ class Auger(Node):
                 value=0,
             )
         )
-        stop_motor_response = rclpy.spin_until_future_complete(
-            self, stop_motor_future)
+        stop_motor_response = rclpy.spin_until_future_complete(self, stop_motor_future)
         if not stop_motor_response.result().success:
             self.get_logger().warn("WARNING: Failed to stop the auger screw")
             return False
@@ -325,12 +338,14 @@ class Auger(Node):
     def extend_motor_push(self) -> bool:
         """Extends the push motor at max extend speed, returns false if it is not able to due to the tilt actuator not being fully extended."""
         return self.set_motor_push_position(
-            self.DEFAULT_PUSH_MOTOR_SPEED, self.MAX_PUSH_MOTOR_POSITION, 0.5)
+            self.DEFAULT_PUSH_MOTOR_SPEED, self.MAX_PUSH_MOTOR_POSITION, 0.5
+        )
 
     def retract_motor_push(self) -> bool:
         """Run the push motor at max retract speed. Returns false if it is not able to due to the tilt actuator not being fully extended."""
         return self.set_motor_push_position(
-            self.DEFAULT_PUSH_MOTOR_SPEED, self.MIN_PUSH_MOTOR_POSITION, 0.5)
+            self.DEFAULT_PUSH_MOTOR_SPEED, self.MIN_PUSH_MOTOR_POSITION, 0.5
+        )
 
     def stop_motor_push(self) -> bool:
         """Stop the motor that pushes the auger into the ground."""
@@ -346,8 +361,7 @@ class Auger(Node):
 
     def run_auger_spin_velocity(self) -> bool:
         """Set the auger spin velocity of the auger motor."""
-        self.get_logger().info(
-            f"Running auger spin at velocity: {self.SPIN_VELOCITY}")
+        self.get_logger().info(f"Running auger spin at velocity: {self.SPIN_VELOCITY}")
 
         motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
@@ -381,7 +395,8 @@ class Auger(Node):
             return False
 
         extend_success = self.set_motor_push_position(
-            self.DEFAULT_PUSH_MOTOR_SPEED, self.MAX_PUSH_MOTOR_POSITION, 0.5)
+            self.DEFAULT_PUSH_MOTOR_SPEED, self.MAX_PUSH_MOTOR_POSITION, 0.5
+        )
         if not extend_success:
             return False
 
@@ -415,7 +430,8 @@ class Auger(Node):
     def set_push_position_callback(self, request, response):
         """This service request sets position of the motor that pushes the auger into the ground. It will fail if the tilt actuator is not fully extended"""
         response.success = self.set_motor_push_position(
-            request.speed, request.position, request.power_limit)
+            request.speed, request.position, request.power_limit
+        )
         return response
 
     def stop_push_callback(self, request, response):
