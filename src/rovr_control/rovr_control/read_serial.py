@@ -53,7 +53,7 @@ class read_serial(Node):
         # Use h for integers and ? for booleans
         decoded = struct.unpack("h?", data)
 
-        potentiometer_msg = int16()
+        potentiometer_msg = Int16()
         potentiometer_msg.data = decoded[0]
         self.potentiometerPub.publish(potentiometer_msg)
 

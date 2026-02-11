@@ -8,11 +8,10 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import ROS 2 formatted message types
-from std_msgs.msg import Float32, Float32MultiArray
 
 # Import custom ROS 2 interfaces
 from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, AugerSetPushMotor
-from rovr_interfaces.srv import SetPower, SetPosition, SetExtension
+from rovr_interfaces.srv import SetExtension
 from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import Trigger
 
