@@ -24,8 +24,6 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'camera = camera_interface.camera:main',
-            'user_interface = camera_interface.user_interface:main',
             'qt_user_interface = camera_interface.qt_user_interface:main',
             'webcam = camera_interface.webcam:main'
         ],
