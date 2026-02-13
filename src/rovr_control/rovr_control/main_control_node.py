@@ -142,7 +142,7 @@ class MainControlNode(Node):
             SetPower, "dumper/setPower")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
         # self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
-        self.cli_auger_stop = self.create_client(Trigger, "auger/stop")
+        self.cli_auger_stop = self.create_client(Trigger, "auger/control/stop_all")
         self.cli_auger_extend = self.create_client(Trigger, "auger/control/extend_digger")
         self.cli_auger_retract = self.create_client(Trigger, "auger/control/retract_digger")
         self.cli_big_agitator_on_off = self.create_client(
@@ -211,8 +211,6 @@ class MainControlNode(Node):
             Trigger.Request())  # Stop the digger chain
         self.cli_drivetrain_stop.call_async(
             Trigger.Request())  # Stop the drivetrain
-        self.cli_auger_stop.call_async(
-            Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
         self.cli_big_agitator_on_off.call_async(
             SetBool.Request(data=False))  # Stop the agitator motor

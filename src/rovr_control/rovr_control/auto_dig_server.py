@@ -3,7 +3,7 @@ from rclpy.action import ActionServer
 
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import SetExtension, SetPower
-from rovr_interfaces.srv import AugerSetPushMotor
+from rovr_interfaces.srv import AugerSetPushMotor, SetScrewMotorSpeed
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger, SetBool
 from action_msgs.msg import GoalStatus
@@ -42,13 +42,16 @@ class AutoDigServer(AsyncNode):
         self.screw_stop = self.create_client(
             Trigger, "auger/screw/stop")  # /motor_spin/stop
         self.screw_start = self.create_client(
-            Trigger, "auger/screw/run")  # /motor_spin/run
+            SetScrewMotorSpeed, "auger/screw/run")  # /motor_spin/run
 
         # agitator #TODO: uncomment if needed.
         # self.agitator = self.create_client(SetBool, "motor_on_off")
         # self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
 
         self._backup_client = ActionClient(self, BackUp, "backup")
+
+        self.spin_dig_speed = 4000
+        self.spin_stow_speed = 2000
 
 
     def goal_callback(self, goal_request):
@@ -116,7 +119,7 @@ class AutoDigServer(AsyncNode):
         
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("stopping screw")
-            await self.stop_auger_spin.call_async(Trigger.Request())
+            await self.screw_stop.call_async(Trigger.Request())
             
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Resetting tilt")
@@ -144,7 +147,7 @@ class AutoDigServer(AsyncNode):
     async def auto_dig(self, goal_handle: ServerGoalHandle):
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Starting screw")
-            await self.screw_start.call_async(Trigger.Request())
+            await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
 
         fails = 0
         max_fails = 4
@@ -179,7 +182,7 @@ class AutoDigServer(AsyncNode):
 
         # Dig in place (no lift lowering) for 5 seconds
         if not goal_handle.is_cancel_requested:
-            await self.screw_start.call_async(Trigger.Request())
+            await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
             self.get_logger().info("Auto Digging in Place")
             await self.async_sleep(5)
             self.get_logger().info("Done Digging in Place")
@@ -211,12 +214,12 @@ class AutoDigServer(AsyncNode):
 
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Slowing the screw")
-            await self.screw_stop.call_async(Trigger.Request()) #TODO change to slow screw
+            await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_stow_speed))
 
 
     async def set_position_retry(self, position: float, power_limit: float, max_retries: int = 4):
         self.get_logger().info("Starting the digger chain")
-        await self.screw_start.call_async(SetPower.Request(power=self.goal_handle.request.digger_chain_power))
+        await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
 
         for i in range(max_retries):
             if not self.goal_handle.is_cancel_requested:
@@ -235,7 +238,7 @@ class AutoDigServer(AsyncNode):
                     break
 
                 await self.async_sleep(1)
-                await self.screw_start.call_async(Trigger.Request())
+                await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
                 await self.async_sleep(5)
 
             else:
