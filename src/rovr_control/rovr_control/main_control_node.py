@@ -141,14 +141,10 @@ class MainControlNode(Node):
         self.cli_dumper_setPower = self.create_client(
             SetPower, "dumper/setPower")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
-        self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
-        self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
-        self.cli_digger_setPower = self.create_client(
-            SetPower, "digger/setPower")
-        self.cli_drivetrain_stop = self.create_client(
-            Trigger, "drivetrain/stop")
-        self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
-        self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
+        # self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
+        self.cli_auger_stop = self.create_client(Trigger, "auger/stop")
+        self.cli_auger_extend = self.create_client(Trigger, "auger/control/extend_digger")
+        self.cli_auger_retract = self.create_client(Trigger, "auger/control/retract_digger")
         self.cli_big_agitator_on_off = self.create_client(
             SetBool, "big_agitator_on_off")
         self.cli_big_agitator_toggle = self.create_client(
@@ -211,11 +207,11 @@ class MainControlNode(Node):
 
     def stop_all_subsystems(self) -> None:
         """This method stops all subsystems on the robot."""
-        self.cli_digger_stop.call_async(
+        self.cli_auger_stop.call_async(
             Trigger.Request())  # Stop the digger chain
         self.cli_drivetrain_stop.call_async(
             Trigger.Request())  # Stop the drivetrain
-        self.cli_lift_stop.call_async(
+        self.cli_auger_stop.call_async(
             Trigger.Request())  # Stop the digger lift
         self.cli_dumper_stop.call_async(Trigger.Request())  # Stop the dumper
         self.cli_big_agitator_on_off.call_async(
@@ -385,19 +381,13 @@ class MainControlNode(Node):
             # Manually adjust the height of the digger with the left and right
             # triggers
             if msg.buttons[bindings.LEFT_TRIGGER] == 1 and buttons[bindings.LEFT_TRIGGER] == 0:
-                self.cli_lift_set_power.call_async(
-                    SetPower.Request(power=self.digger_lift_manual_power_up))
+                self.cli_auger_extend.call_async(Trigger.Request())
             elif msg.buttons[bindings.LEFT_TRIGGER] == 0 and buttons[bindings.LEFT_TRIGGER] == 1:
-                self.cli_lift_stop.call_async(Trigger.Request())
+                self.cli_auger_stop.call_async(Trigger.Request())
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 1 and buttons[bindings.RIGHT_TRIGGER] == 0:
-                if self.current_lift_position and self.current_lift_position < self.DIGGER_SAFETY_ZONE:
-                    self.cli_lift_set_power.call_async(
-                        SetPower.Request(power=-self.digger_lift_manual_power_up))
-                else:
-                    self.cli_lift_set_power.call_async(SetPower.Request(
-                        power=-self.digger_lift_manual_power_down))
+                self.cli_auger_retract.call_async(Trigger.Request())
             elif msg.buttons[bindings.RIGHT_TRIGGER] == 0 and buttons[bindings.RIGHT_TRIGGER] == 1:
-                self.cli_lift_stop.call_async(Trigger.Request())
+                self.cli_auger_stop.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
