@@ -8,6 +8,8 @@ from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger, SetBool
 from action_msgs.msg import GoalStatus
 from rovr_control.node_util import AsyncNode
+from nav2_msgs.action import BackUp
+
 
 
 class AutoDigServer(AsyncNode):
@@ -45,6 +47,9 @@ class AutoDigServer(AsyncNode):
         # agitator #TODO: uncomment if needed.
         # self.agitator = self.create_client(SetBool, "motor_on_off")
         # self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
+
+        self._backup_client = ActionClient(self, BackUp, "backup")
+
 
     def goal_callback(self, goal_request):
         self.get_logger().info('Received goal request')
@@ -100,6 +105,45 @@ class AutoDigServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Tilting the auger into digging position")
             await self.set_tilt.call_async(SetExtension.Request(extension=True))
+        for i in range(4):
+            if not goal_handle.is_cancel_requested:
+                self.get_logger().info("Starting first dig")
+                await self.auto_dig(goal_handle)
+            
+            if not goal_handle.is_cancel_requested:
+                self.get_logger().info("driving back")
+                await self._do_backup(goal_handle)
+        
+        if not goal_handle.is_cancel_requested:
+            self.get_logger().info("stopping screw")
+            await self.stop_auger_spin.call_async(Trigger.Request())
+            
+        if not goal_handle.is_cancel_requested:
+            self.get_logger().info("Resetting tilt")
+            await self.set_tilt.call_async(SetExtension.Request(extension=False))
+
+        if not goal_handle.is_cancel_requested:
+            self.get_logger().info("Autonomous Digging Procedure Complete!")
+            goal_handle.succeed()
+            return result
+        else:
+            self.get_logger().info("Goal was cancelled")
+            goal_handle.canceled()
+            return result
+        
+
+    async def cancel_callback(self, cancel_request: ServerGoalHandle):
+        """This method is called when the action is canceled."""
+        super().cancel_callback(cancel_request)
+        self.get_logger().info("Goal is cancelling")
+        self.screw_stop.call_async(Trigger.Request())
+        self.cli_lift_stop.call_async(Trigger.Request())
+        self.agitator.call_async(SetBool.Request(data=False))
+        return CancelResponse.ACCEPT
+    
+    async def auto_dig(self, goal_handle: ServerGoalHandle):
+        if not goal_handle.is_cancel_requested:
+            self.get_logger().info("Starting screw")
             await self.screw_start.call_async(Trigger.Request())
 
         fails = 0
@@ -166,30 +210,9 @@ class AutoDigServer(AsyncNode):
             await self.retract_extender.call_async(Trigger.Request())
 
         if not goal_handle.is_cancel_requested:
-            self.get_logger().info("Stopping the digger chain")
-            await self.screw_stop.call_async(Trigger.Request())
+            self.get_logger().info("Slowing the screw")
+            await self.screw_stop.call_async(Trigger.Request()) #TODO change to slow screw
 
-        if not goal_handle.is_cancel_requested:
-            self.get_logger().info("Resetting tilt")
-            await self.set_tilt.call_async(SetExtension.Request(extension=False))
-
-        if not goal_handle.is_cancel_requested:
-            self.get_logger().info("Autonomous Digging Procedure Complete!")
-            goal_handle.succeed()
-            return result
-        else:
-            self.get_logger().info("Goal was cancelled")
-            goal_handle.canceled()
-            return result
-
-    async def cancel_callback(self, cancel_request: ServerGoalHandle):
-        """This method is called when the action is canceled."""
-        super().cancel_callback(cancel_request)
-        self.get_logger().info("Goal is cancelling")
-        self.screw_stop.call_async(Trigger.Request())
-        self.cli_lift_stop.call_async(Trigger.Request())
-        self.agitator.call_async(SetBool.Request(data=False))
-        return CancelResponse.ACCEPT
 
     async def set_position_retry(self, position: float, power_limit: float, max_retries: int = 4):
         self.get_logger().info("Starting the digger chain")
@@ -219,6 +242,55 @@ class AutoDigServer(AsyncNode):
                 return -1
 
         return max_retries
+    
+    async def _do_backup(self, goal_handle):
+        if not goal_handle.is_cancel_requested:
+            dist = 0.5 #TODO update value
+            speed = 0.5  # duty cycle
+            timeout = 9.0  # seconds
+            self.get_logger().info(
+                f"→ Backing up {dist}m @ {speed} (duty cycle)")
+
+            if not self._backup_client.wait_for_server(timeout_sec=5.0):
+                self.get_logger().error("BackUp server unavailable")
+                return False
+
+            target_point = Point()
+            target_point.x = -abs(dist)  # negative x = backward
+            target_point.y = 0.0
+            target_point.z = 0.0
+
+            self.backup_in_progress = True
+            backup_goal = BackUp.Goal(
+                speed=speed,
+                target=target_point,
+                time_allowance=Duration(sec=int(timeout)),
+            )
+            send = await self._backup_client.send_goal_async(backup_goal)
+            if not send.accepted:
+                self.get_logger().error("BackUp rejected")
+                self.backup_in_progress = False
+                return False
+
+            # Wait for completion or cancel
+            result_future = send.get_result_async()
+            while not result_future.done():
+                if goal_handle.is_cancel_requested:
+                    self._backup_client.cancel_goal_async(
+                        send)  # ask Nav2 to stop
+                    self.get_logger().info("BackUp canceled")
+                    self.backup_in_progress = False
+                    return False
+                await self.async_sleep(0.1)
+
+            result = await result_future
+            self.backup_in_progress = False
+            if result.status == GoalStatus.STATUS_SUCCEEDED:
+                self.get_logger().info("→ BackUp succeeded")
+                return True
+            else:
+                self.get_logger().error(f"BackUp failed: {result}")
+                return False
 
 
 def main(args=None) -> None:
