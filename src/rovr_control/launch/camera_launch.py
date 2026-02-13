@@ -3,12 +3,8 @@ from launch_ros.actions import Node
 
 
 def generate_camera_nodes(
-    camera_name,
-    video_device,
-    pixel_format="yuyv",
-    resolution=(
-        320,
-        240)):
+    camera_name, video_device, pixel_format="yuyv", resolution=(320, 240)
+):
     return [
         # Camera driver node
         Node(
@@ -22,11 +18,7 @@ def generate_camera_nodes(
                 {"image_height": resolution[1]},
                 {"pixel_format": pixel_format},
             ],
-            remappings=[
-                ("/image_raw",
-                 "image_raw"),
-                ("/camera_info",
-                 "camera_info")],
+            remappings=[("/image_raw", "image_raw"), ("/camera_info", "camera_info")],
             # scoped to namespace
         ),
         # Compressed republisher

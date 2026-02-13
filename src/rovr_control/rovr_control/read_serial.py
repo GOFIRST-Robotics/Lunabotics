@@ -12,22 +12,24 @@ class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
 
-        self.potentiometerPub = self.create_publisher(
-            Int16, "potentiometer", 10)
+        self.potentiometerPub = self.create_publisher(Int16, "potentiometer", 10)
         # self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
-        self.LimitSwitchPub = self.create_publisher(
-            Bool, "DumperLimitSwitch", 10)
+        self.LimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
 
         # Services to control the relay-driven agitator motor
         self.srv_bigonoff = self.create_service(
-            SetBool, "big_agitator_on_off", self.big_on_off_callback)
+            SetBool, "big_agitator_on_off", self.big_on_off_callback
+        )
         self.srv_bigtoggle = self.create_service(
-            Trigger, "big_agitator_toggle", self.big_toggle_callback)
+            Trigger, "big_agitator_toggle", self.big_toggle_callback
+        )
 
         self.srv_smallonoff = self.create_service(
-            SetBool, "small_agitator_on_off", self.small_on_off_callback)
+            SetBool, "small_agitator_on_off", self.small_on_off_callback
+        )
         self.srv_smalltoggle = self.create_service(
-            Trigger, "small_agitator_toggle", self.small_toggle_callback)
+            Trigger, "small_agitator_toggle", self.small_toggle_callback
+        )
 
         try:
             self.arduino = serial.Serial("/dev/ttyACM0", 9600)
@@ -66,8 +68,9 @@ class read_serial(Node):
         cmd = b"1" if request.data else b"0"
         self.arduino.write(cmd)
         response.success = True
-        response.message = "Big agitator motor turned " + \
-            ("on" if request.data else "off")
+        response.message = "Big agitator motor turned " + (
+            "on" if request.data else "off"
+        )
         self.bigAgitatorOn = request.data
         return response
 
@@ -87,8 +90,9 @@ class read_serial(Node):
         cmd = b"3" if request.data else b"2"
         self.arduino.write(cmd)
         response.success = True
-        response.message = "Small agitator motor turned " + \
-            ("on" if request.data else "off")
+        response.message = "Small agitator motor turned " + (
+            "on" if request.data else "off"
+        )
         self.smallAgitatorOn = request.data
         return response
 
