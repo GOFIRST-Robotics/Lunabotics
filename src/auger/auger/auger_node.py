@@ -1,5 +1,6 @@
 # This ROS 2 node contains the code for the auger subsystem of the robot
 import time
+import math
 
 # Import the ROS 2 Python module
 import rclpy
@@ -10,7 +11,12 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 # Import ROS 2 formatted message types
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import MotorCommandSet, MotorCommandGet, AugerSetPushMotor
+from rovr_interfaces.srv import (
+    MotorCommandSet,
+    MotorCommandGet,
+    AugerSetPushMotor,
+    SetScrewMotorSpeed,
+)
 from rovr_interfaces.srv import SetExtension
 from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import Trigger
@@ -31,7 +37,10 @@ class Auger(Node):
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define parameters here
-        self.declare_parameter("SPIN_VELOCITY", 4_000)  # in RPM
+        self.declare_parameter(
+            "MAX_SCREW_SPEED", 4_000
+        )  # in RPM for both negative and positive direction
+        self.declare_parameter("MIN_SCREW_DIG_SPEED", 2_000)
         self.declare_parameter("MAX_SPIN_MOTOR_CURRENT", 0)
         self.declare_parameter("push_motor_position", 0)
         self.declare_parameter("tilt_actuator_position", 0)
@@ -62,7 +71,8 @@ class Auger(Node):
         self.declare_parameter("SPIN_MOTOR_ID", 0)
 
         # Local variables here
-        self.SPIN_VELOCITY = self.get_parameter("SPIN_VELOCITY").value
+        self.MAX_SCREW_SPEED = self.get_parameter("MAX_SCREW_SPEED").value
+        self.MIN_SCREW_DIG_SPEED = self.get_parameter("MIN_SCREW_DIG_SPEED").value
         self.MAX_SPIN_MOTOR_CURRENT = self.get_parameter("MAX_SPIN_MOTOR_CURRENT").value
         self.push_motor_position = self.get_parameter("push_motor_position").value
         self.tilt_actuator_position = self.get_parameter("tilt_actuator_position").value
@@ -143,7 +153,7 @@ class Auger(Node):
         )
 
         self.srv_run_auger_spin = self.create_service(
-            Trigger,
+            SetScrewMotorSpeed,
             "auger/screw/run",
             self.run_auger_spin_velocity_callback,
             callback_group=self.service_cb_group,
@@ -167,6 +177,13 @@ class Auger(Node):
             Trigger,
             "auger/control/retract_digger",
             self.retract_digger_callback,
+            callback_group=self.service_cb_group,
+        )
+
+        self.srv_retract_digger = self.create_service(
+            Trigger,
+            "auger/control/stop_all",
+            self.stop_all,
             callback_group=self.service_cb_group,
         )
 
@@ -263,6 +280,7 @@ class Auger(Node):
         """
         Set the target position of the motor that pushes the auger into the ground.
         This will spin until the motor reaches given setpoint.
+        This will fail if the screw is not spinning fast enough
         Caller is responsible for timeouts.
         """
         if self.tilt_actuator_position < self.TILT_ACTUATOR_MIN_EXTENSION:
@@ -270,6 +288,26 @@ class Auger(Node):
                 "WARNING: Push motor will not move because the tilt actuator is not extended"
             )
             return False
+
+        get_screw_speed_future = self.cli_motor_get.call_async(
+            MotorCommandGet.Request(
+                type="velocity",
+                can_id=self.SPIN_MOTOR_ID,
+            )
+        )
+        rclpy.spin_until_future_complete(self, get_screw_speed_future)
+
+        if not get_screw_speed_future.result().success:
+            self.get_logger().warn(
+                "WARNING: Push motor will not move because the screw speed could not be determined"
+            )
+            return False
+        elif get_screw_speed_future.result().data < self.MIN_SCREW_DIG_SPEED:
+            self.get_logger().warn(
+                "WARNING: Push motor will not move because the screw is not spinning fast enough"
+            )
+            return False
+
         if (
             desired_position > self.MAX_PUSH_MOTOR_POSITION
             or desired_position < self.MIN_PUSH_MOTOR_POSITION
@@ -350,7 +388,7 @@ class Auger(Node):
         Returns false if it is not able to due to the tilt actuator not being fully extended.
         """
         return self.set_motor_push_position(
-            self.DEFAULT_PUSH_MOTOR_SPEED, self.MIN_PUSH_MOTOR_POSITION, 0.5
+            -self.DEFAULT_PUSH_MOTOR_SPEED, self.MIN_PUSH_MOTOR_POSITION, 0.5
         )
 
     def stop_motor_push(self) -> bool:
@@ -365,15 +403,23 @@ class Auger(Node):
         rclpy.spin_until_future_complete(self, motor_set_future)
         return motor_set_future.result().success
 
-    def run_auger_spin_velocity(self) -> bool:
+    def run_auger_spin_velocity(self, desired_speed: float, power_limit: float) -> bool:
         """Set the auger spin velocity of the auger motor."""
-        self.get_logger().info(f"Running auger spin at velocity: {self.SPIN_VELOCITY}")
+        if abs(desired_speed) > self.MAX_SCREW_SPEED:
+            self.get_logger().info(
+                f"WARNING: Requested auger screw speed is too fast: {desired_speed}"
+            )
+            # This is the same as signum(desired_speed) * self.MAX_SCREW_SPEED
+            desired_speed = math.copysign(self.MAX_SCREW_SPEED, desired_speed)
+
+        self.get_logger().info(f"Running auger spin at velocity: {desired_speed}")
 
         motor_set_future = self.cli_motor_set.call_async(
             MotorCommandSet.Request(
                 type="velocity",
                 can_id=self.SPIN_MOTOR_ID,
-                value=float(self.SPIN_VELOCITY),
+                value=float(desired_speed),
+                power_limit=power_limit,
             )
         )
         rclpy.spin_until_future_complete(self, motor_set_future)
@@ -400,9 +446,7 @@ class Auger(Node):
         if not tilt_success:
             return False
 
-        extend_success = self.set_motor_push_position(
-            self.DEFAULT_PUSH_MOTOR_SPEED, self.MAX_PUSH_MOTOR_POSITION, 0.5
-        )
+        extend_success = self.extend_motor_push()
         if not extend_success:
             return False
 
@@ -420,6 +464,12 @@ class Auger(Node):
             return False
 
         return True
+
+    def stop_all(self) -> bool:
+        # This does not short circit but still returns false if any do
+        return (
+            self.stop_actuator_tilt() & self.stop_auger_spin() & self.stop_motor_push()
+        )
 
     # TODO  Define service callback methods here
     def set_tilt_extension_callback(self, request, response):
@@ -450,7 +500,9 @@ class Auger(Node):
 
     def run_auger_spin_velocity_callback(self, request, response):
         """This service request sets the turn velocity of the auger"""
-        response.success = self.run_auger_spin_velocity()
+        response.success = self.run_auger_spin_velocity(
+            request.speed, request.power_limit
+        )
         return response
 
     def stop_spin_callback(self, request, response):
@@ -485,6 +537,11 @@ class Auger(Node):
     def retract_digger_callback(self, request, response):
         """This service will both tilt and retract the auger."""
         response.success = self.retract_digger()
+        return response
+
+    def stop_all_callback(self, request, response):
+        """This Service will stop all three motors"""
+        response.success = self.stop_all()
         return response
 
 
