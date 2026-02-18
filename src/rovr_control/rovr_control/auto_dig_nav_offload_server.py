@@ -112,7 +112,7 @@ class AutoDigNavOffloadServer(AsyncNode):
                 self.get_logger().error("Backup navigation service not available")
                 goal_handle.abort()
                 return False
-      
+
             self.backup_in_progress = True
 
             goal_msg = NavigateToPose.Goal()
@@ -135,7 +135,7 @@ class AutoDigNavOffloadServer(AsyncNode):
                 self.get_logger().error("BackUp rejected")
                 self.backup_in_progress = False
                 return False
-    
+
             self.get_logger().info("BackUp Goal Accepted")
             get_result_future = send_goal_handle.get_result_async()
             result = await get_result_future
