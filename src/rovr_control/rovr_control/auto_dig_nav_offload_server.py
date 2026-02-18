@@ -4,8 +4,6 @@ from rclpy.action.server import ServerGoalHandle
 from nav2_msgs.action import NavigateToPose
 from rovr_interfaces.action import AutoDig, AutoOffload, AutoDigNavOffload
 from rovr_control.node_util import AsyncNode
-from builtin_interfaces.msg import Duration
-from geometry_msgs.msg import Point
 from action_msgs.msg import GoalStatus
 from rclpy.action.client import ClientGoalHandle
 import math
@@ -99,7 +97,7 @@ class AutoDigNavOffloadServer(AsyncNode):
             return True
 
         return False
-    
+
     def get_quat_from_euler(yaw):
         return {
             'x': 0.0,
@@ -107,14 +105,14 @@ class AutoDigNavOffloadServer(AsyncNode):
             'z': math.sin(yaw / 2.0),
             'w': math.cos(yaw / 2.0)
         }
-    
+
     async def _do_nav_backup(self, goal_handle):
         if not goal_handle.is_cancel_requested:
             if not self._backup_client.wait_for_server(timeout_sec=1.0):
                 self.get_logger().error("Backup navigation service not available")
                 goal_handle.abort()
                 return False
-            
+      
             self.backup_in_progress = True
 
             goal_msg = NavigateToPose.Goal()
@@ -137,7 +135,7 @@ class AutoDigNavOffloadServer(AsyncNode):
                 self.get_logger().error("BackUp rejected")
                 self.backup_in_progress = False
                 return False
-            
+    
             self.get_logger().info("BackUp Goal Accepted")
             get_result_future = send_goal_handle.get_result_async()
             result = await get_result_future
