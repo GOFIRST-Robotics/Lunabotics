@@ -1,5 +1,5 @@
 # Define all the buttons here
-X_BUTTON = 2  # FREE
+X_BUTTON = 2  # toggle screw
 A_BUTTON = 0  # auto_dig_nav_offload
 B_BUTTON = 1  # toggle dumper
 Y_BUTTON = 3  # toggle big agitator

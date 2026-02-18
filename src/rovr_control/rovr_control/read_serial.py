@@ -13,7 +13,6 @@ class read_serial(Node):
         super().__init__("read_serial")
 
         self.potentiometerPub = self.create_publisher(Int16, "potentiometer", 10)
-        # self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
         self.LimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
 
         # Services to control the relay-driven agitator motor
