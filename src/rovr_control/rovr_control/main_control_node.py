@@ -169,10 +169,10 @@ class MainControlNode(Node):
         )
         self.cli_screw_stop = self.create_client(
             Trigger, "auger/screw/stop"
-        ) 
+        )
         self.cli_screw_start = self.create_client(
             SetScrewMotorSpeed, "auger/screw/run"
-        )  
+        )
         self.cli_big_agitator_on_off = self.create_client(
             SetBool, "big_agitator_on_off"
         )
@@ -391,8 +391,8 @@ class MainControlNode(Node):
                 self.cli_screw_start.call_async(
                     SetScrewMotorSpeed.Request(speed=self.screw_speed)
                 )
-            
-            if msg.buttons[binding.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
+
+            if msg.buttons[bindings.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
                 self.cli_screw_stop.call_async(Trigger.Request())
 
             # Check if the dumper button is pressed #

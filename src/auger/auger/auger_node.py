@@ -449,7 +449,7 @@ class Auger(Node):
         tilt_success = self.set_actuator_tilt_extension(True)
         if not tilt_success:
             return False
-        
+
         spin_success = self.run_auger_spin_velocity(self.SCREW_SPEED, self.POWER_LIMIT)
 
         if not spin_success:
@@ -471,13 +471,10 @@ class Auger(Node):
         spin_success = self.stop_auger_spin()
         if not spin_success:
             return False
-            
+
         tilt_success = self.set_actuator_tilt_extension(False)
         if not tilt_success:
             return False
-
-        
-        
 
         return True
 
