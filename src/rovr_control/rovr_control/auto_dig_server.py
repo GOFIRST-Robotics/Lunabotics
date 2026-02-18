@@ -1,14 +1,16 @@
 import rclpy
-from rclpy.action import ActionServer
+from rclpy.action import ActionServer, ActionClient
 
 from rovr_interfaces.action import AutoDig
-from rovr_interfaces.srv import SetExtension, SetPower
+from rovr_interfaces.srv import SetExtension
 from rovr_interfaces.srv import AugerSetPushMotor, SetScrewMotorSpeed
 from rclpy.action.server import ServerGoalHandle, CancelResponse
 from std_srvs.srv import Trigger, SetBool
 from action_msgs.msg import GoalStatus
 from rovr_control.node_util import AsyncNode
 from nav2_msgs.action import BackUp
+from geometry_msgs.msg import Point
+from builtin_interfaces.msg import Duration
 
 
 
