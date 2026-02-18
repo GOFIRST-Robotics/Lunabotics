@@ -36,39 +36,70 @@ class DiggerNode(Node):
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
-        self.cli_digger_lift_set = self.create_client(MotorCommandSet, "digger_lift/set")
+        self.cli_digger_lift_set = self.create_client(
+            MotorCommandSet, "digger_lift/set"
+        )
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(
-            SetPower, "digger/toggle", self.toggle_callback, callback_group=self.service_cb_group
+            SetPower,
+            "digger/toggle",
+            self.toggle_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_stop = self.create_service(
-            Trigger, "digger/stop", self.stop_callback, callback_group=self.stop_lift_cb_group
+            Trigger,
+            "digger/stop",
+            self.stop_callback,
+            callback_group=self.stop_lift_cb_group,
         )
         self.srv_setPower = self.create_service(
-            SetPower, "digger/setPower", self.set_power_callback, callback_group=self.service_cb_group
+            SetPower,
+            "digger/setPower",
+            self.set_power_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_setPosition = self.create_service(
-            SetPosition, "lift/setPosition", self.set_position_callback, callback_group=self.service_cb_group
+            SetPosition,
+            "lift/setPosition",
+            self.set_position_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_lift_stop = self.create_service(
-            Trigger, "lift/stop", self.stop_lift_callback, callback_group=self.stop_lift_cb_group
+            Trigger,
+            "lift/stop",
+            self.stop_lift_callback,
+            callback_group=self.stop_lift_cb_group,
         )
         self.srv_lift_set_power = self.create_service(
-            SetPower, "lift/setPower", self.lift_set_power_callback, callback_group=self.service_cb_group
+            SetPower,
+            "lift/setPower",
+            self.lift_set_power_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_zero_lift = self.create_service(
-            Trigger, "lift/zero", self.zero_lift_callback, callback_group=self.service_cb_group
+            Trigger,
+            "lift/zero",
+            self.zero_lift_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_bottom_lift = self.create_service(
-            Trigger, "lift/bottom", self.bottom_lift_callback, callback_group=self.service_cb_group
+            Trigger,
+            "lift/bottom",
+            self.bottom_lift_callback,
+            callback_group=self.service_cb_group,
         )
 
         # Define subscribers here
         self.linear_actuator_duty_cycle_sub = self.create_subscription(
-            Float32MultiArray, "Digger_Current", self.linear_actuator_current_callback, 10
+            Float32MultiArray,
+            "Digger_Current",
+            self.linear_actuator_current_callback,
+            10,
         )
-        self.potentiometer_sub = self.create_subscription(Potentiometers, "potentiometers", self.pot_callback, 10)
+        self.potentiometer_sub = self.create_subscription(
+            Potentiometers, "potentiometers", self.pot_callback, 10
+        )
 
         # Define publishers here
         self.lift_pose_publisher = self.create_publisher(Float32, "lift_pose", 10)
@@ -78,21 +109,40 @@ class DiggerNode(Node):
         self.declare_parameter("digger_lift_manual_power_up", 0.5)
         self.declare_parameter("DIGGER_MOTOR", 3)
         self.declare_parameter("DIGGER_ACTUATORS_OFFSET", 12)
-        self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
+        self.declare_parameter(
+            "DIGGER_SAFETY_ZONE", 120
+        )  # Measured in potentiometer units (0 to 1023)
         # Assign the ROS Parameters to member variables below #
-        self.digger_lift_manual_power_down = self.get_parameter("digger_lift_manual_power_down").value
-        self.digger_lift_manual_power_up = self.get_parameter("digger_lift_manual_power_up").value
+        self.digger_lift_manual_power_down = self.get_parameter(
+            "digger_lift_manual_power_down"
+        ).value
+        self.digger_lift_manual_power_up = self.get_parameter(
+            "digger_lift_manual_power_up"
+        ).value
         self.DIGGER_MOTOR = self.get_parameter("DIGGER_MOTOR").value
-        self.DIGGER_ACTUATORS_OFFSET = self.get_parameter("DIGGER_ACTUATORS_OFFSET").value
+        self.DIGGER_ACTUATORS_OFFSET = self.get_parameter(
+            "DIGGER_ACTUATORS_OFFSET"
+        ).value
         self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info(
-            "digger_lift_manual_power_down has been set to: " + str(self.digger_lift_manual_power_down)
+            "digger_lift_manual_power_down has been set to: "
+            + str(self.digger_lift_manual_power_down)
         )
-        self.get_logger().info("digger_lift_manual_power_up has been set to: " + str(self.digger_lift_manual_power_up))
-        self.get_logger().info("DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR))
-        self.get_logger().info("DIGGER_ACTUATORS_OFFSET has been set to: " + str(self.DIGGER_ACTUATORS_OFFSET))
-        self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
+        self.get_logger().info(
+            "digger_lift_manual_power_up has been set to: "
+            + str(self.digger_lift_manual_power_up)
+        )
+        self.get_logger().info(
+            "DIGGER_MOTOR has been set to: " + str(self.DIGGER_MOTOR)
+        )
+        self.get_logger().info(
+            "DIGGER_ACTUATORS_OFFSET has been set to: "
+            + str(self.DIGGER_ACTUATORS_OFFSET)
+        )
+        self.get_logger().info(
+            "DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE)
+        )
         # Current state of the digger chain
         self.running = False
         # Current position of the lift motor in potentiometer units (0 to 1023)
@@ -111,18 +161,26 @@ class DiggerNode(Node):
     def set_power(self, digger_power: float) -> None:
         """This method sets power to the digger chain."""
         if self.current_lift_position < self.DIGGER_SAFETY_ZONE - 5:
-            self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
+            self.get_logger().warn(
+                "WARNING: The digger is not extended enough! Stopping the buckets."
+            )
             self.stop()  # Stop the digger chain
         else:
             self.running = True
             self.cli_motor_set.call_async(
-                MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=digger_power)
+                MotorCommandSet.Request(
+                    type="duty_cycle", can_id=self.DIGGER_MOTOR, value=digger_power
+                )
             )
 
     def stop(self) -> None:
         """This method stops the digger chain."""
         self.running = False
-        self.cli_motor_set.call_async(MotorCommandSet.Request(type="duty_cycle", can_id=self.DIGGER_MOTOR, value=0.0))
+        self.cli_motor_set.call_async(
+            MotorCommandSet.Request(
+                type="duty_cycle", can_id=self.DIGGER_MOTOR, value=0.0
+            )
+        )
 
     def toggle(self, digger_chain_power: float) -> None:
         """This method toggles the digger chain."""
@@ -134,9 +192,14 @@ class DiggerNode(Node):
     def set_position(self, position: int, power_limit: float = 0.5) -> bool:
         """This method sets the position of the digger lift and waits until the goal is reached."""
         self.lift_lowering = position > self.current_lift_position
-        if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
+        if (
+            self.lift_lowering
+            and (not self.running)
+            and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE)
+        ):
             self.get_logger().warn(
-                "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
+                "WARNING: The digger buckets are not running! Will not lower.",
+                throttle_duration_sec=5,
             )
             self.stop_lift()  # Stop the lift system
             return False
@@ -174,9 +237,14 @@ class DiggerNode(Node):
     def lift_set_power(self, power: float) -> None:
         """This method sets power to the lift system."""
         self.lift_lowering = power < 0
-        if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
+        if (
+            self.lift_lowering
+            and (not self.running)
+            and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE)
+        ):
             self.get_logger().warn(
-                "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
+                "WARNING: The digger buckets are not running! Will not lower.",
+                throttle_duration_sec=5,
             )
             self.stop_lift()  # Stop the lift system
             return
@@ -287,14 +355,23 @@ class DiggerNode(Node):
     def pot_callback(self, msg: Potentiometers):
         """Helps us know whether or not the current goal position has been reached."""
         # Average the two potentiometer values
-        self.current_lift_position = ((msg.left_motor_pot - self.DIGGER_ACTUATORS_OFFSET) + msg.right_motor_pot) / 2
+        self.current_lift_position = (
+            (msg.left_motor_pot - self.DIGGER_ACTUATORS_OFFSET) + msg.right_motor_pot
+        ) / 2
         self.lift_pose_publisher.publish(Float32(data=self.current_lift_position))
         if self.current_lift_position < self.DIGGER_SAFETY_ZONE and self.running:
-            self.get_logger().warn("WARNING: The digger is not extended enough! Stopping the buckets.")
-            self.stop()  # Stop the digger chain
-        if self.lift_lowering and (not self.running) and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE):
             self.get_logger().warn(
-                "WARNING: The digger buckets are not running! Will not lower.", throttle_duration_sec=5
+                "WARNING: The digger is not extended enough! Stopping the buckets."
+            )
+            self.stop()  # Stop the digger chain
+        if (
+            self.lift_lowering
+            and (not self.running)
+            and (self.current_lift_position >= self.DIGGER_SAFETY_ZONE)
+        ):
+            self.get_logger().warn(
+                "WARNING: The digger buckets are not running! Will not lower.",
+                throttle_duration_sec=5,
             )
             self.stop_lift()  # Stop the lift system
 

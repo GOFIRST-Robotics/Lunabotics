@@ -14,7 +14,9 @@ def generate_launch_description():
     config_path = PathJoinSubstitution(["config", "rviz", config_name])
     global_frame = LaunchConfiguration("global_frame", default="odom")
 
-    run_rviz_arg = DeclareLaunchArgument("run_rviz_client", default_value="True", description="Whether to start RVIZ")
+    run_rviz_arg = DeclareLaunchArgument(
+        "run_rviz_client", default_value="True", description="Whether to start RVIZ"
+    )
 
     # joystick_node = Node(
     #     package="joy",

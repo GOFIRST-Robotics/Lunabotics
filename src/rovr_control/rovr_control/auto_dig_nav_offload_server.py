@@ -154,7 +154,9 @@ class AutoDigNavOffloadServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             self.offload_in_progress = True
             offload_goal = AutoOffload.Goal()
-            self.offload_handle = await self._auto_offload_client.send_goal_async(offload_goal)
+            self.offload_handle = await self._auto_offload_client.send_goal_async(
+                offload_goal
+            )
             if not self.offload_handle.accepted:
                 self.get_logger().error("AutoOffload rejected")
                 self.offload_in_progress = False

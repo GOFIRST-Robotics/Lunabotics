@@ -1,4 +1,3 @@
-
 # Import the ROS 2 module
 import os
 import time
@@ -15,19 +14,24 @@ from rovr_control import gamepad_constants as bindings
 
 
 class StreamDeckNode(Node):
-
     ASSETS_PATH = "/workspaces/isaac_ros-dev/src/rovr_control/resource/"
     button_states: list[bool] = [False] * StreamDeckMini.KEY_COUNT
 
     def __init__(self) -> None:
         super().__init__("StreamDeckNode")
-        self.publisher = self.create_publisher(StreamDeckState, "control/stream_deck", 10)
+        self.publisher = self.create_publisher(
+            StreamDeckState, "control/stream_deck", 10
+        )
         msg = StreamDeckState()
         msg.button_states = self.button_states
         self.publisher.publish(msg)
 
-        self.all_buttons = [name for name in dir(bindings) if name.startswith("STREAMDECK_")]
-        self.indexToBinding = {getattr(bindings, name): name for name in self.all_buttons}
+        self.all_buttons = [
+            name for name in dir(bindings) if name.startswith("STREAMDECK_")
+        ]
+        self.indexToBinding = {
+            getattr(bindings, name): name for name in self.all_buttons
+        }
 
         self.queue = Queue()
 
@@ -62,7 +66,7 @@ class StreamDeckNode(Node):
         image_path = self.indexToBinding.get(key, "test")
         image = self.render_image(
             f"{image_path}.png",
-            str.lower(button_name.replace("STREAMDECK_", "").replace("_", " "))
+            str.lower(button_name.replace("STREAMDECK_", "").replace("_", " ")),
         )
         with self.deck:
             self.deck.set_key_image(key, image)
@@ -74,11 +78,18 @@ class StreamDeckNode(Node):
         if not os.path.exists(os.path.join(self.ASSETS_PATH, icon_filename)):
             icon_filename = "test.png"
         icon = Image.open(os.path.join(self.ASSETS_PATH, icon_filename))
-        image = PILHelper.create_scaled_key_image(self.deck, icon, margins=[0, 0, 20, 0])
+        image = PILHelper.create_scaled_key_image(
+            self.deck, icon, margins=[0, 0, 20, 0]
+        )
         draw = ImageDraw.Draw(image)
         font = ImageFont.load_default()
-        draw.text((image.width / 2, image.height - 5), text=label_text, font=font, anchor="ms",
-                  fill="white")
+        draw.text(
+            (image.width / 2, image.height - 5),
+            text=label_text,
+            font=font,
+            anchor="ms",
+            fill="white",
+        )
 
         return PILHelper.to_native_key_format(self.deck, image)
 

@@ -23,7 +23,12 @@ from ament_index_python.packages import get_package_share_directory
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription, LogInfo
+from launch.actions import (
+    DeclareLaunchArgument,
+    OpaqueFunction,
+    IncludeLaunchDescription,
+    LogInfo,
+)
 from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import ComposableNodeContainer
 
@@ -70,14 +75,18 @@ def launch_setup(context, *args, **kwargs):
     if num_cams != len(models_arr):
         return [
             LogInfo(
-                msg=TextSubstitution(text="The size of the `models` param array must be equal to the size of `names`")
+                msg=TextSubstitution(
+                    text="The size of the `models` param array must be equal to the size of `names`"
+                )
             )
         ]
 
     if num_cams != len(serials_arr):
         return [
             LogInfo(
-                msg=TextSubstitution(text="The size of the `serials` param array must be equal to the size of `names`")
+                msg=TextSubstitution(
+                    text="The size of the `serials` param array must be equal to the size of `names`"
+                )
             )
         ]
 
@@ -90,7 +99,9 @@ def launch_setup(context, *args, **kwargs):
     else:
         container_exec = "component_container_isolated"
 
-    info = "* Starting Composable node container: /" + namespace_val + "/" + container_name
+    info = (
+        "* Starting Composable node container: /" + namespace_val + "/" + container_name
+    )
     actions.append(LogInfo(msg=TextSubstitution(text=info)))
 
     zed_container = ComposableNodeContainer(
@@ -115,7 +126,15 @@ def launch_setup(context, *args, **kwargs):
         model = models_arr[cam_idx]
         serial = serials_arr[cam_idx]
 
-        info = "* Starting a ZED ROS2 node for camera " + name + " (" + model + "/" + serial + ")"
+        info = (
+            "* Starting a ZED ROS2 node for camera "
+            + name
+            + " ("
+            + model
+            + "/"
+            + serial
+            + ")"
+        )
 
         actions.append(LogInfo(msg=TextSubstitution(text=info)))
 
@@ -132,7 +151,10 @@ def launch_setup(context, *args, **kwargs):
         # ZED Wrapper launch file
         zed_wrapper_launch = IncludeLaunchDescription(
             launch_description_source=PythonLaunchDescriptionSource(
-                [get_package_share_directory("zed_wrapper"), "/launch/zed_camera.launch.py"]
+                [
+                    get_package_share_directory("zed_wrapper"),
+                    "/launch/zed_camera.launch.py",
+                ]
             ),
             launch_arguments={
                 "container_name": container_name,
@@ -192,7 +214,13 @@ def launch_setup(context, *args, **kwargs):
     # Robot State Publisher node (publishing static tfs for the camera)
     robot_state_publisher = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare("robot_description"), "launch", "robot_description.launch.py"])
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("robot_description"),
+                    "launch",
+                    "robot_description.launch.py",
+                ]
+            )
         ),
         launch_arguments={
             "setup_for_gazebo": "False",
@@ -209,7 +237,9 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument(
-                "record_svo", default_value="False", description="Whether to record ZED data to an SVO file"
+                "record_svo",
+                default_value="False",
+                description="Whether to record ZED data to an SVO file",
             ),
             DeclareLaunchArgument(
                 "cam_names",

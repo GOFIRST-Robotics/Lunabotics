@@ -7,7 +7,11 @@ from launch.actions import (
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
+from launch.substitutions import (
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
 from nav2_common.launch import RewrittenYaml
 
 
@@ -21,7 +25,9 @@ def generate_launch_description():
     setup_for_gazebo = LaunchConfiguration("setup_for_gazebo", default="False")
 
     # Launch Arguments
-    run_rviz_arg = DeclareLaunchArgument("run_rviz_robot", default_value="True", description="Whether to start RVIZ")
+    run_rviz_arg = DeclareLaunchArgument(
+        "run_rviz_robot", default_value="True", description="Whether to start RVIZ"
+    )
     setup_for_zed_arg = DeclareLaunchArgument(
         "setup_for_zed",
         default_value="True",
@@ -85,16 +91,26 @@ def generate_launch_description():
     # ZED
     zed_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed2i.launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("isaac_ros_launch"), "zed2i.launch.py"]
+                )
+            ]
         ),
         launch_arguments={
             "record_svo": LaunchConfiguration("record_svo"),
         }.items(),
-        condition=IfCondition(PythonExpression([setup_for_zed, " and not ", zed_multicam])),
+        condition=IfCondition(
+            PythonExpression([setup_for_zed, " and not ", zed_multicam])
+        ),
     )
     zed_multicam_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "zed_multi_camera.launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("isaac_ros_launch"), "zed_multi_camera.launch.py"]
+                )
+            ]
         ),
         launch_arguments={
             "record_svo": LaunchConfiguration("record_svo"),
@@ -105,7 +121,15 @@ def generate_launch_description():
     # Gazebo
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("ros_gz_launch"), "launch", "COSMIC_field.launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("ros_gz_launch"),
+                        "launch",
+                        "COSMIC_field.launch.py",
+                    ]
+                )
+            ]
         ),
         condition=IfCondition(LaunchConfiguration("setup_for_gazebo")),
     )
@@ -140,7 +164,13 @@ def generate_launch_description():
 
     # Rviz
     rviz_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("isaac_ros_launch"), "rviz.launch.py"])]),
+        PythonLaunchDescriptionSource(
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("isaac_ros_launch"), "rviz.launch.py"]
+                )
+            ]
+        ),
         launch_arguments={
             "config_name": "zed_example.rviz",
             "global_frame": global_frame,
@@ -150,7 +180,9 @@ def generate_launch_description():
 
     # Nav2 params
     nav2_param_file = PathJoinSubstitution(["config", "nav2_isaac_sim.yaml"])
-    param_substitutions = {"global_frame": LaunchConfiguration("global_frame", default="odom")}
+    param_substitutions = {
+        "global_frame": LaunchConfiguration("global_frame", default="odom")
+    }
     configured_params = RewrittenYaml(
         source_file=nav2_param_file,
         root_key="",
@@ -161,7 +193,11 @@ def generate_launch_description():
     # nav2 launch
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("nav2_bringup"), "launch", "navigation_launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("nav2_bringup"), "launch", "navigation_launch.py"]
+                )
+            ]
         ),
         launch_arguments={
             "use_sim_time": "false",
@@ -173,15 +209,25 @@ def generate_launch_description():
 
     # apriltag launch
     apriltag_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("apriltag"), "apriltag_launch.py"])]),
-        condition=IfCondition(PythonExpression([use_apriltags, " and not ", setup_for_gazebo])),
+        PythonLaunchDescriptionSource(
+            [PathJoinSubstitution([FindPackageShare("apriltag"), "apriltag_launch.py"])]
+        ),
+        condition=IfCondition(
+            PythonExpression([use_apriltags, " and not ", setup_for_gazebo])
+        ),
     )
     # apriltag (gazebo) launch
     apriltag_gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("apriltag"), "apriltag_gazebo_launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("apriltag"), "apriltag_gazebo_launch.py"]
+                )
+            ]
         ),
-        condition=IfCondition(PythonExpression([use_apriltags, " and ", setup_for_gazebo])),
+        condition=IfCondition(
+            PythonExpression([use_apriltags, " and ", setup_for_gazebo])
+        ),
     )
 
     return LaunchDescription(

@@ -23,7 +23,9 @@ class ClientWidget(QWidget):
         self.node = node
         self.display_window = GstreamerClient()
         self.display_window.run()
-        ui_file = os.path.join(get_package_share_directory("gstreamer"), "resource", "gstreamer-select.ui")
+        ui_file = os.path.join(
+            get_package_share_directory("gstreamer"), "resource", "gstreamer-select.ui"
+        )
         loadUi(ui_file, self, {"ExtendedComboBox": ExtendedComboBox})
         network_dropdown: QComboBox = self.findChild(QComboBox, "network_dropdown")
         self.add_network_interfaces(network_dropdown)
@@ -61,7 +63,11 @@ class ClientWidget(QWidget):
         start_time = self.node.get_clock().now().nanoseconds
 
         # Block while waiting for server to respond
-        while rclpy.ok() and not future.done() and self.node.get_clock().now().nanoseconds - start_time < self.timeout:
+        while (
+            rclpy.ok()
+            and not future.done()
+            and self.node.get_clock().now().nanoseconds - start_time < self.timeout
+        ):
             pass
         if not future.done():
             print("Service Call Failed")

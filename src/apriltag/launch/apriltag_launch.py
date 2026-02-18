@@ -43,7 +43,10 @@ def generate_launch_description():
         name="apriltag_container",
         namespace="",
         executable="component_container_mt",
-        composable_node_descriptions=[isaac_ros_apriltag, image_format_converter_node_left],
+        composable_node_descriptions=[
+            isaac_ros_apriltag,
+            image_format_converter_node_left,
+        ],
         output="screen",
     )
 

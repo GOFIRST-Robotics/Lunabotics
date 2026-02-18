@@ -23,13 +23,17 @@ class CostmapGenerator(Node):
         self.declare_parameter("unknown_cost", 255)
         self.unknown_cost = int(self.get_parameter("unknown_cost").value)
 
-        self.declare_parameter("input_topic", "/zed2i/zed_node_zed2i/mapping/fused_cloud")
+        self.declare_parameter(
+            "input_topic", "/zed2i/zed_node_zed2i/mapping/fused_cloud"
+        )
         input_topic = str(self.get_parameter("input_topic").value)
 
         self.declare_parameter("output_topic", "/costmap/costmap")
         output_topic = str(self.get_parameter("output_topic").value)
 
-        self.pointCloudSubscription = self.create_subscription(PointCloud2, input_topic, self.pointCloudCallback, 10)
+        self.pointCloudSubscription = self.create_subscription(
+            PointCloud2, input_topic, self.pointCloudCallback, 10
+        )
 
         self.costmapPublisher = self.create_publisher(OccupancyGrid, output_topic, 10)
         # self.distanceMapSubscription = self.create_subscription(
@@ -59,16 +63,24 @@ class CostmapGenerator(Node):
         grid_y_size = int((world_max_y - world_min_y) / resolution) + 1
 
         # ESDF PROJECTION
-        projected = np.full((grid_y_size, grid_x_size), fill_value=np.nan, dtype=np.float32)
-        projected_x_indices = ((points[:, 0] - world_min_x) / resolution).astype(np.int32)
-        projected_y_indices = ((points[:, 1] - world_min_y) / resolution).astype(np.int32)
+        projected = np.full(
+            (grid_y_size, grid_x_size), fill_value=np.nan, dtype=np.float32
+        )
+        projected_x_indices = ((points[:, 0] - world_min_x) / resolution).astype(
+            np.int32
+        )
+        projected_y_indices = ((points[:, 1] - world_min_y) / resolution).astype(
+            np.int32
+        )
         sums = np.zeros_like(projected)
         counts = np.zeros_like(projected, dtype=int)
 
         np.add.at(sums, (projected_y_indices, projected_x_indices), points[:, 2])
         np.add.at(counts, (projected_y_indices, projected_x_indices), 1)
 
-        average_heightmap = np.divide(sums, counts, out=np.full_like(sums, np.nan), where=counts != 0)
+        average_heightmap = np.divide(
+            sums, counts, out=np.full_like(sums, np.nan), where=counts != 0
+        )
         projected = average_heightmap
 
         origin = (world_min_x, world_min_y)

@@ -9,5 +9,7 @@ class ClientPlugin(Plugin):
         assert hasattr(context, "node"), "Context does not have a node."
         self._widget = ClientWidget(context.node)
         if context.serial_number() > 1:
-            self._widget.setWindowTitle(self._widget.windowTitle() + (" (%d)" % context.serial_number()))
+            self._widget.setWindowTitle(
+                self._widget.windowTitle() + (" (%d)" % context.serial_number())
+            )
         context.add_widget(self._widget)
