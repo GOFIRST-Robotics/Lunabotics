@@ -29,17 +29,31 @@ def generate_launch_description():
     # Setup to launch the simulator and Gazebo world
     gz_sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"]
+                )
+            ]
         ),
         launch_arguments={
-            "gz_args": PathJoinSubstitution([FindPackageShare("gazebo_files"), "worlds", "UCF_field.sdf"])
+            "gz_args": PathJoinSubstitution(
+                [FindPackageShare("gazebo_files"), "worlds", "UCF_field.sdf"]
+            )
         }.items(),
     )
 
     # Takes the description and joint angles as inputs and publishes the 3D poses of the robot links
     robot_state_publisher = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("robot_description"), "launch", "robot_description.launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("robot_description"),
+                        "launch",
+                        "robot_description.launch.py",
+                    ]
+                )
+            ]
         ),
         launch_arguments={
             "setup_for_gazebo": "True",
@@ -47,13 +61,20 @@ def generate_launch_description():
     )
 
     # Launch Arguments
-    run_rviz_arg = DeclareLaunchArgument("run_rviz", default_value="True", description="Whether to start RVIZ")
+    run_rviz_arg = DeclareLaunchArgument(
+        "run_rviz", default_value="True", description="Whether to start RVIZ"
+    )
 
     # Visualize in RViz
     rviz = Node(
         package="rviz2",
         executable="rviz2",
-        arguments=["-d", PathJoinSubstitution([FindPackageShare("ros_gz_launch"), "config", "camera.rviz"])],
+        arguments=[
+            "-d",
+            PathJoinSubstitution(
+                [FindPackageShare("ros_gz_launch"), "config", "camera.rviz"]
+            ),
+        ],
         condition=IfCondition(LaunchConfiguration("run_rviz")),
     )
 
@@ -76,9 +97,15 @@ def generate_launch_description():
         package="drivetrain",
         executable="drivetrain_node",
         name="drivetrain_node",
-        parameters=["config/drivetrain_config.yaml", "config/motor_control.yaml", {"GAZEBO_SIMULATION": True}],
+        parameters=[
+            "config/drivetrain_config.yaml",
+            "config/motor_control.yaml",
+            {"GAZEBO_SIMULATION": True},
+        ],
         output="screen",
         emulate_tty=True,
     )
 
-    return LaunchDescription([run_rviz_arg, gz_sim, bridge, drivetrain, robot_state_publisher, rviz])
+    return LaunchDescription(
+        [run_rviz_arg, gz_sim, bridge, drivetrain, robot_state_publisher, rviz]
+    )

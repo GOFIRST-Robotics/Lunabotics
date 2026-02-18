@@ -42,7 +42,9 @@ class GstreamerClient:
         # gst-launch-1.0 udpsrc port=5000 ! "application/x-rtp,payload=96" ! rtph265depay
         # ! h265parse ! queue ! nvv4l2decoder ! nveglglessink
         caps_udp = Gst.ElementFactory.make("capsfilter", "caps_udp")
-        caps_udp.set_property("caps", Gst.Caps.from_string("application/x-rtp,payload=96"))
+        caps_udp.set_property(
+            "caps", Gst.Caps.from_string("application/x-rtp,payload=96")
+        )
         self.pipeline.add(caps_udp)
         source.link(caps_udp)
 

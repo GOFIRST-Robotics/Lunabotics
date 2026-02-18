@@ -12,7 +12,9 @@ def generate_launch_description():
 
     # Nav2 params
     nav2_param_file = PathJoinSubstitution(["config", "nav2_isaac_sim.yaml"])
-    param_substitutions = {"global_frame": LaunchConfiguration("global_frame", default="odom")}
+    param_substitutions = {
+        "global_frame": LaunchConfiguration("global_frame", default="odom")
+    }
     configured_params = RewrittenYaml(
         source_file=nav2_param_file,
         root_key="",
@@ -23,7 +25,11 @@ def generate_launch_description():
     # nav2 launch
     nav2_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            [PathJoinSubstitution([FindPackageShare("nav2_bringup"), "launch", "navigation_launch.py"])]
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("nav2_bringup"), "launch", "navigation_launch.py"]
+                )
+            ]
         ),
         launch_arguments={
             "use_sim_time": "false",

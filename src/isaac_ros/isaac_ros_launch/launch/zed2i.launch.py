@@ -53,7 +53,13 @@ def generate_launch_description():
     # Robot State Publisher node (publishing static tfs for the camera)
     robot_state_publisher = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([FindPackageShare("robot_description"), "launch", "robot_description.launch.py"])
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("robot_description"),
+                    "launch",
+                    "robot_description.launch.py",
+                ]
+            )
         ),
         launch_arguments={
             "setup_for_gazebo": "False",

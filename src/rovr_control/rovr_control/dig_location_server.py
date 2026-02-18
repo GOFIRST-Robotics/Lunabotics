@@ -26,23 +26,58 @@ class DigLocationFinder(Node):
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
         self.get_costmap_global_srv = self.create_client(
-            GetCostmap, 'global_costmap/get_costmap'
+            GetCostmap, "global_costmap/get_costmap"
         )
-        self.srv = self.create_service(DigLocation, "find_dig_location", self.find_dig_location_callback)
+        self.srv = self.create_service(
+            DigLocation, "find_dig_location", self.find_dig_location_callback
+        )
         self.footprint_sub = self.create_subscription(
-            PolygonStamped, "/local_costmap/published_footprint", self.get_robot_footprint, 10
+            PolygonStamped,
+            "/local_costmap/published_footprint",
+            self.get_robot_footprint,
+            10,
         )
         self.footprint = (1.2, 0.75)
-        self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
+        self.absolute_max_dig_cost = self.declare_parameter(
+            "absolute_max_dig_cost", 200
+        ).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
-        self.all_dig_locations = self.declare_parameter(
-            "all_dig_locations", [.6, .37, .6, 1.1, .6, 1.83, 1.8, .37, 1.8, 1.1, 1.8, 1.83, 3.0,
-                                  .37, 3.0, 1.1, 3.0, 1.83, .6, 2.5, 1.8, 2.5, 3.0, 2.5]
-        ).value  # If you default to an empty list things break (it thinks its a byte array)
+        self.all_dig_locations = (
+            self.declare_parameter(
+                "all_dig_locations",
+                [
+                    0.6,
+                    0.37,
+                    0.6,
+                    1.1,
+                    0.6,
+                    1.83,
+                    1.8,
+                    0.37,
+                    1.8,
+                    1.1,
+                    1.8,
+                    1.83,
+                    3.0,
+                    0.37,
+                    3.0,
+                    1.1,
+                    3.0,
+                    1.83,
+                    0.6,
+                    2.5,
+                    1.8,
+                    2.5,
+                    3.0,
+                    2.5,
+                ],
+            ).value
+        )  # If you default to an empty list things break (it thinks its a byte array)
 
         # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
         self.all_dig_locations = [
-            (self.all_dig_locations[i], self.all_dig_locations[i + 1]) for i in range(0, len(self.all_dig_locations), 2)
+            (self.all_dig_locations[i], self.all_dig_locations[i + 1])
+            for i in range(0, len(self.all_dig_locations), 2)
         ]
         self.potential_dig_locations = self.all_dig_locations.copy()
 
@@ -105,8 +140,12 @@ class DigLocationFinder(Node):
         poly = msg.polygon
         points = poly.points
 
-        x = math.sqrt((points[0].x - points[1].x) ** 2 + (points[0].y - points[1].y) ** 2)
-        y = math.sqrt((points[1].x - points[2].x) ** 2 + (points[1].y - points[2].y) ** 2)
+        x = math.sqrt(
+            (points[0].x - points[1].x) ** 2 + (points[0].y - points[1].y) ** 2
+        )
+        y = math.sqrt(
+            (points[1].x - points[2].x) ** 2 + (points[1].y - points[2].y) ** 2
+        )
 
         width = max(x, y)
         height = min(x, y)
@@ -130,7 +169,9 @@ class DigLocationFinder(Node):
             robot_width, robot_height = (0.5, 0.5)
             for location in self.potential_dig_locations:
                 # dig_cost = maximum cost of the cells that the robot will dig
-                dig_cost = costmap.getDigCost(location[0], location[1], robot_width, robot_height)
+                dig_cost = costmap.getDigCost(
+                    location[0], location[1], robot_width, robot_height
+                )
                 if dig_cost >= self.max_dig_cost:
                     self.potential_dig_locations.remove(location)
 
@@ -140,14 +181,14 @@ class DigLocationFinder(Node):
     def getGlobalCostmap(self) -> OccupancyGrid:
         """Get the global costmap."""
         while not self.get_costmap_global_srv.wait_for_service(timeout_sec=1.0):
-            self.info('Get global costmaps service not available, waiting...')
+            self.info("Get global costmaps service not available, waiting...")
         req = GetCostmap.Request()
         future = self.get_costmap_global_srv.call_async(req)
         rclpy.spin_until_future_complete(self, future)
 
         result = future.result()
         if result is None:
-            self.error('Get global costmap request failed!')
+            self.error("Get global costmap request failed!")
             return None
 
         return result.map

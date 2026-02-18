@@ -12,9 +12,15 @@ class ServerNode(Node):
 
     def __init__(self):
         super().__init__("server")
-        self.serv_set_client_ip = self.create_service(SetClientIp, "/set_client_ip", self.set_client_ip_callback)
-        self.serv_set_active_camera = self.create_service(SetActiveCamera, "/set_active_camera", self.set_active_camera)
-        self.serv_set_encoding = self.create_service(SetEncoding, "/set_encoding", self.set_encoding)
+        self.serv_set_client_ip = self.create_service(
+            SetClientIp, "/set_client_ip", self.set_client_ip_callback
+        )
+        self.serv_set_active_camera = self.create_service(
+            SetActiveCamera, "/set_active_camera", self.set_active_camera
+        )
+        self.serv_set_encoding = self.create_service(
+            SetEncoding, "/set_encoding", self.set_encoding
+        )
 
     def set_client_ip_callback(self, request: SetClientIp, response):
         print("recieved ip request")

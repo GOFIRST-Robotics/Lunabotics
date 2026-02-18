@@ -34,10 +34,16 @@ class DumperNode(Node):
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(
-            Trigger, "dumper/toggle", self.toggle_callback, callback_group=self.service_cb_group
+            Trigger,
+            "dumper/toggle",
+            self.toggle_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_stop = self.create_service(
-            Trigger, "dumper/stop", self.stop_callback, callback_group=self.stop_service_cb_group
+            Trigger,
+            "dumper/stop",
+            self.stop_callback,
+            callback_group=self.stop_service_cb_group,
         )
         self.srv_setPower = self.create_service(
             SetPower,
@@ -47,10 +53,16 @@ class DumperNode(Node):
         )
 
         self.srv_dumpDumper = self.create_service(
-            Trigger, "dumper/storeDumper", self.dump_callback, callback_group=self.service_cb_group
+            Trigger,
+            "dumper/storeDumper",
+            self.dump_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_storeDumper = self.create_service(
-            Trigger, "dumper/dumpDumper", self.store_callback, callback_group=self.service_cb_group
+            Trigger,
+            "dumper/dumpDumper",
+            self.store_callback,
+            callback_group=self.service_cb_group,
         )
 
         # Define default values for our ROS parameters below #
@@ -61,7 +73,9 @@ class DumperNode(Node):
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
 
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
+        self.get_logger().info(
+            "DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR)
+        )
 
         # Current state of the dumper
         self.dumped_state = False
@@ -92,7 +106,9 @@ class DumperNode(Node):
     def stop(self) -> None:
         """This method stops the dumper."""
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0)
+            MotorCommandSet.Request(
+                type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0
+            )
         )
 
     def toggle(self) -> None:
@@ -136,7 +152,9 @@ class DumperNode(Node):
             MotorCommandSet.Request(type="position", can_id=self.DUMPER_MOTOR, value=90)
         )
 
-        while not future.done():  # While loop makes the motor keep going till limit switch is hit
+        while (
+            not future.done()
+        ):  # While loop makes the motor keep going till limit switch is hit
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
                 break
@@ -159,7 +177,9 @@ class DumperNode(Node):
         self.dumped_state = False
         self.long_service_running = True
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER)
+            MotorCommandSet.Request(
+                type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER
+            )
         )
         while not self.limitSwitchBottom:
             if self.cancel_current_srv:

@@ -31,7 +31,12 @@ def generate_launch_description():
     rviz = Node(
         package="rviz2",
         executable="rviz2",
-        arguments=["-d", config_path, "-f", global_frame],  # set the config  # overwrite the global frame
+        arguments=[
+            "-d",
+            config_path,
+            "-f",
+            global_frame,
+        ],  # set the config  # overwrite the global frame
         output="screen",
     )
 
