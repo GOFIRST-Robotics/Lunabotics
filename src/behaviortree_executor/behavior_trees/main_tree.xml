@@ -21,14 +21,18 @@
 
   <!-- Description of Node Models (used by Groot) -->
   <TreeNodesModel>
-    <Action ID="AutoDig"
-            editable="true"/>
-    <Action ID="AutoOffload"
-            editable="true"/>
-    <Action ID="CalibrateFieldCoordinates"
-            editable="true"/>
-    <Action ID="GoToDigLocation"
-            editable="true"/>
+    <Action ID="AutoDig" editable="true">
+      <input_port name="action_name"/>
+    </Action>
+    <Action ID="AutoOffload" editable="true">
+      <input_port name="action_name"/>
+    </Action>
+    <Action ID="CalibrateFieldCoordinates" editable="true">
+      <input_port name="action_name"/>
+    </Action>
+    <Action ID="GoToDigLocation" editable="true">
+      <input_port name="action_name"/>
+    </Action>
   </TreeNodesModel>
 
 </root>
