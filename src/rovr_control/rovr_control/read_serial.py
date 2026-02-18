@@ -12,7 +12,9 @@ class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
 
-        self.potentiometerPub = self.create_publisher(Int16, "potentiometer", 10)
+        self.potentiometerPub = self.create_publisher(
+            Potentiometers, "potentiometers", 10
+        )
         self.LimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
 
         # Services to control the relay-driven agitator motor
@@ -44,8 +46,9 @@ class read_serial(Node):
 
         try:
             self.arduino = serial.Serial("/dev/ttyACM0", 9600)
-            # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
-            time.sleep(1)
+            time.sleep(
+                1
+            )  # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
             self.arduino.read_all()
         except Exception as e:
             self.get_logger().fatal(f"Error connecting to serial: {e}")

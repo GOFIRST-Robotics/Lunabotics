@@ -77,12 +77,15 @@ class MainControlNode(Node):
         super().__init__("rovr_control")
 
         # Define default values for our ROS parameters below #
-        # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("max_drive_power", 1.0)
-        # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("max_turn_power", 1.0)
-        # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_chain_power", 0.18)
+        self.declare_parameter(
+            "max_drive_power", 1.0
+        )  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter(
+            "max_turn_power", 1.0
+        )  # Measured in Duty Cycle (0.0-1.0)
+        self.declare_parameter(
+            "digger_chain_power", 0.18
+        )  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter(
             "digger_lift_manual_power_down", 0.12
         )  # Measured in Duty Cycle (0.0-1.0)
@@ -90,15 +93,12 @@ class MainControlNode(Node):
             "digger_lift_manual_power_up", 0.5
         )  # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter(
-            "tilt_digging_start_position", 125.0
+            "lift_digging_start_position", 125.0
         )  # Measured in encoder counts
         self.declare_parameter(
-            "fast_screw_speed", 4000
-        )
-        # Measured in potentiometer units (0 to 1023)
-        self.declare_parameter("DIGGER_SAFETY_ZONE", 120)
-        # The power the dumper needs to go
-        self.declare_parameter("dumper_power", 0.75)
+            "DIGGER_SAFETY_ZONE", 120
+        )  # Measured in potentiometer units (0 to 1023)
+        self.declare_parameter("dumper_power", 0.75)  # The power the dumper needs to go
         # The type of field ("cosmic", "top", "bottom", "nasa")
         self.declare_parameter("autonomous_field_type", "cosmic")
 
@@ -119,10 +119,9 @@ class MainControlNode(Node):
             "digger_lift_manual_power_up"
         ).value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.tilt_digging_start_position = self.get_parameter(
-            "tilt_digging_start_position"
+        self.lift_digging_start_position = self.get_parameter(
+            "lift_digging_start_position"
         ).value
-        self.screw_speed = self.get_parameter("fast_screw_speed").value
         self.dumper_power = self.get_parameter("dumper_power").value
         self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
 
@@ -148,8 +147,8 @@ class MainControlNode(Node):
             "autonomous_field_type has been set to: " + str(self.autonomous_field_type)
         )
         self.get_logger().info(
-            "tilt_digging_start_position has been set to: "
-            + str(self.tilt_digging_start_position)
+            "lift_digging_start_position has been set to: "
+            + str(self.lift_digging_start_position)
         )
         self.get_logger().info(
             "dumper_power has been set to: " + str(self.dumper_power)
@@ -166,20 +165,12 @@ class MainControlNode(Node):
         self.cli_dumper_toggle = self.create_client(Trigger, "dumper/toggle")
         self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
-        # self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
-        self.cli_auger_stop = self.create_client(Trigger, "auger/control/stop_all")
-        self.cli_auger_extend = self.create_client(
-            Trigger, "auger/control/extend_digger"
-        )
-        self.cli_auger_retract = self.create_client(
-            Trigger, "auger/control/retract_digger"
-        )
-        self.cli_screw_stop = self.create_client(
-            Trigger, "auger/screw/stop"
-        )
-        self.cli_screw_start = self.create_client(
-            SetScrewMotorSpeed, "auger/screw/run"
-        )
+        self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
+        self.cli_digger_stop = self.create_client(Trigger, "digger/stop")
+        self.cli_digger_setPower = self.create_client(SetPower, "digger/setPower")
+        self.cli_drivetrain_stop = self.create_client(Trigger, "drivetrain/stop")
+        self.cli_lift_stop = self.create_client(Trigger, "lift/stop")
+        self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
         self.cli_big_agitator_on_off = self.create_client(
             SetBool, "big_agitator_on_off"
         )
@@ -425,45 +416,39 @@ class MainControlNode(Node):
         # PUT TELEOP CONTROLS BELOW #
         if self.state == states["Teleop"]:
             # Drive the robot using joystick input during Teleop (Arcade Drive)
-            # Forward power
             forward_power = (
                 msg.axes[bindings.RIGHT_JOYSTICK_VERTICAL_AXIS] * self.max_drive_power
-            )
-            # Turning power
+            )  # Forward power
             turning_power = (
                 msg.axes[bindings.LEFT_JOYSTICK_HORIZONTAL_AXIS] * self.max_turn_power
-            )
+            )  # Turning power
             self.drive_power_publisher.publish(
                 Twist(linear=Vector3(x=forward_power), angular=Vector3(z=turning_power))
             )
 
             # Check if the digger button is pressed #
             if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
-                self.cli_screw_start.call_async(
-                    SetScrewMotorSpeed.Request(speed=self.screw_speed)
+                self.cli_digger_toggle.call_async(
+                    SetPower.Request(power=self.digger_chain_power)
                 )
-
-            if msg.buttons[bindings.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
-                self.cli_screw_stop.call_async(Trigger.Request())
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
                 self.cli_dumper_stop.call_async(
                     Trigger.Request()
                 )  # Stop whatever the dumper is doing
-                # Toggle the dumper (extended or retracted)
-                self.cli_dumper_toggle.call_async(Trigger.Request())
+                self.cli_dumper_toggle.call_async(
+                    Trigger.Request()
+                )  # Toggle the dumper (extended or retracted)
 
             # Check if the agitator button is pressed #
             if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
                 self.cli_big_agitator_toggle.call_async(
                     Trigger.Request()
                 )  # Toggle the agitator motor
-                # self.cli_small_agitator_toggle.call_async(Trigger.Request())
-                # # Toggle the agitator motor
+                # self.cli_small_agitator_toggle.call_async(Trigger.Request())  # Toggle the agitator motor
 
-            # Manually adjust the dumper position with the left and right
-            # bumpers
+            # Manually adjust the dumper position with the left and right bumpers
             if (
                 msg.buttons[bindings.RIGHT_BUMPER] == 1
                 and buttons[bindings.RIGHT_BUMPER] == 0
@@ -500,28 +485,39 @@ class MainControlNode(Node):
             ):
                 self.cli_dumper_stop.call_async(Trigger.Request())
 
-            # Manually adjust the height of the digger with the left and right
-            # triggers
+            # Manually adjust the height of the digger with the left and right triggers
             if (
                 msg.buttons[bindings.LEFT_TRIGGER] == 1
                 and buttons[bindings.LEFT_TRIGGER] == 0
             ):
-                self.cli_auger_extend.call_async(Trigger.Request())
+                self.cli_lift_set_power.call_async(
+                    SetPower.Request(power=self.digger_lift_manual_power_up)
+                )
             elif (
                 msg.buttons[bindings.LEFT_TRIGGER] == 0
                 and buttons[bindings.LEFT_TRIGGER] == 1
             ):
-                self.cli_auger_stop.call_async(Trigger.Request())
+                self.cli_lift_stop.call_async(Trigger.Request())
             elif (
                 msg.buttons[bindings.RIGHT_TRIGGER] == 1
                 and buttons[bindings.RIGHT_TRIGGER] == 0
             ):
-                self.cli_auger_retract.call_async(Trigger.Request())
+                if (
+                    self.current_lift_position
+                    and self.current_lift_position < self.DIGGER_SAFETY_ZONE
+                ):
+                    self.cli_lift_set_power.call_async(
+                        SetPower.Request(power=-self.digger_lift_manual_power_up)
+                    )
+                else:
+                    self.cli_lift_set_power.call_async(
+                        SetPower.Request(power=-self.digger_lift_manual_power_down)
+                    )
             elif (
                 msg.buttons[bindings.RIGHT_TRIGGER] == 0
                 and buttons[bindings.RIGHT_TRIGGER] == 1
             ):
-                self.cli_auger_stop.call_async(Trigger.Request())
+                self.cli_lift_stop.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 

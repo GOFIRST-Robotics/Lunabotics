@@ -26,7 +26,6 @@ class AutoDigServer(AsyncNode):
             cancel_callback=self.cancel_callback,
         )
 
-<<<<<<< HEAD
         self.cli_lift_zero = self.create_client(Trigger, "lift/zero")
         self.cli_lift_setPosition = self.create_client(SetPosition, "lift/setPosition")
         self.cli_lift_set_power = self.create_client(SetPower, "lift/setPower")
@@ -43,49 +42,6 @@ class AutoDigServer(AsyncNode):
     def goal_callback(self, goal_request):
         self.get_logger().info("Received goal request")
         return GoalResponse.ACCEPT
-=======
-        # tilt
-        self.set_tilt = self.create_client(
-            SetExtension, "auger/tilt_actuator/setExtension"
-        )  # /actuator_tilt/setExtension
-        self.stop_tilt = self.create_client(
-            Trigger, "auger/tilt_actuator/stop"
-        )  # /actuator_tilt/stop
-
-        # extend
-        self.set_extension = self.create_client(
-            AugerSetPushMotor, "auger/push_motor/setPosition"
-        )
-        self.stop_extension = self.create_client(Trigger, "auger/push_motor/stop")
-        self.retract_extender = self.create_client(Trigger, "auger/push_motor/retract")
-
-        # spin auger
-        self.screw_stop = self.create_client(
-            Trigger, "auger/screw/stop"
-        )  # /motor_spin/stop
-        self.screw_start = self.create_client(
-            SetScrewMotorSpeed, "auger/screw/run"
-        )  # /motor_spin/run
-
-        # agitator #TODO: uncomment if needed.
-        # self.agitator = self.create_client(SetBool, "motor_on_off")
-        # self.cli_motor_toggle = self.create_client(Trigger, "motor_toggle")
-
-        self._backup_client = ActionClient(self, BackUp, "backup")
-
-        self.declare_parameter(
-            "fast_screw_speed", 4000
-        )
-        self.declare_parameter(
-            "slow_screw_speed", 2000
-        )
-        self.spin_dig_speed = self.get_parameter("fast_screw_speed").value
-        self.spin_stow_speed = self.get_parameter("slow_screw_speed").value
-
-    def goal_callback(self, goal_request):
-        self.get_logger().info("Received goal request")
-        return GoalStatus.STATUS_ACCEPTED
->>>>>>> 99526b3 (Auger node (#435))
 
     def handle_accepted_callback(self, goal_handle):
         self.get_logger().info("Starting new goal")
@@ -174,43 +130,26 @@ class AutoDigServer(AsyncNode):
 
     async def auto_dig(self, goal_handle: ServerGoalHandle):
         if not goal_handle.is_cancel_requested:
-<<<<<<< HEAD
             self.get_logger().info("Lowering the digger to the starting position")
             await self.cli_lift_setPosition.call_async(
                 SetPosition.Request(
                     position=goal_handle.request.lift_digging_start_position
                 )
-=======
-            self.get_logger().info("Starting screw")
-            await self.screw_start.call_async(
-                SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
->>>>>>> 99526b3 (Auger node (#435))
             )
 
         fails = 0
         max_fails = 4
         self.goal_handle = goal_handle
 
-<<<<<<< HEAD
         fails += await self.set_position_retry(300.0, 0.12, max_fails - fails)
 
         fails += await self.set_position_retry(400.0, 0.118, max_fails - fails)
-=======
-        # TODO: All of these numbers need to be tuned based on the actual robot
-        # and digging conditions.
-        fails += await self.set_position_retry(400.0, 0.12, max_fails - fails)
-
-        fails += await self.set_position_retry(475.0, 0.108, max_fails - fails)
-
-        fails += await self.set_position_retry(525.0, 0.098, max_fails - fails)
->>>>>>> 99526b3 (Auger node (#435))
 
         # if not goal_handle.is_cancel_requested and fails < max_fails:
         #    # Start the agitator motor
         #    self.get_logger().info("Starting Agitator Motor")
         #    await self.agitator.call_async(SetBool.Request(data=True))
 
-<<<<<<< HEAD
         fails += await self.set_position_retry(475.0, 0.108, max_fails - fails)
 
         fails += await self.set_position_retry(525.0, 0.098, max_fails - fails)
@@ -220,8 +159,6 @@ class AutoDigServer(AsyncNode):
             self.get_logger().info("Starting BIG Agitator Motor")
             await self.cli_big_agitator_on_off.call_async(SetBool.Request(data=True))
 
-=======
->>>>>>> 99526b3 (Auger node (#435))
         fails += await self.set_position_retry(575.0, 0.098, max_fails - fails)
 
         fails += await self.set_position_retry(650.0, 0.088, max_fails - fails)
@@ -238,13 +175,8 @@ class AutoDigServer(AsyncNode):
 
         # Dig in place (no lift lowering) for 5 seconds
         if not goal_handle.is_cancel_requested:
-<<<<<<< HEAD
             await self.cli_digger_setPower.call_async(
                 SetPower.Request(power=goal_handle.request.digger_chain_power)
-=======
-            await self.screw_start.call_async(
-                SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
->>>>>>> 99526b3 (Auger node (#435))
             )
             self.get_logger().info("Auto Digging in Place")
             await self.async_sleep(5)
@@ -258,7 +190,6 @@ class AutoDigServer(AsyncNode):
 
         # TODO: Uncomment if we decide to spin while raising.
         # Raise the digger so that it is just below the safety zone
-<<<<<<< HEAD
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Raising the digger to the starting position")
             await self.cli_lift_setPosition.call_async(
@@ -274,19 +205,6 @@ class AutoDigServer(AsyncNode):
                 SetPower.Request(power=goal_handle.request.digger_chain_power)
             )
             await self.async_sleep(7)
-=======
-        # if not goal_handle.is_cancel_requested:
-        #     self.get_logger().info("Raising the digger to the starting position")
-        #     await self.cli_lift_setPosition.call_async(
-        #         SetPosition.Request(position=goal_handle.request.tilt_digging_start_position)
-        #     )
-
-        # Start the digger chain
-        # if not goal_handle.is_cancel_requested:
-        #     self.get_logger().info("Starting the digger chain")
-        #     await self.screw_start.call_async(SetPower.Request(power=goal_handle.request.digger_chain_power))
-        #     await self.async_sleep(5)
->>>>>>> 99526b3 (Auger node (#435))
 
         # Raise the digger back up to the top using the lift
         if not goal_handle.is_cancel_requested:
@@ -307,7 +225,6 @@ class AutoDigServer(AsyncNode):
             SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
         )
 
-<<<<<<< HEAD
     async def set_position_retry(
         self, position: float, power_limit: float, max_retries: int = 4
     ):
@@ -333,23 +250,6 @@ class AutoDigServer(AsyncNode):
                             f"Successfully set position to {position}"
                         )
                         return i
-=======
-        for i in range(max_retries):
-            if not self.goal_handle.is_cancel_requested:
-                self.get_logger().info(
-                    f"Attempting to set position to {position} with power limit {power_limit}"
-                )
-                if (
-                    await self.cli_lift_setPosition.call_async(
-                        AugerSetPushMotor.Request(position=position, speed=power_limit)
-                    )
-                ).success:
-                    self.get_logger().info(f"Successfully set position to {position}")
-                    return i
-
-                if i == max_retries - 1:
-                    break
->>>>>>> 99526b3 (Auger node (#435))
 
                 await self.async_sleep(1)
                 await self.screw_start.call_async(
@@ -362,7 +262,6 @@ class AutoDigServer(AsyncNode):
 
         return max_retries
 
-<<<<<<< HEAD
                     await self.async_sleep(1)
                     await self.cli_digger_setPower.call_async(
                         SetPower.Request(
@@ -370,14 +269,6 @@ class AutoDigServer(AsyncNode):
                         )
                     )
                     await self.async_sleep(5)
-=======
-    async def _do_backup(self, goal_handle):
-        if not goal_handle.is_cancel_requested:
-            dist = 0.5  # TODO update value
-            speed = 0.5  # duty cycle
-            timeout = 9.0  # seconds
-            self.get_logger().info(f"→ Backing up {dist}m @ {speed} (duty cycle)")
->>>>>>> 99526b3 (Auger node (#435))
 
             if not self._backup_client.wait_for_server(timeout_sec=5.0):
                 self.get_logger().error("BackUp server unavailable")

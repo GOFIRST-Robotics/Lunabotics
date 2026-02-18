@@ -18,15 +18,10 @@ def generate_camera_nodes(
                 {"image_height": resolution[1]},
                 {"pixel_format": pixel_format},
             ],
-<<<<<<< HEAD
             remappings=[
                 ("/image_raw", "image_raw"),
                 ("/camera_info", "camera_info"),
             ],  # scoped to namespace
-=======
-            remappings=[("/image_raw", "image_raw"), ("/camera_info", "camera_info")],
-            # scoped to namespace
->>>>>>> 99526b3 (Auger node (#435))
         ),
         # Compressed republisher
         # Node(
