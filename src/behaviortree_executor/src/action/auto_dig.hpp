@@ -10,6 +10,14 @@ using namespace BT;
 class AutoDigAction : public RosActionNode<AutoDig>
 {
 public:
+    static BT::PortsList providedPorts()
+{
+    return {
+        BT::InputPort<double>("lift_digging_start_position"),
+        BT::InputPort<double>("lift_digging_end_position"),
+        BT::InputPort<double>("digger_chain_power") 
+    };
+}
     AutoDigAction(const std::string &name, const BT::NodeConfig &conf,
                   const BT::RosNodeParams &params)
         : RosActionNode<AutoDig>(name, conf, params)

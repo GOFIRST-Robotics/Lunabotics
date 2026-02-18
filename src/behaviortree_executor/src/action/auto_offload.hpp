@@ -11,6 +11,13 @@ using namespace BT;
 class AutoOffloadAction : public RosActionNode<AutoOffload>
 {
 public:
+static BT::PortsList providedPorts()
+{
+    return {
+        BT::InputPort<double>("lift_dumping_position"),
+        BT::InputPort<double>("digger_chain_power") // Updated name
+    };
+}
     AutoOffloadAction(const std::string &name, const BT::NodeConfig &conf,
                       const BT::RosNodeParams &params)
 
@@ -27,9 +34,31 @@ public:
         return true;
     }
 
-    // TODO: finish this
+    // Addeed a switch statement to handle different result codes from the action server
     NodeStatus onResultReceived(__attribute__((unused)) const WrappedResult &result) override
     {
-        return NodeStatus::SUCCESS;
+        NodeStatus onResultReceived(const WrappedResult &result) override
+    {
+        switch (result.code)
+        {
+            case rclcpp_action::ResultCode::SUCCEEDED:
+                // The action server completed the offload successfully
+                return NodeStatus::SUCCESS;
+
+            case rclcpp_action::ResultCode::ABORTED:
+                // Something went wrong (eg the lift jammed or a sensor failed)
+                RCLCPP_ERROR(node_->get_logger(), "AutoOffload aborted!");
+                return NodeStatus::FAILURE;
+
+            case rclcpp_action::ResultCode::CANCELED:
+                // The action was canceled
+                RCLCPP_WARN(node_->get_logger(), "AutoOffload canceled.");
+                return NodeStatus::FAILURE;
+
+            default:
+                // Any other weirdness should generally be a failure
+                return NodeStatus::FAILURE;
+        }
+    }
     }
 };
