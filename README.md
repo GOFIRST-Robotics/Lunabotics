@@ -99,6 +99,8 @@ devcontainer build --push true --workspace-folder . --platform="linux/amd64,linu
 <details>
 <summary>How to Run Inside the ISAAC ROS Container on Linux/Jetson</summary>
 <br>
+** FOR MORE INFO ON UPDATING AND USING DOCKER STUFF, SEE THE README INSIDE THE `docker` directory **
+
 First, you will need to log in to Nvidia NGC and get an API Key here: https://org.ngc.nvidia.com/setup
 
 Then install Nvidia ngc CLI and make sure it is present in path: https://org.ngc.nvidia.com/setup/installers/cli
