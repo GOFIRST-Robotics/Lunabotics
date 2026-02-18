@@ -13,7 +13,6 @@ from geometry_msgs.msg import Point
 from builtin_interfaces.msg import Duration
 
 
-
 class AutoDigServer(AsyncNode):
     def __init__(self):
         super().__init__("auto_dig_server")
@@ -24,27 +23,31 @@ class AutoDigServer(AsyncNode):
             self.execute_callback,
             goal_callback=self.goal_callback,
             handle_accepted_callback=self.handle_accepted_callback,
-            cancel_callback=self.cancel_callback)
+            cancel_callback=self.cancel_callback,
+        )
 
         # tilt
         self.set_tilt = self.create_client(
-            SetExtension, "auger/tilt_actuator/setExtension")  # /actuator_tilt/setExtension
+            SetExtension, "auger/tilt_actuator/setExtension"
+        )  # /actuator_tilt/setExtension
         self.stop_tilt = self.create_client(
-            Trigger, "auger/tilt_actuator/stop")  # /actuator_tilt/stop
+            Trigger, "auger/tilt_actuator/stop"
+        )  # /actuator_tilt/stop
 
         # extend
         self.set_extension = self.create_client(
-            AugerSetPushMotor, "auger/push_motor/setPosition")
-        self.stop_extension = self.create_client(
-            Trigger, "auger/push_motor/stop")
-        self.retract_extender = self.create_client(
-            Trigger, "auger/push_motor/retract")
+            AugerSetPushMotor, "auger/push_motor/setPosition"
+        )
+        self.stop_extension = self.create_client(Trigger, "auger/push_motor/stop")
+        self.retract_extender = self.create_client(Trigger, "auger/push_motor/retract")
 
         # spin auger
         self.screw_stop = self.create_client(
-            Trigger, "auger/screw/stop")  # /motor_spin/stop
+            Trigger, "auger/screw/stop"
+        )  # /motor_spin/stop
         self.screw_start = self.create_client(
-            SetScrewMotorSpeed, "auger/screw/run")  # /motor_spin/run
+            SetScrewMotorSpeed, "auger/screw/run"
+        )  # /motor_spin/run
 
         # agitator #TODO: uncomment if needed.
         # self.agitator = self.create_client(SetBool, "motor_on_off")
@@ -55,13 +58,12 @@ class AutoDigServer(AsyncNode):
         self.spin_dig_speed = 4000
         self.spin_stow_speed = 2000
 
-
     def goal_callback(self, goal_request):
-        self.get_logger().info('Received goal request')
+        self.get_logger().info("Received goal request")
         return GoalStatus.STATUS_ACCEPTED
 
     def handle_accepted_callback(self, goal_handle):
-        self.get_logger().info('Starting new goal')
+        self.get_logger().info("Starting new goal")
         goal_handle.execute()
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
@@ -114,15 +116,15 @@ class AutoDigServer(AsyncNode):
             if not goal_handle.is_cancel_requested:
                 self.get_logger().info("Starting first dig")
                 await self.auto_dig(goal_handle)
-            
+
             if not goal_handle.is_cancel_requested:
                 self.get_logger().info("driving back")
                 await self._do_backup(goal_handle)
-        
+
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("stopping screw")
             await self.screw_stop.call_async(Trigger.Request())
-            
+
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Resetting tilt")
             await self.set_tilt.call_async(SetExtension.Request(extension=False))
@@ -135,7 +137,6 @@ class AutoDigServer(AsyncNode):
             self.get_logger().info("Goal was cancelled")
             goal_handle.canceled()
             return result
-        
 
     async def cancel_callback(self, cancel_request: ServerGoalHandle):
         """This method is called when the action is canceled."""
@@ -145,11 +146,13 @@ class AutoDigServer(AsyncNode):
         self.cli_lift_stop.call_async(Trigger.Request())
         self.agitator.call_async(SetBool.Request(data=False))
         return CancelResponse.ACCEPT
-    
+
     async def auto_dig(self, goal_handle: ServerGoalHandle):
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Starting screw")
-            await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
+            await self.screw_start.call_async(
+                SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
+            )
 
         fails = 0
         max_fails = 4
@@ -184,7 +187,9 @@ class AutoDigServer(AsyncNode):
 
         # Dig in place (no lift lowering) for 5 seconds
         if not goal_handle.is_cancel_requested:
-            await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
+            await self.screw_start.call_async(
+                SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
+            )
             self.get_logger().info("Auto Digging in Place")
             await self.async_sleep(5)
             self.get_logger().info("Done Digging in Place")
@@ -216,45 +221,51 @@ class AutoDigServer(AsyncNode):
 
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Slowing the screw")
-            await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_stow_speed))
+            await self.screw_start.call_async(
+                SetScrewMotorSpeed.Request(speed=self.spin_stow_speed)
+            )
 
-
-    async def set_position_retry(self, position: float, power_limit: float, max_retries: int = 4):
+    async def set_position_retry(
+        self, position: float, power_limit: float, max_retries: int = 4
+    ):
         self.get_logger().info("Starting the digger chain")
-        await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
+        await self.screw_start.call_async(
+            SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
+        )
 
         for i in range(max_retries):
             if not self.goal_handle.is_cancel_requested:
                 self.get_logger().info(
-                    f"Attempting to set position to {position} with power limit {power_limit}")
+                    f"Attempting to set position to {position} with power limit {power_limit}"
+                )
                 if (
                     await self.cli_lift_setPosition.call_async(
                         AugerSetPushMotor.Request(position=position, speed=power_limit)
                     )
                 ).success:
-                    self.get_logger().info(
-                        f"Successfully set position to {position}")
+                    self.get_logger().info(f"Successfully set position to {position}")
                     return i
 
                 if i == max_retries - 1:
                     break
 
                 await self.async_sleep(1)
-                await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
+                await self.screw_start.call_async(
+                    SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
+                )
                 await self.async_sleep(5)
 
             else:
                 return -1
 
         return max_retries
-    
+
     async def _do_backup(self, goal_handle):
         if not goal_handle.is_cancel_requested:
-            dist = 0.5 #TODO update value
+            dist = 0.5  # TODO update value
             speed = 0.5  # duty cycle
             timeout = 9.0  # seconds
-            self.get_logger().info(
-                f"→ Backing up {dist}m @ {speed} (duty cycle)")
+            self.get_logger().info(f"→ Backing up {dist}m @ {speed} (duty cycle)")
 
             if not self._backup_client.wait_for_server(timeout_sec=5.0):
                 self.get_logger().error("BackUp server unavailable")
@@ -281,8 +292,7 @@ class AutoDigServer(AsyncNode):
             result_future = send.get_result_async()
             while not result_future.done():
                 if goal_handle.is_cancel_requested:
-                    self._backup_client.cancel_goal_async(
-                        send)  # ask Nav2 to stop
+                    self._backup_client.cancel_goal_async(send)  # ask Nav2 to stop
                     self.get_logger().info("BackUp canceled")
                     self.backup_in_progress = False
                     return False

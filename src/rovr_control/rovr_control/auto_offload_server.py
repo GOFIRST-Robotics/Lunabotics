@@ -20,8 +20,7 @@ class AutoOffloadServer(AsyncNode):
         )
 
         self.cli_dumper_dump = self.create_client(Trigger, "dumper/dumpDumper")
-        self.cli_dumper_store = self.create_client(
-            Trigger, "dumper/storeDumper")
+        self.cli_dumper_store = self.create_client(Trigger, "dumper/storeDumper")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
 
     async def execute_callback(self, goal_handle: ServerGoalHandle):
