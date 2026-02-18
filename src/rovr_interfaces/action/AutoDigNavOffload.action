@@ -2,6 +2,8 @@
 float32 tilt_digging_start_position
 float32 digger_chain_power
 float32 backward_distance
+float64 x_pos
+float64 y_pos
 ---
 # Result
 ---

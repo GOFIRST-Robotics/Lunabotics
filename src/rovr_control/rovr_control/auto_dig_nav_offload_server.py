@@ -120,8 +120,8 @@ class AutoDigNavOffloadServer(AsyncNode):
             goal_msg = NavigateToPose.Goal()
             goal_msg.pose.header.frame_id = "map"
             goal_msg.pose.header.stamp = self.get_clock().now().to_msg()
-            goal_msg.pose.pose.position.x = 1.0 # TODO: Update with real coordinate
-            goal_msg.pose.pose.position.y = 0.0 # TODO: Update with real coordinate
+            goal_msg.pose.pose.position.x = goal_handle.request.x_pos
+            goal_msg.pose.pose.position.y = goal_handle.request.y_pos
 
             goal_quat = self.get_quat_from_euler(0.0)  # Facing forward
             goal_msg.pose.pose.orientation.x = goal_quat['x']
