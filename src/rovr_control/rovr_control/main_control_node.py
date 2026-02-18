@@ -35,7 +35,7 @@ from rovr_interfaces.action import (
 from rovr_interfaces.msg import StreamDeckState
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower
+from rovr_interfaces.srv import SetPower, SetScrewMotorSpeed
 
 # Uncomment the line below to use the Xbox controller mappings instead
 # from rovr_control import xbox_controller_constants as bindings
@@ -92,6 +92,9 @@ class MainControlNode(Node):
         self.declare_parameter(
             "tilt_digging_start_position", 125.0
         )  # Measured in encoder counts
+        self.declare_parameter(
+            "fast_screw_speed", 4000
+        )
         # Measured in potentiometer units (0 to 1023)
         self.declare_parameter("DIGGER_SAFETY_ZONE", 120)
         # The power the dumper needs to go
@@ -113,6 +116,7 @@ class MainControlNode(Node):
         self.tilt_digging_start_position = self.get_parameter(
             "tilt_digging_start_position"
         ).value
+        self.screw_speed = self.get_parameter("fast_screw_speed").value
         self.dumper_power = self.get_parameter("dumper_power").value
         self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
 
@@ -163,6 +167,12 @@ class MainControlNode(Node):
         self.cli_auger_retract = self.create_client(
             Trigger, "auger/control/retract_digger"
         )
+        self.cli_screw_stop = self.create_client(
+            Trigger, "auger/screw/stop"
+        ) 
+        self.cli_screw_start = self.create_client(
+            SetScrewMotorSpeed, "auger/screw/run"
+        )  
         self.cli_big_agitator_on_off = self.create_client(
             SetBool, "big_agitator_on_off"
         )
@@ -378,9 +388,12 @@ class MainControlNode(Node):
 
             # Check if the digger button is pressed #
             if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
-                self.cli_digger_toggle.call_async(
-                    SetPower.Request(power=self.digger_chain_power)
+                self.cli_screw_start.call_async(
+                    SetScrewMotorSpeed.Request(speed=self.screw_speed)
                 )
+            
+            if msg.buttons[binding.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
+                self.cli_screw_stop.call_async(Trigger.Request())
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:

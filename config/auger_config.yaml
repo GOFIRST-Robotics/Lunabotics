@@ -1,6 +1,8 @@
 /**:
   ros__parameters:
     #TODO: Figure out all of these values
+    SCREW_SPEED: 4000 # TODO: update
+    POWER_LIMIT: 1 #TODO: update
     MAX_SCREW_SPEED: 4000 # in RPM
     MIN_SCREW_SPEED: 2000 # in RPM TODO: This is a guess
     MAX_RETRACT_PUSH_MOTOR_VELOCITY: -600 # in RPM, potentially could be faster

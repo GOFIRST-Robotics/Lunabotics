@@ -37,6 +37,8 @@ class Auger(Node):
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define parameters here
+        self.declare_parameter("POWER_LIMIT", 1)
+        self.declare_parameter("SCREW_SPEED", 4000)
         self.declare_parameter(
             "MAX_SCREW_SPEED", 4_000
         )  # in RPM for both negative and positive direction
@@ -71,6 +73,8 @@ class Auger(Node):
         self.declare_parameter("SPIN_MOTOR_ID", 0)
 
         # Local variables here
+        self.POWER_LIMIT = self.get_parameter("POWER_LIMIT").value
+        self.SCREW_SPEED = self.get_parameter("SCREW_SPEED").value
         self.MAX_SCREW_SPEED = self.get_parameter("MAX_SCREW_SPEED").value
         self.MIN_SCREW_DIG_SPEED = self.get_parameter("MIN_SCREW_DIG_SPEED").value
         self.MAX_SPIN_MOTOR_CURRENT = self.get_parameter("MAX_SPIN_MOTOR_CURRENT").value
@@ -445,6 +449,11 @@ class Auger(Node):
         tilt_success = self.set_actuator_tilt_extension(True)
         if not tilt_success:
             return False
+        
+        spin_success = self.run_auger_spin_velocity(self.SCREW_SPEED, self.POWER_LIMIT)
+
+        if not spin_success:
+            return False
 
         extend_success = self.extend_motor_push()
         if not extend_success:
@@ -455,13 +464,20 @@ class Auger(Node):
     def retract_digger(self) -> bool:
         """Tilt and retract"""
 
+        retract_success = self.retract_motor_push()
+        if not retract_success:
+            return False
+
+        spin_success = self.stop_auger_spin()
+        if not spin_success:
+            return False
+            
         tilt_success = self.set_actuator_tilt_extension(False)
         if not tilt_success:
             return False
 
-        retract_success = self.retract_motor_push()
-        if not retract_success:
-            return False
+        
+        
 
         return True
 

@@ -55,8 +55,14 @@ class AutoDigServer(AsyncNode):
 
         self._backup_client = ActionClient(self, BackUp, "backup")
 
-        self.spin_dig_speed = 4000
-        self.spin_stow_speed = 2000
+        self.declare_parameter(
+            "fast_screw_speed", 4000
+        )
+        self.declare_parameter(
+            "slow_screw_speed", 2000
+        )
+        self.spin_dig_speed = self.get_parameter("fast_screw_speed").value
+        self.spin_stow_speed = self.get_parameter("slow_screw_speed").value
 
     def goal_callback(self, goal_request):
         self.get_logger().info("Received goal request")
