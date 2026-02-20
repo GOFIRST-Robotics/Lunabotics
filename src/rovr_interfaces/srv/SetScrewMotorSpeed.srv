@@ -1,0 +1,5 @@
+# This service sets the speed of the screw
+float32 speed # rpm
+float32 power_limit 0.5 # optional power cap
+---
+bool success

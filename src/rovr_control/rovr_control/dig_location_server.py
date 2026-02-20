@@ -21,7 +21,8 @@ class DigLocationFinder(Node):
             "go_to_dig_location",
             self.drive_to_dig_location,
             # cancel_callback=self.drive_to_dig_location,
-            # TODO: Make a cancel callback that actually cancels all running futures please
+            # TODO: Make a cancel callback that actually cancels all running
+            # futures please
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
@@ -74,7 +75,8 @@ class DigLocationFinder(Node):
             ).value
         )  # If you default to an empty list things break (it thinks its a byte array)
 
-        # ROS doesn't like nested lists, so the config file has to be flattened. This unflattens that list
+        # ROS doesn't like nested lists, so the config file has to be
+        # flattened. This unflattens that list
         self.all_dig_locations = [
             (self.all_dig_locations[i], self.all_dig_locations[i + 1])
             for i in range(0, len(self.all_dig_locations), 2)
@@ -196,7 +198,8 @@ class DigLocationFinder(Node):
     def getDigLocation(self):
         # self.updatePotentialDigLocations()
         # If there are no potential dig locations, reset the potential dig locations
-        # and increase the max dig cost if the max dig cost is > absolute max dig cost, return None
+        # and increase the max dig cost if the max dig cost is > absolute max
+        # dig cost, return None
         if len(self.potential_dig_locations) == 0:
             self.potential_dig_locations = self.all_dig_locations.copy()
             self.max_dig_cost += 10

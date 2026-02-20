@@ -32,11 +32,11 @@ def generate_launch_description():
         emulate_tty=True,
     )
 
-    digger = Node(
-        package="digger",
-        executable="digger_node",
-        name="digger_node",
-        parameters=["config/dumper_config.yaml", "config/motor_control.yaml"],
+    auger = Node(
+        package="auger",
+        executable="auger_node",
+        name="auger_node",
+        parameters=["config/auger_config.yaml"],
         output="screen",
     )
 
@@ -85,7 +85,7 @@ def generate_launch_description():
     ld.add_action(rovr_control)
     ld.add_action(motor_control)
     ld.add_action(drivetrain)
-    ld.add_action(digger)
+    ld.add_action(auger)
     ld.add_action(dumper)
     ld.add_action(read_serial)
     ld.add_action(can_bus)
