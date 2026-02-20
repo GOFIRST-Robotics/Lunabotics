@@ -1,8 +1,7 @@
 import rclpy
 from rclpy.node import Node
-from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import SetBool, Trigger
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int16
 
 import serial
 import struct
@@ -13,19 +12,28 @@ class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
 
-        self.potentiometerPub = self.create_publisher(Potentiometers, "potentiometers", 10)
+        self.potentiometerPub = self.create_publisher(Int16, "potentiometer", 10)
         self.LimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
 
         # Services to control the relay-driven agitator motor
-        self.srv_bigonoff = self.create_service(SetBool, "big_agitator_on_off", self.big_on_off_callback)
-        self.srv_bigtoggle = self.create_service(Trigger, "big_agitator_toggle", self.big_toggle_callback)
+        self.srv_bigonoff = self.create_service(
+            SetBool, "big_agitator_on_off", self.big_on_off_callback
+        )
+        self.srv_bigtoggle = self.create_service(
+            Trigger, "big_agitator_toggle", self.big_toggle_callback
+        )
 
-        self.srv_smallonoff = self.create_service(SetBool, "small_agitator_on_off", self.small_on_off_callback)
-        self.srv_smalltoggle = self.create_service(Trigger, "small_agitator_toggle", self.small_toggle_callback)
+        self.srv_smallonoff = self.create_service(
+            SetBool, "small_agitator_on_off", self.small_on_off_callback
+        )
+        self.srv_smalltoggle = self.create_service(
+            Trigger, "small_agitator_toggle", self.small_toggle_callback
+        )
 
         try:
             self.arduino = serial.Serial("/dev/ttyACM0", 9600)
-            time.sleep(1)  # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
+            # https://stackoverflow.com/questions/7266558/pyserial-buffer-wont-flush
+            time.sleep(1)
             self.arduino.read_all()
         except Exception as e:
             self.get_logger().fatal(f"Error connecting to serial: {e}")
@@ -33,8 +41,6 @@ class read_serial(Node):
             return
 
         self.timer = self.create_timer(0.1, self.timer_callback)
-
-        self.lastMsg = Potentiometers()
 
         self.bigAgitatorOn = False
         self.smallAgitatorOn = False
@@ -45,25 +51,25 @@ class read_serial(Node):
             self.destroy_node()
             return
         data = self.arduino.read(4)  # Pause until 4 bytes are read
-        decoded = struct.unpack("hh?", data)  # Use h for integers and ? for booleans
+        # Use h for integers and ? for booleans
+        decoded = struct.unpack("h?", data)
 
-        msg = Potentiometers()
-        msg.left_motor_pot = decoded[0]
-        msg.right_motor_pot = decoded[1]
-        self.potentiometerPub.publish(msg)
-        self.lastMsg = msg
+        potentiometer_msg = Int16()
+        potentiometer_msg.data = decoded[0]
+        self.potentiometerPub.publish(potentiometer_msg)
 
         bool_msg = Bool()
-        bool_msg.data = decoded[2]
+        bool_msg.data = decoded[1]
         self.LimitSwitchPub.publish(bool_msg)
-        self.lastMsg = bool_msg
 
     def big_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
         cmd = b"1" if request.data else b"0"
         self.arduino.write(cmd)
         response.success = True
-        response.message = "Big agitator motor turned " + ("on" if request.data else "off")
+        response.message = "Big agitator motor turned " + (
+            "on" if request.data else "off"
+        )
         self.bigAgitatorOn = request.data
         return response
 
@@ -83,7 +89,9 @@ class read_serial(Node):
         cmd = b"3" if request.data else b"2"
         self.arduino.write(cmd)
         response.success = True
-        response.message = "Small agitator motor turned " + ("on" if request.data else "off")
+        response.message = "Small agitator motor turned " + (
+            "on" if request.data else "off"
+        )
         self.smallAgitatorOn = request.data
         return response
 
