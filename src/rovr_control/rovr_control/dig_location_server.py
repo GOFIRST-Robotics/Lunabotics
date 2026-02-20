@@ -29,9 +29,7 @@ class DigLocationFinder(Node):
         )
         self.nav2_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
-        self.get_costmap_global_srv = self.create_client(
-            GetCostmap, "global_costmap/get_costmap"
-        )
+        self.get_costmap_global_srv = self.create_client(GetCostmap, "global_costmap/get_costmap")
         self.srv = self.create_service(
             DigLocation, "find_dig_location", self.find_dig_location_callback
         )
@@ -42,41 +40,37 @@ class DigLocationFinder(Node):
             10,
         )
         self.footprint = (1.2, 0.75)
-        self.absolute_max_dig_cost = self.declare_parameter(
-            "absolute_max_dig_cost", 200
-        ).value
+        self.absolute_max_dig_cost = self.declare_parameter("absolute_max_dig_cost", 200).value
         self.max_dig_cost = self.declare_parameter("max_dig_cost", 100).value
-        self.all_dig_locations = (
-            self.declare_parameter(
-                "all_dig_locations",
-                [
-                    0.6,
-                    0.37,
-                    0.6,
-                    1.1,
-                    0.6,
-                    1.83,
-                    1.8,
-                    0.37,
-                    1.8,
-                    1.1,
-                    1.8,
-                    1.83,
-                    3.0,
-                    0.37,
-                    3.0,
-                    1.1,
-                    3.0,
-                    1.83,
-                    0.6,
-                    2.5,
-                    1.8,
-                    2.5,
-                    3.0,
-                    2.5,
-                ],
-            ).value
-        )  # If you default to an empty list things break (it thinks its a byte array)
+        self.all_dig_locations = self.declare_parameter(
+            "all_dig_locations",
+            [
+                0.6,
+                0.37,
+                0.6,
+                1.1,
+                0.6,
+                1.83,
+                1.8,
+                0.37,
+                1.8,
+                1.1,
+                1.8,
+                1.83,
+                3.0,
+                0.37,
+                3.0,
+                1.1,
+                3.0,
+                1.83,
+                0.6,
+                2.5,
+                1.8,
+                2.5,
+                3.0,
+                2.5,
+            ],
+        ).value  # If you default to an empty list things break (it thinks its a byte array)
 
         # ROS doesn't like nested lists, so the config file has to be
         # flattened. This unflattens that list
@@ -91,7 +85,15 @@ class DigLocationFinder(Node):
     async def drive_to_dig_location(self, goal_handle: ServerGoalHandle):
         result = GoToDigLocation.Result()
 
-        goal_pose_xy = self.getDigLocation()
+        target_x = goal_handle.request.target_x
+        target_y = goal_handle.request.target_y
+
+        if target_x == 0.0 and target_y == 0.0:
+            self.get_logger().info("No target provided, finding dig location")
+            goal_pose_xy = self.getDigLocation()
+        else:
+            goal_pose_xy = (target_x, target_y)
+
         self.get_logger().info(f"Dig location: {goal_pose_xy[0]}, {goal_pose_xy[1]}")
         if goal_pose_xy is None:
             self.get_logger().error("goal_pose_xy is None")
@@ -151,12 +153,8 @@ class DigLocationFinder(Node):
         poly = msg.polygon
         points = poly.points
 
-        x = math.sqrt(
-            (points[0].x - points[1].x) ** 2 + (points[0].y - points[1].y) ** 2
-        )
-        y = math.sqrt(
-            (points[1].x - points[2].x) ** 2 + (points[1].y - points[2].y) ** 2
-        )
+        x = math.sqrt((points[0].x - points[1].x) ** 2 + (points[0].y - points[1].y) ** 2)
+        y = math.sqrt((points[1].x - points[2].x) ** 2 + (points[1].y - points[2].y) ** 2)
 
         width = max(x, y)
         height = min(x, y)
@@ -183,9 +181,7 @@ class DigLocationFinder(Node):
             robot_width, robot_height = (0.5, 0.5)
             for location in self.potential_dig_locations:
                 # dig_cost = maximum cost of the cells that the robot will dig
-                dig_cost = costmap.getDigCost(
-                    location[0], location[1], robot_width, robot_height
-                )
+                dig_cost = costmap.getDigCost(location[0], location[1], robot_width, robot_height)
                 if dig_cost >= self.max_dig_cost:
                     self.potential_dig_locations.remove(location)
 
