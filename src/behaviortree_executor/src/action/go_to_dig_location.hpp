@@ -10,6 +10,14 @@ using namespace BT;
 class GoToDigLocationAction : public RosActionNode<GoToDigLocation>
 {
 public:
+    static BT::PortsList providedPorts()
+    {
+        return
+        {
+            BT::InputPort<double>("target_x"),
+            BT::InputPort<double>("target_y")
+        };
+    }
     GoToDigLocationAction(const std::string& name, const BT::NodeConfig& conf,
         const BT::RosNodeParams& params)
         : RosActionNode<GoToDigLocation>(name, conf, params)
@@ -18,6 +26,8 @@ public:
 
     bool setGoal(__attribute__((unused)) Goal &goal) override
     {
+        getInput("target_x", goal.target_x);
+        getInput("target_y", goal.target_y);
         return true;
     }
 
