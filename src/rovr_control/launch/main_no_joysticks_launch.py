@@ -80,6 +80,7 @@ def generate_launch_description():
         package="rovr_control",
         executable="dig_location_server",
         name="dig_location_server"
+    )
     auto_dig_nav_offload_server = Node(
         package="rovr_control",
         executable="auto_dig_nav_offload_server",
