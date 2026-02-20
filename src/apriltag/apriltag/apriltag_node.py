@@ -138,7 +138,7 @@ class ApriltagNode(Node):
                 # Apply a known rotation to the transform
                 rotation_quaternion = R.from_euler(
                     "xyz", [float(rpy[0]), float(rpy[1]), float(rpy[2])], degrees=True
-                ).as_quat()
+                )
                 current_quaternion = R.from_quat(
                     [
                         odom_to_tag_transform.transform.rotation.x,
@@ -146,8 +146,8 @@ class ApriltagNode(Node):
                         odom_to_tag_transform.transform.rotation.z,
                         odom_to_tag_transform.transform.rotation.w,
                     ]
-                ).as_quat()
-                rotated_quaternion = current_quaternion * rotation_quaternion  # Multiply the quaternions
+                )
+                rotated_quaternion = (current_quaternion * rotation_quaternion).as_quat()  # Multiply the quaternions
 
                 # Apply the rotation to the position before adding it to the cumulative sum
                 # Then, we can just average the positions and use an identity quaternion for the rotation
