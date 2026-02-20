@@ -1,4 +1,4 @@
 #!/bin/bash
 
 source install/setup.bash && \
-ros2 launch gstreamer laptop_launch.py
+ros2 run rqt_image_view rqt_image_view

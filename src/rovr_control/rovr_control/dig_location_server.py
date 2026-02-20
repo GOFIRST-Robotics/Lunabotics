@@ -1,5 +1,5 @@
 import rclpy
-from rclpy.action import ActionClient, ActionServer
+from rclpy.action import ActionClient, ActionServer, CancelResponse
 from rclpy.node import Node
 from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.srv import DigLocation
@@ -8,6 +8,9 @@ from scipy.spatial.transform import Rotation as R
 from nav2_msgs.action import NavigateToPose
 from nav2_msgs.srv import GetCostmap
 from nav_msgs.msg import OccupancyGrid
+from action_msgs.msg import GoalStatus
+from rclpy.action.client import ClientGoalHandle
+from rclpy.action.server import ServerGoalHandle
 import math
 from geometry_msgs.msg import PolygonStamped, PoseStamped
 
@@ -83,35 +86,43 @@ class DigLocationFinder(Node):
         ]
         self.potential_dig_locations = self.all_dig_locations.copy()
 
-    async def drive_to_dig_location(self, goal_handle):
+        self.nav_handle = ClientGoalHandle(None, None, None)
+
+    async def drive_to_dig_location(self, goal_handle: ServerGoalHandle):
         result = GoToDigLocation.Result()
 
         goal_pose_xy = self.getDigLocation()
+        self.get_logger().info(f"Dig location: {goal_pose_xy[0]}, {goal_pose_xy[1]}")
         if goal_pose_xy is None:
-            goal_handle.abort()
-            self.get_logger().warn("goal_pose_xy is None")
-            return result
+            self.get_logger().error("goal_pose_xy is None")
 
         nav_goal = self.get_goal_pose(goal_pose_xy[0], goal_pose_xy[1], math.pi)
 
-        send_goal_future = self.nav2_client.send_goal_async(nav_goal)
-        goal_response = await send_goal_future
-        if not goal_response.accepted:
-            self.get_logger().error("Goal rejected")
-            goal_handle.abort()
-            return result
+        # send_goal_future = self.nav2_client.send_goal_async(nav_goal)
 
-        result_future = goal_response.get_result_async()
+        self.nav_handle: ClientGoalHandle = await self.nav2_client.send_goal_async(nav_goal)
+        # await self.nav_handle.get_result_async()
+        await self.nav_handle.get_result_async()
 
-        await result_future
-
-        # result = result_future.result()
-        if result and result.status == 4:  # STATUS_SUCCEEDED (4)
-            self.get_logger().info("Navigation succeeded!")
-            return result
+        if self.nav_handle.status == GoalStatus.STATUS_SUCCEEDED:
+            self.get_logger().info("Nav2 succeeded")
+            goal_handle.succeed()
+        elif self.nav_handle.status == GoalStatus.STATUS_CANCELED:
+            self.get_logger().error("Nav2 canceled")
+            goal_handle.canceled()
         else:
-            self.get_logger().error("Navigation failed!")
-            return result
+            self.get_logger().error(f"Nav2 completed in unknown state {self.nav_handle.status}")
+            goal_handle.abort()
+
+        return result
+
+    def cancel_callback(self, cancel_request: ServerGoalHandle):
+        self.get_logger().info("Cancelling drive to dig location")
+        if self.nav_handle.status == GoalStatus.STATUS_EXECUTING:
+            self.nav_handle.cancel_goal_async()
+        if not self.nav_handle.is_done():
+            self.nav_handle.cancel_goal_async()
+        return CancelResponse.ACCEPT
 
     # yaw in rads.
     # yaw = 0 at x axis, positive is counter clockwise
@@ -127,9 +138,7 @@ class DigLocationFinder(Node):
         goal_msg.pose.pose.position.x = x
         goal_msg.pose.pose.position.y = y
 
-        quat = R.from_euler(
-            "xyz", [float(0), float(0), float(yaw)], degrees=False
-        ).as_quat()
+        quat = R.from_euler("xyz", [float(0), float(0), float(yaw)], degrees=False).as_quat()
 
         goal_msg.pose.pose.orientation.x = quat[0]
         goal_msg.pose.pose.orientation.y = quat[1]
@@ -160,9 +169,12 @@ class DigLocationFinder(Node):
             response.success = False
             return response
 
-        response.success = True
+        # response.success = True
         response.x = coords[0]
         response.y = coords[1]
+
+        self.get_logger().info(f"Dig location: {coords[0]}, {coords[1]}")
+
         return response
 
     def updatePotentialDigLocations(self):
@@ -206,6 +218,7 @@ class DigLocationFinder(Node):
             if self.max_dig_cost >= self.absolute_max_dig_cost:
                 return None
             return self.getDigLocation()
+
         return self.potential_dig_locations[0]
 
 
@@ -215,3 +228,7 @@ def main(args=None):
     rclpy.spin(dig_location_finder)
     dig_location_finder.destroy_node()
     rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

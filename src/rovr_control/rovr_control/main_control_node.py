@@ -18,6 +18,17 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.client import Future
 from rclpy.node import Node
 
+# Import ROS 2 formatted message types
+from geometry_msgs.msg import Twist, Vector3, PoseStamped
+from sensor_msgs.msg import Joy
+from action_msgs.msg import GoalStatus
+from std_msgs.msg import Float32
+
+# Import custom ROS 2 interfaces
+from rovr_interfaces.srv import SetPower, SetPosition
+from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
+from std_srvs.srv import Trigger
+
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
 from sensor_msgs.msg import Joy

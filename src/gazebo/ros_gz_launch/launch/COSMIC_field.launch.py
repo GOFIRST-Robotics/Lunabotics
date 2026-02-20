@@ -32,7 +32,7 @@ def generate_launch_description():
             [PathJoinSubstitution([FindPackageShare("ros_gz_sim"), "launch", "gz_sim.launch.py"])]
         ),
         launch_arguments={
-            "gz_args": PathJoinSubstitution([FindPackageShare("gazebo_files"), "worlds", "COSMIC_field.sdf"])
+            "gz_args": ["-r ", PathJoinSubstitution([FindPackageShare("gazebo_files"), "worlds", "COSMIC_field.sdf"])]
         }.items(),
     )
 

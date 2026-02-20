@@ -82,6 +82,12 @@ def generate_launch_description():
         executable="auto_offload_server",
         name="auto_offload_server",
     )
+    dig_location_server = Node(
+        package="rovr_control",
+        executable="dig_location_server",
+        name="dig_location_server"
+    )
+
     auto_dig_nav_offload_server = Node(
         package="rovr_control",
         executable="auto_dig_nav_offload_server",
@@ -99,6 +105,7 @@ def generate_launch_description():
     ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(auto_dig_server)
     ld.add_action(auto_offload_server)
+    ld.add_action(dig_location_server)
     ld.add_action(auto_dig_nav_offload_server)
 
     return ld
