@@ -8,10 +8,8 @@ import time
 
 # Import the ROS 2 module
 import rclpy
-from action_msgs.msg import GoalStatus
 
 # Import ROS 2 formatted message types
-from geometry_msgs.msg import PoseStamped, Twist, Vector3
 from rclpy.action import ActionClient
 from rclpy.action.client import ClientGoalHandle
 from rclpy.callback_groups import ReentrantCallbackGroup
@@ -25,14 +23,9 @@ from action_msgs.msg import GoalStatus
 from std_msgs.msg import Float32
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower, SetPosition
-from rovr_interfaces.action import CalibrateFieldCoordinates, AutoDig, AutoOffload, AutoDigNavOffload
-from std_srvs.srv import Trigger
 
 # Import Python Modules
 from scipy.spatial.transform import Rotation as R
-from sensor_msgs.msg import Joy
-from std_msgs.msg import Float32
 from std_srvs.srv import SetBool, Trigger
 
 # Import our logitech gamepad button mappings
