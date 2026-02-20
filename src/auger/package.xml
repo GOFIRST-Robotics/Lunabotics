@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>digger</name>
+  <name>auger</name>
   <version>0.2.0</version>
-  <description>This package is for the digger subsystem.</description>
+  <description>This package is for the auger subsystem.</description>
   <maintainer email="brogn002@umn.edu">Anthony Brogni</maintainer>
   <license>MIT License</license>
 

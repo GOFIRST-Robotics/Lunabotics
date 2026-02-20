@@ -46,12 +46,16 @@ class CalibrateFieldCoordinateServer(Node):
 
         # Spin around to find the apriltag
         spin_goal = Spin.Goal(target_yaw=2 * math.pi)
-        self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(spin_goal)
+        self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(
+            spin_goal
+        )
         future_spin: Future = self.spin_handle.get_result_async()
         self.future_odom = Future()
 
         while not future_spin.done():
-            self.future_odom = self.cli_set_apriltag_odometry.call_async(Trigger.Request())
+            self.future_odom = self.cli_set_apriltag_odometry.call_async(
+                Trigger.Request()
+            )
             if (await self.future_odom).success is True:
                 self.get_logger().info("Found an apriltag!", throttle_duration_sec=5)
                 await self.spin_handle.cancel_goal_async()
@@ -67,7 +71,9 @@ class CalibrateFieldCoordinateServer(Node):
             return result
 
         spin_goal = Spin.Goal(target_yaw=math.pi)
-        self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(spin_goal)
+        self.spin_handle: ClientGoalHandle = await self.cli_spin.send_goal_async(
+            spin_goal
+        )
         await self.spin_handle.get_result_async()
         goal_handle.succeed()
         return result

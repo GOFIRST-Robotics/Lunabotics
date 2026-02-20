@@ -24,8 +24,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/CalibrateFieldCoordinates.action"
   "action/GoToDigLocation.action"
   "action/AutoDigNavOffload.action"
-  "msg/LimitSwitches.msg"
   "msg/Potentiometers.msg"
+  "msg/StreamDeckState.msg"
   "srv/Drive.srv"
   "srv/MotorCommandGet.srv"
   "srv/MotorCommandSet.srv"
@@ -35,6 +35,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetEncoding.srv"
   "srv/SetPosition.srv"
   "srv/SetPower.srv"
+  "srv/SetExtension.srv"
+  "srv/AugerSetPushMotor.srv"
+  "srv/SetScrewMotorSpeed.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)
 

@@ -1,6 +1,8 @@
 ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
+RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+
 COPY deepstream/deepstream.deb deepstream.deb
 
 RUN --mount=type=cache,target=/var/cache/apt apt-get update && apt-get install -y \
