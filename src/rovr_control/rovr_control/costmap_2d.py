@@ -55,7 +55,9 @@ class PyCostmap2D:
         self.global_frame_id = costmap.header.frame_id
         self.costmap_timestamp = costmap.header.stamp
         # Extract costmap
-        self.costmap = np.array(costmap.data, dtype=np.uint8).reshape(self.size_x, self.size_y)
+        self.costmap = np.array(costmap.data, dtype=np.uint8).reshape(
+            self.size_x, self.size_y
+        )
 
     def getSizeInCellsX(self):
         """Get map width in cells."""

@@ -2,6 +2,7 @@
 struct SensorData {
   int leftMotorPotentiometer;
   int rightMotorPotentiometer;
+  bool bottomLimitSwitch;
 };
 
 // Define the sensor pins here
@@ -27,6 +28,8 @@ void loop() {
   // Read from the analog inputs (potentiometers)
   data.leftMotorPotentiometer = analogRead(LEFT_MOTOR_POT_PIN);  // Read left motor potentiometer value
   data.rightMotorPotentiometer = analogRead(RIGHT_MOTOR_POT_PIN); // Read right motor potentiometer value
+
+  data.bottomLimitSwitch  = analogRead(bottom_limit_switch); //bottom limit switch value
 
   // Send the struct over the serial bus to the Nvidia Jetson
   Serial.write((byte *)&data, sizeof(SensorData));

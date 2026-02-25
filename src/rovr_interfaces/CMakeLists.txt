@@ -35,6 +35,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SetEncoding.srv"
   "srv/SetPosition.srv"
   "srv/SetPower.srv"
+  "srv/SetExtension.srv"
+  "srv/AugerSetPushMotor.srv"
+  "srv/SetScrewMotorSpeed.srv"
 )
 ament_export_dependencies(rosidl_default_runtime)
 
