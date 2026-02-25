@@ -80,6 +80,7 @@ class Auger(Node):
         self.MAX_SPIN_MOTOR_CURRENT = self.get_parameter("MAX_SPIN_MOTOR_CURRENT").value
         self.push_motor_position = self.get_parameter("push_motor_position").value
         self.tilt_actuator_position = self.get_parameter("tilt_actuator_position").value
+        self.extension_limit_switch = self.get_parameter("extension_limit_switch").value
         self.TILT_ACTUATOR_CURRENT_THRESHOLD = self.get_parameter(
             "TILT_ACTUATOR_CURRENT_THRESHOLD"
         )
@@ -197,6 +198,9 @@ class Auger(Node):
             Potentiometers, "potentiometer", self.push_motor_position_callback, 10
         )
 
+        self.limit_switch_sub = self.create_subscription(
+            Bool, "ExtensionLimitSwitch", self.limit_switch_callback, 10
+        )
         # TODO Define publishers here
 
     # Define subsystem methods here
@@ -354,8 +358,7 @@ class Auger(Node):
             if motor_get_pos_future.result().success:
                 current_pos = motor_get_pos_future.result().data
                 if (speed <= 0 and current_pos <= desired_position) or (
-                    speed > 0 and current_pos >= desired_position
-                ):
+                    speed > 0 and current_pos >= desired_position) or (self.extension_limit_switch):
                     break
             else:
                 self.get_logger().warn("WARNING: Failed to read push motor position")
@@ -525,6 +528,9 @@ class Auger(Node):
 
     def push_motor_position_callback(self, msg):
         self.tilt_actuator_position = msg.data
+
+    def limit_switch_callback(self, msg):
+        
 
     def extend_push_callback(self, request, response):
         """
