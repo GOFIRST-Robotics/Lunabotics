@@ -37,7 +37,8 @@ class Auger(Node):
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define parameters here
-        self.declare_parameter("STOWED", True)
+        self.declare_parameter("AUGER_STOWED", True)
+        self.declare_parameter("DUMPER_STOWED", True)
         self.declare_parameter("extension_limit_switch", True)
         self.declare_parameter("POWER_LIMIT", 1)
         self.declare_parameter("SCREW_SPEED", 4000)
@@ -83,7 +84,8 @@ class Auger(Node):
         self.push_motor_position = self.get_parameter("push_motor_position").value
         self.tilt_actuator_position = self.get_parameter("tilt_actuator_position").value
         self.extension_limit_switch = self.get_parameter("extension_limit_switch").value
-        self.stowed = self.get_parameter("STOWED").value
+        self.auger_stowed = self.get_parameter("AUGER_STOWED").value
+        self.dumper_stowed = self.get_parameter("DUMPER_STOWED").value
         self.TILT_ACTUATOR_CURRENT_THRESHOLD = self.get_parameter(
             "TILT_ACTUATOR_CURRENT_THRESHOLD"
         )
@@ -202,12 +204,21 @@ class Auger(Node):
         )
 
         self.limit_switch_sub = self.create_subscription(
-            Bool, "ExtensionLimitSwitch", 10
+            Bool, "ExtensionLimitSwitch", self.limit_switch_callback, 10
         )
+
+        self.dumper_stowed_sub = self.create_subscription(
+            Bool, "dumper_stowed", self.dumper_stowed_callback, 10
+        )
+
         # TODO Define publishers here
-        self.stowed_pub = self.create_publisher(
-            Bool, "stowed", self.stowed_callback, 10
+        self.auger_stowed_pub = self.create_publisher(
+            Bool, "auger_stowed", 10
         )
+
+        
+
+        
 
     # Define subsystem methods here
 
@@ -254,10 +265,10 @@ class Auger(Node):
         # gets motor current until it is 0 which means it has hit an limit
         # switch
         if tilt:
-            self.stowed = False
+            self.auger_stowed = False
             msg = Bool()
-            msg.data = self.stowed
-            self.stowed_pub.publish(msg)
+            msg.data = self.auger_stowed
+            self.auger_stowed_pub.publish(msg)
 
         while True:
             motor_get_future = self.cli_motor_get.call_async(
@@ -280,10 +291,10 @@ class Auger(Node):
             time.sleep(0.1)
 
         if not tilt:
-            self.stowed = True
+            self.auger_stowed = True
             msg = Bool()
-            msg.data = self.stowed
-            self.stowed_pub.publish(msg)
+            msg.data = self.auger_stowed
+            self.auger_stowed_pub.publish(msg)
 
         return True
 
@@ -466,6 +477,8 @@ class Auger(Node):
 
     def extend_digger(self) -> bool:
         """Tilt and extend"""
+        if not self.dumper_stowed:
+            return False
 
         tilt_success = self.set_actuator_tilt_extension(True)
         if not tilt_success:
@@ -549,6 +562,9 @@ class Auger(Node):
 
     def limit_switch_callback(self, msg):
         self.extension_limit_switch = msg.data
+
+    def dumper_stowed_callback(self, msg):
+        self.dumper_stowed = msg.data
 
     def extend_push_callback(self, request, response):
         """

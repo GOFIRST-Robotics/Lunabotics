@@ -79,8 +79,14 @@ class DumperNode(Node):
         )
         
         self.auger_stowed_sub = self.create_subscription(
-            Bool, "stowed", self.auger_stowed_callback, 10
+            Bool, "auger_stowed", self.auger_stowed_callback, 10
         )
+
+        self.dumper_stowed_pub = self.create_publisher(
+            Bool, "dumper_stowed", 10
+        )
+
+        self.dumper_stowed = True
         self.limitSwitchBottom = False
         self.auger_stowed = True
 
@@ -140,6 +146,10 @@ class DumperNode(Node):
             MotorCommandSet.Request(type="position", can_id=self.DUMPER_MOTOR, value=90)
         )
 
+        self.dumper_stowed = False
+        msg = Bool()
+        msg.data = self.dumper_stowed
+        self.dumper_stowed_pub.publish(msg)
         while not future.done():  # While loop makes the motor keep going till limit switch is hit
             if self.cancel_current_srv:
                 self.cancel_current_srv = False
@@ -156,9 +166,6 @@ class DumperNode(Node):
         return response
 
     def store_dumper(self) -> None:  # get the variables
-        if not self.auger_stowed:
-            self.get_logger().info("The Auger is already extended")
-            return
         self.get_logger().info("Retracting the dumper")
         self.dumped_state = False
         self.long_service_running = True
@@ -172,6 +179,10 @@ class DumperNode(Node):
             time.sleep(0.1)
 
         self.stop()
+        self.dumper_stowed = True
+        msg = Bool()
+        msg.data = self.dumper_stowed
+        self.dumper_stowed_pub.publish(msg)
         self.long_service_running = False
         self.get_logger().info("Done storing the dumper")
 
