@@ -77,8 +77,12 @@ class DumperNode(Node):
         self.KillSwitch_sub = self.create_subscription(
             Bool, "DumperLimitSwitch", self.killSwitch_callback, 10
         )
+        
+        self.auger_stowed_sub = self.create_subscription(
+            Bool, "stowed", self.auger_stowed_callback, 10
+        )
         self.limitSwitchBottom = False
-        # self.auger_stowed = True
+        self.auger_stowed = True
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
@@ -124,9 +128,9 @@ class DumperNode(Node):
         return response
 
     def dump_dumper(self) -> None:
-        # if not self.auger_stowed:
-        #     self.get_logger().info("The auger is already extended")
-        #     return
+        if not self.auger_stowed:
+            self.get_logger().info("The auger is already extended")
+            return
 
         self.get_logger().info("Extending the dumper")
         self.dumped_state = True
@@ -152,9 +156,9 @@ class DumperNode(Node):
         return response
 
     def store_dumper(self) -> None:  # get the variables
-        # if not self.auger_stowed:
-        #     self.get_logger().info("The Auger is already extended")
-        #     return
+        if not self.auger_stowed:
+            self.get_logger().info("The Auger is already extended")
+            return
         self.get_logger().info("Retracting the dumper")
         self.dumped_state = False
         self.long_service_running = True
@@ -184,6 +188,9 @@ class DumperNode(Node):
     def killSwitch_callback(self, msg):
         # position control...
         self.LimitSwitchBottom = msg.data
+    
+    def auger_stowed_callback(self, msg):
+        self.auger_stowed = msg.data
 
 
 def main(args=None):

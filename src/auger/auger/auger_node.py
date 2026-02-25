@@ -37,6 +37,8 @@ class Auger(Node):
         self.cli_motor_get = self.create_client(MotorCommandGet, "motor/get")
 
         # Define parameters here
+        self.declare_parameter("STOWED", True)
+        self.declare_parameter("extension_limit_switch", True)
         self.declare_parameter("POWER_LIMIT", 1)
         self.declare_parameter("SCREW_SPEED", 4000)
         self.declare_parameter(
@@ -81,6 +83,7 @@ class Auger(Node):
         self.push_motor_position = self.get_parameter("push_motor_position").value
         self.tilt_actuator_position = self.get_parameter("tilt_actuator_position").value
         self.extension_limit_switch = self.get_parameter("extension_limit_switch").value
+        self.stowed = self.get_parameter("STOWED").value
         self.TILT_ACTUATOR_CURRENT_THRESHOLD = self.get_parameter(
             "TILT_ACTUATOR_CURRENT_THRESHOLD"
         )
@@ -199,9 +202,12 @@ class Auger(Node):
         )
 
         self.limit_switch_sub = self.create_subscription(
-            Bool, "ExtensionLimitSwitch", self.limit_switch_callback, 10
+            Bool, "ExtensionLimitSwitch", 10
         )
         # TODO Define publishers here
+        self.stowed_pub = self.create_publisher(
+            Bool, "stowed", self.stowed_callback, 10
+        )
 
     # Define subsystem methods here
 
@@ -247,6 +253,12 @@ class Auger(Node):
 
         # gets motor current until it is 0 which means it has hit an limit
         # switch
+        if tilt:
+            self.stowed = False
+            msg = Bool()
+            msg.data = self.stowed
+            self.stowed_pub.publish(msg)
+
         while True:
             motor_get_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(
@@ -266,6 +278,12 @@ class Auger(Node):
                 self.get_logger().info("WARNING: Failed to read tilt actuator position")
 
             time.sleep(0.1)
+
+        if not tilt:
+            self.stowed = True
+            msg = Bool()
+            msg.data = self.stowed
+            self.stowed_pub.publish(msg)
 
         return True
 
@@ -530,7 +548,7 @@ class Auger(Node):
         self.tilt_actuator_position = msg.data
 
     def limit_switch_callback(self, msg):
-        
+        self.extension_limit_switch = msg.data
 
     def extend_push_callback(self, request, response):
         """

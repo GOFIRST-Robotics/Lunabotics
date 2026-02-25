@@ -10,6 +10,7 @@
     push_motor_position: 0
     tilt_actuator_position: 0
     extension_limit_switch: true
+    STOWED: true
     TILT_ACTUATOR_CURRENT_THRESHOLD: 0
     MAX_PUSH_MOTOR_POSITION: 0
     MIN_PUSH_MOTOR_POSITION: 0
