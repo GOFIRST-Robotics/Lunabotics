@@ -82,21 +82,9 @@ class MainControlNode(Node):
         # Measured in Duty Cycle (0.0-1.0)
         self.declare_parameter("max_turn_power", 1.0)
         # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter("digger_chain_power", 0.18)
-        self.declare_parameter(
-            "digger_lift_manual_power_down", 0.12
-        )  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter(
-            "digger_lift_manual_power_up", 0.5
-        )  # Measured in Duty Cycle (0.0-1.0)
-        self.declare_parameter(
-            "tilt_digging_start_position", 125.0
-        )  # Measured in encoder counts
         self.declare_parameter(
             "fast_screw_speed", 4000
         )
-        # Measured in potentiometer units (0 to 1023)
-        self.declare_parameter("DIGGER_SAFETY_ZONE", 120)
         # The power the dumper needs to go
         self.declare_parameter("dumper_power", 0.75)
         # The type of field ("cosmic", "top", "bottom", "nasa")
@@ -105,21 +93,10 @@ class MainControlNode(Node):
         # Assign the ROS Parameters to member variables below #
         self.max_drive_power = self.get_parameter("max_drive_power").value
         self.max_turn_power = self.get_parameter("max_turn_power").value
-        self.digger_chain_power = self.get_parameter("digger_chain_power").value
-        self.digger_lift_manual_power_down = self.get_parameter(
-            "digger_lift_manual_power_down"
-        ).value
-        self.digger_lift_manual_power_up = self.get_parameter(
-            "digger_lift_manual_power_up"
-        ).value
         self.autonomous_field_type = self.get_parameter("autonomous_field_type").value
-        self.tilt_digging_start_position = self.get_parameter(
-            "tilt_digging_start_position"
-        ).value
         self.screw_speed = self.get_parameter("fast_screw_speed").value
         self.dumper_power = self.get_parameter("dumper_power").value
-        self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
-
+       
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info(
             "max_drive_power has been set to: " + str(self.max_drive_power)
@@ -128,29 +105,15 @@ class MainControlNode(Node):
             "max_turn_power has been set to: " + str(self.max_turn_power)
         )
         self.get_logger().info(
-            "digger_chain_power has been set to: " + str(self.digger_chain_power)
-        )
-        self.get_logger().info(
-            "digger_lift_manual_power_down has been set to: "
-            + str(self.digger_lift_manual_power_down)
-        )
-        self.get_logger().info(
-            "digger_lift_manual_power_up has been set to: "
-            + str(self.digger_lift_manual_power_up)
-        )
-        self.get_logger().info(
             "autonomous_field_type has been set to: " + str(self.autonomous_field_type)
-        )
-        self.get_logger().info(
-            "tilt_digging_start_position has been set to: "
-            + str(self.tilt_digging_start_position)
         )
         self.get_logger().info(
             "dumper_power has been set to: " + str(self.dumper_power)
         )
         self.get_logger().info(
-            "DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE)
+            "screw_speed has been set to: " + str(self.screw_speed)
         )
+       
 
         # Define some initial states here
         self.state = states["Teleop"]
@@ -204,10 +167,6 @@ class MainControlNode(Node):
             10,
             callback_group=ReentrantCallbackGroup(),
         )
-        self.lift_pose_subscription = self.create_subscription(
-            Float32, "lift_pose", self.lift_pose_callback, 10
-        )
-
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
         )
@@ -225,9 +184,6 @@ class MainControlNode(Node):
         self.auto_dig_nav_offload_handle: ClientGoalHandle = ClientGoalHandle(
             None, None, None
         )
-
-        # Current position of the lift motor in potentiometer units (0 to 1023)
-        self.current_lift_position = None  # We don't know the current position yet
 
         # Add watchdog parameters
         self.declare_parameter("watchdog_timeout", 0.5)  # Timeout in seconds
@@ -301,10 +257,7 @@ class MainControlNode(Node):
                 self.get_logger().error("Auto dig action not available")
                 return
             self.stop_all_subsystems()
-            goal = AutoDig.Goal(
-                lift_digging_start_position=self.lift_digging_start_position,
-                digger_chain_power=self.digger_chain_power,
-            )
+            goal = AutoDig.Goal()
             self.auto_dig_handle = await self.act_auto_dig.send_goal_async(goal)
             self.auto_dig_handle.get_result_async().add_done_callback(
                 self.get_result_callback
@@ -558,9 +511,6 @@ class MainControlNode(Node):
     #         self.connection_active = True
 
     # Define the subscriber callback for the lift pose topic
-    def lift_pose_callback(self, msg: Float32):
-        # Average the two potentiometer values
-        self.current_lift_position = msg.data
 
 
 def main(args=None) -> None:
