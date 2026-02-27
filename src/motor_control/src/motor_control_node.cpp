@@ -291,7 +291,6 @@ public:
         "motor/set", std::bind(&MotorControlNode::set_callback, this, _1, _2));
     srv_motor_get = this->create_service<rovr_interfaces::srv::MotorCommandGet>(
         "motor/get", std::bind(&MotorControlNode::get_callback, this, _1, _2));
-    // digger_lift service removed (digger subsystem deprecated)
 
     // Initialize timers below //
     timer = this->create_wall_timer(500ms, std::bind(&MotorControlNode::timer_callback, this));
@@ -359,8 +358,6 @@ private:
     RCLCPP_DEBUG(this->get_logger(), "Received status frame %u from CAN ID %u with the following data:", statusId, motorId);
     RCLCPP_DEBUG(this->get_logger(), "RPM: %.2f Duty Cycle: %.2f%% Current: %.2fAmps Tachometer: %d", RPM, dutyCycleNow, current, tachometer);
   }
-
-  //TODO Can we just completely get rid of this callback? - earlier we had: potentiometer readings for digger position control
 
 
   // Initialize a hashmap to store the most recent motor data for each CAN ID

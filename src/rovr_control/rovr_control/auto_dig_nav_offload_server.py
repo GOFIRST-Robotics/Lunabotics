@@ -80,10 +80,7 @@ class AutoDigNavOffloadServer(AsyncNode):
             self.get_logger().info("start dig")
 
             self.dig_in_progress = True
-            dig_goal = AutoDig.Goal(
-                tilt_digging_start_position=goal_handle.request.tilt_digging_start_position,
-                digger_chain_power=goal_handle.request.digger_chain_power,
-            )
+            dig_goal = AutoDig.Goal()
             self.dig_handle = await self._auto_dig_client.send_goal_async(dig_goal)
             if not self.dig_handle.accepted:
                 self.get_logger().error("AutoDig rejected")
