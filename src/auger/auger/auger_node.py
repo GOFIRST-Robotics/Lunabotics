@@ -20,6 +20,8 @@ from rovr_interfaces.srv import (
 from rovr_interfaces.srv import SetExtension
 from rovr_interfaces.msg import Potentiometers
 from std_srvs.srv import Trigger
+from std_msgs.msg import Bool, Float32
+
 
 
 class Auger(Node):
@@ -216,6 +218,10 @@ class Auger(Node):
             Bool, "auger_stowed", 10
         )
 
+        self.extension_pos_sub = self.create_publisher(
+            Float32, "extension_pos", 10
+        )
+
         
 
         
@@ -386,6 +392,9 @@ class Auger(Node):
 
             if motor_get_pos_future.result().success:
                 current_pos = motor_get_pos_future.result().data
+                msg = Float32()
+                msg.data = current_pos
+                self.extension_pos_sub.publish(msg)
                 if (speed <= 0 and current_pos <= desired_position) or (
                     speed > 0 and current_pos >= desired_position) or (self.extension_limit_switch):
                     break
