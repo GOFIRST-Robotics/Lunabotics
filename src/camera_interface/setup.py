@@ -9,7 +9,9 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml'])
+        ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', 
+            ['launch/camera_system_launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,7 +27,9 @@ setup(
     entry_points={
         'console_scripts': [
             'qt_user_interface = camera_interface.qt_user_interface:main',
-            'webcam = camera_interface.webcam:main'
+            'webcam = camera_interface.webcam:main',
+            'webcam_raw = camera_interface.webcam_raw:main',
+            'compression = camera_interface.compression:main'
         ],
     },
 )
