@@ -29,7 +29,7 @@ class VideoCompressionNode(Node):
         except Exception as e:
             self.get_logger().error(f"Invalid device_id: {e}")
         
-        self.get_logger().info(f"Capturing camera_source: {self.camera_source}")
+        self.get_logger().info(f"Capturing \"{self.camera_source}\" : \"{self.topic_name}\"")
         
         self.fps = 30
         
