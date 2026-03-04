@@ -27,8 +27,8 @@ void loop() {
 
   // Read from the analog inputs (potentiometers)
   data.tiltPotentiometer = analogRead(TILT_POTENTIOMETER);  // Read left motor potentiometer value
-  data.dumpLimitSwitch = analogRead(DUMP_LIMIT_SWITCH); // Read right motor potentiometer value
-  data.extensionLimitSwitch  = analogRead(EXTENSION_LIMIT_SWITCH); //bottom limit switch value
+  data.dumpLimitSwitch = digitalRead(DUMP_LIMIT_SWITCH);
+  data.extensionLimitSwitch  = digitalRead(EXTENSION_LIMIT_SWITCH);
 
   // Send the struct over the serial bus to the Nvidia Jetson
   Serial.write((byte *)&data, sizeof(SensorData));
