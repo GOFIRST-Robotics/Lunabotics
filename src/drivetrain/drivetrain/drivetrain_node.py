@@ -30,7 +30,9 @@ class DrivetrainNode(Node):
         self.declare_parameter("GAZEBO_SIMULATION", False)
         self.declare_parameter("MAX_DRIVETRAIN_RPM", 10000)
         self.declare_parameter("DRIVETRAIN_TYPE", "velocity")
-        self.declare_parameter("DIGGER_SAFETY_ZONE", 120)  # Measured in potentiometer units (0 to 1023)
+        self.declare_parameter(
+            "EXTENSION_SAFETY_ZONE", 0
+        )  # Measured in potentiometer units (0 to 1023)
 
         # Assign the ROS Parameters to member variables below #
         self.FRONT_LEFT_DRIVE = self.get_parameter("FRONT_LEFT_DRIVE").value
@@ -40,43 +42,76 @@ class DrivetrainNode(Node):
         self.GAZEBO_SIMULATION = self.get_parameter("GAZEBO_SIMULATION").value
         self.MAX_DRIVETRAIN_RPM = self.get_parameter("MAX_DRIVETRAIN_RPM").value
         self.DRIVETRAIN_TYPE = self.get_parameter("DRIVETRAIN_TYPE").value
-        self.DIGGER_SAFETY_ZONE = self.get_parameter("DIGGER_SAFETY_ZONE").value
+        self.EXTENSION_SAFETY_ZONE = self.get_parameter("EXTENSION_SAFETY_ZONE").value
 
         # Define publishers and subscribers here
-        self.cmd_vel_sub = self.create_subscription(Twist, "cmd_vel", self.cmd_vel_callback, 10)
-        self.lift_pose_subscription = self.create_subscription(Float32, "lift_pose", self.lift_pose_callback, 10)
+        self.cmd_vel_sub = self.create_subscription(
+            Twist, "cmd_vel", self.cmd_vel_callback, 10
+        )
+        self.extension_sub = self.create_subscription(
+            Float32, "extension_pos", self.extension_callback, 10
+        )
 
         if self.GAZEBO_SIMULATION:
-            self.gazebo_front_left_wheel_pub = self.create_publisher(Float64, "front_left_wheel/cmd_vel", 10)
-            self.gazebo_back_left_wheel_pub = self.create_publisher(Float64, "back_left_wheel/cmd_vel", 10)
-            self.gazebo_front_right_wheel_pub = self.create_publisher(Float64, "front_right_wheel/cmd_vel", 10)
-            self.gazebo_back_right_wheel_pub = self.create_publisher(Float64, "back_right_wheel/cmd_vel", 10)
+            self.gazebo_front_left_wheel_pub = self.create_publisher(
+                Float64, "front_left_wheel/cmd_vel", 10
+            )
+            self.gazebo_back_left_wheel_pub = self.create_publisher(
+                Float64, "back_left_wheel/cmd_vel", 10
+            )
+            self.gazebo_front_right_wheel_pub = self.create_publisher(
+                Float64, "front_right_wheel/cmd_vel", 10
+            )
+            self.gazebo_back_right_wheel_pub = self.create_publisher(
+                Float64, "back_right_wheel/cmd_vel", 10
+            )
 
         # Define service clients here
         self.cli_motor_set = self.create_client(MotorCommandSet, "motor/set")
 
         # Define services (methods callable from the outside) here
-        self.srv_stop = self.create_service(Trigger, "drivetrain/stop", self.stop_callback)
-        self.srv_drive = self.create_service(Drive, "drivetrain/drive", self.drive_callback)
+        self.srv_stop = self.create_service(
+            Trigger, "drivetrain/stop", self.stop_callback
+        )
+        self.srv_drive = self.create_service(
+            Drive, "drivetrain/drive", self.drive_callback
+        )
 
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info("FRONT_LEFT_DRIVE has been set to: " + str(self.FRONT_LEFT_DRIVE))
-        self.get_logger().info("FRONT_RIGHT_DRIVE has been set to: " + str(self.FRONT_RIGHT_DRIVE))
-        self.get_logger().info("BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE))
-        self.get_logger().info("BACK_RIGHT_DRIVE has been set to: " + str(self.BACK_RIGHT_DRIVE))
-        self.get_logger().info("GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION))
-        self.get_logger().info("MAX_DRIVETRAIN_RPM has been set to: " + str(self.MAX_DRIVETRAIN_RPM))
-        self.get_logger().info("DIGGER_SAFETY_ZONE has been set to: " + str(self.DIGGER_SAFETY_ZONE))
+        self.get_logger().info(
+            "FRONT_LEFT_DRIVE has been set to: " + str(self.FRONT_LEFT_DRIVE)
+        )
+        self.get_logger().info(
+            "FRONT_RIGHT_DRIVE has been set to: " + str(self.FRONT_RIGHT_DRIVE)
+        )
+        self.get_logger().info(
+            "BACK_LEFT_DRIVE has been set to: " + str(self.BACK_LEFT_DRIVE)
+        )
+        self.get_logger().info(
+            "BACK_RIGHT_DRIVE has been set to: " + str(self.BACK_RIGHT_DRIVE)
+        )
+        self.get_logger().info(
+            "GAZEBO_SIMULATION has been set to: " + str(self.GAZEBO_SIMULATION)
+        )
+        self.get_logger().info(
+            "MAX_DRIVETRAIN_RPM has been set to: " + str(self.MAX_DRIVETRAIN_RPM)
+        )
+        self.get_logger().info(
+            "EXTENSION_SAFETY_ZONE has been set to: " + str(self.EXTENSION_SAFETY_ZONE)
+        )
 
         # Current position of the lift motor in potentiometer units (0 to 1023)
-        self.current_lift_position = None  # We don't know the current position yet
+        self.extension_pos = None  # We don't know the current position yet
 
     # Define subsystem methods here
     def drive(self, forward_power: float, turning_power: float) -> None:
         """This method drives the robot with the desired forward and turning power."""
 
         if (
-            (self.current_lift_position is None or self.current_lift_position > self.DIGGER_SAFETY_ZONE)
+            (
+                self.extension_pos is None
+                or self.extension_pos > self.EXTENSION_SAFETY_ZONE
+            )
             and not self.GAZEBO_SIMULATION
             and (forward_power != 0 or turning_power != 0)
         ):
@@ -104,25 +139,45 @@ class DrivetrainNode(Node):
 
         # Send velocity (not duty cycle) motor commands to the motor_control_node
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower)
+            MotorCommandSet.Request(
+                can_id=self.FRONT_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower)
+            MotorCommandSet.Request(
+                can_id=self.BACK_LEFT_DRIVE, type=self.DRIVETRAIN_TYPE, value=leftPower
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower)
+            MotorCommandSet.Request(
+                can_id=self.FRONT_RIGHT_DRIVE,
+                type=self.DRIVETRAIN_TYPE,
+                value=rightPower,
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type=self.DRIVETRAIN_TYPE, value=rightPower)
+            MotorCommandSet.Request(
+                can_id=self.BACK_RIGHT_DRIVE,
+                type=self.DRIVETRAIN_TYPE,
+                value=rightPower,
+            )
         )
 
         # Publish the wheel speeds to the gazebo simulation
         if self.GAZEBO_SIMULATION:
             if self.DRIVETRAIN_TYPE == "velocity":
-                self.gazebo_front_left_wheel_pub.publish(Float64(data=leftPower / self.MAX_DRIVETRAIN_RPM))
-                self.gazebo_back_left_wheel_pub.publish(Float64(data=leftPower / self.MAX_DRIVETRAIN_RPM))
-                self.gazebo_front_right_wheel_pub.publish(Float64(data=rightPower / self.MAX_DRIVETRAIN_RPM))
-                self.gazebo_back_right_wheel_pub.publish(Float64(data=rightPower / self.MAX_DRIVETRAIN_RPM))
+                self.gazebo_front_left_wheel_pub.publish(
+                    Float64(data=leftPower / self.MAX_DRIVETRAIN_RPM)
+                )
+                self.gazebo_back_left_wheel_pub.publish(
+                    Float64(data=leftPower / self.MAX_DRIVETRAIN_RPM)
+                )
+                self.gazebo_front_right_wheel_pub.publish(
+                    Float64(data=rightPower / self.MAX_DRIVETRAIN_RPM)
+                )
+                self.gazebo_back_right_wheel_pub.publish(
+                    Float64(data=rightPower / self.MAX_DRIVETRAIN_RPM)
+                )
             else:
                 self.gazebo_front_left_wheel_pub.publish(Float64(data=leftPower))
                 self.gazebo_back_left_wheel_pub.publish(Float64(data=leftPower))
@@ -133,16 +188,24 @@ class DrivetrainNode(Node):
     def stop(self) -> None:
         """This method stops the drivetrain."""
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=0.0)
+            MotorCommandSet.Request(
+                can_id=self.FRONT_LEFT_DRIVE, type="duty_cycle", value=0.0
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=0.0)
+            MotorCommandSet.Request(
+                can_id=self.BACK_LEFT_DRIVE, type="duty_cycle", value=0.0
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=0.0)
+            MotorCommandSet.Request(
+                can_id=self.FRONT_RIGHT_DRIVE, type="duty_cycle", value=0.0
+            )
         )
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=0.0)
+            MotorCommandSet.Request(
+                can_id=self.BACK_RIGHT_DRIVE, type="duty_cycle", value=0.0
+            )
         )
 
     # Define service callback methods here
@@ -165,9 +228,9 @@ class DrivetrainNode(Node):
         self.drive(msg.linear.x, msg.angular.z)
 
     # Define the subscriber callback for the lift pose topic
-    def lift_pose_callback(self, msg: Float32):
+    def extension_callback(self, msg: Float32):
         # Average the two potentiometer values
-        self.current_lift_position = msg.data
+        self.extension_pos = msg.data
 
 
 def main(args=None):
