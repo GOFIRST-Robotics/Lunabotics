@@ -23,7 +23,6 @@ from std_srvs.srv import Trigger
 from std_msgs.msg import Bool, Float32
 
 
-
 class Auger(Node):
     def __init__(self):
         "Initialize the ROS 2 Auger node"
@@ -214,17 +213,9 @@ class Auger(Node):
         )
 
         # TODO Define publishers here
-        self.auger_stowed_pub = self.create_publisher(
-            Bool, "auger_stowed", 10
-        )
+        self.auger_stowed_pub = self.create_publisher(Bool, "auger_stowed", 10)
 
-        self.extension_pos_sub = self.create_publisher(
-            Float32, "extension_pos", 10
-        )
-
-        
-
-        
+        self.extension_pos_sub = self.create_publisher(Float32, "extension_pos", 10)
 
     # Define subsystem methods here
 
@@ -395,8 +386,11 @@ class Auger(Node):
                 msg = Float32()
                 msg.data = current_pos
                 self.extension_pos_sub.publish(msg)
-                if (speed <= 0 and current_pos <= desired_position) or (
-                    speed > 0 and current_pos >= desired_position) or (self.extension_limit_switch):
+                if (
+                    (speed <= 0 and current_pos <= desired_position)
+                    or (speed > 0 and current_pos >= desired_position)
+                    or (self.extension_limit_switch)
+                ):
                     break
             else:
                 self.get_logger().warn("WARNING: Failed to read push motor position")

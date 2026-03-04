@@ -14,7 +14,9 @@ class read_serial(Node):
 
         self.potentiometerPub = self.create_publisher(Int16, "potentiometer", 10)
         self.DumperLimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
-        self.ExtensionLimitSwitchPub = self.create_publisher(Bool, "ExtensionLimitSwitch", 10)
+        self.ExtensionLimitSwitchPub = self.create_publisher(
+            Bool, "ExtensionLimitSwitch", 10
+        )
 
         # Services to control the relay-driven agitator motor
         self.srv_bigonoff = self.create_service(
@@ -66,7 +68,6 @@ class read_serial(Node):
         extension_bool_msg = Bool()
         extension_bool_msg.data = decoded[2]
         self.ExtensionLimitSwitchPub.publish(extension_bool_msg)
-
 
     def big_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF
