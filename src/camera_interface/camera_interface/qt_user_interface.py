@@ -2,7 +2,7 @@ import sys
 import threading
 import time
 import math
-import numpy as np
+import signal
 import av  # PyAV
 
 import rclpy
@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
     QListWidget, QListWidgetItem,
     QGridLayout, QSizePolicy  # <--- Added QSizePolicy import
 )
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QImage, QPixmap, QPainter, QColor, QFont
 from PySide6.QtCore import Qt, Signal, QObject
 
 # -------------------- Dark Theme --------------------
@@ -142,11 +142,12 @@ class CameraWidget(QWidget):
     def __init__(self, topic):
         super().__init__()
         self.topic = topic
-        self.last_frame = None  # Stores the actual numpy array
+        self.last_frame = None 
         self.last_received_time = time.time()
+        self.start_time = time.time()  # Track when we started waiting
         self.is_disconnected = True 
 
-        self.label = QLabel("Waiting for Stream...")
+        self.label = QLabel("Initializing...")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet("background-color: #000; color: #555;")
         self.label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
@@ -165,54 +166,64 @@ class CameraWidget(QWidget):
         self.watchdog = QTimer(self)
         self.watchdog.timeout.connect(self.check_connection)
         self.watchdog.start(500)
+        
+        self.show_no_signal()
 
     def check_connection(self):
         """Checks if the frame rate has stalled."""
+        # Check if we are timed out (either from a stall or initial wait)
         if time.time() - self.last_received_time > 2.0:
-            # Re-draw the "No Signal" overlay even if already disconnected 
-            # to handle window resizing properly.
             self.show_no_signal()
         else:
             self.is_disconnected = False
 
     def show_no_signal(self):
-        """Overlays 'No Signal' on top of the last known frame."""
+        """Displays status overlay based on connection history and elapsed time."""
         self.is_disconnected = True
+        elapsed_since_start = time.time() - self.start_time
         
-        # Create base pixmap (either the last frame or black)
+        base_pixmap = QPixmap(self.label.size())
+        
+        # Decide which text and color to use
         if self.last_frame is not None:
+            # SCENARIO 1: We had a frame, but it stopped.
             h, w, ch = self.last_frame.shape
             bytes_per_line = ch * w
             qimg = QImage(self.last_frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
             base_pixmap = QPixmap.fromImage(qimg).scaled(
                 self.label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
             )
+            overlay_color = QColor(0, 0, 0, 140)
+            text_str = "NO SIGNAL"
+            text_color = QColor(255, 50, 50) # Red
         else:
-            base_pixmap = QPixmap(self.label.size())
+            # SCENARIO 2: We have never received a frame.
             base_pixmap.fill(Qt.black)
+            overlay_color = QColor(0, 0, 0, 0)
+            
+            # If we've been waiting more than 10 seconds, call it 'No Signal'
+            if elapsed_since_start > 10.0:
+                text_str = "NO SIGNAL (TIMEOUT)"
+                text_color = QColor(255, 50, 50) # Switch to Red
+            else:
+                text_str = "WAITING FOR CAMERA..."
+                text_color = QColor(180, 180, 180) # Neutral Grey
 
-        # Create overlay
-        from PySide6.QtGui import QPainter, QColor, QFont
         painter = QPainter(base_pixmap)
+        if overlay_color.alpha() > 0:
+            painter.fillRect(base_pixmap.rect(), overlay_color)
         
-        # 1. Draw a semi-transparent dark rectangle over the whole frame
-        painter.fillRect(base_pixmap.rect(), QColor(0, 0, 0, 127))
-        
-        # 2. Draw the text
-        painter.setPen(QColor(255, 50, 50)) # Bright Red
-        font = QFont("Arial", 16, QFont.Bold)
-        painter.setFont(font)
-        
-        painter.drawText(base_pixmap.rect(), Qt.AlignCenter, "NO SIGNAL")
+        painter.setPen(text_color)
+        painter.setFont(QFont("Arial", 14, QFont.Bold))
+        painter.drawText(base_pixmap.rect(), Qt.AlignCenter, text_str)
         painter.end()
         
         self.label.setPixmap(base_pixmap)
 
     def update_image(self, cv_img):
-        """Updates the stored frame and resets the watchdog."""
         self.last_received_time = time.time()
         self.is_disconnected = False
-        self.last_frame = cv_img.copy() # Store copy to prevent memory corruption
+        self.last_frame = cv_img.copy() 
         
         h, w, ch = self.last_frame.shape
         bytes_per_line = ch * w
@@ -224,13 +235,12 @@ class CameraWidget(QWidget):
         ))
 
     def resizeEvent(self, event):
-        # Trigger redraw on resize so aspect ratio and overlay remain correct
-        if not self.is_disconnected and self.last_frame is not None:
-            self.update_image(self.last_frame)
-        else:
+        if self.is_disconnected:
             self.show_no_signal()
+        elif self.last_frame is not None:
+            self.update_image(self.last_frame)
         super().resizeEvent(event)
-
+        
 # -------------------- Updated UI Window logic --------------------
 
 class MultiCameraWindow(QMainWindow):
@@ -345,24 +355,39 @@ def main():
     rclpy.init()
     
     node = UserInterfaceNode()
+    # Ensure this thread is a 'daemon' so it dies when the main process dies
     ros_thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
     ros_thread.start()
     
     app = QApplication(sys.argv)
     app.setStyleSheet(dark_stylesheet)
     
+    # --- SIGINT Handling ---
+    # This allows Ctrl+C in terminal to close the Qt Window
+    signal.signal(signal.SIGINT, lambda *args: QApplication.quit())
+    
+    # A tiny timer that runs every 500ms just to give the 
+    # Python interpreter a chance to catch the signal
+    from PySide6.QtCore import QTimer
+    timer = QTimer()
+    timer.start(500)
+    timer.timeout.connect(lambda: None) 
+    # -----------------------
+
     gui = MultiCameraWindow(node)
     gui.resize(1280, 720)
     gui.show()
     
     try:
-        # FIX 2: Do not wrap in sys.exit() yet to allow clean shutdown block
         app.exec()
+    except KeyboardInterrupt:
+        pass
     finally:
-        # FIX 3: Check if rclpy is still okay before shutting down
+        # Clean shutdown
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+        print("\nUI and ROS Node shut down successfully.")
 
 if __name__ == "__main__":
     main()
