@@ -9,9 +9,9 @@ def generate_launch_description():
         {"name": "right", "topic": "/webcam/right", "id": "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9281_USB_Camera_UC762-video-index0"},
         {"name": "left",  "topic": "/webcam/left",  "id": "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9782_USB_Camera_UC852-video-index0"}, #
         {"name": "back",  "topic": "/webcam/back",  "id": "/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB2.0_FHD_UVC_WebCam-video-index0"},
-        {"name": "digger", "topic": "/webcam/digger", "id": "/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB2.0_FHD_UVC_WebCam-video-index1"},
-        {"name": "dumper",  "topic": "/webcam/dumper",  "id": "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9281_USB_Camera_UC762-video-index1"},
-        {"name": "front",  "topic": "/webcam/front",  "id": "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9782_USB_Camera_UC852-video-index1"},
+        # {"name": "digger", "topic": "/webcam/digger", "id": "/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB2.0_FHD_UVC_WebCam-video-index1"},
+        # {"name": "dumper",  "topic": "/webcam/dumper",  "id": "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9281_USB_Camera_UC762-video-index1"},
+        # {"name": "front",  "topic": "/webcam/front",  "id": "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_OV9782_USB_Camera_UC852-video-index1"},
     ]
 
     nodes = [
