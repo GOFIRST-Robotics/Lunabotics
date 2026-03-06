@@ -14,6 +14,7 @@ public:
     {
         return
         {
+            BT::InputPort<std::string>("action_name"),
             BT::InputPort<double>("target_x"),
             BT::InputPort<double>("target_y")
         };
@@ -26,8 +27,8 @@ public:
 
     bool setGoal(__attribute__((unused)) Goal &goal) override
     {
-        getInput("target_x", goal.target_x);
-        getInput("target_y", goal.target_y);
+        goal.target_x = getInput<double>("target_x", goal.target_x);
+        goal.target_y = getInput<double>("target_y", goal.target_y);
         return true;
     }
 

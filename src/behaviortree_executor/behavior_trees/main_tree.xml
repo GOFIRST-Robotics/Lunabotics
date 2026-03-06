@@ -23,6 +23,8 @@
   <TreeNodesModel>
     <Action ID="AutoDig" editable="true">
       <input_port name="action_name"/>
+      <input_port name="backup_distance"/>
+      <input_port name="digger_chain_power"/>
     </Action>
     <Action ID="AutoOffload" editable="true">
       <input_port name="action_name"/>
@@ -32,6 +34,8 @@
     </Action>
     <Action ID="GoToDigLocation" editable="true">
       <input_port name="action_name"/>
+      <input_port name="target_x"/>
+      <input_port name="target_y"/>
     </Action>
   </TreeNodesModel>
 

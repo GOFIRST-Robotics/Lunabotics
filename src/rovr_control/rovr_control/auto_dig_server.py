@@ -35,16 +35,12 @@ class AutoDigServer(AsyncNode):
         )  # /actuator_tilt/stop
 
         # extend
-        self.set_extension = self.create_client(
-            AugerSetPushMotor, "auger/push_motor/setPosition"
-        )
+        self.set_extension = self.create_client(AugerSetPushMotor, "auger/push_motor/setPosition")
         self.stop_extension = self.create_client(Trigger, "auger/push_motor/stop")
         self.retract_extender = self.create_client(Trigger, "auger/push_motor/retract")
 
         # spin auger
-        self.screw_stop = self.create_client(
-            Trigger, "auger/screw/stop"
-        )  # /motor_spin/stop
+        self.screw_stop = self.create_client(Trigger, "auger/screw/stop")  # /motor_spin/stop
         self.screw_start = self.create_client(
             SetScrewMotorSpeed, "auger/screw/run"
         )  # /motor_spin/run
@@ -55,12 +51,9 @@ class AutoDigServer(AsyncNode):
 
         self._backup_client = ActionClient(self, BackUp, "backup")
 
-        self.declare_parameter(
-            "fast_screw_speed", 4000
-        )
-        self.declare_parameter(
-            "slow_screw_speed", 2000
-        )
+        self.declare_parameter("fast_screw_speed", 4000)
+        self.declare_parameter("slow_screw_speed", 2000)
+
         self.spin_dig_speed = self.get_parameter("fast_screw_speed").value
         self.spin_stow_speed = self.get_parameter("slow_screw_speed").value
 
@@ -154,6 +147,18 @@ class AutoDigServer(AsyncNode):
         return CancelResponse.ACCEPT
 
     async def auto_dig(self, goal_handle: ServerGoalHandle):
+        
+        # For Behavior Tree
+         # -----------------------------------------------------------------
+        custom_speed = goal_handle.request.digger_chain_power
+        if custom_speed > 0:
+            self.spin_dig_speed = float(custom_speed)
+            self.get_logger().info(f"Using custom screw speed: {self.spin_dig_speed}")
+        else:
+            self.get_logger().info("No custom screw speed specified, using default fast screw speed")
+            self.spin_dig_speed = self.get_parameter("fast_screw_speed").value
+        # -----------------------------------------------------------------
+
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Starting screw")
             await self.screw_start.call_async(
@@ -231,13 +236,9 @@ class AutoDigServer(AsyncNode):
                 SetScrewMotorSpeed.Request(speed=self.spin_stow_speed)
             )
 
-    async def set_position_retry(
-        self, position: float, power_limit: float, max_retries: int = 4
-    ):
+    async def set_position_retry(self, position: float, power_limit: float, max_retries: int = 4):
         self.get_logger().info("Starting the digger chain")
-        await self.screw_start.call_async(
-            SetScrewMotorSpeed.Request(speed=self.spin_dig_speed)
-        )
+        await self.screw_start.call_async(SetScrewMotorSpeed.Request(speed=self.spin_dig_speed))
 
         for i in range(max_retries):
             if not self.goal_handle.is_cancel_requested:
@@ -267,8 +268,17 @@ class AutoDigServer(AsyncNode):
         return max_retries
 
     async def _do_backup(self, goal_handle):
+
+        # ------------------------------------------------------------------
+        dist = goal_handle.request.backup_distance
+        if dist <= 0:
+            self.get_logger().info("No backup distance specified, going to default backup")
+            dist = 0.5  # Place holder value until decided
+        else:
+            self.get_logger().info(f"Backing up {dist} meters")
+        # ------------------------------------------------------------------
+
         if not goal_handle.is_cancel_requested:
-            dist = 0.5  # TODO update value
             speed = 0.5  # duty cycle
             timeout = 9.0  # seconds
             self.get_logger().info(f"→ Backing up {dist}m @ {speed} (duty cycle)")

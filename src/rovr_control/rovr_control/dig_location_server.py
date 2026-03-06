@@ -87,7 +87,7 @@ class DigLocationFinder(Node):
 
         target_x = goal_handle.request.target_x
         target_y = goal_handle.request.target_y
-
+        goal_pose_xy = None
         if target_x == 0.0 and target_y == 0.0:
             self.get_logger().info("No target provided, finding dig location")
             goal_pose_xy = self.getDigLocation()

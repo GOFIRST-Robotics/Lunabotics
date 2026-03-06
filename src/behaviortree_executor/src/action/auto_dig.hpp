@@ -13,9 +13,7 @@ public:
     static BT::PortsList providedPorts()
 {
     return {
-        BT::InputPort<double>("lift_digging_start_position"),
-        BT::InputPort<double>("lift_digging_end_position"),
-        BT::InputPort<double>("digger_chain_power") 
+        BT::InputPort<std::string>("action_name"),
     };
 }
     AutoDigAction(const std::string &name, const BT::NodeConfig &conf,
@@ -27,9 +25,8 @@ public:
     bool setGoal(Goal &goal) override
     {
         // get inputs from the Input port
-        getInput("lift_digging_start_position", goal.lift_digging_start_position);
-        getInput("lift_digging_end_position", goal.lift_digging_end_position);
-        getInput("digger_belt_power", goal.digger_belt_power);
+        goal.backup_distance = getInput<double>("backup_distance", goal.backup_distance);
+        goal.digger_chain_power = getInput<double>("digger_chain_power", goal.digger_chain_power);
         // return true, if we were able to set the goal correctly.
         return true;
     }
