@@ -142,13 +142,13 @@ class CameraWidget(QWidget):
     def __init__(self, topic):
         super().__init__()
         self.topic = topic
-        self.last_frame = None
+        self.last_frame = None  # Stores the actual numpy array
+        self.last_received_time = time.time()
+        self.is_disconnected = True 
 
         self.label = QLabel("Waiting for Stream...")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet("background-color: #000; color: #555;")
-        
-        # FIX 1: Use QSizePolicy instead of QWidget.SizePolicy
         self.label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         
         title = QLabel(topic)
@@ -161,12 +161,62 @@ class CameraWidget(QWidget):
         layout.addWidget(self.label, 1)
         layout.addWidget(title)
 
-    def update_image(self, cv_img):
-        self.last_frame = cv_img 
-        h, w, ch = cv_img.shape
-        bytes_per_line = ch * w
+        from PySide6.QtCore import QTimer
+        self.watchdog = QTimer(self)
+        self.watchdog.timeout.connect(self.check_connection)
+        self.watchdog.start(500)
+
+    def check_connection(self):
+        """Checks if the frame rate has stalled."""
+        if time.time() - self.last_received_time > 2.0:
+            # Re-draw the "No Signal" overlay even if already disconnected 
+            # to handle window resizing properly.
+            self.show_no_signal()
+        else:
+            self.is_disconnected = False
+
+    def show_no_signal(self):
+        """Overlays 'No Signal' on top of the last known frame."""
+        self.is_disconnected = True
         
-        qimg = QImage(cv_img.data, w, h, bytes_per_line, QImage.Format_RGB888).copy()
+        # Create base pixmap (either the last frame or black)
+        if self.last_frame is not None:
+            h, w, ch = self.last_frame.shape
+            bytes_per_line = ch * w
+            qimg = QImage(self.last_frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            base_pixmap = QPixmap.fromImage(qimg).scaled(
+                self.label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+        else:
+            base_pixmap = QPixmap(self.label.size())
+            base_pixmap.fill(Qt.black)
+
+        # Create overlay
+        from PySide6.QtGui import QPainter, QColor, QFont
+        painter = QPainter(base_pixmap)
+        
+        # 1. Draw a semi-transparent dark rectangle over the whole frame
+        painter.fillRect(base_pixmap.rect(), QColor(0, 0, 0, 127))
+        
+        # 2. Draw the text
+        painter.setPen(QColor(255, 50, 50)) # Bright Red
+        font = QFont("Arial", 16, QFont.Bold)
+        painter.setFont(font)
+        
+        painter.drawText(base_pixmap.rect(), Qt.AlignCenter, "NO SIGNAL")
+        painter.end()
+        
+        self.label.setPixmap(base_pixmap)
+
+    def update_image(self, cv_img):
+        """Updates the stored frame and resets the watchdog."""
+        self.last_received_time = time.time()
+        self.is_disconnected = False
+        self.last_frame = cv_img.copy() # Store copy to prevent memory corruption
+        
+        h, w, ch = self.last_frame.shape
+        bytes_per_line = ch * w
+        qimg = QImage(self.last_frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
         
         pix = QPixmap.fromImage(qimg)
         self.label.setPixmap(pix.scaled(
@@ -174,9 +224,14 @@ class CameraWidget(QWidget):
         ))
 
     def resizeEvent(self, event):
-        if self.last_frame is not None:
+        # Trigger redraw on resize so aspect ratio and overlay remain correct
+        if not self.is_disconnected and self.last_frame is not None:
             self.update_image(self.last_frame)
+        else:
+            self.show_no_signal()
         super().resizeEvent(event)
+
+# -------------------- Updated UI Window logic --------------------
 
 class MultiCameraWindow(QMainWindow):
     def __init__(self, ros_node):
@@ -248,10 +303,11 @@ class MultiCameraWindow(QMainWindow):
         if topic in self.camera_widgets: return
         
         widget = CameraWidget(topic)
+        # Using a lambda to ensure the widget receives the frame
         sig = ImageSignal()
         sig.image_ready.connect(widget.update_image)
-        self.ros_node.image_signals[topic] = sig
         
+        self.ros_node.image_signals[topic] = sig
         self.ros_node.subscribe(topic, msg_type)
         self.camera_widgets[topic] = widget
         self.rebuild_grid()
