@@ -6,14 +6,8 @@ image_key="ros2_humble.deepstream.user.zed.umn.gazebo"
 docker_arg="-v /usr/local/zed/resources:/usr/local/zed/resources \
 -v $HOME/rosbags:/rosbags \
 -v /usr/local/zed/settings:/usr/local/zed/settings \
--v /dev/v4l:/dev/v4l"
-
-# Dynamically add ALL video devices present on the host
-for dev in /dev/video*; do
-  if [ -e "$dev" ]; then
-    docker_arg="$docker_arg --device $dev:$dev"
-  fi
-done
+-v /dev:/dev \
+--privileged"
 
 USE_CACHED_IMAGE=${1:-true}
 
