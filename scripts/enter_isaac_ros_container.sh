@@ -6,8 +6,16 @@ image_key="ros2_humble.deepstream.user.zed.umn.gazebo"
 docker_arg="-v /usr/local/zed/resources:/usr/local/zed/resources \
 -v $HOME/rosbags:/rosbags \
 -v /usr/local/zed/settings:/usr/local/zed/settings \
--v /dev:/dev \
---privileged"
+-v /dev/v4l:/dev/v4l \
+-v /dev/video0:/dev/video0 \
+-v /dev/video1:/dev/video1 \
+-v /dev/video2:/dev/video2 \
+-v /dev/video3:/dev/video3 \
+-v /dev/video4:/dev/video4 \
+-v /dev/video5:/dev/video5 \
+-v /dev/video6:/dev/video6 \
+-v /dev/video7:/dev/video7 \
+-v /dev/video8:/dev/video8"
 
 USE_CACHED_IMAGE=${1:-true}
 
