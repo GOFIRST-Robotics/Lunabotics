@@ -24,7 +24,6 @@
     <Action ID="AutoDig" editable="true">
       <input_port name="action_name"/>
       <input_port name="backup_distance"/>
-      <input_port name="digger_chain_power"/>
     </Action>
     <Action ID="AutoOffload" editable="true">
       <input_port name="action_name"/>

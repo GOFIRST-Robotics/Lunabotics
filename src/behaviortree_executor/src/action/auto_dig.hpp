@@ -26,7 +26,6 @@ public:
     {
         // get inputs from the Input port
         goal.backup_distance = getInput<double>("backup_distance", goal.backup_distance);
-        goal.digger_chain_power = getInput<double>("digger_chain_power", goal.digger_chain_power);
         // return true, if we were able to set the goal correctly.
         return true;
     }

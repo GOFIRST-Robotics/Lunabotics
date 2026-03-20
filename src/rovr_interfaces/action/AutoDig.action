@@ -1,6 +1,4 @@
 # Request
-float64 digger_chain_power # Digger Drill speed, positive for forward,
-                            # negative for reverse
 float64 backup_distance # Distance to back up after digging
 ---
 # Result
