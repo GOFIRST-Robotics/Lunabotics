@@ -13,11 +13,21 @@ from rclpy.action.client import ClientGoalHandle
 from rclpy.action.server import ServerGoalHandle
 import math
 from geometry_msgs.msg import PolygonStamped, PoseStamped
+from nav_msgs.msg import OccupancyGrid
 
 
 class DigLocationFinder(Node):
     def __init__(self):
         super().__init__("dig_location_server")
+        self.latest_costmap = None
+
+        # Don't know the topic for the costmap yet or for alex blox
+        self.costmap_sub = self.create_subscription(
+            OccupancyGrid,
+            "/global_costmap/costmap",
+            self.costmap_callback,
+            10,
+        )
         self._action_server = ActionServer(
             self,
             GoToDigLocation,  # Empty action message
@@ -78,6 +88,7 @@ class DigLocationFinder(Node):
             (self.all_dig_locations[i], self.all_dig_locations[i + 1])
             for i in range(0, len(self.all_dig_locations), 2)
         ]
+
         self.potential_dig_locations = self.all_dig_locations.copy()
 
         self.nav_handle = ClientGoalHandle(None, None, None)
@@ -117,6 +128,9 @@ class DigLocationFinder(Node):
             goal_handle.abort()
 
         return result
+
+    def costmap_callback(self, msg):
+        self.latest_costmap = msg
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
         self.get_logger().info("Cancelling drive to dig location")
@@ -176,18 +190,29 @@ class DigLocationFinder(Node):
         return response
 
     def updatePotentialDigLocations(self):
+        safe_locations = []
+        if self.latest_costmap is None:
+            self.get_logger().warn("Latest costmap is None, cannot update potential dig locations")
+            return
+
         try:
-            costmap = PyCostmap2D(self.getGlobalCostmap())
-            robot_width, robot_height = (0.5, 0.5)
+            costmap = PyCostmap2D(self.latest_costmap)
+            robot_width, robot_height = (0.5, 0.5)  # Are dimensions still correct?
             for location in self.potential_dig_locations:
                 # dig_cost = maximum cost of the cells that the robot will dig
                 dig_cost = costmap.getDigCost(location[0], location[1], robot_width, robot_height)
-                if dig_cost >= self.max_dig_cost:
-                    self.potential_dig_locations.remove(location)
+                if dig_cost < self.max_dig_cost:
+                    safe_locations.append(location)
+
+            self.potential_dig_locations = safe_locations
 
         except Exception as e:
             self.get_logger().error(f"Error in updatePotentialDigLocations {e}")
 
+    '''
+    Old Global Cost Map Function, may be useful for future reference but currently not being used.
+    Subscribe to costmap topic with Alex Blox.
+    
     def getGlobalCostmap(self) -> OccupancyGrid:
         """Get the global costmap."""
         while not self.get_costmap_global_srv.wait_for_service(timeout_sec=1.0):
@@ -202,9 +227,12 @@ class DigLocationFinder(Node):
             return None
 
         return result.map
+    '''
 
     def getDigLocation(self):
-        # self.updatePotentialDigLocations()
+        self.updatePotentialDigLocations()  # Uncommented for automation
+        self.get_logger().info(f"Checking potential dig locations: {self.potential_dig_locations}")
+
         # If there are no potential dig locations, reset the potential dig locations
         # and increase the max dig cost if the max dig cost is > absolute max
         # dig cost, return None
