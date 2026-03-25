@@ -96,8 +96,10 @@ class DigLocationFinder(Node):
     async def drive_to_dig_location(self, goal_handle: ServerGoalHandle):
         result = GoToDigLocation.Result()
 
+        # Behavior tree input will go here if it isn't automatic
         target_x = goal_handle.request.target_x
         target_y = goal_handle.request.target_y
+
         goal_pose_xy = None
         if target_x == 0.0 and target_y == 0.0:
             self.get_logger().info("No target provided, finding dig location")

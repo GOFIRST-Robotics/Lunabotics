@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.action import ActionServer, ActionClient
-
+from rovr_control.costmap_2d import PyCostmap2D
 from rovr_interfaces.action import AutoDig
 from rovr_interfaces.srv import SetExtension
 from rovr_interfaces.srv import AugerSetPushMotor, SetScrewMotorSpeed
@@ -11,6 +11,7 @@ from rovr_control.node_util import AsyncNode
 from nav2_msgs.action import BackUp
 from geometry_msgs.msg import Point
 from builtin_interfaces.msg import Duration
+from nav2_msgs.msg import OccupancyGrid
 
 
 class AutoDigServer(AsyncNode):
@@ -24,6 +25,13 @@ class AutoDigServer(AsyncNode):
             goal_callback=self.goal_callback,
             handle_accepted_callback=self.handle_accepted_callback,
             cancel_callback=self.cancel_callback,
+        )
+
+        self.latest_costmap = None
+
+        # Don't know the topic for the costmap yet or for alex blox
+        self.costmap_sub = self.create_subscription(
+            OccupancyGrid, "/global_costmap/costmap", self.costmap_callback, 10
         )
 
         # tilt
@@ -56,6 +64,9 @@ class AutoDigServer(AsyncNode):
 
         self.spin_dig_speed = self.get_parameter("fast_screw_speed").value
         self.spin_stow_speed = self.get_parameter("slow_screw_speed").value
+
+    def costmap_callback(self, msg):
+        self.latest_costmap = msg
 
     def goal_callback(self, goal_request):
         self.get_logger().info("Received goal request")
@@ -147,17 +158,8 @@ class AutoDigServer(AsyncNode):
         return CancelResponse.ACCEPT
 
     async def auto_dig(self, goal_handle: ServerGoalHandle):
-        
-        # For Behavior Tree
-         # -----------------------------------------------------------------
-        custom_speed = goal_handle.request.digger_chain_power
-        if custom_speed > 0:
-            self.spin_dig_speed = float(custom_speed)
-            self.get_logger().info(f"Using custom screw speed: {self.spin_dig_speed}")
-        else:
-            self.get_logger().info("No custom screw speed specified, using default fast screw speed")
-            self.spin_dig_speed = self.get_parameter("fast_screw_speed").value
-        # -----------------------------------------------------------------
+
+        self.spin_dig_speed = self.get_parameter("fast_screw_speed").value
 
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Starting screw")
@@ -269,14 +271,52 @@ class AutoDigServer(AsyncNode):
 
     async def _do_backup(self, goal_handle):
 
-        # ------------------------------------------------------------------
-        dist = goal_handle.request.backup_distance
-        if dist <= 0:
-            self.get_logger().info("No backup distance specified, going to default backup")
-            dist = 0.5  # Place holder value until decided
+        dist = 0  # backup distance in meters, will be determined by costmap or behavior tree input
+
+        if self.latest_costmap is not None:
+            # --------------------------------------------------------------------------
+            costmap = PyCostmap2D(self.latest_costmap)
+            dist = 0.5
+            search_step = 0.1
+            max_search_distance = 1.0  # max distance to search for free space in costmap
+            found_free_space = False
+            while dist < max_search_distance:
+                # Check the cost at the current distance behind the robot
+                cost = costmap.getDigCost(
+                    -dist, 0, 0.5, 0.5
+                )  # Checking the cost directly behind the robot
+                # parameters are placeholders and should be tuned
+                # based on robot size and costmap resolution
+                if (
+                    cost == 0
+                ):  # Assuming 0 means free space, may need to be adjusted based on costmap config
+                    self.get_logger().info(
+                        f"Found free space in costmap at distance {dist}m, backing up"
+                    )
+                    found_free_space = True
+                    dist += search_step
+                    break
+
+            if not found_free_space:
+                self.get_logger().warn(
+                    f"No free space found in costmap within {max_search_distance}m, using default backup distance"
+                )
+                dist = 0.5  # Place holder value until decided
+        # -------------------------------------------------------------------------
         else:
-            self.get_logger().info(f"Backing up {dist} meters")
-        # ------------------------------------------------------------------
+            # --------------------------------------------------------------------------
+            self.get_logger().warn(
+                "No costmap received yet, using behavior tree input backup distance"
+            )
+
+            dist = goal_handle.request.backup_distance
+            if dist <= 0:
+                self.get_logger().info("No backup distance specified, going to default backup")
+                dist = 0.5  # Place holder value until decided
+
+            else:
+                self.get_logger().info(f"Backing up {dist} meters")
+        # --------------------------------------------------------------------------
 
         if not goal_handle.is_cancel_requested:
             speed = 0.5  # duty cycle
