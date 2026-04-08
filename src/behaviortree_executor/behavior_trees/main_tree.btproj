@@ -26,6 +26,9 @@
             <output_port name="error_code_id">"Back up error code"</output_port>
         </Action>
         <Action ID="CalibrateFieldCoordinates" editable="true"/>
+        <Action ID="CancelAction" editable="true">
+            <input_port name="action_name">Name of the ROS2 action server to cancel all goals on</input_port>
+        </Action>
         <Action ID="CancelAssistedTeleop">
             <input_port name="server_name">Server name to cancel the assisted teleop behavior</input_port>
             <input_port name="server_timeout">Server timeout</input_port>

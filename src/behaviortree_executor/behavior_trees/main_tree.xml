@@ -36,6 +36,9 @@
       <input_port name="target_x"/>
       <input_port name="target_y"/>
     </Action>
+    <Action ID="CancelAction" editable="true">
+      <input_port name="action_name">Name of the ROS2 action server to cancel all goals on</input_port>
+    </Action>
   </TreeNodesModel>
 
 </root>
