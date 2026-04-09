@@ -4,6 +4,7 @@
 #include "action/auto_dig.hpp"
 #include "action/auto_offload.hpp"
 #include "action/go_to_dig_location.hpp"
+#include "action/cancel_action.hpp"
 
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/tree_execution_server.hpp"
