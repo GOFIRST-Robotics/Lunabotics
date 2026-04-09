@@ -25,12 +25,12 @@ public:
     bool setGoal(Goal &goal) override
     {
         // get inputs from the Input port
-        goal.backup_distance = getInput<double>("backup_distance", goal.backup_distance);
+        bool backup_distance_sucess = getInput<double>("backup_distance", goal.backup_distance);
         // return true, if we were able to set the goal correctly.
-        return true;
+        return backup_distance_success;;
     }
 
-    NodeStatus onResultReceived(__attribute__((unused)) const WrappedResult &result) override
+    NodeStatus onResultReceived(const WrappedResult &result) override
     {
         return NodeStatus::SUCCESS;
     }

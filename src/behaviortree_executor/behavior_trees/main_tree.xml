@@ -27,14 +27,20 @@
     </Action>
     <Action ID="AutoOffload" editable="true">
       <input_port name="action_name"/>
+      <input_port name="lift_dumping_position"/>
     </Action>
     <Action ID="CalibrateFieldCoordinates" editable="true">
       <input_port name="action_name"/>
     </Action>
     <Action ID="GoToDigLocation" editable="true">
       <input_port name="action_name"/>
-      <input_port name="target_x"/>
-      <input_port name="target_y"/>
+      <input_port name="x"/>
+      <input_port name="y"/>
+    </Action>
+    <Action ID="ReturnToCoordinate" editable="true">
+      <input_port name ="action_name"/>
+      <input_port name="x_pos"/>
+      <input_port name="y_pos"/>
     </Action>
   </TreeNodesModel>
 

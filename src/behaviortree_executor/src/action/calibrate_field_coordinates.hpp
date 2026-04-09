@@ -10,18 +10,25 @@ using namespace BT;
 class CalibrateFieldCoordinateAction : public RosActionNode<CalibrateFieldCoordinates>
 {
 public:
+    static BT::PortsList providedPorts()
+    {
+        return
+        {
+            BT::InputPort<std::string>("action_name")
+        };
+    }
     CalibrateFieldCoordinateAction(const std::string &name, const BT::NodeConfig &conf,
                                    const BT::RosNodeParams &params)
         : RosActionNode<CalibrateFieldCoordinates>(name, conf, params)
     {
     }
 
-    bool setGoal(__attribute__((unused)) Goal &goal) override
+    bool setGoal(dGoal &goal) override
     {
         return true;
     }
 
-    NodeStatus onResultReceived(__attribute__((unused)) const WrappedResult &result) override
+    NodeStatus onResultReceived(const WrappedResult &result) override
     {
         return NodeStatus::SUCCESS;
     }

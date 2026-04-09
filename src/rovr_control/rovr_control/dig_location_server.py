@@ -97,8 +97,8 @@ class DigLocationFinder(Node):
         result = GoToDigLocation.Result()
 
         # Behavior tree input will go here if it isn't automatic
-        target_x = goal_handle.request.target_x
-        target_y = goal_handle.request.target_y
+        target_x = goal_handle.request.x
+        target_y = goal_handle.request.y
 
         goal_pose_xy = None
         if target_x == 0.0 and target_y == 0.0:

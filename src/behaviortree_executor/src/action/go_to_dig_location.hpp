@@ -15,8 +15,8 @@ public:
         return
         {
             BT::InputPort<std::string>("action_name"),
-            BT::InputPort<double>("target_x"),
-            BT::InputPort<double>("target_y")
+            BT::InputPort<double>("x"),
+            BT::InputPort<double>("y")
         };
     }
     GoToDigLocationAction(const std::string& name, const BT::NodeConfig& conf,
@@ -25,14 +25,14 @@ public:
     {
     }
 
-    bool setGoal(__attribute__((unused)) Goal &goal) override
+    bool setGoal(Goal &goal) override
     {
-        goal.target_x = getInput<double>("target_x", goal.target_x);
-        goal.target_y = getInput<double>("target_y", goal.target_y);
-        return true;
+        bool x_success = getInput<double>("x", goal.x);
+        bool y_success = getInput<double>("y", goal.y);
+        return x_success && y_success;
     }
 
-    NodeStatus onResultReceived(__attribute__((unused)) const WrappedResult &result) override
+    NodeStatus onResultReceived(const WrappedResult &result) override
     {
         return NodeStatus::SUCCESS;
     }

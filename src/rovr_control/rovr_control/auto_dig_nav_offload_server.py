@@ -98,7 +98,7 @@ class AutoDigNavOffloadServer(AsyncNode):
 
         return False
 
-    def get_quat_from_euler(yaw):
+    def get_quat_from_euler(self, yaw):
         return {
             'x': 0.0,
             'y': 0.0,

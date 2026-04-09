@@ -4,7 +4,7 @@ from rclpy.action.server import CancelResponse, ServerGoalHandle
 
 from rovr_interfaces.action import AutoOffload
 from std_srvs.srv import Trigger
-
+from action_msgs.msg import GoalStatus
 from rovr_control.node_util import AsyncNode
 
 
@@ -27,19 +27,23 @@ class AutoOffloadServer(AsyncNode):
         """This method lays out the procedure for autonomously offloading!"""
         self.get_logger().info("Starting Autonomous Offload Procedure!")
         result = AutoOffload.Result()
+        result.success = False
 
         # Make sure the services are available
         if not self.cli_dumper_dump.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Dumper dump service not available")
             goal_handle.abort()
+            result.success = False
             return result
         if not self.cli_dumper_store.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Dumper store service not available")
             goal_handle.abort()
+            result.success = False
             return result
         if not self.cli_dumper_stop.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Dumper stop service not available")
             goal_handle.abort()
+            result.success = False
             return result
 
         # Dump the material
@@ -56,10 +60,12 @@ class AutoOffloadServer(AsyncNode):
         if not goal_handle.is_cancel_requested:
             self.get_logger().info("Autonomous Offload Procedure Complete!")
             goal_handle.succeed()
+            result.success = True
             return result
         else:
             self.get_logger().info("Goal was cancelled")
             goal_handle.canceled()
+            result.success = False
             return result
 
     def cancel_callback(self, cancel_request: ServerGoalHandle):
@@ -69,6 +75,9 @@ class AutoOffloadServer(AsyncNode):
         self.cli_dumper_stop.call_async(Trigger.Request())
         return CancelResponse.ACCEPT
 
+    def goal_callback(self, goal_request):
+        self.get_logger().info("Received goal request to autonomously offload")
+        return GoalStatus.STATUS_ACCEPTED
 
 def main(args=None) -> None:
     rclpy.init(args=args)

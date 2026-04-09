@@ -14,8 +14,7 @@ public:
 static BT::PortsList providedPorts()
 {
     return {
-        BT::InputPort<double>("lift_dumping_position"),
-        BT::InputPort<double>("digger_chain_power") // Updated name
+        BT::InputPort<std::string>("action_name")
     };
 }
     AutoOffloadAction(const std::string &name, const BT::NodeConfig &conf,
@@ -27,15 +26,14 @@ static BT::PortsList providedPorts()
 
     bool setGoal(Goal &goal) override
     {
-        // get inputs from the Input port
-        getInput("lift_dumping_position", goal.lift_dumping_position);
-        getInput("digger_belt_power", goal.digger_belt_power);
+        bool lift_dumping_position_succss = getInput<double>("lift_dumping_position",
+                                                     goal.lift_dumping_position);
+                                                     
         // return true, if we were able to set the goal correctly.
-        return true;
-    }
+        return lift_dumping_position_success;
 
-    // Addeed a switch statement to handle different result codes from the action server
-    NodeStatus onResultReceived(__attribute__((unused)) const WrappedResult &result) override
+    // Added a switch statement to handle different result codes from the action server
+    NodeStatus onResultReceived(const WrappedResult &result) override
     {
         NodeStatus onResultReceived(const WrappedResult &result) override
     {
