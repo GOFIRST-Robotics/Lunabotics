@@ -5,7 +5,7 @@
 #include "action/auto_offload.hpp"
 #include "action/go_to_dig_location.hpp"
 #include "action/cancel_action.hpp"
-
+#include "action/coord_return.hpp"
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/tree_execution_server.hpp"
 
@@ -27,6 +27,8 @@ public:
         factory.registerNodeType<GoToDigLocationAction>("GoToDigLocation", this->node());
         factory.registerNodeType<AutoDigAction>("AutoDig", this->node());
         factory.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates", this->node());
+        factory.registerNodeType<CancelAction>("CancelAction", this->node());
+        factory.registerNodeType<CoordReturnAction>("CoordReturn", this->node());
     }
 };
 
