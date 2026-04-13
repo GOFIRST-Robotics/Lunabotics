@@ -30,3 +30,6 @@
 	path = src/isaac_ros/isaac_ros_nvblox
 	url = https://github.com/GOFIRST-Robotics/isaac_ros_nvblox.git
 	branch = main
+[submodule "src/behaviortree"]
+	path = src/behaviortree
+	url = https://github.com/BehaviorTree/BehaviorTree.ROS2.git
