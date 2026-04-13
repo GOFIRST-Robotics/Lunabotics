@@ -46,4 +46,14 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(FILES
+  tree/main_tree.btproj
+  tree/main_tree.xml
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_package()

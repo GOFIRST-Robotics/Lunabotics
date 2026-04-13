@@ -5,6 +5,9 @@
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/plugins.hpp"
 
+#include "behavior_control/calibrate_feild_coordinates_node.hpp"
+#include "behavior_control/dig_location_node.hpp"
+
 class BehaviorControlTreeNode : public rclcpp::Node {
 public:
     BehaviorControlTreeNode(const std::string& node_name) 
@@ -17,7 +20,30 @@ public:
     }
 
     void setup_tree() {
-            
+        // Setup Groot2 Behavior Tree
+        BT::BehaviorTreeFactory factory;
+        
+        // Setup Calibrate Field Coordinates Action
+        BT::RosNodeParams calibrate_field_coordinates_params;
+        calibrate_field_coordinates_params.nh = shared_from_this();
+        calibrate_field_coordinates_params.default_port_value = "calibrate_field_coordinates";
+        factory.registerBuilder<CalibrateFieldCoordinatesAction>(
+            "CalibrateFieldCoordinates",
+            [calibrate_field_coordinates_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<CalibrateFieldCoordinatesAction>(name, config, calibrate_field_coordinates_params);
+            }
+        );
+
+        // Setup Dig Location Action
+        BT::RosNodeParams dig_location_params;
+        dig_location_params.nh = shared_from_this();
+        dig_location_params.default_port_value = "dig_location_server";
+        factory.registerBuilder<DigLocation>(
+            "DigLocation",
+            [dig_location_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<DigLocation>(name, config, dig_location_params);
+            }
+        );
 
         // Load behavior tree from Groot2
         std::string package_share_directory = ament_index_cpp::get_package_share_directory("behavior_control");

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="MainTree">
+    <Fallback>
+      <Sequence>
+        <RetryUntilSuccessful num_attempts="5">
+          <CalibrateFieldCoordinates/>
+        </RetryUntilSuccessful>
+        <KeepRunningUntilFailure>
+          <Sequence>
+            <GoToDigLocation/>
+            <AutoDig/>
+            <Script code="msg:=&quot;Go To Offload Zone&quot;"/>
+            <AutoOffload/>
+          </Sequence>
+        </KeepRunningUntilFailure>
+      </Sequence>
+      <Script code="msg:=&apos;Manual Override&apos;"/>
+    </Fallback>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="AutoDig" editable="true">
+      <input_port name="backup_distance"/>
+    </Action>
+    <Action ID="AutoOffload" editable="true">
+    </Action>
+    <Action ID="CalibrateFieldCoordinates" editable="true">
+    </Action>
+    <Action ID="GoToDigLocation" editable="true">
+      <input_port name="target_x"/>
+      <input_port name="target_y"/>
+    </Action>
+    <Action ID="CancelAction" editable="true">
+    </Action>
+  </TreeNodesModel>
+</root>
