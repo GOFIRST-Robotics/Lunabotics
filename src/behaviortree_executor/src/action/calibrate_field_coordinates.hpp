@@ -30,6 +30,23 @@ public:
 
     NodeStatus onResultReceived(const WrappedResult &result) override
     {
-        return NodeStatus::SUCCESS;
+        //result is gotten from goal_handler_->get_result() in bt_action_node.hpp.
+        //It contains the result code and the result message from the action server
+
+        switch(result.code)
+        {
+            case rclcpp_action::ResultCode::SUCCEEDED:
+                // The action server completed the calibrated field coordinates successfully
+                return NodeStatus::SUCCESS;
+            case rclcpp_action::ResultCode::ABORTED:
+                // Something went wrong (eg the calibration failed or a sensor failed)
+                return NodeStatus::FAILURE;
+            case rclcpp_action::ResultCode::CANCELED:
+                // The action was canceled
+                return NodeStatus::CANCELED;
+            default:
+                // Any other weirdness should generally be a failure
+                return NodeStatus::FAILURE;
+        }
     }
 };

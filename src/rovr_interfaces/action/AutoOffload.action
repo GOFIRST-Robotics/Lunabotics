@@ -3,5 +3,6 @@ float64 lift_dumping_position
 
 ---
 # Result
+bool success
 ---
 # Feedback

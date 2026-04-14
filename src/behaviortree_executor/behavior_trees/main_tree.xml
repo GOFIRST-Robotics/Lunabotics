@@ -8,42 +8,56 @@
         </RetryUntilSuccessful>
         <KeepRunningUntilFailure>
           <Sequence>
-            <GoToDigLocation action_name="/go_to_dig_location"/>
-            <AutoDig action_name="/auto_dig"/>
+            <GoToDigLocation action_name="/go_to_dig_location"
+                             x=""
+                             y=""/>
+            <AutoDig action_name="/auto_dig"
+                     backup_distance=""/>
             <Script code="msg:=&quot;Go To Offload Zone&quot;"/>
-            <AutoOffload action_name="/auto_offload"/>
+            <ReturnToCoordinate action_name=""
+                                x_pos=""
+                                y_pos=""/>
+            <AutoOffload action_name="/auto_offload"
+                         lift_dumping_position=""/>
           </Sequence>
         </KeepRunningUntilFailure>
       </Sequence>
       <Script code="msg:=&apos;Manual Override&apos;"/>
+      <CancelAction action_name=""/>
     </Fallback>
   </BehaviorTree>
 
   <!-- Description of Node Models (used by Groot) -->
   <TreeNodesModel>
-    <Action ID="AutoDig" editable="true">
+    <Action ID="AutoDig"
+            editable="true">
       <input_port name="action_name"/>
       <input_port name="backup_distance"/>
     </Action>
-    <Action ID="AutoOffload" editable="true">
+    <Action ID="AutoOffload"
+            editable="true">
       <input_port name="action_name"/>
       <input_port name="lift_dumping_position"/>
     </Action>
-    <Action ID="CalibrateFieldCoordinates" editable="true">
+    <Action ID="CalibrateFieldCoordinates"
+            editable="true">
       <input_port name="action_name"/>
     </Action>
-    <Action ID="GoToDigLocation" editable="true">
+    <Action ID="CancelAction"
+            editable="true">
+      <input_port name="action_name">Name of the ROS2 action server to cancel all goals on</input_port>
+    </Action>
+    <Action ID="GoToDigLocation"
+            editable="true">
       <input_port name="action_name"/>
       <input_port name="x"/>
       <input_port name="y"/>
     </Action>
-    <Action ID="ReturnToCoordinate" editable="true">
-      <input_port name ="action_name"/>
+    <Action ID="ReturnToCoordinate"
+            editable="true">
+      <input_port name="action_name"/>
       <input_port name="x_pos"/>
       <input_port name="y_pos"/>
-    </Action>
-    <Action ID="CancelAction" editable="true">
-      <input_port name="action_name">Name of the ROS2 action server to cancel all goals on</input_port>
     </Action>
   </TreeNodesModel>
 

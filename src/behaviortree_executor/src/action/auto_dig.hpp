@@ -14,6 +14,7 @@ public:
 {
     return {
         BT::InputPort<std::string>("action_name"),
+        BT::InputPort<double>("backup_distance")
     };
 }
     AutoDigAction(const std::string &name, const BT::NodeConfig &conf,
@@ -25,13 +26,27 @@ public:
     bool setGoal(Goal &goal) override
     {
         // get inputs from the Input port
-        bool backup_distance_sucess = getInput<double>("backup_distance", goal.backup_distance);
+        bool backup_distance_success = getInput<double>("backup_distance", goal.backup_distance);
         // return true, if we were able to set the goal correctly.
-        return backup_distance_success;;
+        return backup_distance_success;
     }
 
     NodeStatus onResultReceived(const WrappedResult &result) override
     {
-        return NodeStatus::SUCCESS;
+        switch(result.code)
+        {
+            case rclcpp_action::ResultCode::SUCCEDED
+                // The action server completed the dig successfully
+                return NodeStatus::SUCCESS;
+            case rclcpp_action::ResultCode::ABORTED
+                // Something went wrong (eg the dig got stuck or a sensor failed)
+                return NodeStatus::Failure;
+            case rclcpp_action::ResultCode::CANCELED:
+                // The action was canceled
+                return NodeStatus::CANCELED;
+            default:
+                // Any other weirdness should generally be a failure
+                return NodeStatus::FAILURE;
+        }
     }
 };

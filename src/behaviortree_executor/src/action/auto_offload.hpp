@@ -35,8 +35,6 @@ static BT::PortsList providedPorts()
     // Added a switch statement to handle different result codes from the action server
     NodeStatus onResultReceived(const WrappedResult &result) override
     {
-        NodeStatus onResultReceived(const WrappedResult &result) override
-    {
         switch (result.code)
         {
             case rclcpp_action::ResultCode::SUCCEEDED:
@@ -45,18 +43,15 @@ static BT::PortsList providedPorts()
 
             case rclcpp_action::ResultCode::ABORTED:
                 // Something went wrong (eg the lift jammed or a sensor failed)
-                RCLCPP_ERROR(node_->get_logger(), "AutoOffload aborted!");
                 return NodeStatus::FAILURE;
 
             case rclcpp_action::ResultCode::CANCELED:
                 // The action was canceled
-                RCLCPP_WARN(node_->get_logger(), "AutoOffload canceled.");
                 return NodeStatus::FAILURE;
 
             default:
                 // Any other weirdness should generally be a failure
                 return NodeStatus::FAILURE;
         }
-    }
     }
 };

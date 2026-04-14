@@ -31,6 +31,23 @@ class AutoDigNavOffLoadAction : public RosAction<AutoDig>
 
     NodeStatus onResultReceived(const WrappedResult & result) override
     {
+        switch(result.code)
+        {
+            case rclcpp_action::ResultCode::SUCCEEDED:
+                // The action server completed the dig successfully
+                return NodeStatus::SUCCESS;
+            case rclcpp_action::ResultCode::ABORTED:
+                // Something went wrong (eg the dig got stuck or a sensor failed)
+                RCLCPP_ERROR(node_->get_logger(), "AutoDigNavOffLoad aborted!");
+                return NodeStatus::FAILURE;
+            case rclcpp_action::ResultCode::CANCELED:
+                // The action was canceled
+                RCLCPP_WARN(node_->get_logger(), "AutoDigNavOffLoad canceled.");
+                return NodeStatus::FAILURE;
+            default:
+                // Any other weirdness should generally be a failure
+                return NodeStatus::FAILURE;
+        }
         return NodeStatus::SUCCESS;
     }
 }

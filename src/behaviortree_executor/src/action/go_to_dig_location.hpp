@@ -34,6 +34,20 @@ public:
 
     NodeStatus onResultReceived(const WrappedResult &result) override
     {
-        return NodeStatus::SUCCESS;
+        switch(result.code)
+        {
+            case rclcpp_action::ResultCode::SUCCEEDED:
+                // The action server completed the go to dig location successfully
+                return NodeStatus::SUCCESS;
+            case rclcpp_action::ResultCode::ABORTED:
+                // Something went wrong (eg the robot got stuck or a sensor failed)
+                return NodeStatus::FAILURE;
+            case rclcpp_action::ResultCode::CANCELED:
+                // The action was canceled
+                return NodeStatus::CANCELED;
+            default:
+                // Any other weirdness should generally be a failure
+                return NodeStatus::FAILURE;
+        }
     }
 };
