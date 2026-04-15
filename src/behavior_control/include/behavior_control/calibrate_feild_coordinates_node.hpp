@@ -13,7 +13,7 @@ public:
         return {};
     }
     
-    bool setGoal(Goal& goal) override {
+    bool setGoal(Goal& ) override {
         return true;
     }
 

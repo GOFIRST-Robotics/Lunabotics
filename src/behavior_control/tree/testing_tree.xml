@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4"
+      main_tree_to_execute="main">
+  <BehaviorTree ID="main">
+    <KeepRunningUntilFailure>
+      <Sequence>
+        <Sleep msec="1000"/>
+        <LogString message="Hello World!"/>
+      </Sequence>
+    </KeepRunningUntilFailure>
+  </BehaviorTree>
+
+  <!-- Description of Node Models (used by Groot) -->
+  <TreeNodesModel>
+    <Action ID="LogString"
+            editable="true">
+      <input_port name="message"/>
+    </Action>
+  </TreeNodesModel>
+
+</root>

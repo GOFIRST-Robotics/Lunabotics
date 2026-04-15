@@ -43,6 +43,7 @@ install(TARGETS
 install(FILES
   tree/main_tree.btproj
   tree/main_tree.xml
+  tree/testing_tree.xml
   DESTINATION share/${PROJECT_NAME}
 )
 
