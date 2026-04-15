@@ -14,6 +14,7 @@
 #include "behavior_control/log_node.hpp"
 #include "behavior_control/calibrate_feild_coordinates_node.hpp"
 #include "behavior_control/dig_location_node.hpp"
+#include "behavior_control/move_to_node.hpp"
 
 #include "rovr_interfaces/action/behavior_control_tree.hpp"
 
@@ -64,6 +65,17 @@ public:
             "DigLocation",
             [dig_location_params](const std::string& name, const BT::NodeConfiguration& config) {
                 return std::make_unique<DigLocationAction>(name, config, dig_location_params);
+            }
+        );
+
+        // Setup Move To Action
+        BT::RosNodeParams move_to_params;
+        move_to_params.nh = shared_from_this();
+        move_to_params.default_port_value = "navigate_to_pose"; // Nav2 Action Server
+        factory.registerBuilder<MoveToAction>(
+            "MoveTo",
+            [move_to_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<MoveToAction>(name, config, move_to_params);
             }
         );
 

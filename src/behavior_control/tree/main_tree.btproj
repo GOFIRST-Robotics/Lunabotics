@@ -4,17 +4,17 @@
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>
         <Action ID="AutoDig" editable="true">
-        <input_port name="backup_distance"/>
+            <input_port name="backup_distance"/>
         </Action>
-        <Action ID="AutoOffload" editable="true">
-        </Action>
-        <Action ID="CalibrateFieldCoordinates" editable="true">
-        </Action>
+        <Action ID="AutoOffload" editable="true"/>
+        <Action ID="CalibrateFieldCoordinates" editable="true"/>
+        <Action ID="CancelAction" editable="true"/>
         <Action ID="GoToDigLocation" editable="true">
-        <input_port name="target_x"/>
-        <input_port name="target_y"/>
+            <input_port name="target_x"/>
+            <input_port name="target_y"/>
         </Action>
-        <Action ID="CancelAction" editable="true">
+        <Action ID="MoveTo" editable="true">
+            <input_port name="goal"/>
         </Action>
     </TreeNodesModel>
 </root>

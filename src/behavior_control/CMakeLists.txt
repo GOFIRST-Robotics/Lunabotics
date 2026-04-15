@@ -13,6 +13,8 @@ find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(behaviortree_ros2 REQUIRED)
 find_package(rovr_interfaces REQUIRED)
+find_package(nav2_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 # Add server
 add_library(action_server SHARED
@@ -29,6 +31,8 @@ ament_target_dependencies(action_server
   rclcpp_components 
   behaviortree_ros2
   rovr_interfaces
+  nav2_msgs
+  geometry_msgs
 )
 
 rclcpp_components_register_node(action_server 
