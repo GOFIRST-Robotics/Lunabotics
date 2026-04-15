@@ -5,6 +5,7 @@
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/plugins.hpp"
 
+#include "behavior_control/log_node.hpp"
 #include "behavior_control/calibrate_feild_coordinates_node.hpp"
 #include "behavior_control/dig_location_node.hpp"
 
@@ -23,6 +24,14 @@ public:
         // Setup Groot2 Behavior Tree
         BT::BehaviorTreeFactory factory;
         
+        // Setup Log String Tree Node
+        factory.registerBuilder<LogString>(
+            "LogString",
+            [this](const std::string& name, const BT::NodeConfiguration& config) { 
+                return std::make_unique<LogString>(name, config, this->get_logger()); 
+            }
+        );
+
         // Setup Calibrate Field Coordinates Action
         BT::RosNodeParams calibrate_field_coordinates_params;
         calibrate_field_coordinates_params.nh = shared_from_this();
