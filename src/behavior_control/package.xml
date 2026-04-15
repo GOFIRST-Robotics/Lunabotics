@@ -4,7 +4,7 @@
   <name>behavior_control</name>
   <version>0.0.0</version>
   <description>Behavior Tree</description>
-  <maintainer email="hwvxyeej@gmail.com">adam</maintainer>
+  <maintainer email="hwvxyeej@gmail.com">Adam Yaj</maintainer>
   <license>Apache License 2.0</license>
 
   <depend>rclcpp</depend>
