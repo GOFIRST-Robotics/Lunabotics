@@ -1,6 +1,12 @@
+#include <functional>
 #include <memory>
+#include <thread>
+
 #include <ament_index_cpp/get_package_share_directory.hpp>
+
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "rclcpp_components/register_node_macro.hpp"
 
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/plugins.hpp"
@@ -9,14 +15,21 @@
 #include "behavior_control/calibrate_feild_coordinates_node.hpp"
 #include "behavior_control/dig_location_node.hpp"
 
-class BehaviorControlTreeNode : public rclcpp::Node {
+#include "rovr_interfaces/action/behavior_control_tree.hpp"
+
+class BehaviorControlTreeActionServer : public rclcpp::Node {
 public:
-    BehaviorControlTreeNode(const std::string& node_name) 
-    : Node(node_name) {
-        // Create Timer
-        timer = this->create_wall_timer(
-            std::chrono::milliseconds(100),
-            std::bind(&BehaviorControlTreeNode::behavior_tree_callback, this)
+    using BehaviorControlTree = rovr_interfaces::action::BehaviorControlTree;
+    using BehaviorControlTreeGoalHandle = rclcpp_action::ServerGoalHandle<BehaviorControlTree>;
+
+    explicit BehaviorControlTreeActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
+    : Node("behavior_control_tree_action_server", options) {
+        this->action_server = rclcpp_action::create_server<BehaviorControlTree>(
+            this,
+            "behavior_control_tree",
+            std::bind(&BehaviorControlTreeActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&BehaviorControlTreeActionServer::handle_cancel, this, std::placeholders::_1),
+            std::bind(&BehaviorControlTreeActionServer::handle_accepted, this, std::placeholders::_1)
         );
     }
 
@@ -57,37 +70,74 @@ public:
         // Load behavior tree from Groot2
         std::string package_share_directory = ament_index_cpp::get_package_share_directory("behavior_control");
         std::string behavior_tree_path = package_share_directory + "/testing_tree.xml";
-        tree = factory.createTreeFromFile(behavior_tree_path);
+        this->tree = factory.createTreeFromFile(behavior_tree_path);
     }
-private:
-    void behavior_tree_callback() {
-        // Tree node logic
-        BT::NodeStatus status = tree.tickOnce();
 
+private:
+    BT::Tree tree;
+    rclcpp::WallRate::SharedPtr loop_rate;
+    rclcpp_action::Server<BehaviorControlTree>::SharedPtr action_server;
+
+    rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const BehaviorControlTree::Goal> goal) {
+        RCLCPP_INFO(this->get_logger(), "Received goal request with order %d", goal->order);
+        (void)uuid;
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+    }
+
+    rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<BehaviorControlTreeGoalHandle> goal_handle) {
+        RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+        (void)goal_handle;
+        return rclcpp_action::CancelResponse::ACCEPT;
+    }
+
+    void handle_accepted(const std::shared_ptr<BehaviorControlTreeGoalHandle> goal_handle) {
+        // this needs to return quickly to avoid blocking the executor, so spin up a new thread
+        std::thread{std::bind(&BehaviorControlTreeActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
+    }
+
+    void execute(const std::shared_ptr<BehaviorControlTreeGoalHandle> goal_handle) {
+        RCLCPP_INFO(this->get_logger(), "Executing Behavior Control Tree");
+        
+        const auto goal = goal_handle->get_goal();
+        auto feedback = std::make_shared<BehaviorControlTree::Feedback>();
+        auto result = std::make_shared<BehaviorControlTree::Result>();
+
+        // Initalize and resets the tree on a new execute
+        setup_tree();
+
+        rclcpp::WallRate loop_rate(std::chrono::milliseconds(100));
+        BT::NodeStatus status = BT::NodeStatus::RUNNING;
+
+        // Run Tree
+        while (rclcpp::ok() && status == BT::NodeStatus::RUNNING) {
+            if (goal_handle->is_canceling()) {
+                tree.haltTree(); // Crucial: Stop all running BT nodes
+                result->success = false;
+                goal_handle->canceled(result);
+                RCLCPP_INFO(this->get_logger(), "Behavior Tree Action Canceled");
+                return;
+            }
+
+            status = tree.tickOnce();
+
+            // Feedback (can be made more complex)
+            feedback->current_status = BT::toStr(status);
+            goal_handle->publish_feedback(feedback);
+
+            loop_rate.sleep();
+        }
+
+        // Final Result
         if (status == BT::NodeStatus::SUCCESS) {
-            RCLCPP_INFO(this->get_logger(), "Tree Ended: SUCCESS");
-            timer->cancel();
-            rclcpp::shutdown();
-        } else if (status == BT::NodeStatus::FAILURE) {
-            RCLCPP_ERROR(this->get_logger(), "Tree Ended: FAILURE");
-            timer->cancel();
-            rclcpp::shutdown();
+            result->success = true;
+            goal_handle->succeed(result);
+            RCLCPP_INFO(this->get_logger(), "Behavior Tree Action Completed: SUCCESS");
+        } else {
+            result->success = false;
+            goal_handle->abort(result);
+            RCLCPP_ERROR(this->get_logger(), "Behavior Tree Action Completed: FAILURE");
         }
     }
-
-    BT::Tree tree;
-    rclcpp::TimerBase::SharedPtr timer;
 };
 
-int main(int argc, char * argv[]) {
-    rclcpp::init(argc, argv);
-
-    auto node = std::make_shared<BehaviorControlTreeNode>("behavior_control_tree_node");
-
-    node->setup_tree();
-
-    rclcpp::spin(node);    
-    rclcpp::shutdown();
-
-    return 0;
-}
+RCLCPP_COMPONENTS_REGISTER_NODE(BehaviorControlTreeActionServer)
