@@ -16,7 +16,7 @@ find_package(rovr_interfaces REQUIRED)
 
 # Add server
 add_library(action_server SHARED
-  src/behavior_control_tree.cpp)
+  src/behavior_control_server.cpp)
 
 target_include_directories(action_server PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -32,12 +32,12 @@ ament_target_dependencies(action_server
 )
 
 rclcpp_components_register_node(action_server 
-PLUGIN "BehaviorControlTreeActionServer" 
-EXECUTABLE behavior_control_tree)
+PLUGIN "BehaviorControlActionServer" 
+EXECUTABLE behavior_control_server)
 
 install(TARGETS
   action_server
-  behavior_control_tree
+  behavior_control_server
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin

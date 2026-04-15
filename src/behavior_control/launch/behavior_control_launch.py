@@ -12,6 +12,6 @@ def generate_launch_description():
         ),
         Node(
             package='behavior_control',
-            executable='behavior_control_tree',
+            executable='behavior_control_server',
         )
     ])

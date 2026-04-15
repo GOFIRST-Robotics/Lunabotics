@@ -17,19 +17,19 @@
 
 #include "rovr_interfaces/action/behavior_control_tree.hpp"
 
-class BehaviorControlTreeActionServer : public rclcpp::Node {
+class BehaviorControlActionServer : public rclcpp::Node {
 public:
     using BehaviorControlTree = rovr_interfaces::action::BehaviorControlTree;
     using BehaviorControlTreeGoalHandle = rclcpp_action::ServerGoalHandle<BehaviorControlTree>;
 
-    explicit BehaviorControlTreeActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
+    explicit BehaviorControlActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
     : Node("behavior_control_tree_action_server", options) {
         this->action_server = rclcpp_action::create_server<BehaviorControlTree>(
             this,
             "behavior_control_tree",
-            std::bind(&BehaviorControlTreeActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&BehaviorControlTreeActionServer::handle_cancel, this, std::placeholders::_1),
-            std::bind(&BehaviorControlTreeActionServer::handle_accepted, this, std::placeholders::_1)
+            std::bind(&BehaviorControlActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&BehaviorControlActionServer::handle_cancel, this, std::placeholders::_1),
+            std::bind(&BehaviorControlActionServer::handle_accepted, this, std::placeholders::_1)
         );
     }
 
@@ -92,7 +92,7 @@ private:
 
     void handle_accepted(const std::shared_ptr<BehaviorControlTreeGoalHandle> goal_handle) {
         // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-        std::thread{std::bind(&BehaviorControlTreeActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
+        std::thread{std::bind(&BehaviorControlActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
     }
 
     void execute(const std::shared_ptr<BehaviorControlTreeGoalHandle> goal_handle) {
@@ -140,4 +140,4 @@ private:
     }
 };
 
-RCLCPP_COMPONENTS_REGISTER_NODE(BehaviorControlTreeActionServer)
+RCLCPP_COMPONENTS_REGISTER_NODE(BehaviorControlActionServer)

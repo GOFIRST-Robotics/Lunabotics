@@ -8,6 +8,8 @@
   <license>Apache License 2.0</license>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>rclcpp_components</depend>
   <depend>rovr_control</depend>
   <depend>rovr_interfaces</depend>
   <depend>behaviortree_ros2</depend>
