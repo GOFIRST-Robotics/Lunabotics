@@ -12,27 +12,46 @@ public:
     : BT::RosActionNode<nav2_msgs::action::NavigateToPose>(name, config, params) {}
 
     static BT::PortsList providedPorts() {
-        return { BT::InputPort<geometry_msgs::action::PoseStamped>("goal") };
+        return { BT::InputPort<geometry_msgs::msg::PoseStamped>("goal") };
     }
     
     bool setGoal(Goal& goal) override {
-        getInput("goal", goal.goal)
+        geometry_msgs::msg::PoseStamped target_pose;
+        if (!getInput("goal", target_pose)) {
+            auto node_ptr = node_.lock();
+            RCLCPP_ERROR(node_ptr->get_logger(), "[%s]: Goal port is empty!", name().c_str());
+            return false; 
+        }
+
+        goal.pose = target_pose;
+        
+        // Ensure the timestamp is current so Nav2 doesn't reject it for being "in the past"
+        auto node_ptr = node_.lock();
+        if (node_ptr) {
+            goal.pose.header.stamp = node_ptr->now();
+        }
+        
         return true;
     }
 
     BT::NodeStatus onResultReceived(const WrappedResult& result) override {
         auto node_ptr = node_.lock();
         // TODO: Better handle all the results returned for NavigateToPose
-        if (node_ptr) {
-            if (result.code != rclcpp_action::ResultCode::SUCCEEDED) {
-                RCLCPP_WARN(node_ptr->get_logger(), "[%s]: Move to pose failed.", name().c_str());
-                return BT::NodeStatus::FAILURE;
-            }
-            
-            RCLCPP_INFO(node_ptr->get_logger(), "[%s]: Moved to pose successfully.", name().c_str());
-        }
+        if (!node_ptr) return BT::NodeStatus::FAILURE;
 
-        return BT::NodeStatus::SUCCESS;
+        switch (result.code) {
+            case rclcpp_action::ResultCode::SUCCEEDED:
+                RCLCPP_INFO(node_ptr->get_logger(), "[%s]: Reached destination.", name().c_str());
+                return BT::NodeStatus::SUCCESS;
+            case rclcpp_action::ResultCode::ABORTED:
+                RCLCPP_ERROR(node_ptr->get_logger(), "[%s]: Navigation aborted.", name().c_str());
+                return BT::NodeStatus::FAILURE;
+            case rclcpp_action::ResultCode::CANCELED:
+                RCLCPP_WARN(node_ptr->get_logger(), "[%s]: Navigation canceled.", name().c_str());
+                return BT::NodeStatus::FAILURE;
+            default:
+                return BT::NodeStatus::FAILURE;
+        }
     }
 
     BT::NodeStatus onFeedback(const std::shared_ptr<const Feedback> feedback) {
