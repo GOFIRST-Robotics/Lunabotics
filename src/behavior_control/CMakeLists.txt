@@ -21,29 +21,23 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(behaviortree_ros2 REQUIRED)
-find_package(rovr_control REQUIRED)
+find_package(rovr_interfaces REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
 add_executable(behavior_control_tree src/behavior_control_tree.cpp)
 
-target_include_directories(control_tree PUBLIC
+target_include_directories(behavior_control_tree PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-ament_target_dependencies(behavior_control_tree rclcpp behaviortree_ros2 rovr_control)
+ament_target_dependencies(behavior_control_tree rclcpp behaviortree_ros2 rovr_interfaces)
 
 install(TARGETS
   behavior_control_tree
   DESTINATION lib/${PROJECT_NAME}
-)
-
-install(FILES
-  tree/point_bot_tree.btproj
-  tree/point_bot_tree.xml
-  DESTINATION share/${PROJECT_NAME}
 )
 
 install(FILES
@@ -52,8 +46,8 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
-)
+# install(DIRECTORY launch
+#   DESTINATION share/${PROJECT_NAME}
+# )
 
 ament_package()

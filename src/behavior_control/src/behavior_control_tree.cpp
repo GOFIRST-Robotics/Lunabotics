@@ -38,10 +38,10 @@ public:
         BT::RosNodeParams dig_location_params;
         dig_location_params.nh = shared_from_this();
         dig_location_params.default_port_value = "dig_location_server";
-        factory.registerBuilder<DigLocation>(
+        factory.registerBuilder<DigLocationAction>(
             "DigLocation",
             [dig_location_params](const std::string& name, const BT::NodeConfiguration& config) {
-                return std::make_unique<DigLocation>(name, config, dig_location_params);
+                return std::make_unique<DigLocationAction>(name, config, dig_location_params);
             }
         );
 
@@ -68,8 +68,7 @@ private:
 
     BT::Tree tree;
     rclcpp::TimerBase::SharedPtr timer;
-
-}
+};
 
 int main(int argc, char * argv[]) {
     rclcpp::init(argc, argv);
