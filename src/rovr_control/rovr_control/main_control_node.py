@@ -35,6 +35,9 @@ from rovr_interfaces.action import (
     AutoDigNavOffload,
     AutoOffload,
     CalibrateFieldCoordinates,
+    BehaviorTreeExecutor,
+    ReturnToCoordinate,
+    CancelAction,
 )
 from rovr_interfaces.msg import StreamDeckState
 
@@ -216,10 +219,18 @@ class MainControlNode(Node):
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
         )
         self.act_auto_dig = ActionClient(self, AutoDig, "auto_dig")
+        self.act_auto_dig_nav = ActionClient(self, AutoDigNavOffload, "auto_dig_nav")
         self.act_auto_offload = ActionClient(self, AutoOffload, "auto_offload")
+
         self.act_auto_dig_nav_offload = ActionClient(
             self, AutoDigNavOffload, "auto_dig_nav_offload"
         )
+        self.act_return_to_coordinate = ActionClient(
+            self, ReturnToCoordinate, "return_to_coordinate"
+        )
+
+        self.act_cancel_action = ActionClient(self, CancelAction, "cancel_action_server")
+        self.bt_action = ActionClient(self, BehaviorTreeExecutor, "bt_action_server")
 
         self.field_calibrated_handle: ClientGoalHandle = ClientGoalHandle(
             None, None, None
@@ -229,6 +240,10 @@ class MainControlNode(Node):
         self.auto_dig_nav_offload_handle: ClientGoalHandle = ClientGoalHandle(
             None, None, None
         )
+
+        self.return_to_coordinate_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
+        self.bt_action_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
+        self.cancel_action_handle: ClientGoalHandle = ClientGoalHandle(None, None, None)
 
         # Current position of the lift motor in potentiometer units (0 to 1023)
         self.current_lift_position = None  # We don't know the current position yet
@@ -267,6 +282,31 @@ class MainControlNode(Node):
         else:
             self.get_logger().info("Autonomous Goal failed (or terminated)!")
             self.end_autonomous()
+    
+    async def run_behavior_tree(self) -> None:
+        """This method runs a behavior tree using the BehaviorTreeExecutor action server."""
+        if self.bt_action_handle.status != GoalStatus.STATUS_EXECUTING:
+            if not self.bt_action.wait_for_server(timeout_sec = 1.0):
+                self.get_logger().error("BehaviorTreeExecutor action not available")
+                return
+            
+            self.stop_all_subsystems()
+            goal_msg = BehaviorTreeExecutor.Goal()
+
+            self.get_logger().info("Sending goal to BehaviorTreeExecutor action server...")
+            self.bt_action_handle = await self.bt_action.send_goal_async(goal_msg)
+
+            if not self.bt_action_handle.accepted:
+                self.get_logger().info("BehaviorTreeExecutor Goal rejected")
+                return
+            
+            self.bt_action_handle.get_result_async().add_done_callback(self.get_result_callback)
+            self.state = states["Autonomous"]
+
+        else:
+            self.get_logger().warn("Manually Terminating Behavior Tree Mission")
+            future = self.bt_action_handle.cancel_goal_async()
+            future.add_done_callback(self.cancel_done)
 
     async def auto_dig_nav_offload_sequence(self) -> None:
         # Check if the Auto Dig Nav Offload process is not running
@@ -473,8 +513,13 @@ class MainControlNode(Node):
         #     await self.calibrate_field_coordinates()
 
         # Check if the Auto Dig Nav button is pressed
+        # Update, will be changed to behavior tree execution in the future,
+        #  but keeping this code in case we want to use it as a standalone action
         if msg.buttons[bindings.A_BUTTON] == 1 and buttons[bindings.A_BUTTON] == 0:
-            await self.auto_dig_nav_offload_sequence()
+            # await self.auto_dig_nav_offload_sequence()
+            await self.run_behavior_tree()
+
+
 
         # Check if the autonomous digging button is pressed
         if (

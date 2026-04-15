@@ -30,6 +30,18 @@ def generate_launch_description():
         name="dig_location_server",
     )
 
+    coord_return_server = Node(
+        package="rovr_control",
+        executable="coord_return_server",
+        name="coord_return_server",
+    )
+
+    cancel_action_server = Node(
+        package="rovr_control",
+        executable="cancel_action_server",
+        name="cancel_action_server",
+    )
+
     behaviortree_executor = Node(
         package="behaviortree_executor",
         executable="behaviortree_executor",
@@ -39,15 +51,18 @@ def generate_launch_description():
             PathJoinSubstitution([
                 FindPackageShare('behaviortree_executor'),
                 'config',
-                'bt_executor.yaml'
+                'bt_executor.yaml',
             ]),
         ],
         emulate_tty=True,
     )
+
     ld.add_action(auto_dig_server)
     ld.add_action(auto_offload_server)
     ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(dig_location_server)
+    ld.add_action(coord_return_server)
+    ld.add_action(cancel_action_server)
     ld.add_action(behaviortree_executor)
 
     return ld

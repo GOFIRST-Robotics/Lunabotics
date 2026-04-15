@@ -9,6 +9,7 @@
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/tree_execution_server.hpp"
 
+
 #include <thread>
 #include <chrono>
 #include <functional>
@@ -28,7 +29,7 @@ public:
         factory.registerNodeType<AutoDigAction>("AutoDig", this->node());
         factory.registerNodeType<CalibrateFieldCoordinateAction>("CalibrateFieldCoordinates", this->node());
         factory.registerNodeType<CancelAction>("CancelAction", this->node());
-        factory.registerNodeType<CoordReturnAction>("CoordReturn", this->node());
+        factory.registerNodeType<CoordReturnAction>("ReturnToCoordinate", this->node());
     }
 };
 
