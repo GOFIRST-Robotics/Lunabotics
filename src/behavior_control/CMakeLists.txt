@@ -18,15 +18,14 @@ find_package(nav2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-# Add server
-add_library(action_server SHARED
-  src/behavior_control_server.cpp)
+# Add the Standalone Executable
+add_executable(behavior_control_node src/behavior_control_server.cpp)
 
-target_include_directories(action_server PRIVATE
+target_include_directories(behavior_control_node PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(action_server
+ament_target_dependencies(behavior_control_node
   ament_index_cpp
   rclcpp 
   rclcpp_action 
@@ -39,21 +38,15 @@ ament_target_dependencies(action_server
   sensor_msgs
 )
 
-rclcpp_components_register_node(action_server 
-PLUGIN "BehaviorControlActionServer" 
-EXECUTABLE behavior_control_server)
-
+# Install the node
 install(TARGETS
-  action_server
-  behavior_control_server
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  behavior_control_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-# Other directores
+# Install the tree files into a 'tree' subdirectory in share
 install(DIRECTORY tree/
-  DESTINATION share/${PROJECT_NAME}
+  DESTINATION share/${PROJECT_NAME}/tree
 )
 
 install(DIRECTORY launch/

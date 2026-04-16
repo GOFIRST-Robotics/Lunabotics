@@ -199,7 +199,7 @@ private:
         auto result = std::make_shared<BehaviorControl::Result>();
         
         std::string package_share_directory = ament_index_cpp::get_package_share_directory("behavior_control");
-        std::string behavior_tree_path = package_share_directory + "/testing_tree.xml";
+        std::string behavior_tree_path = package_share_directory + "/tree/testing_tree.xml";
         
         auto current_tree = factory.createTreeFromFile(behavior_tree_path, this->blackboard);
 
@@ -302,3 +302,16 @@ private:
 };
 
 RCLCPP_COMPONENTS_REGISTER_NODE(BehaviorControlActionServer)
+
+int main(int argc, char * argv[])
+{
+    rclcpp::init(argc, argv);
+
+    auto node = std::make_shared<BehaviorControlActionServer>();
+    node->init_factory();
+
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+
+    return 0;
+}

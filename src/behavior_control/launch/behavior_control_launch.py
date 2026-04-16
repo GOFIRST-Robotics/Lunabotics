@@ -25,7 +25,7 @@ def generate_launch_description():
         ),
         Node(
             package='behavior_control',
-            executable='behavior_control_server',
+            executable='behavior_control_node',
             name='behavior_control_node',
             parameters=[behavior_control_config],
             output='screen'
