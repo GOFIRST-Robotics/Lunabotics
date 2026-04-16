@@ -21,7 +21,7 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/AutoDig.action"
   "action/AutoOffload.action"
-  "action/BehaviorControlTree.action"
+  "action/BehaviorControl.action"
   "action/CalibrateFieldCoordinates.action"
   "action/GoToDigLocation.action"
   "action/AutoDigNavOffload.action"

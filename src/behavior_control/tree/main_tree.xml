@@ -2,14 +2,15 @@
 <root BTCPP_format="4">
   <BehaviorTree ID="MainTree">
     <Fallback>
-      <Sequence>
+      <Sequence name="Autonomus">
         <RetryUntilSuccessful num_attempts="5">
           <CalibrateFieldCoordinates/>
         </RetryUntilSuccessful>
         <KeepRunningUntilFailure>
           <Sequence>
-            <GoToDigLocation/>
-            <AutoDig/>
+            <GoToDigLocation target_x=""
+                             target_y=""/>
+            <AutoDig backup_distance=""/>
             <Script code="msg:=&quot;Go To Offload Zone&quot;"/>
             <AutoOffload/>
           </Sequence>
@@ -21,18 +22,19 @@
 
   <!-- Description of Node Models (used by Groot) -->
   <TreeNodesModel>
-    <Action ID="AutoDig" editable="true">
+    <Action ID="AutoDig"
+            editable="true">
       <input_port name="backup_distance"/>
     </Action>
-    <Action ID="AutoOffload" editable="true">
-    </Action>
-    <Action ID="CalibrateFieldCoordinates" editable="true">
-    </Action>
-    <Action ID="GoToDigLocation" editable="true">
+    <Action ID="AutoOffload"
+            editable="true"/>
+    <Action ID="CalibrateFieldCoordinates"
+            editable="true"/>
+    <Action ID="GoToDigLocation"
+            editable="true">
       <input_port name="target_x"/>
       <input_port name="target_y"/>
     </Action>
-    <Action ID="CancelAction" editable="true">
-    </Action>
   </TreeNodesModel>
+
 </root>

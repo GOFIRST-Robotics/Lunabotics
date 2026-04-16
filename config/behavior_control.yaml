@@ -1,0 +1,32 @@
+behavior_control_server:
+  ros__parameters:
+    # Xbox / Joystick Buttons
+    buttons:
+      X_BUTTON: 0
+      A_BUTTON: 1
+      B_BUTTON: 2
+      Y_BUTTON: 3
+      LEFT_BUMPER: 4
+      RIGHT_BUMPER: 5
+      LEFT_TRIGGER: 6
+      RIGHT_TRIGGER: 7
+      BACK_BUTTON: 8
+      START_BUTTON: 9
+      LEFT_JOYSTICK_BUTTON: 10
+      RIGHT_JOYSTICK_BUTTON: 11
+
+    # Xbox / Joystick Axes
+    axes:
+      LEFT_JOYSTICK_HORIZONTAL: 0
+      LEFT_JOYSTICK_VERTICAL: 1
+      RIGHT_JOYSTICK_HORIZONTAL: 2
+      RIGHT_JOYSTICK_VERTICAL: 3
+
+    # StreamDeck Buttons
+    streamdeck:
+      START_AUTO: 0
+      AUTO_DIG: 1
+      AUTO_DUMP: 2
+      APRILTAG_DETECT: 3
+      GO_TO_DIG_SITE: 4
+      ESTOP: 5

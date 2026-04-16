@@ -13,6 +13,10 @@
             <input_port name="target_x"/>
             <input_port name="target_y"/>
         </Action>
+        <Condition ID="IsButtonPressed" editable="true">
+            <input_port name="button_index"/>
+            <input_port name="input_source" default="{joy_message}"/>
+        </Condition>
         <Action ID="MoveTo" editable="true">
             <input_port name="goal"/>
         </Action>

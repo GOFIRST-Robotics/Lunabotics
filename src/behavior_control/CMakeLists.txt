@@ -11,10 +11,12 @@ find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(behaviortree_cpp REQUIRED)
 find_package(behaviortree_ros2 REQUIRED)
 find_package(rovr_interfaces REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 # Add server
 add_library(action_server SHARED
@@ -29,10 +31,12 @@ ament_target_dependencies(action_server
   rclcpp 
   rclcpp_action 
   rclcpp_components 
+  behaviortree_cpp
   behaviortree_ros2
   rovr_interfaces
   nav2_msgs
   geometry_msgs
+  sensor_msgs
 )
 
 rclcpp_components_register_node(action_server 
@@ -54,6 +58,10 @@ install(DIRECTORY tree/
 
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config
 )
 
 if(BUILD_TESTING)
