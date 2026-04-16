@@ -14,28 +14,48 @@
             <input_port name="target_x"/>
             <input_port name="target_y"/>
         </Action>
-        <Condition ID="IsButtonJustPressed" editable="true">
+
+        <Condition ID="IsButtonJustPressed">
             <input_port name="button_index"/>
             <input_port name="input_source" default="{joy_message}"/>
         </Condition>
-        <Condition ID="IsButtonPressed" editable="true">
+        <Condition ID="IsButtonPressed">
             <input_port name="button_index"/>
             <input_port name="input_source" default="{joy_message}"/>
         </Condition>
-        <Action ID="LogString" editable="true">
+        
+        <Action ID="LogString">
             <input_port name="message"/>
         </Action>
         <Action ID="MoveTo" editable="true">
             <input_port name="goal"/>
         </Action>
-        <Action ID="SetMotorVelocity" editable="true">
+
+        <Action ID="SetMotorVelocity">
             <input_port name="can_id">The CAN ID (from Blackboard)</input_port>
             <input_port name="velocity">Target RPM</input_port>
             <input_port name="power_limit">0.0 to 1.0</input_port>
         </Action>
-        <Action ID="SetMotorDutyCycle" editable="true">
+        <Action ID="SetMotorDutyCycle">
             <input_port name="can_id">The CAN ID (from Blackboard)</input_port>
             <input_port name="duty_cycle">-1.0 to 1.0</input_port>
+        </Action>
+
+        <Action ID="GetMotorCurrent">
+            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
+            <output_port name="value_out" type="double">Current draw in Amps</output_port>
+        </Action>
+        <Action ID="GetMotorPosition">
+            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
+            <output_port name="value_out" type="double">Position in Degrees/Tach</output_port>
+        </Action>
+        <Action ID="GetMotorVelocity">
+            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
+            <output_port name="value_out" type="double">Current RPM</output_port>
+        </Action>
+        <Action ID="GetMotorDutyCycle">
+            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
+            <output_port name="value_out" type="double">Current Duty Cycle %</output_port>
         </Action>
     </TreeNodesModel>
 </root>

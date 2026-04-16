@@ -20,6 +20,7 @@
 #include "behavior_control/set_motor_velocity_node.hpp"
 #include "behavior_control/set_motor_duty_cycle_node.hpp"
 
+#include "behavior_control/get_motor_property_nodes.hpp"
 
 // BT Action Nodes
 #include "behavior_control/calibrate_feild_coordinates_node.hpp"
@@ -79,6 +80,8 @@ public:
         );
 
         // Setup Motor Control Actions
+        
+        // Set Motor Commands
         BT::RosNodeParams motor_params;
         motor_params.nh = shared_from_this();
         motor_params.default_port_value = "motor/set"; // The service name
@@ -96,6 +99,31 @@ public:
                 return std::make_unique<SetMotorDutyCycle>(name, config, motor_params);
             }
         );
+
+        // Get Motor Commands
+        BT::RosNodeParams get_motor_params;
+        get_motor_params.nh = shared_from_this();
+        get_motor_params.default_port_value = "motor/get"; // The service name in your MotorControlNode
+
+        factory.registerBuilder<GetMotorCurrent>("GetMotorCurrent", 
+            [get_motor_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<GetMotorCurrent>(name, config, get_motor_params);
+            });
+
+        factory.registerBuilder<GetMotorVelocity>("GetMotorVelocity", 
+            [get_motor_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<GetMotorVelocity>(name, config, get_motor_params);
+            });
+
+        factory.registerBuilder<GetMotorDutyCycle>("GetMotorDutyCycle", 
+            [get_motor_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<GetMotorDutyCycle>(name, config, get_motor_params);
+            });
+
+        factory.registerBuilder<GetMotorPosition>("GetMotorPosition", 
+            [get_motor_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<GetMotorPosition>(name, config, get_motor_params);
+            });
 
         // Setup Calibrate Field Coordinates Action
         BT::RosNodeParams calibrate_field_coordinates_params;
