@@ -30,3 +30,10 @@ behavior_control_node:
       APRILTAG_DETECT: 3
       GO_TO_DIG_SITE: 4
       ESTOP: 5
+  
+    # Motor / Acuator CAN ids
+    # TODO: These are just examples, add more
+    hardware:
+      SPIN_MOTOR: 5
+      PUSH_MOTOR: 6
+      TILT_ACTUATOR: 7

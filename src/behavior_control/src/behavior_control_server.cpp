@@ -11,10 +11,17 @@
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/plugins.hpp"
 
+// BT Nodes
 #include "behavior_control/log_node.hpp"
 #include "behavior_control/is_button_pressed_node.hpp"
 #include "behavior_control/is_button_just_pressed_node.hpp"
 
+// BT Service Nodes
+#include "behavior_control/set_motor_velocity_node.hpp"
+#include "behavior_control/set_motor_duty_cycle_node.hpp"
+
+
+// BT Action Nodes
 #include "behavior_control/calibrate_feild_coordinates_node.hpp"
 #include "behavior_control/dig_location_node.hpp"
 #include "behavior_control/move_to_node.hpp"
@@ -68,6 +75,25 @@ public:
             "LogString",
             [this](const std::string& name, const BT::NodeConfiguration& config) { 
                 return std::make_unique<LogString>(name, config, this->get_logger()); 
+            }
+        );
+
+        // Setup Motor Control Actions
+        BT::RosNodeParams motor_params;
+        motor_params.nh = shared_from_this();
+        motor_params.default_port_value = "motor/set"; // The service name
+
+        factory.registerBuilder<SetMotorVelocity>(
+            "SetMotorVelocity",
+            [motor_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<SetMotorVelocity>(name, config, motor_params);
+            }
+        );
+
+        factory.registerBuilder<SetMotorDutyCycle>(
+            "SetMotorDutyCycle",
+            [motor_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<SetMotorDutyCycle>(name, config, motor_params);
             }
         );
 
@@ -211,6 +237,7 @@ private:
         this->declare_parameters("buttons", std::map<std::string, int>{});
         this->declare_parameters("axes", std::map<std::string, int>{});
         this->declare_parameters("streamdeck", std::map<std::string, int>{});
+        this->declare_parameters("hardware", std::map<std::string, int>{});
     }
 
     void setup_blackboard() {
@@ -233,6 +260,13 @@ private:
         this->get_parameters_by_prefix("streamdeck", all_stream_deck);
         for (auto const& [name, val] : all_stream_deck) {
             this->blackboard->set("SD_" + name, val);
+        }
+
+        // Load Hardware IDs
+        std::map<std::string, int> all_hardware;
+        this->get_parameters_by_prefix("hardware", all_hardware);
+        for (auto const& [name, id] : all_hardware) {
+            this->blackboard->set(name, id);
         }
     }
 };
