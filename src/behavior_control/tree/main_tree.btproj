@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4" project_name="Project">
     <include path="main_tree.xml"/>
+    <include path="testing_tree.xml"/>
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>
         <Action ID="AutoDig" editable="true">
@@ -13,10 +14,17 @@
             <input_port name="target_x"/>
             <input_port name="target_y"/>
         </Action>
+        <Condition ID="IsButtonJustPressed" editable="true">
+            <input_port name="button_index"/>
+            <input_port name="input_source" default="{joy_message}"/>
+        </Condition>
         <Condition ID="IsButtonPressed" editable="true">
             <input_port name="button_index"/>
             <input_port name="input_source" default="{joy_message}"/>
         </Condition>
+        <Action ID="LogString" editable="true">
+            <input_port name="message"/>
+        </Action>
         <Action ID="MoveTo" editable="true">
             <input_port name="goal"/>
         </Action>

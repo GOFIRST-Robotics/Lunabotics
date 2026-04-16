@@ -1,4 +1,4 @@
-behavior_control_server:
+behavior_control_node:
   ros__parameters:
     # Xbox / Joystick Buttons
     buttons:

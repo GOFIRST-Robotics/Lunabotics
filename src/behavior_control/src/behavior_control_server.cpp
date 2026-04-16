@@ -30,6 +30,8 @@ public:
 
     explicit BehaviorControlActionServer(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
     : Node("behavior_control_tree_action_server", options) {
+        this->initalize_parameter();
+
         this->blackboard = BT::Blackboard::create();
 
         this->action_server = rclcpp_action::create_server<BehaviorControl>(
@@ -190,51 +192,47 @@ private:
 
     void stream_deck_callback(const rovr_interfaces::msg::StreamDeckState::SharedPtr msg) {
         sensor_msgs::msg::Joy virtual_joy;
-    
-        // Convert the bool[6] array to the int vector Joy expects
+        virtual_joy.header.stamp = this->now();
+        
         for (bool state : msg->button_states) {
             virtual_joy.buttons.push_back(state ? 1 : 0);
         }
+        // Just to be safe, provide an empty axes vector
+        virtual_joy.axes.resize(0);
 
-        // Update the blackboard
         this->blackboard->set("stream_deck_message", virtual_joy);
+    }
+
+    void initalize_parameter() {
+        // We allow "undeclared" parameters under these prefixes by using Descriptor
+        auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
+        descriptor.dynamic_typing = true;
+
+        this->declare_parameters("buttons", std::map<std::string, int>{});
+        this->declare_parameters("axes", std::map<std::string, int>{});
+        this->declare_parameters("streamdeck", std::map<std::string, int>{});
     }
 
     void setup_blackboard() {
         // Buttons
-        std::vector<std::string> button_names = {
-            "X_BUTTON", "A_BUTTON", "B_BUTTON", "Y_BUTTON", "LEFT_BUMPER", 
-            "RIGHT_BUMPER", "START_BUTTON", "BACK_BUTTON"
-        };
-        for (const auto& name : button_names) {
-            int val;
-            if (this->get_parameter("buttons." + name, val)) {
-                this->blackboard->set(name, val);
-            }
+        std::map<std::string, int> all_buttons;
+        this->get_parameters_by_prefix("buttons", all_buttons);
+        for (auto const& [name, val] : all_buttons) {
+            this->blackboard->set(name, val);
         }
 
         // Axes
-        std::vector<std::string> axes_names = {
-            "LEFT_JOYSTICK_HORIZONTAL", "LEFT_JOYSTICK_VERTICAL",
-            "RIGHT_JOYSTICK_HORIZONTAL", "RIGHT_JOYSTICK_VERTICAL"
-        };
-        for (const auto& name : axes_names) {
-            int val;
-            if (this->get_parameter("axes." + name, val)) {
-                this->blackboard->set(name, val);
-            }
+        std::map<std::string, int> all_axes;
+        this->get_parameters_by_prefix("axes", all_axes);
+        for (auto const& [name, val] : all_axes) {
+            this->blackboard->set(name, val);
         }
 
         // StreamDeck
-        std::vector<std::string> sd_names = {
-            "START_AUTO", "AUTO_DIG", "AUTO_DUMP", 
-            "APRILTAG_DETECT", "GO_TO_DIG_SITE", "ESTOP"
-        };
-        for (const auto& name : sd_names) {
-            int val;
-            if (this->get_parameter("streamdeck." + name, val)) {
-                this->blackboard->set(name, val);
-            }
+        std::map<std::string, int> all_stream_deck;
+        this->get_parameters_by_prefix("streamdeck", all_stream_deck);
+        for (auto const& [name, val] : all_stream_deck) {
+            this->blackboard->set("SD_" + name, val);
         }
     }
 };

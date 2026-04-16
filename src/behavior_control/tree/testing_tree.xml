@@ -2,16 +2,42 @@
 <root BTCPP_format="4"
       main_tree_to_execute="main">
   <BehaviorTree ID="main">
-    <KeepRunningUntilFailure>
+    <Repeat num_cycles="-1">
       <Sequence>
-        <Sleep msec="1000"/>
-        <LogString message="Hello World!"/>
+        <Sequence>
+          <IsButtonPressed button_index="{X_BUTTON}"
+                           input_source="{joy_message}"/>
+          <LogString message="X_BUTTON PRESS"/>
+        </Sequence>
+        <Sequence>
+          <IsButtonJustPressed button_index="{Y_BUTTON}"
+                               input_source="{joy_message}"/>
+          <LogString message="Y_BUTTON JUST PRESS"/>
+        </Sequence>
+        <Sequence>
+          <IsButtonPressed button_index="{B_BUTTON}"
+                           input_source="{joy_message}"/>
+          <LogString message="Hello World!"/>
+          <Sleep msec="1000"/>
+        </Sequence>
       </Sequence>
-    </KeepRunningUntilFailure>
+    </Repeat>
   </BehaviorTree>
 
   <!-- Description of Node Models (used by Groot) -->
   <TreeNodesModel>
+    <Condition ID="IsButtonJustPressed"
+               editable="true">
+      <input_port name="button_index"/>
+      <input_port name="input_source"
+                  default="{joy_message}"/>
+    </Condition>
+    <Condition ID="IsButtonPressed"
+               editable="true">
+      <input_port name="button_index"/>
+      <input_port name="input_source"
+                  default="{joy_message}"/>
+    </Condition>
     <Action ID="LogString"
             editable="true">
       <input_port name="message"/>

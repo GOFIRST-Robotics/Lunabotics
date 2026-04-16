@@ -9,9 +9,7 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    rovr_control_launch_dir = PathJoinSubstitution([FindPackageShare('rovr_control'), ''])
-    
-    config = os.path.join(
+    behavior_control_config = os.path.join(
         get_package_share_directory('behavior_control'),
         'config',
         'behavior_control.yaml'
@@ -19,12 +17,17 @@ def generate_launch_description():
 
     return LaunchDescription([
         IncludeLaunchDescription(
-            PathJoinSubstitution([rovr_control_launch_dir, 'action_server_launch.py'])
+            PathJoinSubstitution([
+                FindPackageShare('rovr_control'), 
+                'launch', # Added 'launch' subfolder if applicable
+                'action_server_launch.py'
+            ])
         ),
         Node(
             package='behavior_control',
             executable='behavior_control_server',
-            name='behavior_control_server',
-            parameters=[config]
+            name='behavior_control_node',
+            parameters=[behavior_control_config],
+            output='screen'
         )
     ])
