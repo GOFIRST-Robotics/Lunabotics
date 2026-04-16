@@ -11,13 +11,13 @@ public:
 
     static PortsList providedPorts() {
         return {
-            InputPort<int>("can_id", "The CAN ID of the motor"),
-            OutputPort<T>("value_out", "The value retrieved from the motor")
+            InputPort<uint32_t>("can_id", "The CAN ID of the VESC"),
+            OutputPort<T>("value_out", "The data returned by the motor")
         };
     }
 
     bool setServiceRequest(std::shared_ptr<Request>& request) override {
-        int can_id;
+        uint32_t can_id;
         if (!getInput("can_id", can_id)) return false;
 
         request->can_id = can_id;

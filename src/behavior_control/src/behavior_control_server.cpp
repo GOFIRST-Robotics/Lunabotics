@@ -1,4 +1,5 @@
 #include <functional>
+#include <mutex>
 #include <memory>
 #include <thread>
 
@@ -63,10 +64,7 @@ public:
         );
     }
 
-    void setup_tree() {
-        // Setup Groot2 Behavior Tree
-        BT::BehaviorTreeFactory factory;
-        
+    void init_factory() {
         // Setup Button Press Nodes
         factory.registerNodeType<IsButtonJustPressed>("IsButtonJustPressed");
         factory.registerNodeType<IsButtonPressed>("IsButtonPressed");
@@ -159,21 +157,18 @@ public:
         );
 
         this->setup_blackboard();
-
-        // Load behavior tree from Groot2
-        std::string package_share_directory = ament_index_cpp::get_package_share_directory("behavior_control");
-        std::string behavior_tree_path = package_share_directory + "/testing_tree.xml";
-        this->tree = factory.createTreeFromFile(behavior_tree_path, this->blackboard);
     }
 
 private:
-    BT::Tree tree;
+    BT::BehaviorTreeFactory factory;
     BT::Blackboard::Ptr blackboard;
     rclcpp::WallRate::SharedPtr loop_rate;
     rclcpp_action::Server<BehaviorControl>::SharedPtr action_server;
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub;
     rclcpp::Subscription<rovr_interfaces::msg::StreamDeckState>::SharedPtr stream_deck_sub;
+
+    std::mutex blackboard_mutex;
 
     // Handle inital request
     rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const BehaviorControl::Goal> goal) {
@@ -202,24 +197,28 @@ private:
         const auto goal = goal_handle->get_goal();
         auto feedback = std::make_shared<BehaviorControl::Feedback>();
         auto result = std::make_shared<BehaviorControl::Result>();
+        
+        std::string package_share_directory = ament_index_cpp::get_package_share_directory("behavior_control");
+        std::string behavior_tree_path = package_share_directory + "/testing_tree.xml";
+        
+        auto current_tree = factory.createTreeFromFile(behavior_tree_path, this->blackboard);
 
-        // Initalize and resets the tree on a new execute
-        setup_tree();
-
-        rclcpp::WallRate loop_rate(std::chrono::milliseconds(100));
+        rclcpp::WallRate loop_rate(100ms);
         BT::NodeStatus status = BT::NodeStatus::RUNNING;
 
-        // Run Tree
         while (rclcpp::ok() && status == BT::NodeStatus::RUNNING) {
             if (goal_handle->is_canceling()) {
-                tree.haltTree(); // Crucial: Stop all running BT nodes
+                current_tree.haltTree(); // Stop the motors!
+                auto result = std::make_shared<BehaviorControl::Result>();
                 result->success = false;
                 goal_handle->canceled(result);
-                RCLCPP_INFO(this->get_logger(), "Behavior Tree Action Canceled");
                 return;
             }
 
-            status = tree.tickOnce();
+            { // MUTEX BRACKETS
+                std::lock_guard<std::mutex> lock(blackboard_mutex);
+                status = current_tree.tickOnce();
+            }
 
             // Feedback (can be made more complex)
             feedback->current_status = BT::toStr(status);
@@ -241,6 +240,7 @@ private:
     }
 
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) {
+        std::lock_guard<std::mutex> lock(blackboard_mutex);
         this->blackboard->set("joy_message", *msg);
     }
 
@@ -254,6 +254,7 @@ private:
         // Just to be safe, provide an empty axes vector
         virtual_joy.axes.resize(0);
 
+        std::lock_guard<std::mutex> lock(blackboard_mutex);
         this->blackboard->set("stream_deck_message", virtual_joy);
     }
 
@@ -269,6 +270,7 @@ private:
     }
 
     void setup_blackboard() {
+        std::lock_guard<std::mutex> lock(blackboard_mutex);
         // Buttons
         std::map<std::string, int> all_buttons;
         this->get_parameters_by_prefix("buttons", all_buttons);
@@ -294,7 +296,7 @@ private:
         std::map<std::string, int> all_hardware;
         this->get_parameters_by_prefix("hardware", all_hardware);
         for (auto const& [name, id] : all_hardware) {
-            this->blackboard->set(name, id);
+            this->blackboard->set("HW_" + name, id);
         }
     }
 };

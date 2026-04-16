@@ -32,30 +32,31 @@
         </Action>
 
         <Action ID="SetMotorVelocity">
-            <input_port name="can_id">The CAN ID (from Blackboard)</input_port>
-            <input_port name="velocity">Target RPM</input_port>
-            <input_port name="power_limit">0.0 to 1.0</input_port>
+            <input_port name="can_id" type="int"/>
+            <input_port name="velocity" type="float"/>
+            <input_port name="power_limit" type="float">Default 0.5</input_port>
         </Action>
         <Action ID="SetMotorDutyCycle">
-            <input_port name="can_id">The CAN ID (from Blackboard)</input_port>
-            <input_port name="duty_cycle">-1.0 to 1.0</input_port>
+            <input_port name="can_id" type="int"/>
+            <input_port name="duty_cycle" type="float"/>
+            <input_port name="power_limit" type="float">Default 0.5</input_port>
         </Action>
 
         <Action ID="GetMotorCurrent">
-            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
-            <output_port name="value_out" type="double">Current draw in Amps</output_port>
+            <input_port name="can_id" type="uint32_t"/>
+            <output_port name="value_out" type="float"/>
         </Action>
         <Action ID="GetMotorPosition">
-            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
-            <output_port name="value_out" type="double">Position in Degrees/Tach</output_port>
+            <input_port name="can_id" type="uint32_t"/>
+            <output_port name="value_out" type="float"/>
         </Action>
         <Action ID="GetMotorVelocity">
-            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
-            <output_port name="value_out" type="double">Current RPM</output_port>
+            <input_port name="can_id" type="uint32_t"/>
+            <output_port name="value_out" type="float"/>
         </Action>
         <Action ID="GetMotorDutyCycle">
-            <input_port name="can_id" type="int">CAN ID from Blackboard</input_port>
-            <output_port name="value_out" type="double">Current Duty Cycle %</output_port>
+            <input_port name="can_id" type="uint32_t"/>
+            <output_port name="value_out" type="float"/>
         </Action>
     </TreeNodesModel>
 </root>

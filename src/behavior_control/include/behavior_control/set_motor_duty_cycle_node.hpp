@@ -12,22 +12,23 @@ public:
 
     static PortsList providedPorts() {
         return {
-            InputPort<int>("can_id", "The CAN ID of the motor"),
-            InputPort<double>("duty_cycle", "Target duty cycle (-1.0 to 1.0)")
+            InputPort<int>("can_id"),
+            InputPort<float>("duty_cycle"),
+            InputPort<float>("power_limit", 0.5f)
         };
     }
 
     bool setServiceRequest(std::shared_ptr<Request>& request) override {
         int can_id;
-        double duty_cycle;
+        float duty_cycle, power_limit;
 
-        if (!getInput("can_id", can_id) || !getInput("duty_cycle", duty_cycle)) {
-            return false;
-        }
+        if (!getInput("can_id", can_id) || !getInput("duty_cycle", duty_cycle)) return false;
+        getInput("power_limit", power_limit);
 
         request->can_id = can_id;
         request->type = "duty_cycle";
         request->value = duty_cycle;
+        request->power_limit = power_limit;
         return true;
     }
 
