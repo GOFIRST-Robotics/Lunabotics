@@ -15,6 +15,13 @@
           <LogString message="Y_BUTTON JUST PRESS"/>
         </Sequence>
         <Sequence>
+          <IsButtonPressed button_index="{LEFT_BUMPER}"
+                           input_source="{joy_message}"/>
+          <IsButtonPressed button_index="{RIGHT_BUMPER}"
+                           input_source="{joy_message}"/>
+          <LogString message="LEEFT_RIGHT BUMPER!"/>
+        </Sequence>
+        <Sequence>
           <IsButtonPressed button_index="{B_BUTTON}"
                            input_source="{joy_message}"/>
           <LogString message="Hello World!"/>

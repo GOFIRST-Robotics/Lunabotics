@@ -28,7 +28,7 @@ public:
         request->can_id = can_id;
         request->type = "velocity";
         request->value = velocity;
-        request->power_limit = power_limit; // Now using the explicit field
+        request->power_limit = power_limit;
         return true;
     }
 
