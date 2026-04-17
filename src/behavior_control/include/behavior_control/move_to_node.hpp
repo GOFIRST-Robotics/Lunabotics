@@ -54,7 +54,7 @@ public:
         }
     }
 
-    BT::NodeStatus onFeedback(const std::shared_ptr<const Feedback> feedback) {
+    BT::NodeStatus onFeedback(Feedback& ) {
         // TODO: Better handle and show feedback
         
         return NodeStatus::RUNNING;

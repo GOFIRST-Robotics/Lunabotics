@@ -1,5 +1,8 @@
 #include "behaviortree_ros2/plugins.hpp"
 #include "behaviortree_cpp/condition_node.h"
+
+#include "rclcpp/rclcpp.hpp"
+
 #include "sensor_msgs/msg/joy.hpp"
 
 class IsButtonJustPressed : public BT::ConditionNode {
@@ -13,13 +16,7 @@ public:
             BT::InputPort<sensor_msgs::msg::Joy>("input_source")
         };
     }
-
-    // Called when the node is "interrupted" or the tree is reset
-    void onHalt() override {
-        last_state_ = false; // Reset to prevent accidental triggers on resume
-        BT::ConditionNode::onHalt();
-    }
-
+    
     BT::NodeStatus tick() override {
         int index;
         sensor_msgs::msg::Joy joy_msg;
@@ -30,8 +27,6 @@ public:
 
         // Bounds check
         if (index < 0 || index >= static_cast<int>(joy_msg.buttons.size())) {
-            auto node_ptr = node_.lock();
-            RCLCPP_WARN(node_ptr->get_logger(), "[%s]: Button index out of range.", name().c_str());
             return BT::NodeStatus::FAILURE;
         }
 

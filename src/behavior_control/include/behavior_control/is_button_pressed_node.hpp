@@ -3,6 +3,8 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "sensor_msgs/msg/joy.hpp"
+
 class IsButtonPressed : public BT::ConditionNode {
 public:
     IsButtonPressed(const std::string& name, const BT::NodeConfiguration& config)
@@ -10,7 +12,7 @@ public:
 
     static BT::PortsList providedPorts() {
         return { 
-            BT::InputPort<int>("button_index")
+            BT::InputPort<int>("button_index"),
             BT::InputPort<sensor_msgs::msg::Joy>("input_source")
         };
     }
@@ -24,8 +26,6 @@ public:
         }
 
         if (index < 0 || index >= static_cast<int>(joy_msg.buttons.size())) {
-            auto node_ptr = node_.lock();
-            RCLCPP_WARN(node_ptr->get_logger(), "[%s]: Button index out of range.", name().c_str());
             return BT::NodeStatus::FAILURE;
         }
 

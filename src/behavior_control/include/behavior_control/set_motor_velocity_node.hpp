@@ -14,11 +14,11 @@ public:
         return {
             InputPort<int>("can_id"),
             InputPort<float>("velocity"),
-            InputPort<float>("power_limit", 0.5f, "Max power (0.0 to 1.0)")
+            InputPort<float>("power_limit")
         };
     }
 
-    bool setServiceRequest(std::shared_ptr<Request>& request) override {
+    bool setRequest(typename Request::SharedPtr& request) override {
         int can_id;
         float velocity, power_limit;
 
@@ -32,7 +32,7 @@ public:
         return true;
     }
 
-    NodeStatus onResponseReceived(const Response& response) override {
-        return response.success ? NodeStatus::SUCCESS : NodeStatus::FAILURE;
+    NodeStatus onResponseReceived(const typename Response::SharedPtr& response) override {
+        return response->success ? NodeStatus::SUCCESS : NodeStatus::FAILURE;
     }
 };

@@ -4,3 +4,4 @@
 bool success
 ---
 # Feedback
+string current_status

@@ -41,11 +41,17 @@ public:
     : Node("behavior_control_tree_action_server", options) {
         this->initalize_parameter();
 
+        callback_group_subscribers_ = this->create_callback_group(
+        rclcpp::CallbackGroupType::MutuallyExclusive);
+
+        auto sub_options = rclcpp::SubscriptionOptions();
+        sub_options.callback_group = callback_group_subscribers_;
+
         this->blackboard = BT::Blackboard::create();
 
         this->action_server = rclcpp_action::create_server<BehaviorControl>(
             this,
-            "behavior_control_tree",
+            "behavior_control",
             std::bind(&BehaviorControlActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
             std::bind(&BehaviorControlActionServer::handle_cancel, this, std::placeholders::_1),
             std::bind(&BehaviorControlActionServer::handle_accepted, this, std::placeholders::_1)
@@ -53,14 +59,16 @@ public:
 
         this->joy_sub = this->create_subscription<sensor_msgs::msg::Joy>(
             "joy", 
-            10, 
-            std::bind(&BehaviorControlActionServer::joy_callback, this, std::placeholders::_1)
+            1, 
+            std::bind(&BehaviorControlActionServer::joy_callback, this, std::placeholders::_1),
+            sub_options
         );
 
         this->stream_deck_sub = this->create_subscription<rovr_interfaces::msg::StreamDeckState>(
             "control/stream_deck", 
-            10, 
-            std::bind(&BehaviorControlActionServer::stream_deck_callback, this, std::placeholders::_1)
+            1, 
+            std::bind(&BehaviorControlActionServer::stream_deck_callback, this, std::placeholders::_1),
+            sub_options
         );
     }
 
@@ -168,11 +176,11 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub;
     rclcpp::Subscription<rovr_interfaces::msg::StreamDeckState>::SharedPtr stream_deck_sub;
 
-    std::mutex blackboard_mutex;
+    std::recursive_mutex blackboard_mutex;
+    rclcpp::CallbackGroup::SharedPtr callback_group_subscribers_;
 
     // Handle inital request
-    rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const BehaviorControl::Goal> goal) {
-        RCLCPP_INFO(this->get_logger(), "Received goal request with order %d", goal->order);
+    rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const BehaviorControl::Goal> ) {
         (void)uuid;
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
@@ -203,7 +211,7 @@ private:
         
         auto current_tree = factory.createTreeFromFile(behavior_tree_path, this->blackboard);
 
-        rclcpp::WallRate loop_rate(100ms);
+        rclcpp::WallRate loop_rate(std::chrono::milliseconds(100));
         BT::NodeStatus status = BT::NodeStatus::RUNNING;
 
         while (rclcpp::ok() && status == BT::NodeStatus::RUNNING) {
@@ -216,7 +224,7 @@ private:
             }
 
             { // MUTEX BRACKETS
-                std::lock_guard<std::mutex> lock(blackboard_mutex);
+                // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
                 status = current_tree.tickOnce();
             }
 
@@ -240,7 +248,7 @@ private:
     }
 
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) {
-        std::lock_guard<std::mutex> lock(blackboard_mutex);
+        // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
         this->blackboard->set("joy_message", *msg);
     }
 
@@ -254,7 +262,7 @@ private:
         // Just to be safe, provide an empty axes vector
         virtual_joy.axes.resize(0);
 
-        std::lock_guard<std::mutex> lock(blackboard_mutex);
+        // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
         this->blackboard->set("stream_deck_message", virtual_joy);
     }
 
@@ -263,41 +271,42 @@ private:
         auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
         descriptor.dynamic_typing = true;
 
-        this->declare_parameters("buttons", std::map<std::string, int>{});
-        this->declare_parameters("axes", std::map<std::string, int>{});
-        this->declare_parameters("streamdeck", std::map<std::string, int>{});
-        this->declare_parameters("hardware", std::map<std::string, int>{});
+        this->declare_parameter("buttons", rclcpp::ParameterType::PARAMETER_INTEGER);
+        this->declare_parameter("axes", rclcpp::ParameterType::PARAMETER_INTEGER);
+        this->declare_parameter("streamdeck", rclcpp::ParameterType::PARAMETER_INTEGER);
+        this->declare_parameter("hardware", rclcpp::ParameterType::PARAMETER_INTEGER);
     }
 
     void setup_blackboard() {
-        std::lock_guard<std::mutex> lock(blackboard_mutex);
-        // Buttons
-        std::map<std::string, int> all_buttons;
-        this->get_parameters_by_prefix("buttons", all_buttons);
-        for (auto const& [name, val] : all_buttons) {
-            this->blackboard->set(name, val);
-        }
+        // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
 
-        // Axes
-        std::map<std::string, int> all_axes;
-        this->get_parameters_by_prefix("axes", all_axes);
-        for (auto const& [name, val] : all_axes) {
-            this->blackboard->set(name, val);
-        }
+        auto load_params = [this](const std::string& prefix, const std::string& bb_prefix) {
+            std::map<std::string, rclcpp::Parameter> params;
+            this->get_node_parameters_interface()->get_parameters_by_prefix(prefix, params);
+            for (auto const& [name, val] : params) {
+                if (val.get_type() == rclcpp::ParameterType::PARAMETER_INTEGER) {
+                    this->blackboard->set(bb_prefix + name, (int)val.as_int());
+                }
+            }
+        };
 
-        // StreamDeck
-        std::map<std::string, int> all_stream_deck;
-        this->get_parameters_by_prefix("streamdeck", all_stream_deck);
-        for (auto const& [name, val] : all_stream_deck) {
-            this->blackboard->set("SD_" + name, val);
-        }
+        load_params("buttons", "");           // Access as {X_BUTTON}
+        load_params("axes", "");              // Access as {LEFT_JOYSTICK_HORIZONTAL}
+        load_params("streamdeck", "SD_");     // Access as {SD_START_AUTO}
+        load_params("hardware", "HW_");       // Access as {HW_SPIN_MOTOR}
 
-        // Load Hardware IDs
-        std::map<std::string, int> all_hardware;
-        this->get_parameters_by_prefix("hardware", all_hardware);
-        for (auto const& [name, id] : all_hardware) {
-            this->blackboard->set("HW_" + name, id);
+        this->debug_blackboard();
+    }
+
+    void debug_blackboard() {
+        auto keys = this->blackboard->getKeys();
+        RCLCPP_INFO(this->get_logger(), "--- Blackboard Contents ---");
+        for (const auto& key : keys) {
+            // Attempt to print as integer (since most of your params are ints)
+            auto val = this->blackboard->get<int>(std::string(key));
+            RCLCPP_INFO(this->get_logger(), "Key: %s | Value: %d", key.data(), val);
         }
+        RCLCPP_INFO(this->get_logger(), "---------------------------");
     }
 };
 
@@ -307,10 +316,20 @@ int main(int argc, char * argv[])
 {
     rclcpp::init(argc, argv);
 
-    auto node = std::make_shared<BehaviorControlActionServer>();
+    rclcpp::NodeOptions options;
+    // These two lines are the "magic" for loading YAML into a node
+    options.allow_undeclared_parameters(true);
+    options.automatically_declare_parameters_from_overrides(true);
+
+    auto node = std::make_shared<BehaviorControlActionServer>(options);
     node->init_factory();
 
-    rclcpp::spin(node);
+    // Use MultiThreadedExecutor instead of rclcpp::spin(node)
+    rclcpp::executors::MultiThreadedExecutor executor;
+    executor.add_node(node);
+    executor.spin();
+
+    // rclcpp::spin(node);
     rclcpp::shutdown();
 
     return 0;

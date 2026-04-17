@@ -16,7 +16,7 @@ public:
         };
     }
 
-    bool setServiceRequest(std::shared_ptr<Request>& request) override {
+    bool setRequest(typename Request::SharedPtr& request) override {
         uint32_t can_id;
         if (!getInput("can_id", can_id)) return false;
 
@@ -25,9 +25,9 @@ public:
         return true;
     }
 
-    NodeStatus onResponseReceived(const Response& response) override {
-        if (response.success) {
-            setOutput("value_out", static_cast<T>(response.data));
+    NodeStatus onResponseReceived(const typename Response::SharedPtr& response) override {
+        if (response->success) {
+            setOutput("value_out", static_cast<T>(response->data));
             return NodeStatus::SUCCESS;
         }
         return NodeStatus::FAILURE;

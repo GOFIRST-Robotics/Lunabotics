@@ -10,39 +10,11 @@
         <Action ID="AutoOffload" editable="true"/>
         <Action ID="CalibrateFieldCoordinates" editable="true"/>
         <Action ID="CancelAction" editable="true"/>
-        <Action ID="GoToDigLocation" editable="true">
-            <input_port name="target_x"/>
-            <input_port name="target_y"/>
-        </Action>
-
-        <Condition ID="IsButtonJustPressed">
-            <input_port name="button_index"/>
-            <input_port name="input_source" default="{joy_message}"/>
-        </Condition>
-        <Condition ID="IsButtonPressed">
-            <input_port name="button_index"/>
-            <input_port name="input_source" default="{joy_message}"/>
-        </Condition>
-        
-        <Action ID="LogString">
-            <input_port name="message"/>
-        </Action>
-        <Action ID="MoveTo" editable="true">
-            <input_port name="goal"/>
-        </Action>
-
-        <Action ID="SetMotorVelocity">
-            <input_port name="can_id" type="int"/>
-            <input_port name="velocity" type="float"/>
-            <input_port name="power_limit" type="float">Default 0.5</input_port>
-        </Action>
-        <Action ID="SetMotorDutyCycle">
-            <input_port name="can_id" type="int"/>
-            <input_port name="duty_cycle" type="float"/>
-            <input_port name="power_limit" type="float">Default 0.5</input_port>
-        </Action>
-
         <Action ID="GetMotorCurrent">
+            <input_port name="can_id" type="uint32_t"/>
+            <output_port name="value_out" type="float"/>
+        </Action>
+        <Action ID="GetMotorDutyCycle">
             <input_port name="can_id" type="uint32_t"/>
             <output_port name="value_out" type="float"/>
         </Action>
@@ -54,9 +26,33 @@
             <input_port name="can_id" type="uint32_t"/>
             <output_port name="value_out" type="float"/>
         </Action>
-        <Action ID="GetMotorDutyCycle">
-            <input_port name="can_id" type="uint32_t"/>
-            <output_port name="value_out" type="float"/>
+        <Action ID="GoToDigLocation" editable="true">
+            <input_port name="target_x"/>
+            <input_port name="target_y"/>
+        </Action>
+        <Condition ID="IsButtonJustPressed">
+            <input_port name="button_index"/>
+            <input_port name="input_source" default="{joy_message}"/>
+        </Condition>
+        <Condition ID="IsButtonPressed">
+            <input_port name="button_index"/>
+            <input_port name="input_source" default="{joy_message}"/>
+        </Condition>
+        <Action ID="LogString">
+            <input_port name="message"/>
+        </Action>
+        <Action ID="MoveTo" editable="true">
+            <input_port name="goal"/>
+        </Action>
+        <Action ID="SetMotorDutyCycle">
+            <input_port name="can_id" type="int"/>
+            <input_port name="duty_cycle" type="float"/>
+            <input_port name="power_limit" type="float">Default 0.5</input_port>
+        </Action>
+        <Action ID="SetMotorVelocity">
+            <input_port name="can_id" type="int"/>
+            <input_port name="velocity" type="float"/>
+            <input_port name="power_limit" type="float">Default 0.5</input_port>
         </Action>
     </TreeNodesModel>
 </root>
