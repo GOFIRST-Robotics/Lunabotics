@@ -1,5 +1,4 @@
 #include <functional>
-#include <mutex>
 #include <memory>
 #include <thread>
 
@@ -176,7 +175,6 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub;
     rclcpp::Subscription<rovr_interfaces::msg::StreamDeckState>::SharedPtr stream_deck_sub;
 
-    std::recursive_mutex blackboard_mutex;
     rclcpp::CallbackGroup::SharedPtr callback_group_subscribers_;
 
     // Handle inital request
@@ -223,10 +221,7 @@ private:
                 return;
             }
 
-            { // MUTEX BRACKETS
-                // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
-                status = current_tree.tickOnce();
-            }
+            status = current_tree.tickOnce();
 
             // Feedback (can be made more complex)
             feedback->current_status = BT::toStr(status);
@@ -248,7 +243,6 @@ private:
     }
 
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg) {
-        // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
         this->blackboard->set("joy_message", *msg);
     }
 
@@ -262,7 +256,6 @@ private:
         // Just to be safe, provide an empty axes vector
         virtual_joy.axes.resize(0);
 
-        // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
         this->blackboard->set("stream_deck_message", virtual_joy);
     }
 
@@ -278,8 +271,6 @@ private:
     }
 
     void setup_blackboard() {
-        // std::lock_guard<std::recursive_mutex> lock(blackboard_mutex);
-
         auto load_params = [this](const std::string& prefix, const std::string& bb_prefix) {
             std::map<std::string, rclcpp::Parameter> params;
             this->get_node_parameters_interface()->get_parameters_by_prefix(prefix, params);
@@ -290,10 +281,10 @@ private:
             }
         };
 
-        load_params("buttons", "");           // Access as {X_BUTTON}
-        load_params("axes", "");              // Access as {LEFT_JOYSTICK_HORIZONTAL}
-        load_params("streamdeck", "SD_");     // Access as {SD_START_AUTO}
-        load_params("hardware", "HW_");       // Access as {HW_SPIN_MOTOR}
+        load_params("buttons", "");
+        load_params("axes", "");
+        load_params("streamdeck", "SD_");
+        load_params("hardware", "HW_");
 
         this->debug_blackboard();
     }
@@ -317,19 +308,17 @@ int main(int argc, char * argv[])
     rclcpp::init(argc, argv);
 
     rclcpp::NodeOptions options;
-    // These two lines are the "magic" for loading YAML into a node
+
     options.allow_undeclared_parameters(true);
     options.automatically_declare_parameters_from_overrides(true);
 
     auto node = std::make_shared<BehaviorControlActionServer>(options);
     node->init_factory();
 
-    // Use MultiThreadedExecutor instead of rclcpp::spin(node)
     rclcpp::executors::MultiThreadedExecutor executor;
     executor.add_node(node);
     executor.spin();
 
-    // rclcpp::spin(node);
     rclcpp::shutdown();
 
     return 0;
