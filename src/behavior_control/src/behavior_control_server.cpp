@@ -10,6 +10,7 @@
 
 #include "behaviortree_cpp/bt_factory.h"
 #include "behaviortree_ros2/plugins.hpp"
+#include "behaviortree_cpp/loggers/groot2_publisher.h"
 
 // BT Nodes
 #include "behavior_control/log_node.hpp"
@@ -177,6 +178,8 @@ private:
 
     rclcpp::CallbackGroup::SharedPtr callback_group_subscribers_;
 
+    std::unique_ptr<BT::Groot2Publisher> groot_publisher;
+
     // Handle inital request
     rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const BehaviorControl::Goal> ) {
         (void)uuid;
@@ -208,6 +211,7 @@ private:
         std::string behavior_tree_path = package_share_directory + "/tree/testing_tree.xml";
         
         auto current_tree = factory.createTreeFromFile(behavior_tree_path, this->blackboard);
+        groot_publisher = std::make_unique<BT::Groot2Publisher>(current_tree, 1667);
 
         rclcpp::WallRate loop_rate(std::chrono::milliseconds(100));
         BT::NodeStatus status = BT::NodeStatus::RUNNING;
