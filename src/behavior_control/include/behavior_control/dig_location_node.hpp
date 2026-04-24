@@ -21,11 +21,11 @@ public:
         auto node_ptr = node_.lock();
         if (node_ptr) {
             if (result.code != rclcpp_action::ResultCode::SUCCEEDED) {
-                RCLCPP_WARN(node_ptr->get_logger(), "[%s]: Calibrate field coordinates failed.", name().c_str());
+                RCLCPP_WARN(node_ptr->get_logger(), "[%s]: Go to dig location failed.", name().c_str());
                 return BT::NodeStatus::FAILURE;
             }
-            
-            RCLCPP_INFO(node_ptr->get_logger(), "[%s]: Field coordinates detected successfully.", name().c_str());
+
+            RCLCPP_INFO(node_ptr->get_logger(), "[%s]: Go to dig location succeeded.", name().c_str());
         }
 
         return BT::NodeStatus::SUCCESS;

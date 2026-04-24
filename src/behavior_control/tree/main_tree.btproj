@@ -5,9 +5,20 @@
     <!-- Description of Node Models (used by Groot) -->
     <TreeNodesModel>
         <Action ID="AutoDig" editable="true">
-            <input_port name="backup_distance"/>
+            <input_port name="digging_start_position"/>
+            <input_port name="digger_power"/>
         </Action>
-        <Action ID="AutoOffload" editable="true"/>
+        <Action ID="AutoDigNavOffload" editable="true">
+            <input_port name="digging_start_position"/>
+            <input_port name="digger_power"/>
+            <input_port name="backup_distance"/>
+            <input_port name="x_pos"/>
+            <input_port name="y_pos"/>
+        </Action>
+        <Action ID="AutoOffload" editable="true">
+            <input_port name="dumping_position"/>
+            <input_port name="digger_power"/>
+        </Action>
         <Action ID="CalibrateFieldCoordinates" editable="true"/>
         <Action ID="CancelAction" editable="true"/>
         <Action ID="GetMotorCurrent">
@@ -26,10 +37,7 @@
             <input_port name="can_id" type="uint32_t"/>
             <output_port name="value_out" type="float"/>
         </Action>
-        <Action ID="GoToDigLocation" editable="true">
-            <input_port name="target_x"/>
-            <input_port name="target_y"/>
-        </Action>
+        <Action ID="GoToDigLocation" editable="true"/>
         <Condition ID="IsButtonJustPressed">
             <input_port name="button_index"/>
             <input_port name="input_source" default="{joy_message}"/>
@@ -53,6 +61,12 @@
             <input_port name="can_id" type="int"/>
             <input_port name="velocity" type="float"/>
             <input_port name="power_limit" type="float">Default 0.5</input_port>
+        </Action>
+        <Action ID="SetPoseStamped" editable="true">
+            <input_port name="x"/>
+            <input_port name="y"/>
+            <input_port name="yaw"/>
+            <output_port name="pose"/>
         </Action>
     </TreeNodesModel>
 </root>

@@ -14,6 +14,7 @@
 
 // BT Nodes
 #include "behavior_control/log_node.hpp"
+#include "behavior_control/set_pose_stamped_node.hpp"
 #include "behavior_control/is_button_pressed_node.hpp"
 #include "behavior_control/is_button_just_pressed_node.hpp"
 
@@ -25,6 +26,9 @@
 
 // BT Action Nodes
 #include "behavior_control/calibrate_feild_coordinates_node.hpp"
+#include "behavior_control/auto_offload_node.hpp"
+#include "behavior_control/auto_dig_node.hpp"
+#include "behavior_control/auto_dig_nav_offload_node.hpp"
 #include "behavior_control/dig_location_node.hpp"
 #include "behavior_control/move_to_node.hpp"
 
@@ -85,6 +89,16 @@ public:
             }
         );
 
+        // Setup Set Pose Stamped
+        BT::RosNodeParams set_pose_stamped_params;
+        set_pose_stamped_params.nh = shared_from_this();
+        factory.registerBuilder<SetPoseStamped>(
+            "SetPoseStamped",
+            [set_pose_stamped_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<SetPoseStamped>(name, config, set_pose_stamped_params.nh->get_logger());
+            }
+        );
+
         // Setup Motor Control Actions
         
         // Set Motor Commands
@@ -139,6 +153,39 @@ public:
             "CalibrateFieldCoordinates",
             [calibrate_field_coordinates_params](const std::string& name, const BT::NodeConfiguration& config) {
                 return std::make_unique<CalibrateFieldCoordinatesAction>(name, config, calibrate_field_coordinates_params);
+            }
+        );
+
+        // Setup Auto Offload Action
+        BT::RosNodeParams auto_offload_params;
+        auto_offload_params.nh = shared_from_this();
+        auto_offload_params.default_port_value = "auto_offload";
+        factory.registerBuilder<AutoOffloadAction>(
+            "AutoOffload",
+            [auto_offload_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<AutoOffloadAction>(name, config, auto_offload_params);
+            }
+        );
+
+        // Setup Auto Dig Action
+        BT::RosNodeParams auto_dig_params;
+        auto_dig_params.nh = shared_from_this();
+        auto_dig_params.default_port_value = "auto_dig";
+        factory.registerBuilder<AutoDigAction>(
+            "AutoDig",
+            [auto_dig_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<AutoDigAction>(name, config, auto_dig_params);
+            }
+        );
+
+        // Setup Auto Dig Nav Offload Action
+        BT::RosNodeParams auto_dig_nav_offload_params;
+        auto_dig_nav_offload_params.nh = shared_from_this();
+        auto_dig_nav_offload_params.default_port_value = "auto_dig_nav_offload";
+        factory.registerBuilder<AutoDigNavOffloadAction>(
+            "AutoDigNavOffload",
+            [auto_dig_nav_offload_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<AutoDigNavOffloadAction>(name, config, auto_dig_nav_offload_params);
             }
         );
 

@@ -1,6 +1,6 @@
 # Request
-float64 tilt_digging_start_position
-float64 digger_chain_power
+float64 digging_start_position
+float64 digger_power
 ---
 # Result
 ---

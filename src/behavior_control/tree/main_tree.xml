@@ -8,11 +8,14 @@
         </RetryUntilSuccessful>
         <KeepRunningUntilFailure>
           <Sequence>
-            <GoToDigLocation target_x=""
-                             target_y=""/>
-            <AutoDig backup_distance=""/>
-            <Script code="msg:=&quot;Go To Offload Zone&quot;"/>
-            <AutoOffload/>
+            <GoToDigLocation/>
+            <AutoDig digging_start_position="0.0"
+                     digger_power="0.0"/>
+            <SetPoseStamped x="0.0"
+                            y="0.0"
+                            yaw="0.0"
+                            pose="{offload_pose}"/>
+            <MoveTo goal="{offload_pose}"/>
           </Sequence>
         </KeepRunningUntilFailure>
       </Sequence>
@@ -24,16 +27,23 @@
   <TreeNodesModel>
     <Action ID="AutoDig"
             editable="true">
-      <input_port name="backup_distance"/>
+      <input_port name="digging_start_position"/>
+      <input_port name="digger_power"/>
     </Action>
-    <Action ID="AutoOffload"
-            editable="true"/>
     <Action ID="CalibrateFieldCoordinates"
             editable="true"/>
     <Action ID="GoToDigLocation"
+            editable="true"/>
+    <Action ID="MoveTo"
             editable="true">
-      <input_port name="target_x"/>
-      <input_port name="target_y"/>
+      <input_port name="goal"/>
+    </Action>
+    <Action ID="SetPoseStamped"
+            editable="true">
+      <input_port name="x"/>
+      <input_port name="y"/>
+      <input_port name="yaw"/>
+      <output_port name="pose"/>
     </Action>
   </TreeNodesModel>
 
