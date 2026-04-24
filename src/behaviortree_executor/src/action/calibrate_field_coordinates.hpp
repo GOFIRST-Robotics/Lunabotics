@@ -23,7 +23,7 @@ public:
     {
     }
 
-    bool setGoal(dGoal &goal) override
+    bool setGoal(RosActionNode<CalibrateFieldCoordinates>::Goal &goal) override
     {
         return true;
     }
@@ -43,7 +43,7 @@ public:
                 return NodeStatus::FAILURE;
             case rclcpp_action::ResultCode::CANCELED:
                 // The action was canceled
-                return NodeStatus::CANCELED;
+                return NodeStatus::FAILURE;
             default:
                 // Any other weirdness should generally be a failure
                 return NodeStatus::FAILURE;

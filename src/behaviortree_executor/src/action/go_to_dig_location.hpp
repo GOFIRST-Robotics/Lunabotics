@@ -25,11 +25,11 @@ public:
     {
     }
 
-    bool setGoal(Goal &goal) override
+    bool setGoal(RosActionNode<GoToDigLocation>::Goal &goal) override
     {
-        bool x_success = getInput<double>("x", goal.x);
-        bool y_success = getInput<double>("y", goal.y);
-        return x_success && y_success;
+        auto x_success = getInput<double>("x", goal.x);
+        auto y_success = getInput<double>("y", goal.y);
+        return (bool) (x_success && y_success);
     }
 
     NodeStatus onResultReceived(const WrappedResult &result) override
@@ -44,7 +44,7 @@ public:
                 return NodeStatus::FAILURE;
             case rclcpp_action::ResultCode::CANCELED:
                 // The action was canceled
-                return NodeStatus::CANCELED;
+                return NodeStatus::FAILURE;
             default:
                 // Any other weirdness should generally be a failure
                 return NodeStatus::FAILURE;

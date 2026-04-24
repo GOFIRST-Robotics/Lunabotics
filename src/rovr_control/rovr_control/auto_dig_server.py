@@ -11,7 +11,7 @@ from rovr_control.node_util import AsyncNode
 from nav2_msgs.action import BackUp
 from geometry_msgs.msg import Point
 from builtin_interfaces.msg import Duration
-from nav2_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid
 
 
 class AutoDigServer(AsyncNode):

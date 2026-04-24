@@ -32,6 +32,7 @@ setup(
                 "auto_dig_server = rovr_control.auto_dig_server:main",
                 "auto_offload_server = rovr_control.auto_offload_server:main",
                 "dig_location_server = rovr_control.dig_location_server:main",
+                'coord_return_server = rovr_control.coord_return_server:main',
                 "auto_dig_nav_offload_server = rovr_control.auto_dig_nav_offload_server:main",
                 "stream_deck_node = rovr_control.stream_deck_node:main",
             }

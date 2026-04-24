@@ -3,5 +3,6 @@ float64 x
 float64 y
 ---
 # Result
+bool success
 ---
 # Feedback

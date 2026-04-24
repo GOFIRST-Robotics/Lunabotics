@@ -1,13 +1,13 @@
-#include "rovr_interfaces/action/coord_return.hpp"
+#include "rovr_interfaces/action/return_to_coordinate.hpp"
 
 #include "behaviortree_cpp/tree_node.h"
 #include "behaviortree_ros2/bt_action_node.hpp"
 #include "behaviortree_ros2/ros_node_params.hpp"
 
-using CoordReturn = rovr_interfaces::action::ReturnToCoordinate;
+using ReturnToCoordinate = rovr_interfaces::action::ReturnToCoordinate;
 using namespace BT;
 
-class CoordReturnAction : public RosActionNode<CoordReturn>
+class CoordReturnAction : public RosActionNode<ReturnToCoordinate>
 {
     public:
        static BT::PortsList providedPorts() 
@@ -21,17 +21,17 @@ class CoordReturnAction : public RosActionNode<CoordReturn>
         }
 
     CoordReturnAction(const std::string &name, const BT::NodeConfig &conf, const BT::RosNodeParams &params)
-    : RosActionNode<CoordReturn>(name, conf, params)
+    : RosActionNode<ReturnToCoordinate>(name, conf, params)
     {
         // Initialize any member variables or state here
     }
 
     // attribute__((unused)) is used to suppress compiler warnings about unused parameters
-    bool setGoal(Goal &goal) override
+    bool setGoal(RosActionNode<ReturnToCoordinate>::Goal &goal) override
     {
-        bool x_pos_success = getInput<double>("x_pos", goal.x_pos);
-        bool y_pos_success = getInput<double>("y_pos", goal.y_pos);
-        return x_pos_success && y_pos_success;
+        auto x_pos_success = getInput<double>("x_pos", goal.x_pos);
+        auto y_pos_success = getInput<double>("y_pos", goal.y_pos);
+        return (bool) (x_pos_success && y_pos_success);
     }
 
     NodeStatus onResultReceived(const WrappedResult &result) override
@@ -46,7 +46,7 @@ class CoordReturnAction : public RosActionNode<CoordReturn>
                 return NodeStatus::FAILURE;
             case rclcpp_action::ResultCode::CANCELED:
                 // The action was canceled
-                return NodeStatus::CANCELED;
+                return NodeStatus::FAILURE;
             default:
                 // Any other weirdness should generally be a failure
                 return NodeStatus::FAILURE;

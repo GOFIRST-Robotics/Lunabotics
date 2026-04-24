@@ -24,6 +24,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/CalibrateFieldCoordinates.action"
   "action/GoToDigLocation.action"
   "action/AutoDigNavOffload.action"
+  "action/ReturnToCoordinate.action"
   "msg/Potentiometers.msg"
   "msg/StreamDeckState.msg"
   "srv/Drive.srv"

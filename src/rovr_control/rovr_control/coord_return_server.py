@@ -10,7 +10,7 @@ from action_msgs.msg import GoalStatus
 from rovr_control.node_util import AsyncNode
 from nav2_msgs.action import NavigateToPose
 from rclpy.action.client import ClientGoalHandle
-from nav2_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid
 import math
 
 
@@ -125,3 +125,19 @@ class ReturnToCoordinateServer(AsyncNode):
             return result
 
         return result
+
+def main (args=None):
+    rclpy.init(args=args)
+    return_to_coordinate_server = ReturnToCoordinateServer()
+    rclpy.spin(return_to_coordinate_server)
+
+    try:
+        rclpy.spin(return_to_coordinate_server)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        return_to_coordinate_server.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()

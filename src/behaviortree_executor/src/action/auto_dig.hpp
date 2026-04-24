@@ -23,27 +23,27 @@ public:
     {
     }
 
-    bool setGoal(Goal &goal) override
+    bool setGoal(RosActionNode<AutoDig>::Goal &goal) override
     {
         // get inputs from the Input port
-        bool backup_distance_success = getInput<double>("backup_distance", goal.backup_distance);
+        auto backup_distance_success = getInput<double>("backup_distance", goal.backup_distance);
         // return true, if we were able to set the goal correctly.
-        return backup_distance_success;
+        return (bool) backup_distance_success;
     }
 
     NodeStatus onResultReceived(const WrappedResult &result) override
     {
         switch(result.code)
         {
-            case rclcpp_action::ResultCode::SUCCEDED
+            case rclcpp_action::ResultCode::SUCCEEDED:
                 // The action server completed the dig successfully
                 return NodeStatus::SUCCESS;
-            case rclcpp_action::ResultCode::ABORTED
+            case rclcpp_action::ResultCode::ABORTED:
                 // Something went wrong (eg the dig got stuck or a sensor failed)
-                return NodeStatus::Failure;
+                return NodeStatus::FAILURE;
             case rclcpp_action::ResultCode::CANCELED:
                 // The action was canceled
-                return NodeStatus::CANCELED;
+                return NodeStatus::FAILURE;
             default:
                 // Any other weirdness should generally be a failure
                 return NodeStatus::FAILURE;

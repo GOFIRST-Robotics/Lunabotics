@@ -22,11 +22,11 @@ class AutoDigNavOffLoadAction : public RosAction<AutoDig>
     {
     }
 
-    bool setGoal(Goal &goal) override
+    bool setGoal(RosActionNode<AutoDigNavOffLoadAction>::Goal &goal) override
     {
-        bool target_x_success = getInput<double>("target_x", goal.target_x);
-        bool target_y_success = getInput<double>("target_y", goal.target_y);
-        return target_x_success && target_y_success;
+        auto target_x_success = getInput<double>("target_x", goal.target_x);
+        auto target_y_success = getInput<double>("target_y", goal.target_y);
+        return (bool) (target_x_success && target_y_success);
     }
 
     NodeStatus onResultReceived(const WrappedResult & result) override

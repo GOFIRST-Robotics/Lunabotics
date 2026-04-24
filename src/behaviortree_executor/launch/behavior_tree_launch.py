@@ -3,6 +3,12 @@ from launch_ros.actions import Node
 from launch.substitutions import PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
+# This launch file is responsible for launching the behavior tree executor node
+# and all the action servers it depends on.
+# It also passes the path to the behavior tree XML file as a parameter to the
+# behavior tree executor node.
+# There is no cancel action server in the rovr_control package as it was built into the behavior tree executor node,
+#  so we will not launch it here.
 
 def generate_launch_description():
     ld = LaunchDescription()
@@ -36,11 +42,6 @@ def generate_launch_description():
         name="coord_return_server",
     )
 
-    cancel_action_server = Node(
-        package="rovr_control",
-        executable="cancel_action_server",
-        name="cancel_action_server",
-    )
 
     behaviortree_executor = Node(
         package="behaviortree_executor",
@@ -62,7 +63,6 @@ def generate_launch_description():
     ld.add_action(calibrate_field_coordinate_server)
     ld.add_action(dig_location_server)
     ld.add_action(coord_return_server)
-    ld.add_action(cancel_action_server)
     ld.add_action(behaviortree_executor)
 
     return ld

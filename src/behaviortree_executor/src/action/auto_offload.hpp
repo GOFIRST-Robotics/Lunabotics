@@ -24,13 +24,14 @@ static BT::PortsList providedPorts()
     {
     }
 
-    bool setGoal(Goal &goal) override
+    bool setGoal(RosActionNode<AutoOffload>::Goal &goal) override
     {
-        bool lift_dumping_position_succss = getInput<double>("lift_dumping_position",
+        auto lift_dumping_position_success = getInput<double>("lift_dumping_position",
                                                      goal.lift_dumping_position);
                                                      
         // return true, if we were able to set the goal correctly.
-        return lift_dumping_position_success;
+        return (bool)lift_dumping_position_success;
+    }
 
     // Added a switch statement to handle different result codes from the action server
     NodeStatus onResultReceived(const WrappedResult &result) override
