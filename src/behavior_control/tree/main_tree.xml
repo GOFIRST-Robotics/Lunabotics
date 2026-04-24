@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root BTCPP_format="4">
   <BehaviorTree ID="MainTree">
-    <Fallback>
+    <Sequence>
       <Sequence name="Autonomus">
         <RetryUntilSuccessful num_attempts="5">
           <CalibrateFieldCoordinates/>
@@ -16,11 +16,14 @@
                             yaw="0.0"
                             pose="{offload_pose}"/>
             <MoveTo goal="{offload_pose}"/>
+            <AutoOffload dumping_position="0.0"
+                         digger_power="0.0"/>
           </Sequence>
         </KeepRunningUntilFailure>
       </Sequence>
-      <Script code="msg:=&apos;Manual Override&apos;"/>
-    </Fallback>
+      <LogString message="Robot Failed!"/>
+      <AlwaysFailure/>
+    </Sequence>
   </BehaviorTree>
 
   <!-- Description of Node Models (used by Groot) -->
@@ -30,10 +33,18 @@
       <input_port name="digging_start_position"/>
       <input_port name="digger_power"/>
     </Action>
+    <Action ID="AutoOffload"
+            editable="true">
+      <input_port name="dumping_position"/>
+      <input_port name="digger_power"/>
+    </Action>
     <Action ID="CalibrateFieldCoordinates"
             editable="true"/>
     <Action ID="GoToDigLocation"
             editable="true"/>
+    <Action ID="LogString">
+      <input_port name="message"/>
+    </Action>
     <Action ID="MoveTo"
             editable="true">
       <input_port name="goal"/>

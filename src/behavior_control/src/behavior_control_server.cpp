@@ -36,6 +36,9 @@
 #include "rovr_interfaces/msg/stream_deck_state.hpp"
 #include "sensor_msgs/msg/joy.hpp"
 
+// NOTE: To test the behavior tree run
+// ros2 action send_goal /behavior_control rovr_interfaces/action/BehaviorControl "{}"
+
 class BehaviorControlActionServer : public rclcpp::Node {
 public:
     using BehaviorControl = rovr_interfaces::action::BehaviorControl;
@@ -90,12 +93,10 @@ public:
         );
 
         // Setup Set Pose Stamped
-        BT::RosNodeParams set_pose_stamped_params;
-        set_pose_stamped_params.nh = shared_from_this();
         factory.registerBuilder<SetPoseStamped>(
             "SetPoseStamped",
-            [set_pose_stamped_params](const std::string& name, const BT::NodeConfiguration& config) {
-                return std::make_unique<SetPoseStamped>(name, config, set_pose_stamped_params.nh->get_logger());
+            [this](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<SetPoseStamped>(name, config, this->get_logger());
             }
         );
 
@@ -194,7 +195,7 @@ public:
         dig_location_params.nh = shared_from_this();
         dig_location_params.default_port_value = "dig_location_server";
         factory.registerBuilder<DigLocationAction>(
-            "DigLocation",
+            "GoToDigLocation",
             [dig_location_params](const std::string& name, const BT::NodeConfiguration& config) {
                 return std::make_unique<DigLocationAction>(name, config, dig_location_params);
             }
@@ -253,14 +254,19 @@ private:
         const auto goal = goal_handle->get_goal();
         auto feedback = std::make_shared<BehaviorControl::Feedback>();
         auto result = std::make_shared<BehaviorControl::Result>();
+
+        std::string behavior_tree_file = this->get_parameter("behavior_tree_file").as_string();
+        int groot_port = this->get_parameter("groot_publisher_port").as_int();
+        long int tick_interval_ms = this->get_parameter("behavior_tree_tick_interval").as_int();
         
         std::string package_share_directory = ament_index_cpp::get_package_share_directory("behavior_control");
-        std::string behavior_tree_path = package_share_directory + "/tree/testing_tree.xml";
+        std::string behavior_tree_path = package_share_directory + behavior_tree_file;
         
-        auto current_tree = factory.createTreeFromFile(behavior_tree_path, this->blackboard);
-        groot_publisher = std::make_unique<BT::Groot2Publisher>(current_tree, 1667);
 
-        rclcpp::WallRate loop_rate(std::chrono::milliseconds(100));
+        auto current_tree = factory.createTreeFromFile(behavior_tree_path, this->blackboard);
+        groot_publisher = std::make_unique<BT::Groot2Publisher>(current_tree, groot_port);
+        
+        rclcpp::WallRate loop_rate{std::chrono::milliseconds(tick_interval_ms)};
         BT::NodeStatus status = BT::NodeStatus::RUNNING;
 
         while (rclcpp::ok() && status == BT::NodeStatus::RUNNING) {
@@ -311,6 +317,16 @@ private:
     }
 
     void initalize_parameter() {
+        if (!this->has_parameter("groot_publisher_port")) {
+            this->declare_parameter<int>("groot_publisher_port", 1667);
+        }
+        if (!this->has_parameter("behavior_tree_file")) {
+            this->declare_parameter<std::string>("behavior_tree_file", "/tree/main_tree.xml");
+        }
+        if (!this->has_parameter("behavior_tree_tick_interval")) {
+            this->declare_parameter<long int>("behavior_tree_tick_interval", 15);
+        }
+        
         // We allow "undeclared" parameters under these prefixes by using Descriptor
         auto descriptor = rcl_interfaces::msg::ParameterDescriptor();
         descriptor.dynamic_typing = true;

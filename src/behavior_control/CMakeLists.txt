@@ -17,6 +17,8 @@ find_package(rovr_interfaces REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 # Add the Standalone Executable
 add_executable(behavior_control_node src/behavior_control_server.cpp)
@@ -36,6 +38,8 @@ ament_target_dependencies(behavior_control_node
   nav2_msgs
   geometry_msgs
   sensor_msgs
+  tf2_geometry_msgs
+  tf2
 )
 
 # Install the node
