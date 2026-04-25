@@ -237,6 +237,7 @@ private:
     // Handle tree cancellation
     rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<BehaviorControlGoalHandle> goal_handle) {
         RCLCPP_INFO(this->get_logger(), "Received request to cancel Behavior Control Server");
+        this->cleanup();
         (void)goal_handle;
         return rclcpp_action::CancelResponse::ACCEPT;
     }
@@ -291,10 +292,12 @@ private:
         if (status == BT::NodeStatus::SUCCESS) {
             result->success = true;
             goal_handle->succeed(result);
+            this->cleanup();
             RCLCPP_INFO(this->get_logger(), "Behavior Tree Action Completed: SUCCESS");
         } else {
             result->success = false;
             goal_handle->abort(result);
+            this->cleanup();
             RCLCPP_ERROR(this->get_logger(), "Behavior Tree Action Completed: FAILURE");
         }
     }
@@ -365,6 +368,11 @@ private:
             RCLCPP_INFO(this->get_logger(), "Key: %s | Value: %d", key.data(), val);
         }
         RCLCPP_INFO(this->get_logger(), "---------------------------");
+    }
+
+    void cleanup() {
+        // Cleanup code if needed
+        this->groot_publisher = nullptr;
     }
 };
 

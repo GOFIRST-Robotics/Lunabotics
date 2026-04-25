@@ -2,39 +2,43 @@
 <root BTCPP_format="4"
       main_tree_to_execute="main">
   <BehaviorTree ID="main">
-    <KeepRunningUntilFailure>
-      <ParallelAll max_failures="-1">
-        <Sequence>
-          <IsButtonPressed button_index="{X_BUTTON}"
-                           input_source="{joy_message}"/>
-          <LogString message="X_BUTTON PRESS"/>
-        </Sequence>
-        <Sequence>
-          <IsButtonPressed button_index="{SD_ESTOP}"
-                           input_source="{stream_deck_message}"/>
-          <LogString message="Hello World Stream!"/>
-        </Sequence>
-        <Sequence>
-          <IsButtonJustPressed button_index="{Y_BUTTON}"
-                               input_source="{joy_message}"/>
-          <LogString message="Y_BUTTON JUST PRESS"/>
-        </Sequence>
-        <Sequence>
-          <IsButtonPressed button_index="{LEFT_BUMPER}"
-                           input_source="{joy_message}"/>
-          <IsButtonPressed button_index="{RIGHT_BUMPER}"
-                           input_source="{joy_message}"/>
-          <LogString message="LEEFT_RIGHT BUMPER!"/>
-        </Sequence>
-        <Sequence>
-          <IsButtonPressed button_index="{B_BUTTON}"
-                           input_source="{joy_message}"/>
-          <LogString message="Hello World!"/>
-          <Sleep msec="1000"/>
-        </Sequence>
-        <AlwaysSuccess/>
-      </ParallelAll>
-    </KeepRunningUntilFailure>
+    <Repeat num_cycles="-1">
+      <ReactiveSequence>
+        <Inverter>
+          <Sequence>
+            <IsButtonPressed button_index="{SD_ESTOP}"
+                             input_source="{stream_deck_message}"/>
+            <LogString message="EStop Pressed!"/>
+          </Sequence>
+        </Inverter>
+        <ParallelAll max_failures="-1">
+          <Sequence>
+            <IsButtonPressed button_index="{X_BUTTON}"
+                             input_source="{joy_message}"/>
+            <LogString message="X_BUTTON PRESS"/>
+          </Sequence>
+          <Sequence>
+            <IsButtonJustPressed button_index="{Y_BUTTON}"
+                                 input_source="{joy_message}"/>
+            <LogString message="Y_BUTTON JUST PRESS"/>
+          </Sequence>
+          <Sequence>
+            <IsButtonPressed button_index="{LEFT_BUMPER}"
+                             input_source="{joy_message}"/>
+            <IsButtonPressed button_index="{RIGHT_BUMPER}"
+                             input_source="{joy_message}"/>
+            <LogString message="LEEFT_RIGHT BUMPER!"/>
+          </Sequence>
+          <Sequence>
+            <IsButtonPressed button_index="{B_BUTTON}"
+                             input_source="{joy_message}"/>
+            <LogString message="Hello World!"/>
+            <Sleep msec="1000"/>
+          </Sequence>
+          <AlwaysSuccess/>
+        </ParallelAll>
+      </ReactiveSequence>
+    </Repeat>
   </BehaviorTree>
 
   <!-- Description of Node Models (used by Groot) -->
