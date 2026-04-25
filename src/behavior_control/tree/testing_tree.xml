@@ -2,7 +2,7 @@
 <root BTCPP_format="4"
       main_tree_to_execute="main">
   <BehaviorTree ID="main">
-    <Repeat num_cycles="-1">
+    <KeepRunningUntilFailure>
       <ReactiveSequence>
         <Inverter>
           <Sequence>
@@ -38,7 +38,7 @@
           <AlwaysSuccess/>
         </ParallelAll>
       </ReactiveSequence>
-    </Repeat>
+    </KeepRunningUntilFailure>
   </BehaviorTree>
 
   <!-- Description of Node Models (used by Groot) -->

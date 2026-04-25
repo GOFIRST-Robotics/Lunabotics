@@ -6,6 +6,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "rclcpp/callback_group.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 
 #include "behaviortree_cpp/bt_factory.h"
@@ -48,8 +49,11 @@ public:
     : Node("behavior_control_tree_action_server", options) {
         this->initalize_parameter();
 
-        callback_group_subscribers_ = this->create_callback_group(
+        this->callback_group_subscribers_ = this->create_callback_group(
         rclcpp::CallbackGroupType::MutuallyExclusive);
+
+        this->callback_group_actions_ = this->create_callback_group(
+            rclcpp::CallbackGroupType::Reentrant);
 
         auto sub_options = rclcpp::SubscriptionOptions();
         sub_options.callback_group = callback_group_subscribers_;
@@ -61,7 +65,9 @@ public:
             "behavior_control",
             std::bind(&BehaviorControlActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
             std::bind(&BehaviorControlActionServer::handle_cancel, this, std::placeholders::_1),
-            std::bind(&BehaviorControlActionServer::handle_accepted, this, std::placeholders::_1)
+            std::bind(&BehaviorControlActionServer::handle_accepted, this, std::placeholders::_1),
+            rcl_action_server_get_default_options(),
+            callback_group_actions_
         );
 
         this->joy_sub = this->create_subscription<sensor_msgs::msg::Joy>(
@@ -225,6 +231,7 @@ private:
     rclcpp::Subscription<rovr_interfaces::msg::StreamDeckState>::SharedPtr stream_deck_sub;
 
     rclcpp::CallbackGroup::SharedPtr callback_group_subscribers_;
+    rclcpp::CallbackGroup::SharedPtr callback_group_actions_;
 
     std::unique_ptr<BT::Groot2Publisher> groot_publisher;
 
@@ -237,7 +244,6 @@ private:
     // Handle tree cancellation
     rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<BehaviorControlGoalHandle> goal_handle) {
         RCLCPP_INFO(this->get_logger(), "Received request to cancel Behavior Control Server");
-        this->cleanup();
         (void)goal_handle;
         return rclcpp_action::CancelResponse::ACCEPT;
     }
@@ -276,6 +282,7 @@ private:
                 auto result = std::make_shared<BehaviorControl::Result>();
                 result->success = false;
                 goal_handle->canceled(result);
+                this->cleanup();
                 return;
             }
 
