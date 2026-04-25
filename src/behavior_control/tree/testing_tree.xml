@@ -3,11 +3,16 @@
       main_tree_to_execute="main">
   <BehaviorTree ID="main">
     <KeepRunningUntilFailure>
-      <Fallback>
+      <ParallelAll max_failures="-1">
         <Sequence>
           <IsButtonPressed button_index="{X_BUTTON}"
                            input_source="{joy_message}"/>
           <LogString message="X_BUTTON PRESS"/>
+        </Sequence>
+        <Sequence>
+          <IsButtonPressed button_index="{SD_ESTOP}"
+                           input_source="{stream_deck_message}"/>
+          <LogString message="Hello World Stream!"/>
         </Sequence>
         <Sequence>
           <IsButtonJustPressed button_index="{Y_BUTTON}"
@@ -28,7 +33,7 @@
           <Sleep msec="1000"/>
         </Sequence>
         <AlwaysSuccess/>
-      </Fallback>
+      </ParallelAll>
     </KeepRunningUntilFailure>
   </BehaviorTree>
 

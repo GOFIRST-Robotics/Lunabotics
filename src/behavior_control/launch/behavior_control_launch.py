@@ -9,18 +9,6 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    # Get the path to your home directory
-    home_dir = os.path.expanduser('~')
-    
-    # Manually construct the path to the workspace config folder
-    behavior_control_config = os.path.join(
-        home_dir, 'Lunabotics', 'config', 'behavior_control.yaml'
-    )
-    
-    joy_config = os.path.join(
-        home_dir, 'Lunabotics', 'config', 'joy_node.yaml'
-    )
-
     return LaunchDescription([
         IncludeLaunchDescription(
             PathJoinSubstitution([
@@ -32,13 +20,19 @@ def generate_launch_description():
         Node(
             package='behavior_control',
             executable='behavior_control_node',
-            name='behavior_control_node', # This MUST match the top-level key in your YAML
-            parameters=[behavior_control_config], # Use the variable, not a string
+            name='behavior_control_node',
+            parameters=["config/behavior_control.yaml"],
             output='screen'
         ),
         Node(
             package="joy",
             executable="joy_node",
-            parameters=[joy_config], # Use the absolute path variable
-        )
+            parameters=["config/joy_node.yaml"],
+            output='screen'
+        ),
+        Node(
+            package="rovr_control",
+            executable="stream_deck_node",
+            output='screen'
+        )  
     ])

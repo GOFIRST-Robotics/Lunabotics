@@ -1,7 +1,7 @@
 behavior_control_node:
   ros__parameters:
     groot_publisher_port: 1667
-    behavior_tree_file: "/tree/main_tree.xml"
+    behavior_tree_file: "/tree/testing_tree.xml"
     behaviort_tree_tick_interval: 10 # ms
 
     # Xbox / Joystick Buttons
