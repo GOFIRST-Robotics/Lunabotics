@@ -204,9 +204,6 @@ class MainControlNode(Node):
             10,
             callback_group=ReentrantCallbackGroup(),
         )
-        self.lift_pose_subscription = self.create_subscription(
-            Float32, "lift_pose", self.lift_pose_callback, 10
-        )
 
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
@@ -225,9 +222,6 @@ class MainControlNode(Node):
         self.auto_dig_nav_offload_handle: ClientGoalHandle = ClientGoalHandle(
             None, None, None
         )
-
-        # Current position of the lift motor in potentiometer units (0 to 1023)
-        self.current_lift_position = None  # We don't know the current position yet
 
         # Add watchdog parameters
         self.declare_parameter("watchdog_timeout", 0.5)  # Timeout in seconds
@@ -557,10 +551,6 @@ class MainControlNode(Node):
     #         self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
     #         self.connection_active = True
 
-    # Define the subscriber callback for the lift pose topic
-    def lift_pose_callback(self, msg: Float32):
-        # Average the two potentiometer values
-        self.current_lift_position = msg.data
 
 
 def main(args=None) -> None:
