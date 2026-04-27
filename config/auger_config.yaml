@@ -3,7 +3,7 @@
     #TODO: Figure out all of these values
     SCREW_SPEED: 4000 # TODO: update
     POWER_LIMIT: 1 #TODO: update
-    FAST_SCREW_SPEED:LD: 0.0 #0.21
+    FAST_SCREW_SPEED: 8000 #0.21
     extension_limit_switch: true
     STOWED: true
     MAX_PUSH_MOTOR_POSITION: 10000

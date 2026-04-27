@@ -159,6 +159,9 @@ class MainControlNode(Node):
         self.cli_dumper_toggle = self.create_client(Trigger, "dumper/toggle")
         self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
+        
+        self.cli_dumper_dumpDumper = self.create_client(Trigger, "dump/dumpDumper")
+        self.cli_dumper_storeDumper = self.create_client(Trigger, "dump/storeDumper")
         # self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_auger_stop = self.create_client(Trigger, "auger/control/stop_all")
         self.cli_auger_extend = self.create_client(
@@ -411,8 +414,8 @@ class MainControlNode(Node):
                 msg.buttons[bindings.RIGHT_BUMPER] == 1
                 and buttons[bindings.RIGHT_BUMPER] == 0
             ):
-                self.cli_dumper_setPower.call_async(
-                    SetPower.Request(power=self.dumper_power)
+                self.cli_dumper_dumpDumper.call_async(
+                    Trigger.Request()
                 )
             elif (
                 msg.buttons[bindings.RIGHT_BUMPER] == 0
@@ -423,8 +426,8 @@ class MainControlNode(Node):
                 msg.buttons[bindings.LEFT_BUMPER] == 1
                 and buttons[bindings.LEFT_BUMPER] == 0
             ):
-                self.cli_dumper_setPower.call_async(
-                    SetPower.Request(power=-self.dumper_power)
+                self.cli_dumper_storeDumper.call_async(
+                    Trigger.Request()
                 )
             elif (
                 msg.buttons[bindings.LEFT_BUMPER] == 0
@@ -443,6 +446,7 @@ class MainControlNode(Node):
                 msg.buttons[bindings.LEFT_TRIGGER] == 0
                 and buttons[bindings.LEFT_TRIGGER] == 1
             ):
+                self.get_logger().info("In main control node stop")
                 self.cli_auger_stop.call_async(Trigger.Request())
             elif (
                 msg.buttons[bindings.RIGHT_TRIGGER] == 1

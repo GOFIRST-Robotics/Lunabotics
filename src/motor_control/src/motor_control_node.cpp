@@ -411,12 +411,16 @@ private:
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Response> response) {
     std::optional<float> data = std::nullopt;
 
+    // RCLCPP_INFO(this->get_logger(), "GET COMMAND IS CALLED");
+
     if (strcmp(request->type.c_str(), "velocity") == 0) {
       data = vesc_get_velocity(request->can_id);
     } else if (strcmp(request->type.c_str(), "duty_cycle") == 0) {
       data = vesc_get_duty_cycle(request->can_id);
     } else if (strcmp(request->type.c_str(), "position") == 0) {
+      // RCLCPP_INFO(this->get_logger(), "USING POSITION CALLBACK");
       data = vesc_get_position(request->can_id);
+      // RCLCPP_INFO(this->get_logger(), "looked up data succcessfuly");
     } else if (strcmp(request->type.c_str(), "current") == 0) {
       data = vesc_get_current(request->can_id);
     } else {

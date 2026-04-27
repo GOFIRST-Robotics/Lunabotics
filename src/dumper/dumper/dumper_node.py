@@ -62,7 +62,7 @@ class DumperNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 2)
         self.declare_parameter("DUMPER_POWER", 0.5)
-        self.declare_parameter("DUMPER_VELOCITY", 0.0)
+        self.declare_parameter("DUMPER_VELOCITY", 1200*7)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
@@ -157,23 +157,19 @@ class DumperNode(Node):
         self.long_service_running = True
 
         future = self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="velocity", can_id=self.DUMPER_MOTOR, value=self.DUMPER_VEL)
+            MotorCommandSet.Request(type="velocity", can_id=-self.DUMPER_MOTOR, value=self.DUMPER_VEL)
         )
 
         self.dumper_stowed = False
         msg = Bool()
         msg.data = self.dumper_stowed
         self.dumper_stowed_pub.publish(msg)
-        while (
-            not future.done()
-        ):  # While loop makes the motor keep going till limit switch is hit
-            if self.cancel_current_srv:
-                self.cancel_current_srv = False
-                break
-            time.sleep(0.1)
 
         
         while True:
+            if self.cancel_current_srv:
+                self.cancel_current_srv = False
+                break
             motor_get_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(
                     type="position",
