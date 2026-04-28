@@ -35,9 +35,9 @@ class AutoDigServer(AsyncNode):
         )  # /actuator_tilt/stop
 
         # extend
-        self.set_extension = self.create_client(
-            AugerSetPushMotor, "auger/push_motor/setPosition"
-        )
+        # self.set_extension = self.create_client(
+        #     AugerSetPushMotor, "auger/push_motor/setPosition"
+        # )
         self.stop_extension = self.create_client(Trigger, "auger/push_motor/stop")
         self.retract_extender = self.create_client(Trigger, "auger/push_motor/retract")
 
@@ -85,10 +85,10 @@ class AutoDigServer(AsyncNode):
             self.get_logger().error("Tilt stop service not available")
             goal_handle.abort()
             return result
-        if not self.set_extension.wait_for_service(timeout_sec=1.0):
-            self.get_logger().error("Extension set power service not available")
-            goal_handle.abort()
-            return result
+        # if not self.set_extension.wait_for_service(timeout_sec=1.0):
+        #     self.get_logger().error("Extension set power service not available")
+        #     goal_handle.abort()
+        #     return result
         if not self.retract_extender.wait_for_service(timeout_sec=1.0):
             self.get_logger().error("Extension retract service not available")
             goal_handle.abort()

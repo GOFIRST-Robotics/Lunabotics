@@ -35,7 +35,7 @@ from rovr_interfaces.action import (
 from rovr_interfaces.msg import StreamDeckState
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import SetPower, SetScrewMotorSpeed
+from rovr_interfaces.srv import SetPower, SetScrewMotorSpeed, SetExtension
 
 # Uncomment the line below to use the Xbox controller mappings instead
 # from rovr_control import xbox_controller_constants as bindings
@@ -93,8 +93,10 @@ class MainControlNode(Node):
             "tilt_digging_start_position", 125.0
         )  # Measured in encoder counts
         self.declare_parameter(
-            "fast_screw_speed", 4000
+            "fast_screw_speed", 20000
         )
+        self.screwing = False
+
         # Measured in potentiometer units (0 to 1023)
         self.declare_parameter("DIGGER_SAFETY_ZONE", 120)
         # The power the dumper needs to go
@@ -159,6 +161,8 @@ class MainControlNode(Node):
         self.cli_dumper_toggle = self.create_client(Trigger, "dumper/toggle")
         self.cli_dumper_setPower = self.create_client(SetPower, "dumper/setPower")
         self.cli_dumper_stop = self.create_client(Trigger, "dumper/stop")
+        self.cli_dumper_dump = self.create_client(Trigger, "dumper/dumpDumper")
+        self.cli_dumper_store = self.create_client(Trigger, "dumper/storeDumper")
         # self.cli_digger_toggle = self.create_client(SetPower, "digger/toggle")
         self.cli_auger_stop = self.create_client(Trigger, "auger/control/stop_all")
         self.cli_auger_extend = self.create_client(
@@ -172,6 +176,21 @@ class MainControlNode(Node):
         )
         self.cli_screw_start = self.create_client(
             SetScrewMotorSpeed, "auger/screw/run"
+        )
+        self.cli_plunge_extend = self.create_client(
+            Trigger, "auger/push_motor/extend"
+        )
+        self.cli_plunge_retract = self.create_client(
+            Trigger, "auger/push_motor/retract"
+        )
+        self.cli_plunge_stop = self.create_client(
+            Trigger, "auger/push_motor/stop"
+        )
+        self.cli_linear_actuator_tilt = self.create_client(
+            SetExtension, "auger/tilt_actuator/setExtension"
+        )
+        self.cli_linear_actuator_stop = self.create_client(
+            Trigger, "auger/tilt_actuator/stop"
         )
         self.cli_big_agitator_on_off = self.create_client(
             SetBool, "big_agitator_on_off"
@@ -204,9 +223,6 @@ class MainControlNode(Node):
             10,
             callback_group=ReentrantCallbackGroup(),
         )
-        self.lift_pose_subscription = self.create_subscription(
-            Float32, "lift_pose", self.lift_pose_callback, 10
-        )
 
         self.act_calibrate_field_coordinates = ActionClient(
             self, CalibrateFieldCoordinates, "calibrate_field_coordinates"
@@ -225,9 +241,6 @@ class MainControlNode(Node):
         self.auto_dig_nav_offload_handle: ClientGoalHandle = ClientGoalHandle(
             None, None, None
         )
-
-        # Current position of the lift motor in potentiometer units (0 to 1023)
-        self.current_lift_position = None  # We don't know the current position yet
 
         # Add watchdog parameters
         self.declare_parameter("watchdog_timeout", 0.5)  # Timeout in seconds
@@ -388,54 +401,51 @@ class MainControlNode(Node):
 
             # Check if the digger button is pressed #
             if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
-                self.cli_screw_start.call_async(
-                    SetScrewMotorSpeed.Request(speed=self.screw_speed)
-                )
+                if self.screwing:
+                    self.cli_screw_stop.call_async(Trigger.Request())
+                    self.screwing = False
+                elif not self.screwing:
+                    self.cli_screw_start.call_async(
+                        SetScrewMotorSpeed.Request(speed=float(self.screw_speed))
+                    )
+                    self.screwing=True
 
-            if msg.buttons[bindings.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
-                self.cli_screw_stop.call_async(Trigger.Request())
+            # if msg.buttons[bindings.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
+            #     self.cli_screw_stop.call_async(Trigger.Request())
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
-                self.cli_dumper_stop.call_async(
-                    Trigger.Request()
-                )  # Stop whatever the dumper is doing
-                # Toggle the dumper (extended or retracted)
-                self.cli_dumper_toggle.call_async(Trigger.Request())
-
+                self.cli_plunge_extend.call_async(Trigger.Request())
+            elif msg.buttons[bindings.B_BUTTON] == 0 and buttons[bindings.B_BUTTON] == 1:
+                self.cli_plunge_stop.call_async(Trigger.Request())
             # Check if the agitator button is pressed #
-            if msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
-                self.cli_big_agitator_toggle.call_async(
-                    Trigger.Request()
-                )  # Toggle the agitator motor
-                # self.cli_small_agitator_toggle.call_async(Trigger.Request())
-                # # Toggle the agitator motor
-
+            elif msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
+                self.cli_plunge_retract.call_async(Trigger.Request())
+            elif msg.buttons[bindings.Y_BUTTON] == 1 and buttons[bindings.Y_BUTTON] == 0:
+                self.cli_plunge_stop.call_async(Trigger.Request())
             # Manually adjust the dumper position with the left and right
             # bumpers
             if (
                 msg.buttons[bindings.RIGHT_BUMPER] == 1
                 and buttons[bindings.RIGHT_BUMPER] == 0
             ):
-                self.cli_dumper_setPower.call_async(
-                    SetPower.Request(power=self.dumper_power)
-                )
+                self.cli_dumper_dump.call_async(Trigger.Request())
             elif (
                 msg.buttons[bindings.RIGHT_BUMPER] == 0
                 and buttons[bindings.RIGHT_BUMPER] == 1
             ):
+                self.get_logger().info("Right bumper releases")
                 self.cli_dumper_stop.call_async(Trigger.Request())
             elif (
                 msg.buttons[bindings.LEFT_BUMPER] == 1
                 and buttons[bindings.LEFT_BUMPER] == 0
             ):
-                self.cli_dumper_setPower.call_async(
-                    SetPower.Request(power=-self.dumper_power)
-                )
+                self.cli_dumper_store.call_async(Trigger.Request())
             elif (
                 msg.buttons[bindings.LEFT_BUMPER] == 0
                 and buttons[bindings.LEFT_BUMPER] == 1
             ):
+                self.get_logger().info("Left bumper released")
                 self.cli_dumper_stop.call_async(Trigger.Request())
 
             # Manually adjust the height of the digger with the left and right
@@ -444,22 +454,24 @@ class MainControlNode(Node):
                 msg.buttons[bindings.LEFT_TRIGGER] == 1
                 and buttons[bindings.LEFT_TRIGGER] == 0
             ):
-                self.cli_auger_extend.call_async(Trigger.Request())
+                self.cli_linear_actuator_tilt.call_async(SetExtension.Request(extension=False))
             elif (
                 msg.buttons[bindings.LEFT_TRIGGER] == 0
                 and buttons[bindings.LEFT_TRIGGER] == 1
             ):
-                self.cli_auger_stop.call_async(Trigger.Request())
+                self.get_logger().info("Left Trigger released")
+                self.cli_linear_actuator_stop.call_async(Trigger.Request())
             elif (
                 msg.buttons[bindings.RIGHT_TRIGGER] == 1
                 and buttons[bindings.RIGHT_TRIGGER] == 0
             ):
-                self.cli_auger_retract.call_async(Trigger.Request())
+                self.cli_linear_actuator_tilt.call_async(SetExtension.Request(extension=True))
             elif (
                 msg.buttons[bindings.RIGHT_TRIGGER] == 0
                 and buttons[bindings.RIGHT_TRIGGER] == 1
             ):
-                self.cli_auger_stop.call_async(Trigger.Request())
+                self.get_logger().info("Right trigger released")
+                self.cli_linear_actuator_stop.call_async(Trigger.Request())
 
         # THE CONTROLS BELOW ALWAYS WORK #
 
@@ -557,10 +569,6 @@ class MainControlNode(Node):
     #         self.get_logger().warn("Joystick messages received! Functionality of the robot has been restored.")
     #         self.connection_active = True
 
-    # Define the subscriber callback for the lift pose topic
-    def lift_pose_callback(self, msg: Float32):
-        # Average the two potentiometer values
-        self.current_lift_position = msg.data
 
 
 def main(args=None) -> None:

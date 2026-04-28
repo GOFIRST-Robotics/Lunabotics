@@ -34,10 +34,16 @@ class DumperNode(Node):
 
         # Define services (methods callable from the outside) here
         self.srv_toggle = self.create_service(
-            Trigger, "dumper/toggle", self.toggle_callback, callback_group=self.service_cb_group
+            Trigger,
+            "dumper/toggle",
+            self.toggle_callback,
+            callback_group=self.service_cb_group,
         )
         self.srv_stop = self.create_service(
-            Trigger, "dumper/stop", self.stop_callback, callback_group=self.stop_service_cb_group
+            Trigger,
+            "dumper/stop",
+            self.stop_callback,
+            callback_group=self.stop_service_cb_group,
         )
         self.srv_setPower = self.create_service(
             SetPower,
@@ -47,38 +53,48 @@ class DumperNode(Node):
         )
 
         self.srv_dumpDumper = self.create_service(
-            Trigger, "dumper/storeDumper", self.dump_callback, callback_group=self.service_cb_group
+            Trigger, "dumper/dumpDumper", self.dump_callback, callback_group=self.service_cb_group
         )
         self.srv_storeDumper = self.create_service(
-            Trigger, "dumper/dumpDumper", self.store_callback, callback_group=self.service_cb_group
+            Trigger, "dumper/storeDumper", self.store_callback, callback_group=self.service_cb_group
         )
 
         # Define default values for our ROS parameters below #
-        self.declare_parameter("DUMPER_MOTOR", 11)
-        self.declare_parameter("DUMPER_POWER", 0.3)
+        self.declare_parameter("DUMPER_MOTOR", 2)
+        self.declare_parameter("DUMPER_POWER", 0.5)
+        self.declare_parameter("DUMPER_VELOCITY", (1200*7))
+        self.declare_parameter("DUMPER_POS", 1000)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
-
+        self.DUMPER_VEL = self.get_parameter("DUMPER_VELOCITY").value
+        self.DUMP_POS = self.get_parameter("DUMPER_POS").value
         # Print the ROS Parameters to the terminal below #
-        self.get_logger().info("DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR))
+        self.get_logger().info(
+            "DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR)
+        )
 
         # Current state of the dumper
         self.dumped_state = False
 
         # Dumper Current Threshold
         self.current_threshold = 0.3
-        self.dumper_current = 0.0
 
-        self.dumper_current_sub = self.create_subscription(
-            Float32, "Dumper_Current", self.dumper_current_callback, 10
-        )
+        
 
         self.KillSwitch_sub = self.create_subscription(
             Bool, "DumperLimitSwitch", self.killSwitch_callback, 10
         )
+
+        self.auger_stowed_sub = self.create_subscription(
+            Bool, "auger_stowed", self.auger_stowed_callback, 10
+        )
+
+        self.dumper_stowed_pub = self.create_publisher(Bool, "dumper_stowed", 10)
+
+        self.dumper_stowed = True
         self.limitSwitchBottom = False
-        # self.auger_stowed = True
+        self.auger_stowed = True
 
     # Define subsystem methods here
     def set_power(self, dumper_power: float) -> None:
@@ -89,11 +105,13 @@ class DumperNode(Node):
             )
         )
 
-    def stop(self) -> None:
+    def stop(self) -> bool:
         """This method stops the dumper."""
         self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=0.0)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=float(0.0))
         )
+        self.get_logger().info("Waiting to stop the dumper...")
+        return True
 
     def toggle(self) -> None:
         """This method toggles the dumper."""
@@ -111,8 +129,11 @@ class DumperNode(Node):
 
     def stop_callback(self, request, response):
         """This service request stops the dumper."""
+        self.get_logger().info("In the stop acutator tilt function")
         if self.long_service_running:
             self.cancel_current_srv = True
+            self.get_logger().info(f"inside if statement, cancel_current_srv: {self.cancel_current_srv}")
+        
         self.stop()
         response.success = True
         return response
@@ -124,26 +145,35 @@ class DumperNode(Node):
         return response
 
     def dump_dumper(self) -> None:
-        # if not self.auger_stowed:
-        #     self.get_logger().info("The auger is already extended")
-        #     return
+        if not self.auger_stowed:
+            self.get_logger().info("The auger is already extended")
+            return
 
         self.get_logger().info("Extending the dumper")
         self.dumped_state = True
         self.long_service_running = True
 
         future = self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="position", can_id=self.DUMPER_MOTOR, value=90)
+            MotorCommandSet.Request(type="velocity", can_id=self.DUMPER_MOTOR, value=float(self.DUMPER_VEL))
         )
 
-        while not future.done():  # While loop makes the motor keep going till limit switch is hit
+        self.dumper_stowed = False
+        msg = Bool()
+        msg.data = self.dumper_stowed
+        self.dumper_stowed_pub.publish(msg)
+
+        
+        while True:
+            self.get_logger().info(str(self.cancel_current_srv))
             if self.cancel_current_srv:
-                self.cancel_current_srv = False
+                self.get_logger().info("cancel current srv is true")
                 break
             time.sleep(0.1)
-
+            
+        self.get_logger().info("Finished dump dumper service")
         self.stop()
         self.long_service_running = False
+        self.cancel_current_srv = False
         self.get_logger().info("Done dumping the dumper")
 
     def dump_callback(self, request, response):
@@ -151,25 +181,36 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def store_dumper(self) -> None:  # get the variables
-        # if not self.auger_stowed:
-        #     self.get_logger().info("The Auger is already extended")
-        #     return
+    def store_dumper(self) -> bool:  # get the variables
+        if not self.auger_stowed:
+            self.get_logger().info("The Auger is already extended")
+            return
         self.get_logger().info("Retracting the dumper")
-        self.dumped_state = False
+        
         self.long_service_running = True
-        self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER)
-        )
+        if not self.limitSwitchBottom:
+            store_dumper = self.cli_motor_set.call_async(
+                MotorCommandSet.Request(type="velocity", can_id=self.DUMPER_MOTOR, value=float(-self.DUMPER_VEL))
+            )
+        
         while not self.limitSwitchBottom:
+            self.get_logger().info(f"Dumper limit switch is {self.limitSwitchBottom}")
             if self.cancel_current_srv:
-                self.cancel_current_srv = False
                 break
             time.sleep(0.1)
 
         self.stop()
+        self.dumper_stowed = True
+        msg = Bool()
+        msg.data = self.dumper_stowed
+        self.dumper_stowed_pub.publish(msg)
         self.long_service_running = False
+        self.cancel_current_srv = False
         self.get_logger().info("Done storing the dumper")
+        self.dumped_state = False
+
+        return True
+
 
     # the storage bin can only be dumped back
     # when the auger is completely stowed (both actuators fully stored)
@@ -178,12 +219,13 @@ class DumperNode(Node):
         response.success = True
         return response
 
-    def dumper_current_callback(self, msg):
-        self.dumper_current = msg.data
 
     def killSwitch_callback(self, msg):
         # position control...
-        self.LimitSwitchBottom = msg.data
+        self.limitSwitchBottom = msg.data
+
+    def auger_stowed_callback(self, msg):
+        self.auger_stowed = msg.data
 
 
 def main(args=None):

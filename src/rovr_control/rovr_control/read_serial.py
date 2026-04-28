@@ -12,8 +12,10 @@ class read_serial(Node):
     def __init__(self):
         super().__init__("read_serial")
 
-        self.potentiometerPub = self.create_publisher(Int16, "potentiometer", 10)
-        self.LimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
+        self.DumperLimitSwitchPub = self.create_publisher(Bool, "DumperLimitSwitch", 10)
+        self.ExtensionLimitSwitchPub = self.create_publisher(
+            Bool, "ExtensionLimitSwitch", 10
+        )
 
         # Services to control the relay-driven agitator motor
         self.srv_bigonoff = self.create_service(
@@ -50,17 +52,19 @@ class read_serial(Node):
             self.get_logger().fatal("Killing read_serial node")
             self.destroy_node()
             return
-        data = self.arduino.read(4)  # Pause until 4 bytes are read
+        data = self.arduino.read(2)  # Pause until 4 bytes are read
         # Use h for integers and ? for booleans
-        decoded = struct.unpack("h?", data)
+        decoded = struct.unpack("??", data)
+        
+        dumper_bool_msg = Bool()
+        dumper_bool_msg.data = not decoded[0]
+        self.DumperLimitSwitchPub.publish(dumper_bool_msg)
 
-        potentiometer_msg = Int16()
-        potentiometer_msg.data = decoded[0]
-        self.potentiometerPub.publish(potentiometer_msg)
+        extension_bool_msg = Bool()
+        extension_bool_msg.data = not decoded[1]
+        self.ExtensionLimitSwitchPub.publish(extension_bool_msg)
 
-        bool_msg = Bool()
-        bool_msg.data = decoded[1]
-        self.LimitSwitchPub.publish(bool_msg)
+        # self.get_logger().info(f"dumper bool: {not decoded[0]}, extension bool: {not decoded[1]}")
 
     def big_on_off_callback(self, request, response):
         # request.data == True  → ON, False → OFF

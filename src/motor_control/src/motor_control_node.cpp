@@ -246,7 +246,12 @@ class MotorControlNode : public rclcpp::Node {
   // Get the motor controller's current duty cycle command
   std::optional<float> vesc_get_duty_cycle(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      try{
       return this->can_data[id].dutyCycle;
+      }
+      catch(...) {
+        return std::nullopt;
+      }
     } else {
       return std::nullopt; // The data is too stale
     }
@@ -254,7 +259,12 @@ class MotorControlNode : public rclcpp::Node {
   // Get the current velocity of the motor in RPM (Rotations Per Minute)
   std::optional<float> vesc_get_velocity(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      try {
       return this->can_data[id].velocity;
+      }
+      catch(...) {
+        return std::nullopt;
+      }
     } else {
       return std::nullopt; // The data is too stale
     }
@@ -262,7 +272,15 @@ class MotorControlNode : public rclcpp::Node {
   // Get the current position (tachometer reading) of the motor
   std::optional<float> vesc_get_position(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
-      return (static_cast<float>(this->can_data[id].tachometer) / static_cast<float>(this->pid_controllers[id]->getCountsPerRevolution())) * 360.0;
+      try{
+        float n = static_cast<float>(this->can_data[id].tachometer);
+        
+        float d = 14.0 * 360.0;
+      return (n/ d);
+      }
+      catch(...) {
+        return std::nullopt;
+      }
     } else {
       return std::nullopt; // The data is too stale
     }
@@ -270,7 +288,12 @@ class MotorControlNode : public rclcpp::Node {
    // Get the current draw of the motor in amps
   std::optional<float> vesc_get_current(uint32_t id) {
     if (std::chrono::steady_clock::now() - this->can_data[id].timestamp < this->threshold) {
+      try{
       return this->can_data[id].current;
+      }
+      catch(...) {
+        return std::nullopt;
+      }
     } else {
       return std::nullopt; // The data is too stale
     }
@@ -410,7 +433,6 @@ private:
   void get_callback(const std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Request> request,
                     std::shared_ptr<rovr_interfaces::srv::MotorCommandGet::Response> response) {
     std::optional<float> data = std::nullopt;
-
     if (strcmp(request->type.c_str(), "velocity") == 0) {
       data = vesc_get_velocity(request->can_id);
     } else if (strcmp(request->type.c_str(), "duty_cycle") == 0) {

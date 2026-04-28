@@ -5,7 +5,9 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
 
 COPY deepstream/deepstream.deb deepstream.deb
 
-RUN --mount=type=cache,target=/var/cache/apt apt-get update && apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update --allow-releaseinfo-change && \
+    apt-get install -y --no-install-recommends \
     gstreamer1.0-tools \
     gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-good \

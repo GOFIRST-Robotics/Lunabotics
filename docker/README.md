@@ -9,6 +9,9 @@ Find the highest level image of this build with docker image list. The highest l
 Tag this image as `umnrobotics/<repo-name>:<image-layers-separated-by->_<HASH>`
 At time of writing, we were tagging images as 'umnrobotics/isaac_ros3.1:x86_64-ros2_humble-realsense-deepstream-user-zed-umn-gazebo_d000f8df5f3859fd56c7459b2ad3a718'
 
+to find the hash, run the build command again, and find the first line starting with "Checking if base image ... exists on remote repository. 
+The image ID listed here is the one you should use. It is generated based on the dockerfiles in mysterious ways, so just copy paste it from the terminal log.
+
 
 If you are logged in to docker, running docker image push will push this image to the cloud, and you are done. If you changed the name of/created a new dockerhub repo, update BASE_DOCKER_REGISTRY_NAMES in /scripts/build_image.sh to reflect the new name. 
 

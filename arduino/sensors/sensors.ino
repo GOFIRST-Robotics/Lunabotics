@@ -1,13 +1,12 @@
 // Define a struct to hold the sensor data
 struct SensorData {
-  int leftMotorPotentiometer;
-  int rightMotorPotentiometer;
-  bool bottomLimitSwitch;
+  bool dumpLimitSwitch;
+  bool extensionLimitSwitch;
 };
 
 // Define the sensor pins here
-#define LEFT_MOTOR_POT_PIN A0
-#define RIGHT_MOTOR_POT_PIN A1
+#define DUMP_LIMIT_SWITCH 12
+#define EXTENSION_LIMIT_SWITCH 13
 #define RELAY_PIN 7
 
 void setup() {
@@ -16,6 +15,9 @@ void setup() {
 
   pinMode(RELAY_PIN, OUTPUT);  // Set relay pin as an output
   digitalWrite(RELAY_PIN, LOW);  // Ensure the motor is off at the start
+
+  pinMode(DUMP_LIMIT_SWITCH, INPUT_PULLUP);
+  pinMode(EXTENSION_LIMIT_SWITCH, INPUT_PULLUP);
 
   // No need to configure analog pins explicitly for potentiometers
   // as they are used as inputs by default.
@@ -26,10 +28,8 @@ void loop() {
   SensorData data;
 
   // Read from the analog inputs (potentiometers)
-  data.leftMotorPotentiometer = analogRead(LEFT_MOTOR_POT_PIN);  // Read left motor potentiometer value
-  data.rightMotorPotentiometer = analogRead(RIGHT_MOTOR_POT_PIN); // Read right motor potentiometer value
-
-  data.bottomLimitSwitch  = analogRead(bottom_limit_switch); //bottom limit switch value
+  data.dumpLimitSwitch = digitalRead(DUMP_LIMIT_SWITCH);
+  data.extensionLimitSwitch  = digitalRead(EXTENSION_LIMIT_SWITCH);
 
   // Send the struct over the serial bus to the Nvidia Jetson
   Serial.write((byte *)&data, sizeof(SensorData));
