@@ -95,6 +95,8 @@ class MainControlNode(Node):
         self.declare_parameter(
             "fast_screw_speed", 20000
         )
+        self.screwing = False
+
         # Measured in potentiometer units (0 to 1023)
         self.declare_parameter("DIGGER_SAFETY_ZONE", 120)
         # The power the dumper needs to go
@@ -399,12 +401,17 @@ class MainControlNode(Node):
 
             # Check if the digger button is pressed #
             if msg.buttons[bindings.X_BUTTON] == 1 and buttons[bindings.X_BUTTON] == 0:
-                self.cli_screw_start.call_async(
-                    SetScrewMotorSpeed.Request(speed=float(self.screw_speed))
-                )
+                if self.screwing:
+                    self.cli_screw_stop.call_async(Trigger.Request())
+                    self.screwing = False
+                elif not self.screwing:
+                    self.cli_screw_start.call_async(
+                        SetScrewMotorSpeed.Request(speed=float(self.screw_speed))
+                    )
+                    self.screwing=True
 
-            if msg.buttons[bindings.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
-                self.cli_screw_stop.call_async(Trigger.Request())
+            # if msg.buttons[bindings.X_BUTTON] == 0 and buttons[bindings.X_BUTTON] == 1:
+            #     self.cli_screw_stop.call_async(Trigger.Request())
 
             # Check if the dumper button is pressed #
             if msg.buttons[bindings.B_BUTTON] == 1 and buttons[bindings.B_BUTTON] == 0:
