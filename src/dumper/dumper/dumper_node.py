@@ -79,11 +79,8 @@ class DumperNode(Node):
 
         # Dumper Current Threshold
         self.current_threshold = 0.3
-        self.dumper_current = 0.0
 
-        self.dumper_current_sub = self.create_subscription(
-            Float32, "Dumper_Current", self.dumper_current_callback, 10
-        )
+        
 
         self.KillSwitch_sub = self.create_subscription(
             Bool, "DumperLimitSwitch", self.killSwitch_callback, 10
@@ -110,15 +107,11 @@ class DumperNode(Node):
 
     def stop(self) -> bool:
         """This method stops the dumper."""
-        stop_dumper = self.cli_motor_set.call_async(
+        self.cli_motor_set.call_async(
             MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=float(0.0))
         )
         self.get_logger().info("Waiting to stop the dumper...")
-        rclpy.spin_until_future_complete(self, stop_dumper)
-        self.get_logger().info("Done waiting to stop the dumper!")
-        if not stop_dumper.result().success:
-            self.get_logger().error("Failed to stop the dumper")
-        return stop_dumper.result().success
+        return True
 
     def toggle(self) -> None:
         """This method toggles the dumper."""
@@ -140,7 +133,6 @@ class DumperNode(Node):
         if self.long_service_running:
             self.cancel_current_srv = True
             self.get_logger().info(f"inside if statement, cancel_current_srv: {self.cancel_current_srv}")
-            return True
         
         self.stop()
         response.success = True
@@ -176,22 +168,8 @@ class DumperNode(Node):
             if self.cancel_current_srv:
                 self.get_logger().info("cancel current srv is true")
                 break
-            motor_get_future = self.cli_motor_get.call_async(
-                MotorCommandGet.Request(
-                    type="position",
-                    can_id=self.DUMPER_MOTOR,
-                )
-            )
-            rclpy.spin_until_future_complete(self, motor_get_future)
-            if motor_get_future.result().success:
-                if (
-                    abs(motor_get_future.result().data - self.DUMP_POS) < 5
-                ):
-                    break
-            else:
-                self.get_logger().info("WARNING: Failed to read tilt actuator position")
-
             time.sleep(0.1)
+            
         self.get_logger().info("Finished dump dumper service")
         self.stop()
         self.long_service_running = False
@@ -199,35 +177,27 @@ class DumperNode(Node):
         self.get_logger().info("Done dumping the dumper")
 
     def dump_callback(self, request, response):
-        return self.dump_dumper()
+        self.dump_dumper()
+        response.success = True
+        return response
 
     def store_dumper(self) -> bool:  # get the variables
         if not self.auger_stowed:
             self.get_logger().info("The Auger is already extended")
             return
         self.get_logger().info("Retracting the dumper")
-        self.dumped_state = False
+        
         self.long_service_running = True
-        store_dumper = self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=float(self.DUMPER_POWER))
-        )
-        rclpy.spin_until_future_complete(self, store_dumper)
-        if not store_dumper.result().success:
-            self.get_logger().error("Failed to start storing the dumper")
-            self.long_service_running = False
-            return False
+        if not self.limitSwitchBottom:
+            store_dumper = self.cli_motor_set.call_async(
+                MotorCommandSet.Request(type="velocity", can_id=self.DUMPER_MOTOR, value=float(-self.DUMPER_VEL))
+            )
+        
         while not self.limitSwitchBottom:
+            self.get_logger().info(f"Dumper limit switch is {self.limitSwitchBottom}")
             if self.cancel_current_srv:
-                self.get_logger("CHECKING THE LIMIT SWITCH")
-                self.cancel_current_srv = False
                 break
             time.sleep(0.1)
-
-        time.sleep(2.0)
-
-        stop_success = self.stop()
-        if not stop_success:
-            return False
 
         self.stop()
         self.dumper_stowed = True
@@ -235,7 +205,9 @@ class DumperNode(Node):
         msg.data = self.dumper_stowed
         self.dumper_stowed_pub.publish(msg)
         self.long_service_running = False
+        self.cancel_current_srv = False
         self.get_logger().info("Done storing the dumper")
+        self.dumped_state = False
 
         return True
 
@@ -243,14 +215,14 @@ class DumperNode(Node):
     # the storage bin can only be dumped back
     # when the auger is completely stowed (both actuators fully stored)
     def store_callback(self, request, response):
-        return self.store_dumper()
+        self.store_dumper()
+        response.success = True
+        return response
 
-    def dumper_current_callback(self, msg):
-        self.dumper_current = msg.data
 
     def killSwitch_callback(self, msg):
         # position control...
-        self.LimitSwitchBottom = msg.data
+        self.limitSwitchBottom = msg.data
 
     def auger_stowed_callback(self, msg):
         self.auger_stowed = msg.data
