@@ -62,12 +62,13 @@ class DumperNode(Node):
         # Define default values for our ROS parameters below #
         self.declare_parameter("DUMPER_MOTOR", 2)
         self.declare_parameter("DUMPER_POWER", 0.5)
-        self.declare_parameter("DUMPER_VELOCITY", 1200*7)
+        self.declare_parameter("DUMPER_VELOCITY", (1200*7))
+        self.declare_parameter("DUMPER_POS", 1000)
         # Assign the ROS Parameters to member variables below #
         self.DUMPER_MOTOR = self.get_parameter("DUMPER_MOTOR").value
         self.DUMPER_POWER = self.get_parameter("DUMPER_POWER").value
         self.DUMPER_VEL = self.get_parameter("DUMPER_VELOCITY").value
-
+        self.DUMP_POS = self.get_parameter("DUMPER_POS").value
         # Print the ROS Parameters to the terminal below #
         self.get_logger().info(
             "DUMPER_MOTOR has been set to: " + str(self.DUMPER_MOTOR)
@@ -135,8 +136,12 @@ class DumperNode(Node):
 
     def stop_callback(self, request, response):
         """This service request stops the dumper."""
+        self.get_logger().info("In the stop acutator tilt function")
         if self.long_service_running:
             self.cancel_current_srv = True
+            self.get_logger().info(f"inside if statement, cancel_current_srv: {self.cancel_current_srv}")
+            return True
+        
         self.stop()
         response.success = True
         return response
@@ -157,7 +162,7 @@ class DumperNode(Node):
         self.long_service_running = True
 
         future = self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="velocity", can_id=-self.DUMPER_MOTOR, value=self.DUMPER_VEL)
+            MotorCommandSet.Request(type="velocity", can_id=self.DUMPER_MOTOR, value=float(self.DUMPER_VEL))
         )
 
         self.dumper_stowed = False
@@ -167,8 +172,9 @@ class DumperNode(Node):
 
         
         while True:
+            self.get_logger().info(str(self.cancel_current_srv))
             if self.cancel_current_srv:
-                self.cancel_current_srv = False
+                self.get_logger().info("cancel current srv is true")
                 break
             motor_get_future = self.cli_motor_get.call_async(
                 MotorCommandGet.Request(
@@ -179,15 +185,17 @@ class DumperNode(Node):
             rclpy.spin_until_future_complete(self, motor_get_future)
             if motor_get_future.result().success:
                 if (
-                    abs(motor_get_future.result().data - self.TILT_ACTUATOR_CURRENT_THRESHOLD.value) < 5
+                    abs(motor_get_future.result().data - self.DUMP_POS) < 5
                 ):
                     break
             else:
                 self.get_logger().info("WARNING: Failed to read tilt actuator position")
 
             time.sleep(0.1)
+        self.get_logger().info("Finished dump dumper service")
         self.stop()
         self.long_service_running = False
+        self.cancel_current_srv = False
         self.get_logger().info("Done dumping the dumper")
 
     def dump_callback(self, request, response):
@@ -201,7 +209,7 @@ class DumperNode(Node):
         self.dumped_state = False
         self.long_service_running = True
         store_dumper = self.cli_motor_set.call_async(
-            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=self.DUMPER_POWER)
+            MotorCommandSet.Request(type="duty_cycle", can_id=self.DUMPER_MOTOR, value=float(self.DUMPER_POWER))
         )
         rclpy.spin_until_future_complete(self, store_dumper)
         if not store_dumper.result().success:
@@ -210,6 +218,7 @@ class DumperNode(Node):
             return False
         while not self.limitSwitchBottom:
             if self.cancel_current_srv:
+                self.get_logger("CHECKING THE LIMIT SWITCH")
                 self.cancel_current_srv = False
                 break
             time.sleep(0.1)

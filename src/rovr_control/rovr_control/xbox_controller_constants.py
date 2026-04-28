@@ -1,8 +1,8 @@
 # Define all the buttons here
 X_BUTTON = 2  # toggle screw
 A_BUTTON = 0  # auto_dig_nav_offload
-B_BUTTON = 1  # toggle dumper
-Y_BUTTON = 3  # toggle big agitator
+B_BUTTON = 1  # plunge extend
+Y_BUTTON = 3  # plunge retract
 LEFT_BUMPER = 4  # dumper retract
 RIGHT_BUMPER = 5  # dumper extend
 BACK_BUTTON = 6  # auto_offload
@@ -16,7 +16,7 @@ LEFT_JOYSTICK_HORIZONTAL_AXIS = 0  # turn
 LEFT_JOYSTICK_VERTICAL_AXIS = 1  # FREE
 RIGHT_JOYSTICK_HORIZONTAL_AXIS = 3  # FREE
 RIGHT_JOYSTICK_VERTICAL_AXIS = 4  # drive
-LEFT_TRIGGER_AXIS = 2  # extend auger
-RIGHT_TRIGGER_AXIS = 5  # retract auger
+LEFT_TRIGGER_AXIS = 2  # retract linear actuator
+RIGHT_TRIGGER_AXIS = 5  # extend linear actuator
 DPAD_HORIZONTAL_AXIS = 6  # DUMP 
 DPAD_VERTICAL_AXIS = 7  # FREE
