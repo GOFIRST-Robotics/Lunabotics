@@ -60,13 +60,15 @@
         </Action>
         <Action ID="SetMotorDutyCycle">
             <input_port name="can_id" type="int"/>
-            <input_port name="duty_cycle" type="float"/>
-            <input_port name="power_limit" type="float">Default 0.5</input_port>
+            <input_port name="value_in" type="float"/>
         </Action>
         <Action ID="SetMotorVelocity">
             <input_port name="can_id" type="int"/>
-            <input_port name="velocity" type="float"/>
-            <input_port name="power_limit" type="float">Default 0.5</input_port>
+            <input_port name="value_in" type="float"/>
+        </Action>
+        <Action ID="SetMotorPosition">
+            <input_port name="can_id" type="int"/>
+            <input_port name="value_in" type="float"/>
         </Action>
         <Action ID="SetPoseStamped" editable="true">
             <input_port name="x"/>

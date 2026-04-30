@@ -21,8 +21,7 @@
 #include "behavior_control/get_user_input_node.hpp"
 
 // BT Service Nodes
-#include "behavior_control/set_motor_velocity_node.hpp"
-#include "behavior_control/set_motor_duty_cycle_node.hpp"
+#include "behavior_control/set_motor_nodes.hpp"
 
 #include "behavior_control/get_motor_property_nodes.hpp"
 
@@ -116,26 +115,27 @@ public:
         // Set Motor Commands
         BT::RosNodeParams motor_params;
         motor_params.nh = shared_from_this();
-        motor_params.default_port_value = "motor/set"; // The service name
+        motor_params.default_port_value = "motor/set";
 
-        factory.registerBuilder<SetMotorVelocity>(
-            "SetMotorVelocity",
+        factory.registerBuilder<SetMotorPosition>("SetMotorPosition", 
+            [motor_params](const std::string& name, const BT::NodeConfiguration& config) {
+                return std::make_unique<SetMotorPosition>(name, config, motor_params);
+            });
+        
+        factory.registerBuilder<SetMotorVelocity>("SetMotorVelocity", 
             [motor_params](const std::string& name, const BT::NodeConfiguration& config) {
                 return std::make_unique<SetMotorVelocity>(name, config, motor_params);
-            }
-        );
+            });
 
-        factory.registerBuilder<SetMotorDutyCycle>(
-            "SetMotorDutyCycle",
+        factory.registerBuilder<SetMotorDutyCycle>("SetMotorDutyCycle", 
             [motor_params](const std::string& name, const BT::NodeConfiguration& config) {
                 return std::make_unique<SetMotorDutyCycle>(name, config, motor_params);
-            }
-        );
+            });
 
         // Get Motor Commands
         BT::RosNodeParams get_motor_params;
         get_motor_params.nh = shared_from_this();
-        get_motor_params.default_port_value = "motor/get"; // The service name in your MotorControlNode
+        get_motor_params.default_port_value = "motor/get";
 
         factory.registerBuilder<GetMotorCurrent>("GetMotorCurrent", 
             [get_motor_params](const std::string& name, const BT::NodeConfiguration& config) {
