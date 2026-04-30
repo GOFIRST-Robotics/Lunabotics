@@ -88,6 +88,9 @@ public:
 
     void init_factory() {
         // Setup Button Press Nodes
+        // NOTE: This setup can be slow due to copying the joy message into the blackboard for each node. 
+        // If performance becomes an issue, consider a more efficient way to share the joy message 
+        // (e.g., using a node that publishes all input messages to the blackboard with unique names).
         factory.registerNodeType<IsButtonJustPressed>("IsButtonJustPressed");
         factory.registerNodeType<IsButtonPressed>("IsButtonPressed");
         factory.registerNodeType<GetUserInput>("GetUserInput");

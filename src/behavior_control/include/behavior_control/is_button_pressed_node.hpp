@@ -12,27 +12,24 @@ public:
 
     static BT::PortsList providedPorts() {
         return { 
-            BT::InputPort<int>("button_index"),
-            BT::InputPort<sensor_msgs::msg::Joy>("input_source")
+            BT::InputPort<std::string>("joy_key"),
+            BT::InputPort<int>("button_index") 
         };
     }
 
     BT::NodeStatus tick() override {
+        std::string key;
         int index;
-        sensor_msgs::msg::Joy joy_msg;
+        if (!getInput("joy_key", key)) key = "joy_message";
+        if (!getInput("button_index", index)) return BT::NodeStatus::FAILURE;
 
-        if (!getInput("button_index", index) || !getInput("input_source", joy_msg)) {
-            return BT::NodeStatus::FAILURE;
-        }
+        auto joy_ptr = config().blackboard->getAnyPtr(key);
+        if (!joy_ptr || joy_ptr->empty()) return BT::NodeStatus::FAILURE;
 
-        if (index < 0 || index >= static_cast<int>(joy_msg.buttons.size())) {
-            return BT::NodeStatus::FAILURE;
-        }
-
-        if (joy_msg.buttons[index] == 1) {
-            return BT::NodeStatus::SUCCESS;
-        }
+        const auto* joy_msg = joy_ptr->cast<sensor_msgs::msg::Joy>();
         
-        return BT::NodeStatus::FAILURE;
+        if (index < 0 || index >= static_cast<int>(joy_msg->buttons.size())) return BT::NodeStatus::FAILURE;
+
+        return (joy_msg->buttons[index] == 1) ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
     }
 };

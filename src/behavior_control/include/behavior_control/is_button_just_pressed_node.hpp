@@ -1,8 +1,4 @@
-#include "behaviortree_ros2/plugins.hpp"
 #include "behaviortree_cpp/condition_node.h"
-
-#include "rclcpp/rclcpp.hpp"
-
 #include "sensor_msgs/msg/joy.hpp"
 
 class IsButtonJustPressed : public BT::ConditionNode {
@@ -12,38 +8,37 @@ public:
 
     static BT::PortsList providedPorts() {
         return { 
-            BT::InputPort<int>("button_index"),
-            BT::InputPort<sensor_msgs::msg::Joy>("input_source")
+            BT::InputPort<std::string>("joy_key"),
+            BT::InputPort<int>("button_index") 
         };
     }
-    
+
     BT::NodeStatus tick() override {
+        std::string key;
         int index;
-        sensor_msgs::msg::Joy joy_msg;
+        if (!getInput("joy_key", key)) key = "joy_message";
+        if (!getInput("button_index", index)) return BT::NodeStatus::FAILURE;
 
-        if (!getInput("button_index", index) || !getInput("input_source", joy_msg)) {
+        auto cur_ptr = config().blackboard->getAnyPtr(key);
+        if (!cur_ptr || cur_ptr->empty()) return BT::NodeStatus::FAILURE;
+        const auto* cur_joy = cur_ptr->cast<sensor_msgs::msg::Joy>();
+
+        if (index < 0 || index >= static_cast<int>(cur_joy->buttons.size())) {
             return BT::NodeStatus::FAILURE;
         }
 
-        // Bounds check
-        if (index < 0 || index >= static_cast<int>(joy_msg.buttons.size())) {
-            return BT::NodeStatus::FAILURE;
-        }
-
-        bool current_state = (joy_msg.buttons[index] == 1);
+        bool currently_pressed = (cur_joy->buttons[index] == 1);
         BT::NodeStatus status = BT::NodeStatus::FAILURE;
 
-        // Logic: SUCCESS only if it was false and is now true (Rising Edge)
-        if (current_state && !last_state_) {
+        if (currently_pressed && !last_state_) {
             status = BT::NodeStatus::SUCCESS;
         }
 
-        // Update state for the next tick
-        last_state_ = current_state;
+        last_state_ = currently_pressed;
         
         return status;
     }
 
 private:
-    bool last_state_; 
+    bool last_state_;
 };

@@ -37,14 +37,20 @@
             <input_port name="can_id" type="uint32_t"/>
             <output_port name="value_out" type="float"/>
         </Action>
+        <Action ID="GetUserInput" editable="true">
+            <input_port name="joy_key" default="&quot;joy_message&quot;"/>
+            <input_port name="index"/>
+            <input_port name="input_type" default="0">0 for button, 1 for axis</input_port>
+            <output_port name="output"/>
+        </Action>
         <Action ID="GoToDigLocation" editable="true"/>
         <Condition ID="IsButtonJustPressed">
             <input_port name="button_index"/>
-            <input_port name="input_source" default="{joy_message}"/>
+            <input_port name="input_key" default="&quot;joy_message&quot;"/>
         </Condition>
         <Condition ID="IsButtonPressed">
             <input_port name="button_index"/>
-            <input_port name="input_source" default="{joy_message}"/>
+            <input_port name="input_key" default="&quot;joy_message&quot;"/>
         </Condition>
         <Action ID="LogString">
             <input_port name="message"/>
