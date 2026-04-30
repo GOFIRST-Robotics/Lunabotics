@@ -18,6 +18,7 @@
 #include "behavior_control/set_pose_stamped_node.hpp"
 #include "behavior_control/is_button_pressed_node.hpp"
 #include "behavior_control/is_button_just_pressed_node.hpp"
+#include "behavior_control/get_user_input_node.hpp"
 
 // BT Service Nodes
 #include "behavior_control/set_motor_velocity_node.hpp"
@@ -89,6 +90,7 @@ public:
         // Setup Button Press Nodes
         factory.registerNodeType<IsButtonJustPressed>("IsButtonJustPressed");
         factory.registerNodeType<IsButtonPressed>("IsButtonPressed");
+        factory.registerNodeType<GetUserInput>("GetUserInput");
 
         // Setup Log String Tree Node
         factory.registerBuilder<LogString>(
