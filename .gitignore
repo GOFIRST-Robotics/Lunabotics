@@ -59,3 +59,7 @@ CATKIN_IGNORE
 .fake
 
 docker/deepstream
+
+# zig
+zig-out/
+.zig-cache/
