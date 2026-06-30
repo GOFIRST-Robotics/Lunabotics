@@ -51,5 +51,17 @@ RUN python3 -m pip install -U \
 
 RUN echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0fd9", MODE="0666"' | sudo tee /etc/udev/rules.d/99-streamdeck.rules
 
+# Install Zig
+ARG ZIG_VERSION=0.16.0
+ARG TARGETARCH
+WORKDIR /opt
+RUN if [ "$TARGETARCH" = "amd64" ]; then ZIG_ARCH="x86_64"; \
+    elif [ "$TARGETARCH" = "arm64" ]; then ZIG_ARCH="aarch64"; \
+    else ZIG_ARCH=$TARGETARCH; fi \
+    && curl -O https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz \
+    && tar -xf zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz -C /opt \
+    && rm zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz \
+    && ln -s /opt/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}/zig /usr/local/bin
+
 ARG USERNAME=admin
 RUN adduser ${USERNAME} dialout && adduser ${USERNAME} tty && adduser ${USERNAME} input

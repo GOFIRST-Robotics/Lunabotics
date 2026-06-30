@@ -1,0 +1,12 @@
+.{
+    .name = .MFOS,
+    .version = "0.0.0",
+    .fingerprint = 0xb9aefd0a13b5b804,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
