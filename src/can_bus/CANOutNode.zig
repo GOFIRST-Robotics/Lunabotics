@@ -37,8 +37,12 @@ pub fn init() @This() {
 pub fn deinit(self: *@This()) void {
     _ = self;
 }
+
 pub fn update(self: *@This(), input: *const inputType, output: *outputType) void {
+    _ = self;
     _ = output;
-    const set_current_cmd = vesc_datatypes.SetCurrent.create(2, input.motor_current);
-    socket_can.sendRAWCANFrame(self.threaded.io(), self.can_socket, &set_current_cmd) catch @panic("Failed to send can frame");
+    _ = input;
+    // const set_current_cmd = vesc_datatypes.SetCurrent.create(2, input.motor_current);
+    // const set_current_cmd = vesc_datatypes.SetCurrent.create(1.0);
+    // socket_can.sendRAWCANFrame(self.threaded.io(), self.can_socket, &set_current_cmd) catch @panic("Failed to send can frame");
 }

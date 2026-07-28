@@ -30,7 +30,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "config", .module = local_config_mod },
                 .{ .name = "socket_can", .module = local_can_c.createModule() },
-                .{ .name = "config", .module = local_config_mod },
+                // .{ .name = "config", .module = local_config_mod },
             },
         },
     );
@@ -139,6 +139,88 @@ pub fn build(b: *std.Build) void {
     client_build_step.dependOn(&client_install.step);
     b.getInstallStep().dependOn(client_build_step);
 
+    // -----------------------------------------------
+    // CAN Monitoring Build for both Jetson and Local Build
+    // -----------------------------------------------
+
+    const can_monitor_optimization: std.builtin.OptimizeMode = .Debug;
+
+    const local_monitor_build = b.addExecutable(.{
+        .name = "local_can_monitor",
+        .root_module = b.createModule(
+            .{
+                .root_source_file = b.path("src/can_bus/monitor.zig"),
+                .target = local_target,
+                .optimize = can_monitor_optimization,
+                .imports = &.{
+                    .{ .name = "MFR", .module = debug_MFR },
+                },
+            },
+        ),
+    });
+
+    const local_monitor_install = b.addInstallArtifact(local_monitor_build, .{});
+    local_build_step.dependOn(&local_monitor_install.step);
+
+    const jetson_monitor_build = b.addExecutable(.{
+        .name = "jetson_can_monitor",
+        .root_module = b.createModule(
+            .{
+                .root_source_file = b.path("src/can_bus/monitor.zig"),
+                .target = local_target,
+                .optimize = can_monitor_optimization,
+                .imports = &.{
+                    .{ .name = "MFR", .module = jetson_MFR },
+                },
+            },
+        ),
+    });
+
+    const jetson_monitor_install = b.addInstallArtifact(jetson_monitor_build, .{});
+    jetson_build_step.dependOn(&jetson_monitor_install.step);
+
+    // -----------------------------------------------
+    // Tests For Custom Vesc CAN messages
+    // -----------------------------------------------
+    const zig_vesc_can_tests = create_test_step: {
+        // !!! IMPORTANT !!!
+        // This module must be used carefully as its code is under the GPLv3
+        // Any code that uses this module must also be under the GPLv3
+        // Since the test file uses this module only it should need to be under the GPLv3
+        const vesc_comm_can = b.addTranslateC(.{
+            .target = local_target,
+            .root_source_file = b.path("src/can_bus/vesc_comm_tests/comm_can.h"),
+            .link_libc = true,
+            .optimize = .Debug,
+        });
+        const vesc_comm_can_module = vesc_comm_can.createModule();
+        vesc_comm_can_module.addCSourceFiles(.{
+            .root = b.path("src/can_bus/vesc_comm_tests"),
+            .files = &.{
+                "comm_can.c",
+                "buffer.c",
+            },
+            .flags = &.{"-std=c99"},
+            .language = .c,
+        });
+
+        const zig_vesc_can = b.addModule("zig_vesc_can_tests", .{
+            .root_source_file = b.path("src/can_bus/vesc_comm_tests/vesc_comm_tests.zig"),
+            .imports = &.{
+                .{ .name = "comm_can", .module = vesc_comm_can_module },
+                .{ .name = "MFR", .module = debug_MFR },
+            },
+            .optimize = .Debug,
+            .target = local_target,
+            .link_libc = true,
+        });
+        break :create_test_step b.addTest(.{
+            .root_module = zig_vesc_can,
+            .use_lld = true,
+            .use_llvm = true,
+        });
+    };
+
     const run_step = b.step("run", "Run the app");
 
     const run_cmd = b.addRunArtifact(local_build);
@@ -164,7 +246,10 @@ pub fn build(b: *std.Build) void {
 
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
+    const zig_vesc_can_test_runs = b.addRunArtifact(zig_vesc_can_tests);
+
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
+    test_step.dependOn(&zig_vesc_can_test_runs.step);
 }

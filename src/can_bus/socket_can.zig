@@ -16,13 +16,20 @@ pub const Id = packed struct(u32) {
     eff: bool = true, // this must be true
 };
 
+const DataTypes = extern union {
+    bytes: [8]u8 align(1),
+    set_current: vesc_datatypes.SetCurrent align(1),
+    set_duty: vesc_datatypes.SetDuty align(1),
+};
+
 pub const CanFrame = extern struct {
     id: Id,
     len: u8,
     _pad: u8 = 0, // do not use
     _res0: u8 = 0, // do not use
     _len8_dlc: u8 = 0, // VESC does not use this
-    data: [8]u8 = @splat(0),
+    data: DataTypes align(8) = .{ .bytes = @splat(0) },
+    // data: [8]u8 align(8) = @splat(0),
 };
 
 pub const CanFilter = socket_can.can_filter;
@@ -185,7 +192,7 @@ pub fn addVescFilter(socket: linux.socket_t, filters: []const VescFilter) void {
 
 test "create can connection" {
     var errno: linux.E = .SUCCESS;
-    const socket = try openCANRaw("vcan0", &errno);
+    const socket = try openCANRaw("can0", &errno);
     _ = socket;
     try std.testing.expect(errno == .SUCCESS);
 }
@@ -194,9 +201,9 @@ test "filtering" {
     var threaded = Io.Threaded.init_single_threaded;
     const io = threaded.io();
 
-    const sock1 = try openCANRaw("vcan0", null);
+    const sock1 = try openCANRaw("can0", null);
     defer _ = linux.close(sock1);
-    const sock2 = try openCANRaw("vcan0", null);
+    const sock2 = try openCANRaw("can0", null);
     defer _ = linux.close(sock2);
 
     const filters: [3]VescFilter = .{
@@ -213,7 +220,7 @@ test "filtering" {
         .{
             .id = .{ .vesc_id = 3, .command_type = .SET_RPM },
             .len = 3,
-            .data = std.mem.toBytes(@as(u64, 0xdeadbeefdeadbeef)),
+            .data = .{ .bytes = std.mem.toBytes(@as(u64, 0xdeadbeefdeadbeef)) },
         },
         .{
             .id = .{ .vesc_id = 2, .command_type = .SET_DUTY },
@@ -222,7 +229,6 @@ test "filtering" {
         .{
             .id = .{ .vesc_id = 4, .command_type = .SET_CURRENT },
             .len = 1,
-            .data = .{ 1, 0, 0, 0, 0, 0, 0, 0 },
         },
     };
 

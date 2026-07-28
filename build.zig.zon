@@ -1,7 +1,7 @@
 .{
-    .name = .MFOS,
+    .name = .MFR,
     .version = "0.0.0",
-    .fingerprint = 0xb9aefd0a13b5b804,
+    .fingerprint = 0xa4451fdac79ba76d,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},
     .paths = .{

@@ -78,7 +78,8 @@ pub const CommandType = enum(u8) {
 
 fn vescParse(size: type, slice: []const u8, signess: std.builtin.Signedness, scalar: f32) f32 {
     std.debug.assert(@typeInfo(size).int.bits == 8 * slice.len);
-    return @as(f32, @floatFromInt(bigToNative(signess, slice[0..@sizeOf(size)]))) * scalar;
+    // return @as(f32, @floatFromInt(bigToNative(signess, slice[0..@sizeOf(size)]))) * scalar;
+    return @as(f32, @floatFromInt(bigToNative(signess, &slice))) * scalar;
 }
 
 const StatusPacket1 = struct {
@@ -136,13 +137,33 @@ fn vescWrite(size: type, value: f32, scalar: f32) size {
 pub const SetCurrent = packed struct(u64) {
     current: u32,
     _unused: u32 = 0,
-    pub fn create(vesc_id: u8, current: f32) CanFrame {
+    // pub fn create(vesc_id: u8, current: f32) CanFrame {
+    //     return .{ .id = .{
+    //         .vesc_id = vesc_id,
+    //         .command_type = .SET_CURRENT,
+    //     }, .len = 4, .data = @bitCast(
+    //         @This(){
+    //             .current = vescWrite(u32, current, 1_000),
+    //         },
+    //     ) };
+    // }
+    pub fn create(current: f32) @This() {
+        return .{
+            .current = vescWrite(u32, current, 1_000),
+        };
+    }
+};
+
+pub const SetDuty = packed struct(u64) {
+    duty: u32,
+    _unused: u32 = 0,
+    pub fn create(vesc_id: u8, duty: f32) @This() {
         return .{ .id = .{
             .vesc_id = vesc_id,
-            .command_type = .SET_CURRENT,
+            .command_type = .SET_DUTY,
         }, .len = 4, .data = @bitCast(
             @This(){
-                .current = vescWrite(u32, current, 1_000),
+                .duty = vescWrite(u32, duty, 100_000),
             },
         ) };
     }

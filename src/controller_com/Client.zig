@@ -223,6 +223,7 @@ pub fn main(init: std.process.Init) !void {
             std.debug.print("No Stream Deck Detected!\x1B[K\n", .{});
             newlines_printed += 1;
         }
+        std.debug.print("\x1B[0J\x1B[0K", .{});
         std.debug.print("\x1B[{d}F", .{newlines_printed});
     }
 }
