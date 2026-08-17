@@ -14,9 +14,20 @@ const NodeConfig = creation.NodeConfig;
 const zig_vesc_can = @import("zig-vesc-can");
 const socket_can = zig_vesc_can.socket_can;
 
-pub const mechanism_config: NodeConfig = .{ .node_type = MechanismNode, .name = "mechanism", .outputs_to = &.{canout_config.name} };
-pub const canout_config: NodeConfig = .{ .node_type = CANOutNode, .name = "can_out" };
-pub const server_config: NodeConfig = .{ .node_type = ServerNode, .name = "server", .outputs_to = &.{mechanism_config.name} };
+pub const mechanism_config: NodeConfig = .{
+    .node_type = MechanismNode,
+    .name = "mechanism",
+    .outputs_to = &.{canout_config.name},
+};
+pub const canout_config: NodeConfig = .{
+    .node_type = CANOutNode,
+    .name = "can_out",
+};
+pub const server_config: NodeConfig = .{
+    .node_type = ServerNode,
+    .name = "server",
+    .outputs_to = &.{mechanism_config.name},
+};
 
 const node_config = [_]NodeConfig{
     mechanism_config,

@@ -140,46 +140,6 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(client_build_step);
 
     // -----------------------------------------------
-    // CAN Monitoring Build for both Jetson and Local Build
-    // -----------------------------------------------
-
-    const can_monitor_optimization: std.builtin.OptimizeMode = .Debug;
-
-    const local_monitor_build = b.addExecutable(.{
-        .name = "local_can_monitor",
-        .root_module = b.createModule(
-            .{
-                .root_source_file = b.path("src/can_bus/monitor.zig"),
-                .target = local_target,
-                .optimize = can_monitor_optimization,
-                .imports = &.{
-                    .{ .name = "MFR", .module = debug_MFR },
-                },
-            },
-        ),
-    });
-
-    const local_monitor_install = b.addInstallArtifact(local_monitor_build, .{});
-    local_build_step.dependOn(&local_monitor_install.step);
-
-    const jetson_monitor_build = b.addExecutable(.{
-        .name = "jetson_can_monitor",
-        .root_module = b.createModule(
-            .{
-                .root_source_file = b.path("src/can_bus/monitor.zig"),
-                .target = local_target,
-                .optimize = can_monitor_optimization,
-                .imports = &.{
-                    .{ .name = "MFR", .module = jetson_MFR },
-                },
-            },
-        ),
-    });
-
-    const jetson_monitor_install = b.addInstallArtifact(jetson_monitor_build, .{});
-    jetson_build_step.dependOn(&jetson_monitor_install.step);
-
-    // -----------------------------------------------
     // Tests For Custom Vesc CAN messages
     // -----------------------------------------------
     const zig_vesc_can_tests = create_test_step: {

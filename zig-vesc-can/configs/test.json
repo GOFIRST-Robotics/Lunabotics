@@ -1,0 +1,60 @@
+{
+    "canbus_name": "can0",
+
+    "defer_configs": [
+        {
+            "config_name": "example_conf",
+            "messages": [
+                {
+                    "timeout" : {
+                        "tv_sec": 1,
+                        "tv_usec": 500000
+                    },
+                    "rate_limit" : {
+                        "tv_sec": 0,
+                        "tv_usec": 0
+                    },
+                    "command": "STATUS"
+                }, 
+                {
+                    "timeout" : {
+                        "tv_sec": 5,
+                        "tv_usec": 0
+                    },
+                    "rate_limit" : {
+                        "tv_sec": 0,
+                        "tv_usec": 0
+                    },
+                    "command": "STATUS_5"
+
+                }
+            ]
+        }
+    ],
+
+
+    "vesc_configs": [
+        {
+            "name": "test vesc",
+            "can_id": 13,
+            "defer_configs": ["example_conf"],
+            "message_configs": []
+
+        },
+        {
+            "name": "12345678987654321",
+            "can_id": 2,
+            "defer_configs": ["example_conf"],
+            "message_configs": []
+        }
+    ],
+
+    "layout": [
+        [
+        "test vesc"
+        ],
+        [
+        "12345678987654321"
+        ]
+    ]
+}
