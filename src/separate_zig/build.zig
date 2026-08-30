@@ -21,8 +21,6 @@ pub fn build(b: *std.Build) void {
     mod.addObjectFile(b.path("build/libros_bridge.a"));
 
     mod.addLibraryPath(.{ .cwd_relative = "/opt/ros/humble/lib" });
-    mod.linkSystemLibrary("rcutils", .{});
-    mod.linkSystemLibrary("rclcpp", .{});
 
     mod.addLibraryPath(.{ .cwd_relative = "/workspaces/isaac_ros-dev/install/rovr_interfaces/lib" });
     mod.linkSystemLibrary("rovr_interfaces__rosidl_typesupport_c", .{});

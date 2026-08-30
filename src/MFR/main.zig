@@ -6,7 +6,6 @@ const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
 const ServerNode = MFR.ServerNode;
 const creation = @import("creation.zig");
-// const config = @import("config");
 const config = MFR.config;
 const on_jetson = config.on_jetson;
 const NodeConfig = creation.NodeConfig;

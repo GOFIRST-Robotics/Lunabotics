@@ -1,0 +1,54 @@
+# Base image from the devcontainer file
+FROM umnrobotics/devcontainer
+
+# Switch to root to perform installations
+USER root
+
+# Run postCreateCommand steps
+RUN rm -f /etc/apt/sources.list.d/ros2.list && \
+    rm -f /etc/apt/sources.list.d/ros2-latest.list && \
+    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu jammy main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y git-lfs xz-utils curl wget build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Zig 0.16.0
+RUN curl -LO https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz && \
+    tar -xf zig-x86_64-linux-0.16.0.tar.xz && \
+    mv zig-x86_64-linux-0.16.0 /usr/local/zig && \
+    rm zig-x86_64-linux-0.16.0.tar.xz && \
+    ln -s /usr/local/zig/zig /usr/local/bin/zig
+
+# Install Zig Language Server (ZLS) from source using Zig 0.16.0
+RUN git clone --depth 1 --branch 0.16.0 https://github.com/zigtools/zls.git /tmp/zls && \
+    cd /tmp/zls && \
+    zig build -Doptimize=ReleaseSafe && \
+    mv zig-out/bin/zls /usr/local/bin/zls && \
+    rm -rf /tmp/zls
+
+# Ensure the admin user owns the workspace if it gets mounted/created
+RUN mkdir -p /workspaces/isaac_ros-dev && chown -R admin:admin /workspaces/isaac_ros-dev
+
+# Accept the host path as a build argument (with a safe default fallback)
+ARG HOST_PROJECT_PATH=/tmp/default_workspace
+
+# Create the parent directory structure and symlink it to the container's workspace
+RUN mkdir -p "$(dirname "$HOST_PROJECT_PATH")" && \
+    ln -s /workspaces/isaac_ros-dev "$HOST_PROJECT_PATH"
+
+# Switch back to the remote user
+USER admin
+
+# Add ROS setup scripts to .bashrc
+RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
+    echo 'source /workspaces/isaac_ros-dev/install/setup.bash' >> ~/.bashrc
+
+# Set up the postStartCommand as the default entrypoint/CMD (or run it dynamically)
+# Note: rosdep needs an actual src folder, so we write a wrapper script
+RUN echo '#!/bin/bash\n\
+rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "nvblox negotiated draco_point_cloud_transport point_cloud_transport_plugins ffmpeg_encoder_decoder ffmpeg_image_transport isaac_ros_peoplesemseg_models_install isaac_ros_h264_decoder isaac_ros_unet isaac_ros_triton isaac_ros_dnn_image_encoder nova_carter_navigation"\n\
+exec "$@"' > /home/admin/entrypoint.sh && chmod +x /home/admin/entrypoint.sh
+
+ENTRYPOINT ["/home/admin/entrypoint.sh"]
+CMD ["bash"]
