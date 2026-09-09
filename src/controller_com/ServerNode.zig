@@ -11,9 +11,9 @@ const logger = std.log.scoped(.server);
 
 const server_address: net.IpAddress = .{ .ip4 = .{ .port = protocol.port, .bytes = .{ 0, 0, 0, 0 } } };
 
-threaded: Io.Threaded,
 io: Io,
 socket: net.Socket,
+loops: u64,
 
 previous_controller_data: protocol.ControllerData,
 last_controller_time: protocol.TimeStamp,
@@ -32,10 +32,10 @@ pub const outputType = struct {
     }
 };
 
-pub fn init() @This() {
+pub fn init(init_only_io: Io) @This() {
     var ret: @This() = undefined;
-    ret.threaded = .init_single_threaded;
-    ret.io = ret.threaded.io();
+    ret.io = undefined;
+    ret.loops = 0;
 
     ret.previous_controller_data = .{};
     ret.previous_stream_deck_data = .{};
@@ -47,7 +47,7 @@ pub fn init() @This() {
     ret.last_controller_time = .{ .nano_seconds = 0, .seconds = 0 };
     ret.last_stream_deck_time = .{ .nano_seconds = 0, .seconds = 0 };
 
-    ret.socket = server_address.bind(ret.io, .{ .protocol = .udp, .mode = .dgram }) catch @panic("Failed to open UDP controller connection");
+    ret.socket = server_address.bind(init_only_io, .{ .protocol = .udp, .mode = .dgram }) catch @panic("Failed to open UDP controller connection");
     logger.info("Successfully bound server to port {d}", .{protocol.port});
 
     return ret;
@@ -58,6 +58,7 @@ pub fn deinit(self: *@This()) void {
 }
 pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
     _ = input;
+    // logger.info("{any}", .{&self.io});
 
     const current_time: protocol.TimeStamp = gettime: {
         var timespec: linux.timespec = undefined;

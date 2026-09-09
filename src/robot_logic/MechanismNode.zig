@@ -1,4 +1,5 @@
 const std = @import("std");
+const Io = std.Io;
 const CANOutNode = @import("../can_bus/CANOutNode.zig");
 
 const MechanismNode = @This();
@@ -28,7 +29,7 @@ pub const outputType = struct {
     }
 };
 
-pub fn init() @This() {
+pub fn init(_: Io) @This() {
     return .{};
 }
 

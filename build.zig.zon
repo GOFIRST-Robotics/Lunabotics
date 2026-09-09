@@ -3,7 +3,11 @@
     .version = "0.0.0",
     .fingerprint = 0xa4451fdac79ba76d,
     .minimum_zig_version = "0.16.0",
-    .dependencies = .{},
+    .dependencies = .{
+        .zig_vesc_can = .{
+            .path = "zig-vesc-can",
+        },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",

@@ -1,15 +1,24 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-
+    const local_target = b.standardTargetOptions(.{ .default_target = .{ .os_tag = .linux } });
+    const jetson_target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .gnu });
+    //
     // -----------------------------------------------
     // Local Build for Debuging Purposes
     // -----------------------------------------------
-    const local_target = b.standardTargetOptions(.{ .default_target = .{ .os_tag = .linux } });
 
     const debug_optimizations: std.builtin.OptimizeMode = .Debug;
 
-    const jetson_target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .gnu });
+    const local_zig_vesc_can_dep = b.dependency(
+        "zig_vesc_can",
+        .{
+            .target = local_target,
+            .optimize = debug_optimizations,
+        },
+    );
+
+    const local_zig_vesc_can_mod = local_zig_vesc_can_dep.module("zig-vesc-can");
 
     const local_config_mod = b.createModule(.{
         .optimize = debug_optimizations,
@@ -30,7 +39,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "config", .module = local_config_mod },
                 .{ .name = "socket_can", .module = local_can_c.createModule() },
-                // .{ .name = "config", .module = local_config_mod },
+                .{ .name = "zig-vesc-can", .module = local_zig_vesc_can_mod },
             },
         },
     );
@@ -44,7 +53,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "MFR", .module = debug_MFR },
             },
-            .single_threaded = false, // TODO: fully understand this
+            .single_threaded = false,
         }),
         // overide becuase zig's system does not support bleading edge gcc
         .use_lld = true,
@@ -61,6 +70,16 @@ pub fn build(b: *std.Build) void {
     // -----------------------------------------------
 
     const jetson_optimization: std.builtin.OptimizeMode = .Debug;
+
+    const jetson_zig_vesc_can_dep = b.dependency(
+        "zig_vesc_can",
+        .{
+            .target = local_target,
+            .optimize = debug_optimizations,
+        },
+    );
+
+    const jetson_zig_vesc_can_mod = jetson_zig_vesc_can_dep.module("zig-vesc-can");
 
     const jetson_config_mod = b.createModule(.{
         .optimize = jetson_optimization,
@@ -81,6 +100,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "config", .module = jetson_config_mod },
                 .{ .name = "socket_can", .module = jetson_can_c.createModule() },
+                .{ .name = "zig-vesc-can", .module = jetson_zig_vesc_can_mod },
             },
         },
     );
@@ -94,7 +114,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{
                 .{ .name = "MFR", .module = jetson_MFR },
             },
-            .single_threaded = false, // TODO: fully understand this
+            .single_threaded = false,
         }),
         // overide becuase zig's system does not support bleading edge gcc
         .use_lld = true,

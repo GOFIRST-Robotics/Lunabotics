@@ -81,11 +81,12 @@ pub fn makeForeverFunc(node_type: type) fn (*node_type, *node_type.inputType, *n
     }.forever;
 }
 
-pub fn initNodes(node_type: type) node_type {
+/// The io parameter is only for init and the nodes should not save it
+pub fn initNodes(node_type: type, io: Io) node_type {
     var node_struct: node_type = undefined;
     inline for (@typeInfo(node_type).@"struct".fields) |field| {
         const node = &@field(node_struct, field.name);
-        node.* = .init();
+        node.* = .init(io);
     }
     return node_struct;
 }

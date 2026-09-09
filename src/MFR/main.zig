@@ -4,6 +4,7 @@ const Io = std.Io;
 const MFR = @import("MFR");
 const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
+const CANInNode = MFR.CANInNode;
 const ServerNode = MFR.ServerNode;
 const creation = @import("creation.zig");
 const config = MFR.config;
@@ -22,6 +23,10 @@ pub const canout_config: NodeConfig = .{
     .node_type = CANOutNode,
     .name = "can_out",
 };
+pub const canin_config: NodeConfig = .{
+    .node_type = CANInNode,
+    .name = "can_in",
+};
 pub const server_config: NodeConfig = .{
     .node_type = ServerNode,
     .name = "server",
@@ -31,6 +36,7 @@ pub const server_config: NodeConfig = .{
 const node_config = [_]NodeConfig{
     mechanism_config,
     canout_config,
+    canin_config,
     server_config,
 };
 
@@ -45,6 +51,7 @@ const main_control_exec_order = [_]NodeConfig{
 
 const async_nodes = [_]NodeConfig{
     server_config,
+    canin_config,
 };
 
 const synchronous_spin = creation.createExecutionFunction(
@@ -60,22 +67,33 @@ pub fn main(init: std.process.Init) !void {
 
     var outputs: OutputsType = undefined;
 
-    var nodes: NodesType = creation.initNodes(NodesType);
+    var async_group_threaded: Io.Threaded = .init(init.gpa, .{});
+    const async_group_io = async_group_threaded.io();
+    defer async_group_threaded.deinit();
+
+    var nodes: NodesType = creation.initNodes(NodesType, init.io);
 
     creation.linkOutputs(InputsType, OutputsType, &node_config, &inputs, &outputs);
+
+    // every node in the async group has to have the same io
+    inline for (async_nodes) |node| {
+        var node_instance = &@field(nodes, node.name);
+        node_instance.io = async_group_io;
+        // std.debug.print("{s} ; {any}\n", .{ node.name, &node_instance.io });
+    }
 
     var async_group = creation.createAsyncGroup(
         NodesType,
         InputsType,
         OutputsType,
-        init.io,
+        async_group_io,
         &async_nodes,
         &nodes,
         &inputs,
         &outputs,
     );
 
-    try async_group.await(init.io);
+    // try async_group.await(init.io);
 
     defer async_group.cancel(init.io);
 
