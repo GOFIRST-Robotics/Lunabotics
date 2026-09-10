@@ -10,22 +10,28 @@ RUN rm -f /etc/apt/sources.list.d/ros2.list && \
     curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu jammy main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
     apt-get update && \
-    apt-get install -y git-lfs xz-utils curl wget build-essential iproute2 && \
+    apt-get install -y git-lfs xz-utils curl wget build-essential && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Zig 0.16.0
-RUN curl -LO https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz && \
-    tar -xf zig-x86_64-linux-0.16.0.tar.xz && \
-    mv zig-x86_64-linux-0.16.0 /usr/local/zig && \
-    rm zig-x86_64-linux-0.16.0.tar.xz && \
-    ln -s /usr/local/zig/zig /usr/local/bin/zig
-
-# Install Zig Language Server (ZLS) from source using Zig 0.16.0
-RUN git clone --depth 1 --branch 0.16.0 https://github.com/zigtools/zls.git /tmp/zls && \
-    cd /tmp/zls && \
-    zig build -Doptimize=ReleaseSafe && \
-    mv zig-out/bin/zls /usr/local/bin/zls && \
-    rm -rf /tmp/zls
+WORKDIR /opt
+ARG ZIG_VERSION="0.16.0"
+ARG ZIG_ARCH
+ARG TARGETARCH
+RUN echo "Building for Operating System: and Architecture: $TARGETARCH"
+RUN set -eux; \
+    if [ "$TARGETARCH" = "amd64" ]; then \
+        ZIG_ARCH="x86_64"; \
+    elif [ "$TARGETARCH" = "arm64" ]; then \
+        ZIG_ARCH="aarch64"; \
+    else \
+        ZIG_ARCH="$TARGETARCH"; \
+    fi; \
+    echo "Mapped architecture is: $ZIG_ARCH"; \
+    curl -LO https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz; \
+    tar -xf zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz; \
+    rm zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz; \
+    ln -s /opt/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}/zig /usr/local/bin;
 
 # Ensure the admin user owns the workspace if it gets mounted/created
 RUN mkdir -p /workspaces/isaac_ros-dev && chown -R admin:admin /workspaces/isaac_ros-dev
