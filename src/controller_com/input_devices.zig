@@ -35,7 +35,6 @@ pub fn findDevice(io: Io, dev_name: []const u8) FindControllerError!?Io.File {
                 return error.FileOperationFailure;
             },
         }) |file| {
-            // if (std.mem.find(u8, file.name, "event-joystick")) |_| {
             if (std.mem.find(u8, file.name, "event")) |_| {
                 if (std.mem.find(u8, file.name, dev_name)) |_| {
                     @memcpy(name[0..inputs_path.len], inputs_path);
@@ -43,7 +42,10 @@ pub fn findDevice(io: Io, dev_name: []const u8) FindControllerError!?Io.File {
 
                     break :find_controller inputs_dir.openFile(io, file.name, .{}) catch |err| switch (err) {
                         error.Canceled => return null,
-                        else => return error.FileOperationFailure,
+                        else => {
+                            log.err("Failed to open file {s}{s} ; {t}", .{ inputs_path, file.name, err });
+                            return error.FileOperationFailure;
+                        },
                     };
                 }
             }

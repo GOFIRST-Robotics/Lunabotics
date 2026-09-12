@@ -35,13 +35,14 @@ else
         --name lunabotics_dev \
         --cap-add NET_ADMIN \
         --network host \
+        --privileged \
         -e DISPLAY=$DISPLAY \
         -e NVIDIA_VISIBLE_DEVICES=all \
         -e NVIDIA_DRIVER_CAPABILITIES=all \
         -e FASTFASTRTPS_DEFAULT_PROFILES_FILE=/usr/local/share/middleware_profiles/rtps_udp_profile.xml \
         -v $(pwd -P):/workspaces/isaac_ros-dev \
         -w /workspaces/isaac_ros-dev \
-        -v "/dev/input/by-id:/dev/input/by-id" \
+        -v "/dev/input:/dev/input" \
         $CONTAINER_NAME \
         /bin/bash
 fi
