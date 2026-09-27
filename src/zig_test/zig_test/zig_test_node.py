@@ -1,7 +1,3 @@
-# This ROS 2 node contains the code for the zig test subsystem of the robot
-import time
-import math
-
 # Import the ROS 2 Python module
 import rclpy
 from rclpy.node import Node
@@ -9,9 +5,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 # Import custom ROS 2 interfaces
-from rovr_interfaces.srv import (
-    Addition
-)
+from rovr_interfaces.srv import Addition
 
 
 class ZigTest(Node):
@@ -27,12 +21,11 @@ class ZigTest(Node):
             self.addition,
             callback_group=self.service_cb_group,
         )
-    
+
     def addition(self, request, response):
         response.sum = request.a + request.b
         print(f"{request.a} + {request.b} = {response.sum}")
         return response
-
 
 
 def main(args=None):
@@ -53,6 +46,6 @@ def main(args=None):
 
     rclpy.shutdown()
 
+
 if __name__ == "__main__":
     main()
-
