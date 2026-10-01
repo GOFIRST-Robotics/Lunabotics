@@ -1,15 +1,15 @@
-# Base image from the devcontainer file
-FROM umnrobotics/devcontainer
+FROM ubuntu:22.04
 
 # Switch to root to perform installations
 USER root
 
-# Run postCreateCommand steps
-RUN rm -f /etc/apt/sources.list.d/ros2.list && \
-    rm -f /etc/apt/sources.list.d/ros2-latest.list && \
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu jammy main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null && \
-    apt-get update && \
+# Avoid interactive prompts during apt-get steps
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN groupadd -g 110 input_host 2>/dev/null || true
+
+# Install base dependencies
+RUN apt-get update && \
     apt-get install -y git-lfs xz-utils curl wget build-essential iproute2 can-utils evtest && \
     rm -rf /var/lib/apt/lists/*
 
@@ -21,11 +21,11 @@ ARG TARGETARCH
 RUN echo "Building for Operating System: and Architecture: $TARGETARCH"
 RUN set -eux; \
     if [ "$TARGETARCH" = "amd64" ]; then \
-        ZIG_ARCH="x86_64"; \
+    ZIG_ARCH="x86_64"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        ZIG_ARCH="aarch64"; \
+    ZIG_ARCH="aarch64"; \
     else \
-        ZIG_ARCH="$TARGETARCH"; \
+    ZIG_ARCH="$TARGETARCH"; \
     fi; \
     echo "Mapped architecture is: $ZIG_ARCH"; \
     curl -LO https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz; \
@@ -33,8 +33,8 @@ RUN set -eux; \
     rm zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz; \
     ln -s /opt/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}/zig /usr/local/bin;
 
-# Ensure the admin user owns the workspace if it gets mounted/created
-RUN mkdir -p /workspaces/isaac_ros-dev && chown -R admin:admin /workspaces/isaac_ros-dev
+# Ensure root owns the workspace
+RUN mkdir -p /workspaces/isaac_ros-dev && chown -R root:root /workspaces/isaac_ros-dev
 
 # Accept the host path as a build argument (with a safe default fallback)
 ARG HOST_PROJECT_PATH=/tmp/default_workspace
@@ -43,23 +43,13 @@ ARG HOST_PROJECT_PATH=/tmp/default_workspace
 RUN mkdir -p "$(dirname "$HOST_PROJECT_PATH")" && \
     ln -s /workspaces/isaac_ros-dev "$HOST_PROJECT_PATH"
 
-# Switch back to the remote user
-USER admin
-
-# Add ROS setup scripts to .bashrc
-RUN echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc && \
-    echo 'source /workspaces/isaac_ros-dev/install/setup.bash' >> ~/.bashrc
-
-# Set up the postStartCommand as the default entrypoint/CMD (or run it dynamically)
-# Note: rosdep needs an actual src folder, so we write a wrapper script
-RUN echo '#!/bin/bash\n\
-rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "nvblox negotiated draco_point_cloud_transport point_cloud_transport_plugins ffmpeg_encoder_decoder ffmpeg_image_transport isaac_ros_peoplesemseg_models_install isaac_ros_h264_decoder isaac_ros_unet isaac_ros_triton isaac_ros_dnn_image_encoder nova_carter_navigation"\n\
-exec "$@"' > /home/admin/entrypoint.sh && chmod +x /home/admin/entrypoint.sh
-
 # Linking .zig-cache like this fixes an error when running 'zig build' on Windows
 RUN set -eux; \
     mkdir /tmp/.zig-cache; \
     ln -s /tmp/.zig-cache /workspaces/isaac_ros-dev;
 
-ENTRYPOINT ["/home/admin/entrypoint.sh"]
+# Create entrypoint script inside root's home directory (/root/)
+RUN echo '#!/bin/bash\nexec "$@"' > /root/entrypoint.sh && chmod +x /root/entrypoint.sh
+
+ENTRYPOINT ["/root/entrypoint.sh"]
 CMD ["bash"]
