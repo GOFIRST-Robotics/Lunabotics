@@ -31,6 +31,13 @@ pub fn build(b: *std.Build) void {
         .optimize = debug_optimizations,
     });
 
+    const local_foxglove_c = b.addTranslateC(.{
+        .root_source_file = b.path("src/foxglove/foxglove-c.h"),
+        .target = local_target,
+        .optimize = debug_optimizations,
+        // .link_libc = true,
+    });
+
     const debug_MFR = b.addModule(
         "MFR",
         .{
@@ -40,9 +47,16 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "config", .module = local_config_mod },
                 .{ .name = "socket_can", .module = local_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = local_zig_vesc_can_mod },
+                .{ .name = "foxglove-sdk", .module = local_foxglove_c.createModule() },
             },
+            // .link_libc = true,
         },
     );
+    // debug_MFR.addObjectFile(b.path("src/foxglove/libfoxglove.a"));
+    debug_MFR.addLibraryPath(b.path("src/foxglove"));
+    debug_MFR.linkSystemLibrary("foxglove", .{});
+    // debug_MFR.linkSystemLibrary("gcc_s", .{});
+    // debug_MFR.linkSystemLibrary("resolv", .{});
 
     const local_build = b.addExecutable(.{
         .name = "MFR_local",
