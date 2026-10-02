@@ -104,7 +104,7 @@ First, you will need to log in to Nvidia NGC and get an API Key here: https://or
 Then install Nvidia ngc CLI and make sure it is present in path: https://org.ngc.nvidia.com/setup/installers/cli
 
 Follow the instructions on the website to install and configure ngc.
-    
+
 Test the ngc installation by running `ngc` in a new terminal. If it doesn't work, try adding `echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bash_profile && source ~/.bash_profile` to your `~/.bashrc` file.
 
 Then log in to nvcr with the following command:
@@ -151,12 +151,19 @@ To normalize line endings in git, use the command:
 git config --global core.autocrlf true
 ```
 
+The formatter the codebase uses is ruff. Run `pip install ruff` to install ruff.
+
+To have ruff automatically run on commit use pre-commit.
+
+To install pre-commit run `pip install pre-commit`, then run `pre-commit install` to have the hooks installed. Now any time a commit is started, staged changes will be automatically formatted.
+To run the formatter without initiating a commit run `pre-commit`.
+
 ## Gazebo Simulation
 
 <details>
 <summary>Gazebo Installation & Resources</summary>
 <br>
-  
+
 Install Gazebo Fortress by running: `sudo apt-get install ros-humble-ros-gz`
 
 More info [here](https://gazebosim.org/docs/garden/ros_installation). Remember that we are using ROS 2 Humble.
@@ -169,7 +176,7 @@ Information about ROS types -> gazebo types can be found [here](https://github.c
 <details>
 <summary>Running the Gazebo Simulation</summary>
 <br>
-  
+
 To run the Gazebo simulation:
 ```
 colcon build --symlink-install --packages-up-to ros_gz_launch
@@ -255,7 +262,7 @@ sudo grep -a 'mycmd' /var/log/syslog
 <details>
 <summary>Gstreamer Server/Client Instructions</summary>
 <br>
-To start gstreamer client make sure to add the deepstream layer to the docker layers 
+To start gstreamer client make sure to add the deepstream layer to the docker layers
 
 To start the gstreamer client run the following commands:
 

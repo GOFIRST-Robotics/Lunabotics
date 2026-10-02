@@ -1,0 +1,8 @@
+# exclude all of the sub modules
+exclude = [
+            "src/zed-ros2-wrapper",
+            "src/isaac_ros/isaac_ros_apriltag",
+            "src/isaac_ros/isaac_ros_image_pipeline",
+            "src/isaac_ros/isaac_ros_nitros",
+            "src/isaac_ros/isaac_ros_visual_slam",
+           ]
