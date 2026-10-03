@@ -64,6 +64,7 @@ const synchronous_spin = creation.createExecutionFunction(
 
 pub fn main(init: std.process.Init) !void {
     Foxglove.startServer();
+    try Foxglove.testFG(init);
     std.debug.print("On jetson: {}\n", .{on_jetson});
     var inputs: InputsType = undefined;
 

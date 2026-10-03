@@ -1,7 +1,7 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const local_target = b.standardTargetOptions(.{ .default_target = .{ .os_tag = .linux } });
+    const local_target = b.standardTargetOptions(.{ .default_target = .{ .os_tag = .linux, .abi = .gnu,} });
     const jetson_target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .gnu });
     //
     // -----------------------------------------------
@@ -35,7 +35,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/foxglove/foxglove-c.h"),
         .target = local_target,
         .optimize = debug_optimizations,
-        // .link_libc = true,
     });
 
     const debug_MFR = b.addModule(
@@ -49,14 +48,11 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "zig-vesc-can", .module = local_zig_vesc_can_mod },
                 .{ .name = "foxglove-sdk", .module = local_foxglove_c.createModule() },
             },
-            // .link_libc = true,
         },
     );
-    // debug_MFR.addObjectFile(b.path("src/foxglove/libfoxglove.a"));
     debug_MFR.addLibraryPath(b.path("src/foxglove"));
     debug_MFR.linkSystemLibrary("foxglove", .{});
-    // debug_MFR.linkSystemLibrary("gcc_s", .{});
-    // debug_MFR.linkSystemLibrary("resolv", .{});
+    debug_MFR.addRPath(b.path("src/foxglove"));
 
     const local_build = b.addExecutable(.{
         .name = "MFR_local",
@@ -89,7 +85,7 @@ pub fn build(b: *std.Build) void {
         "zig_vesc_can",
         .{
             .target = local_target,
-            .optimize = debug_optimizations,
+            .optimize = jetson_optimization,
         },
     );
 
@@ -106,6 +102,12 @@ pub fn build(b: *std.Build) void {
         .optimize = jetson_optimization,
     });
 
+    const jetson_foxglove_c = b.addTranslateC(.{
+        .root_source_file = b.path("src/foxglove/foxglove-c.h"),
+        .target = jetson_target,
+        .optimize = jetson_optimization,
+    });
+
     const jetson_MFR = b.addModule(
         "MFR",
         .{
@@ -115,9 +117,13 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "config", .module = jetson_config_mod },
                 .{ .name = "socket_can", .module = jetson_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = jetson_zig_vesc_can_mod },
+                .{ .name = "foxglove-sdk", .module = jetson_foxglove_c.createModule() },
             },
         },
     );
+    jetson_MFR.addLibraryPath(b.path("src/foxglove"));
+    jetson_MFR.linkSystemLibrary("foxglove", .{});
+    jetson_MFR.addRPath(b.path("src/foxglove"));
 
     const jetson_build = b.addExecutable(.{
         .name = "MFR_jetson",
