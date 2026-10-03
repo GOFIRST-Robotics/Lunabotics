@@ -29,7 +29,8 @@ else
     docker run -it \
         --name $CONTAINER_NAME \
         --cap-add NET_ADMIN \
-        --network host \
+        -p 8765:8765 \
+        -p 49153:49153 \
         --privileged \
         -e DISPLAY=$DISPLAY \
         -e NVIDIA_VISIBLE_DEVICES=all \

@@ -6,13 +6,14 @@ const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
 const CANInNode = MFR.CANInNode;
 const ServerNode = MFR.ServerNode;
-const creation = @import("creation.zig");
 const config = MFR.config;
 const on_jetson = config.on_jetson;
-const NodeConfig = creation.NodeConfig;
-
+const Foxglove = MFR.Foxglove;
 const zig_vesc_can = @import("zig-vesc-can");
 const socket_can = zig_vesc_can.socket_can;
+
+const creation = @import("creation.zig");
+const NodeConfig = creation.NodeConfig;
 
 pub const mechanism_config: NodeConfig = .{
     .node_type = MechanismNode,
@@ -62,6 +63,8 @@ const synchronous_spin = creation.createExecutionFunction(
 );
 
 pub fn main(init: std.process.Init) !void {
+    Foxglove.startServer();
+    try Foxglove.testFG(init);
     std.debug.print("On jetson: {}\n", .{on_jetson});
     var inputs: InputsType = undefined;
 

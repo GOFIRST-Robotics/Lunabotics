@@ -7,6 +7,7 @@ pub const ServerNode = @import("controller_com/ServerNode.zig");
 pub const vesc_datatypes = @import("can_bus/vesc_datatypes.zig");
 pub const socket_can = @import("can_bus/socket_can.zig");
 pub const config = @import("config");
+pub const Foxglove = @import("foxglove/Foxglove.zig");
 
 test {
     std.testing.refAllDecls(@This());
