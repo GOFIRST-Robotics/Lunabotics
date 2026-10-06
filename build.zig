@@ -1,13 +1,22 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
-    const local_target = b.standardTargetOptions(.{ .default_target = .{ .os_tag = .linux } });
-    const jetson_target = b.resolveTargetQuery(.{ .cpu_arch = .aarch64, .os_tag = .linux, .abi = .gnu });
-    //
+    // Force Formatting
+    const format_requirement = b.addFmt(.{
+        .check = true,
+        .paths = &.{"src/"},
+    });
+
+    b.getInstallStep().dependOn(&format_requirement.step);
+
     // -----------------------------------------------
     // Local Build for Debuging Purposes
     // -----------------------------------------------
-
+    const local_target = b.standardTargetOptions(.{
+        .default_target = .{
+            .os_tag = .linux,
+        },
+    });
     const debug_optimizations: std.builtin.OptimizeMode = .Debug;
 
     const local_zig_vesc_can_dep = b.dependency(
@@ -63,18 +72,23 @@ pub fn build(b: *std.Build) void {
     const local_install = b.addInstallArtifact(local_build, .{});
     const local_build_step = b.step("local", "Just Compile Local Build");
     local_build_step.dependOn(&local_install.step);
+    local_install.step.dependOn(&format_requirement.step);
     b.getInstallStep().dependOn(local_build_step);
 
     // -----------------------------------------------
     // Jetson Build
     // -----------------------------------------------
-
+    const jetson_target = b.resolveTargetQuery(.{
+        .cpu_arch = .aarch64,
+        .os_tag = .linux,
+        .abi = .gnu,
+    });
     const jetson_optimization: std.builtin.OptimizeMode = .Debug;
 
     const jetson_zig_vesc_can_dep = b.dependency(
         "zig_vesc_can",
         .{
-            .target = local_target,
+            .target = jetson_target,
             .optimize = debug_optimizations,
         },
     );
@@ -124,6 +138,7 @@ pub fn build(b: *std.Build) void {
     const jetson_install = b.addInstallArtifact(jetson_build, .{});
     const jetson_build_step = b.step("jetson", "Just Compile Jetson Build");
     jetson_build_step.dependOn(&jetson_install.step);
+    jetson_install.step.dependOn(&format_requirement.step);
     b.getInstallStep().dependOn(jetson_build_step);
 
     // -----------------------------------------------
@@ -157,6 +172,7 @@ pub fn build(b: *std.Build) void {
     const client_install = b.addInstallArtifact(client_build, .{});
     const client_build_step = b.step("client", "Just Compile Control Station Client");
     client_build_step.dependOn(&client_install.step);
+    client_install.step.dependOn(&format_requirement.step);
     b.getInstallStep().dependOn(client_build_step);
 
     // -----------------------------------------------
@@ -200,17 +216,6 @@ pub fn build(b: *std.Build) void {
             .use_llvm = true,
         });
     };
-
-    const run_step = b.step("run", "Run the app");
-
-    const run_cmd = b.addRunArtifact(local_build);
-    run_step.dependOn(&run_cmd.step);
-
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
 
     const mod_tests = b.addTest(.{
         .root_module = debug_MFR,
