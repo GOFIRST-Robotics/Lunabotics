@@ -138,12 +138,33 @@ pub const StatusPacket6 = struct {
     PPM: f32,
 };
 
+/// Sent once by a VESC when it (re)boots, payload is its hardware name in ASCII
+pub const BootStatus = struct {
+    hw_name: [8]u8,
+    hw_name_len: u8,
+    pub fn parse(can_frame: CanFrame) @This() {
+        return .{
+            .hw_name = can_frame.data.bytes,
+            .hw_name_len = @min(can_frame.len, 8),
+        };
+    }
+
+    pub fn name(self: *const @This()) []const u8 {
+        return self.hw_name[0..self.hw_name_len];
+    }
+};
+
 pub fn vescWrite(T: type, value: f32, scalar: f32) T {
     return std.mem.nativeToBig(T, @intFromFloat(value * scalar));
 }
 
 pub const SetCurrent = packed struct(u64) {
     current: i32, // 1_000
+    _unused: u32 = 0,
+};
+
+pub const SetCurrentBrake = packed struct(u64) {
+    current: i32, // Scale of 1_000
     _unused: u32 = 0,
 };
 
@@ -178,3 +199,29 @@ pub const MotorStatus = struct {
     status5: ?WithBCMContext(StatusPacket5) = null,
     status6: ?WithBCMContext(StatusPacket6) = null,
 };
+
+test "StatusPacket1 parses negative values" {
+    var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .command_type = .STATUS }, .len = 8 };
+    // erpm -1000, current -12.3 A, duty -0.5
+    frame.data.bytes = .{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
+    const status = StatusPacket1.parse(frame);
+    try std.testing.expectEqual(@as(f32, -1000), status.erpm);
+    try std.testing.expectApproxEqAbs(@as(f32, -12.3), status.current, 0.001);
+    try std.testing.expectApproxEqAbs(@as(f32, -0.5), status.duty_cycle, 0.001);
+}
+
+test "StatusPacket5 parses negative tachometer" {
+    var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .command_type = .STATUS_5 }, .len = 8 };
+    // tachometer -600 counts (-100 erev), 48.0 V
+    frame.data.bytes = .{ 0xff, 0xff, 0xfd, 0xa8, 0x01, 0xe0, 0x00, 0x00 };
+    const status = StatusPacket5.parse(frame);
+    try std.testing.expectEqual(@as(f32, -100), status.tachometer);
+    try std.testing.expectApproxEqAbs(@as(f32, 48.0), status.volts_in, 0.001);
+}
+
+test "BootStatus parses hardware name" {
+    var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .command_type = .NOTIFY_BOOT }, .len = 6 };
+    frame.data.bytes = .{ '6', '0', '_', 'M', 'K', '5', 0, 0 };
+    const boot = BootStatus.parse(frame);
+    try std.testing.expectEqualStrings("60_MK5", boot.name());
+}
