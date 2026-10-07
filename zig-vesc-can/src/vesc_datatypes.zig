@@ -90,9 +90,9 @@ pub const StatusPacket1 = struct {
     duty_cycle: f32,
     pub fn parse(can_frame: CanFrame) @This() {
         return .{
-            .erpm = vescParse(u32, can_frame.data.bytes[0..4], 1),
-            .current = vescParse(u16, can_frame.data.bytes[4..6], 10),
-            .duty_cycle = vescParse(u16, can_frame.data.bytes[6..], 1_000),
+            .erpm = vescParse(i32, can_frame.data.bytes[0..4], 1),
+            .current = vescParse(i16, can_frame.data.bytes[4..6], 10),
+            .duty_cycle = vescParse(i16, can_frame.data.bytes[6..], 1_000),
         };
     }
 };
@@ -102,8 +102,8 @@ pub const StatusPacket2 = struct {
     amp_hours_chg: f32,
     pub fn parse(can_frame: CanFrame) @This() {
         return .{
-            .amp_hours = vescParse(u32, can_frame.data.bytes[0..4], 10_000),
-            .amp_hours_chg = vescParse(u32, can_frame.data.bytes[4..], 10_000),
+            .amp_hours = vescParse(i32, can_frame.data.bytes[0..4], 10_000),
+            .amp_hours_chg = vescParse(i32, can_frame.data.bytes[4..], 10_000),
         };
     }
 };
@@ -125,8 +125,8 @@ pub const StatusPacket5 = struct {
     volts_in: f32,
     pub fn parse(can_frame: CanFrame) @This() {
         return .{
-            .tachometer = vescParse(u32, can_frame.data.bytes[0..4], 6),
-            .volts_in = vescParse(u16, can_frame.data.bytes[4..6], 10),
+            .tachometer = vescParse(i32, can_frame.data.bytes[0..4], 6),
+            .volts_in = vescParse(i16, can_frame.data.bytes[4..6], 10),
         };
     }
 };
@@ -139,7 +139,7 @@ pub const StatusPacket6 = struct {
 };
 
 pub fn vescWrite(T: type, value: f32, scalar: f32) T {
-    return std.mem.nativeToBig(T, @trunc(value * scalar));
+    return std.mem.nativeToBig(T, @intFromFloat(value * scalar));
 }
 
 pub const SetCurrent = packed struct(u64) {
@@ -148,7 +148,7 @@ pub const SetCurrent = packed struct(u64) {
 };
 
 pub const SetDuty = packed struct(u64) {
-    duty: u32, // Scale of 100_000
+    duty: i32, // Scale of 100_000
     _unused: u32 = 0,
 };
 

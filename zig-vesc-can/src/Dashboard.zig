@@ -83,7 +83,7 @@ pub fn draw(self: *@This(), map: *const MotorMap) !void {
             var format_buf_writer: Io.Writer = .fixed(&format_buf);
             switch (info.last_command.command) {
                 .SET_DUTY => |v| {
-                    const duty = @as(f32, @floatFromInt(bigToNative(u32, v.duty))) / 100_000;
+                    const duty = @as(f32, @floatFromInt(bigToNative(i32, v.duty))) / 100_000;
                     try format_buf_writer.printFloat(
                         duty,
                         .{

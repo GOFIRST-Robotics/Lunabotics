@@ -41,7 +41,7 @@ pub const CanFrame = extern struct {
         return .{
             .id = .{ .vesc_id = vesc_id, .command_type = .SET_DUTY },
             .len = 4,
-            .data = .{ .set_duty = .{ .duty = vescWrite(u32, duty, 100_000) } },
+            .data = .{ .set_duty = .{ .duty = vescWrite(i32, duty, 100_000) } },
         };
     }
 
@@ -57,7 +57,7 @@ pub const CanFrame = extern struct {
         return .{
             .id = .{ .vesc_id = vesc_id, .command_type = .SET_RPM },
             .len = 4,
-            .data = .{ .set_current = .{ .current = vescWrite(u32, rpm, 1) } },
+            .data = .{ .set_rpm = .{ .rpm = vescWrite(i32, rpm, 1) } },
         };
     }
 
@@ -65,7 +65,7 @@ pub const CanFrame = extern struct {
         return .{
             .id = .{ .vesc_id = vesc_id, .command_type = .SET_POS },
             .len = 4,
-            .data = .{ .set_pos = .{ .pos = vescWrite(u32, pos, 1_000_000) } },
+            .data = .{ .set_pos = .{ .degrees = vescWrite(i32, pos, 1_000_000) } },
         };
     }
 };
