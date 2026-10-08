@@ -63,8 +63,25 @@ const synchronous_spin = creation.createExecutionFunction(
 );
 
 pub fn main(init: std.process.Init) !void {
+    Foxglove.init(init.gpa, init.io);
     Foxglove.startServer();
-    try Foxglove.testFG(init);
+    var buf: [20]u8 = undefined;
+    var i: u8 = 0;
+    while (true) {
+        // std.debug.print("{}\n", .{i});
+
+        // Convert the integer to a string slice
+        const num_str = try std.fmt.bufPrint(&buf, "{d}", .{i});
+        // Log Data
+        Foxglove.logMessage("/Test", num_str, Foxglove.LogLevel.DEBUG);
+        Foxglove.logMessage("/Test20", num_str, Foxglove.LogLevel.DEBUG);
+        Foxglove.logPose("/DirTest", 1, 1, 1);
+        i += 1;
+        if (i == 127) {
+            i = 0;
+        }
+        try init.io.sleep(Io.Duration.fromSeconds(1), .real);
+    }
     std.debug.print("On jetson: {}\n", .{on_jetson});
     var inputs: InputsType = undefined;
 
