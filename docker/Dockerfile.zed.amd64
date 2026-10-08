@@ -1,0 +1,35 @@
+ARG UBUNTU_RELEASE_YEAR
+ARG CUDA_MAJOR
+ARG CUDA_MINOR
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ARG UBUNTU_RELEASE_YEAR
+ARG CUDA_MAJOR
+ARG CUDA_MINOR
+ARG ZED_SDK_MAJOR
+ARG ZED_SDK_MINOR
+
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}compute,video,utility
+
+RUN echo "Europe/Paris" > /etc/localtime ; echo "CUDA Version ${CUDA_MAJOR}.${CUDA_MINOR}.0" > /usr/local/cuda/version.txt
+
+# Setup the ZED SDK
+RUN apt-get update -y || true ; apt-get install --no-install-recommends lsb-release wget less udev sudo zstd build-essential cmake python3 python3-pip libpng-dev libgomp1 -y ; \
+    #python3 -m pip install --upgrade pip ; \
+    wget -q -O ZED_SDK_Linux_Ubuntu.run https://download.stereolabs.com/zedsdk/5.5/cu13_trt11/ubuntu24 && \
+    chmod +x ZED_SDK_Linux_Ubuntu.run && \
+    ./ZED_SDK_Linux_Ubuntu.run -- silent skip_cuda && \
+    ln -sf /lib/x86_64-linux-gnu/libusb-1.0.so.0 /usr/lib/x86_64-linux-gnu/libusb-1.0.so && \
+    rm ZED_SDK_Linux_Ubuntu.run && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt update && apt install -y python3.12-venv && \
+    python3 -m venv /usr/local/zed/venv && \
+    . /usr/local/zed/venv/bin/activate && \
+    pip install requests && \
+    python3 /usr/local/zed/get_python_api.py
+
+WORKDIR /usr/local/zed/
+
