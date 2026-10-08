@@ -6,13 +6,14 @@ const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
 const CANInNode = MFR.CANInNode;
 const ServerNode = MFR.ServerNode;
-const creation = @import("creation.zig");
 const config = MFR.config;
 const on_jetson = config.on_jetson;
-const NodeConfig = creation.NodeConfig;
-
+const Foxglove = MFR.Foxglove;
 const zig_vesc_can = @import("zig-vesc-can");
 const socket_can = zig_vesc_can.socket_can;
+
+const creation = @import("creation.zig");
+const NodeConfig = creation.NodeConfig;
 
 pub const mechanism_config: NodeConfig = .{
     .node_type = MechanismNode,
@@ -62,6 +63,25 @@ const synchronous_spin = creation.createExecutionFunction(
 );
 
 pub fn main(init: std.process.Init) !void {
+    Foxglove.init(init.gpa, init.io);
+    Foxglove.startServer();
+    var buf: [20]u8 = undefined;
+    var i: u8 = 0;
+    while (true) {
+        // std.debug.print("{}\n", .{i});
+
+        // Convert the integer to a string slice
+        const num_str = try std.fmt.bufPrint(&buf, "{d}", .{i});
+        // Log Data
+        Foxglove.logMessage("/Test", num_str, Foxglove.LogLevel.DEBUG);
+        Foxglove.logMessage("/Test20", num_str, Foxglove.LogLevel.DEBUG);
+        Foxglove.logPose("/DirTest", 1, 1, 1);
+        i += 1;
+        if (i == 127) {
+            i = 0;
+        }
+        try init.io.sleep(Io.Duration.fromSeconds(1), .real);
+    }
     std.debug.print("On jetson: {}\n", .{on_jetson});
     var inputs: InputsType = undefined;
 

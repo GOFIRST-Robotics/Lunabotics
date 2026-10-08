@@ -15,6 +15,7 @@ pub fn build(b: *std.Build) void {
     const local_target = b.standardTargetOptions(.{
         .default_target = .{
             .os_tag = .linux,
+            .abi = .gnu
         },
     });
     const debug_optimizations: std.builtin.OptimizeMode = .Debug;
@@ -40,6 +41,12 @@ pub fn build(b: *std.Build) void {
         .optimize = debug_optimizations,
     });
 
+    const local_foxglove_c = b.addTranslateC(.{
+        .root_source_file = b.path("src/foxglove/foxglove-c.h"),
+        .target = local_target,
+        .optimize = debug_optimizations,
+    });
+
     const debug_MFR = b.addModule(
         "MFR",
         .{
@@ -49,9 +56,13 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "config", .module = local_config_mod },
                 .{ .name = "socket_can", .module = local_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = local_zig_vesc_can_mod },
+                .{ .name = "foxglove-sdk", .module = local_foxglove_c.createModule() },
             },
         },
     );
+    debug_MFR.addLibraryPath(b.path("src/foxglove/x86_64/"));
+    debug_MFR.linkSystemLibrary("foxglove", .{});
+    debug_MFR.addRPath(b.path("src/foxglove/x86_64/"));
 
     const local_build = b.addExecutable(.{
         .name = "MFR_local",
@@ -89,7 +100,7 @@ pub fn build(b: *std.Build) void {
         "zig_vesc_can",
         .{
             .target = jetson_target,
-            .optimize = debug_optimizations,
+            .optimize = jetson_optimization,
         },
     );
 
@@ -106,6 +117,12 @@ pub fn build(b: *std.Build) void {
         .optimize = jetson_optimization,
     });
 
+    const jetson_foxglove_c = b.addTranslateC(.{
+        .root_source_file = b.path("src/foxglove/foxglove-c.h"),
+        .target = jetson_target,
+        .optimize = jetson_optimization,
+    });
+
     const jetson_MFR = b.addModule(
         "MFR",
         .{
@@ -115,9 +132,13 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "config", .module = jetson_config_mod },
                 .{ .name = "socket_can", .module = jetson_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = jetson_zig_vesc_can_mod },
+                .{ .name = "foxglove-sdk", .module = jetson_foxglove_c.createModule() },
             },
         },
     );
+    jetson_MFR.addLibraryPath(b.path("src/foxglove/aarch64/"));
+    jetson_MFR.linkSystemLibrary("foxglove", .{});
+    jetson_MFR.addRPath(b.path("src/foxglove/aarch64/"));
 
     const jetson_build = b.addExecutable(.{
         .name = "MFR_jetson",
