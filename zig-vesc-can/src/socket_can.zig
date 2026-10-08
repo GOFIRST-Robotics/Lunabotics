@@ -24,6 +24,7 @@ pub const Id = packed struct(u32) {
 const DataTypes = extern union {
     bytes: [8]u8 align(1),
     set_current: vesc_datatypes.SetCurrent align(1),
+    set_current_brake: vesc_datatypes.SetCurrentBrake align(1),
     set_duty: vesc_datatypes.SetDuty align(1),
     set_rpm: vesc_datatypes.SetRPM align(1),
     set_pos: vesc_datatypes.SetPos align(1),
@@ -41,7 +42,7 @@ pub const CanFrame = extern struct {
         return .{
             .id = .{ .vesc_id = vesc_id, .command_type = .SET_DUTY },
             .len = 4,
-            .data = .{ .set_duty = .{ .duty = vescWrite(u32, duty, 100_000) } },
+            .data = .{ .set_duty = .{ .duty = vescWrite(i32, duty, 100_000) } },
         };
     }
 
@@ -53,11 +54,19 @@ pub const CanFrame = extern struct {
         };
     }
 
+    pub fn createSetCurrentBrake(vesc_id: u8, current: f32) @This() {
+        return .{
+            .id = .{ .vesc_id = vesc_id, .command_type = .SET_CURRENT_BRAKE },
+            .len = 4,
+            .data = .{ .set_current = .{ .current = vescWrite(i32, current, 1_000) } },
+        };
+    }
+
     pub fn createSetRPM(vesc_id: u8, rpm: f32) @This() {
         return .{
             .id = .{ .vesc_id = vesc_id, .command_type = .SET_RPM },
             .len = 4,
-            .data = .{ .set_current = .{ .current = vescWrite(u32, rpm, 1) } },
+            .data = .{ .set_rpm = .{ .rpm = vescWrite(i32, rpm, 1) } },
         };
     }
 
@@ -65,7 +74,7 @@ pub const CanFrame = extern struct {
         return .{
             .id = .{ .vesc_id = vesc_id, .command_type = .SET_POS },
             .len = 4,
-            .data = .{ .set_pos = .{ .pos = vescWrite(u32, pos, 1_000_000) } },
+            .data = .{ .set_pos = .{ .pos = vescWrite(i32, pos, 1_000_000) } },
         };
     }
 };
@@ -475,6 +484,13 @@ pub fn BCMConfigureIdReceive(can_socket: linux.socket_t, config: BCMRXSetupOptio
         }
         return BCMConfigError.ConfigError;
     }
+}
+
+test "createSetCurrentBrake encoding" {
+    const frame = CanFrame.createSetCurrentBrake(5, 2.5);
+    try std.testing.expectEqual(@as(u32, 0x80000205), @as(u32, @bitCast(frame.id)));
+    try std.testing.expectEqual(@as(u8, 4), frame.len);
+    try std.testing.expectEqualSlices(u8, 8, &.{ 0x00, 0x00, 0x09, 0xc4, 0, 0, 0, 0 }, &frame.data.bytes);
 }
 
 test "create can connection" {
