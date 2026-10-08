@@ -60,9 +60,9 @@ pub fn build(b: *std.Build) void {
             },
         },
     );
-    debug_MFR.addLibraryPath(b.path("src/foxglove"));
-    debug_MFR.linkSystemLibrary("foxglove_x86", .{});
-    debug_MFR.addRPath(b.path("src/foxglove"));
+    debug_MFR.addLibraryPath(b.path("src/foxglove/x86_64/"));
+    debug_MFR.linkSystemLibrary("foxglove", .{});
+    debug_MFR.addRPath(b.path("src/foxglove/x86_64/"));
 
     const local_build = b.addExecutable(.{
         .name = "MFR_local",
@@ -136,9 +136,9 @@ pub fn build(b: *std.Build) void {
             },
         },
     );
-    jetson_MFR.addLibraryPath(b.path("src/foxglove"));
-    jetson_MFR.linkSystemLibrary("foxglove_aarch", .{});
-    jetson_MFR.addRPath(b.path("src/foxglove"));
+    jetson_MFR.addLibraryPath(b.path("src/foxglove/aarch64/"));
+    jetson_MFR.linkSystemLibrary("foxglove", .{});
+    jetson_MFR.addRPath(b.path("src/foxglove/aarch64/"));
 
     const jetson_build = b.addExecutable(.{
         .name = "MFR_jetson",
