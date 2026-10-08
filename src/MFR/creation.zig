@@ -58,24 +58,21 @@ pub fn createExecutionFunction(nodesType: type, inputsType: type, outputsType: t
     }.exec;
 }
 
-pub fn createAsyncGroup(nodesType: type, inputsType: type, outputsType: type, io: Io, comptime async_nodes: []const NodeConfig, nodes: *nodesType, inputs: *inputsType, outputs: *outputsType) Io.Group {
-    var group = Io.Group.init;
-    inline for (async_nodes) |node| {
-        const to_exec = &@field(nodes, node.name);
-        const input = &@field(inputs, node.name);
-        const output = &@field(outputs, node.name);
-        const forever_func = makeForeverFunc(node.node_type);
-        group.concurrent(io, forever_func, .{ to_exec, input, output, io }) catch @panic("Failed to setup async group, concurrency not available!");
-    }
-    return group;
-}
-
-pub fn makeForeverFunc(node_type: type) fn (*node_type, *node_type.inputType, *node_type.outputType, Io) void {
+// Creates a new function will repeat func until shoutdow_flag is true
+pub fn runFuncUntilRobotShutdown(
+    shutdown_flag: *std.atomic.Value(bool),
+    func: anytype,
+) @TypeOf(func) {
+    const args_type = @typeInfo(std.meta.ArgsTuple(@TypeOf(func))).@"struct".fields;
+    std.debug.assert(args_type.len == 3);
     return struct {
-        pub fn forever(self: *node_type, input: *node_type.inputType, output: *node_type.outputType, io: Io) void {
-            while (true) {
-                self.update(input, output);
-                io.checkCancel() catch return;
+        pub fn forever(
+            node: args_type[0].type,
+            input: args_type[1].type,
+            output: args_type[2].type,
+        ) void {
+            while (!shutdown_flag.load(.seq_cst)) {
+                func(node, input, output);
             }
         }
     }.forever;
