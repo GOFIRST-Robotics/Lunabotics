@@ -490,7 +490,7 @@ test "createSetCurrentBrake encoding" {
     const frame = CanFrame.createSetCurrentBrake(5, 2.5);
     try std.testing.expectEqual(@as(u32, 0x80000205), @as(u32, @bitCast(frame.id)));
     try std.testing.expectEqual(@as(u8, 4), frame.len);
-    try std.testing.expectEqualSlices(u8, 8, &.{ 0x00, 0x00, 0x09, 0xc4, 0, 0, 0, 0 }, &frame.data.bytes);
+    try std.testing.expectEqualSlices(u8, &.{ 0x00, 0x00, 0x09, 0xc4, 0, 0, 0, 0 }, &frame.data.bytes);
 }
 
 test "create can connection" {
