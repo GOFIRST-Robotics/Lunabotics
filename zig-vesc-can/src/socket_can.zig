@@ -74,7 +74,7 @@ pub const CanFrame = extern struct {
         return .{
             .id = .{ .vesc_id = vesc_id, .command_type = .SET_POS },
             .len = 4,
-            .data = .{ .set_pos = .{ .pos = vescWrite(i32, pos, 1_000_000) } },
+            .data = .{ .set_pos = .{ .degrees = vescWrite(i32, pos, 1_000_000) } },
         };
     }
 };

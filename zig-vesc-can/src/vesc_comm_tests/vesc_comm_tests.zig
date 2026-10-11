@@ -13,9 +13,7 @@
 
 const std = @import("std");
 const testing = std.testing;
-const MFR = @import("MFR");
-const vesc_datatypes = MFR.vesc_datatypes;
-const socket_can = MFR.socket_can;
+const socket_can = @import("zig-vesc-can").socket_can;
 const comm_can = @import("comm_can");
 
 const can_frame = comm_can.can_frame; // C definition
@@ -49,20 +47,45 @@ test "CAN Frame is Equal" {
     }
 }
 
-test "equal" {
-    const id = 12;
-    const current = 55;
-    // const can_frame1 = vesc_datatypes.SetCurrent.create(id, current);
-    const can_frame1: CanFrame = .{
-        .id = .{
-            .vesc_id = id,
-            .command_type = .SET_CURRENT,
-        },
-        .len = 4,
-        .data = .{ .set_current = .create(current) },
-    };
-    comm_can.comm_can_set_current(id, current);
-    const can_frame2 = comm_can.created_frame;
+/// Runs the zig and C encoders over many ids/values and asserts the frames match.
+/// `range` keeps value * scale inside i32 so neither side overflows.
+fn expectEquivalent(zig_create: fn (u8, f32) CanFrame, c_create: anytype, range: f32) !void {
+    const ids = [_]u8{ 0, 1, 12, 127, 255 };
+    const fixed = [_]f32{ 0, -0.0, 0.1, -0.1, 1.0 / 3.0, -1.0 / 3.0, 0.5, -0.5, 1, -1, 2.5, -2.5, 55, -55 };
+    var prng = std.Random.DefaultPrng.init(0x5EC5);
+    const random = prng.random();
 
-    try compareCanFrames(can_frame1, can_frame2);
+    for (ids) |id| {
+        for (fixed) |value| try expectFrameEqual(zig_create, c_create, id, value);
+        for (0..20_000) |_| {
+            const value = (random.float(f32) * 2 - 1) * range;
+            try expectFrameEqual(zig_create, c_create, id, value);
+        }
+    }
+}
+
+fn expectFrameEqual(zig_create: fn (u8, f32) CanFrame, c_create: anytype, id: u8, value: f32) !void {
+    errdefer std.debug.print("mismatch for vesc_id={d} value={d}\n", .{ id, value });
+    c_create(id, value);
+    try compareCanFrames(zig_create(id, value), comm_can.created_frame);
+}
+
+test "SET_DUTY equivalent" {
+    try expectEquivalent(CanFrame.createSetDuty, comm_can.comm_can_set_duty, 20_000);
+}
+
+test "SET_CURRENT equivalent" {
+    try expectEquivalent(CanFrame.createSetCurrent, comm_can.comm_can_set_current, 2_000_000);
+}
+
+test "SET_CURRENT_BRAKE equivalent" {
+    try expectEquivalent(CanFrame.createSetCurrentBrake, comm_can.comm_can_set_current_brake, 2_000_000);
+}
+
+test "SET_RPM equivalent" {
+    try expectEquivalent(CanFrame.createSetRPM, comm_can.comm_can_set_rpm, 2_000_000_000);
+}
+
+test "SET_POS equivalent" {
+    try expectEquivalent(CanFrame.createSetPos, comm_can.comm_can_set_pos, 2_000);
 }

@@ -74,7 +74,40 @@ pub fn build(b: *std.Build) void {
 
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
+    // !!! IMPORTANT !!!
+    // comm_can is GPLv3 VESC firmware code, only the test file may use it
+    const vesc_comm_can = b.addTranslateC(.{
+        .root_source_file = b.path("src/vesc_comm_tests/comm_can.h"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    const vesc_comm_can_module = vesc_comm_can.createModule();
+    vesc_comm_can_module.addCSourceFiles(.{
+        .root = b.path("src/vesc_comm_tests"),
+        .files = &.{ "comm_can.c", "buffer.c" },
+        .flags = &.{"-std=c99"},
+    });
+
+    const vesc_comm_tests = b.addTest(.{
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/vesc_comm_tests/vesc_comm_tests.zig"),
+            .target = target,
+            .optimize = optimize,
+            .imports = &.{
+                .{ .name = "comm_can", .module = vesc_comm_can_module },
+                .{ .name = "zig-vesc-can", .module = mod },
+            },
+            .link_libc = true,
+        }),
+        .use_llvm = true,
+        .use_lld = true,
+    });
+
+    const run_vesc_comm_tests = b.addRunArtifact(vesc_comm_tests);
+
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
+    test_step.dependOn(&run_vesc_comm_tests.step);
 }
