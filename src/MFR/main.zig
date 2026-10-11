@@ -150,7 +150,7 @@ pub fn main(init: std.process.Init) !void {
             try init.io.sleep(sleep_time, .awake);
         } else {
             logger.warn(
-                "Main synchrounous loop overrun by {d}ms",
+                "Main synchronous loop overrun by {d}ms",
                 .{@divTrunc(-sleep_time.nanoseconds, std.time.ns_per_ms)},
             );
             // prevent the loop from trying to catch up so reset expectations
