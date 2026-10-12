@@ -155,8 +155,9 @@ pub const BootStatus = struct {
     }
 };
 
-pub fn vescWrite(T: type, value: f32, scalar: f32) T {
-    return std.mem.nativeToBig(T, @intFromFloat(value * scalar));
+pub fn vescWrite(T: type, value: f32, scalar: f64) T {
+    // vesc does actually cast the passed f32 into a f64
+    return std.mem.nativeToBig(T, @intFromFloat(@as(f64, value) * scalar));
 }
 
 pub const SetCurrent = packed struct(u64) {
