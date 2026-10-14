@@ -3,8 +3,9 @@ const Io = std.Io;
 const net = Io.net;
 const linux = std.os.linux;
 const vesc_datatypes = @import("vesc_datatypes.zig");
+const packets_out = @import("packets_out.zig");
 const can = @import("can.h");
-const vescWrite = vesc_datatypes.vescWrite;
+const vescWrite = packets_out.vescWrite;
 const simulate_motor = @import("simulate_motor.zig");
 const bytesAsValue = std.mem.bytesAsValue;
 
@@ -23,11 +24,11 @@ pub const Id = packed struct(u32) {
 
 const DataTypes = extern union {
     bytes: [8]u8 align(1),
-    set_current: vesc_datatypes.SetCurrent align(1),
-    set_current_brake: vesc_datatypes.SetCurrentBrake align(1),
-    set_duty: vesc_datatypes.SetDuty align(1),
-    set_rpm: vesc_datatypes.SetRPM align(1),
-    set_pos: vesc_datatypes.SetPos align(1),
+    set_current: packets_out.SetCurrent align(1),
+    set_current_brake: packets_out.SetCurrentBrake align(1),
+    set_duty: packets_out.SetDuty align(1),
+    set_rpm: packets_out.SetRPM align(1),
+    set_pos: packets_out.SetPos align(1),
 };
 
 pub const CanFrame = extern struct {
