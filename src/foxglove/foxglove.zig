@@ -64,19 +64,20 @@ pub fn logData(topic: []const u8) void {
     _ = fg.foxglove_channel_log(entry.value_ptr.*, data, data.len, null, 0);
 }
 
-pub fn logPose(topic: []const u8, x: f64, y: f64, z: f64) void {
+pub fn logPose(topic: []const u8, pose: fg.foxglove_pose) void {
     const entry = channel_map.getOrPut(topic) catch {
         logger.warn("[Foxglove] Unable to put value into channel hashmap!", .{});
         return;
     };
     if (!entry.found_existing) {
-        entry.value_ptr.* = createPoseChannel(topic);
+        entry.value_ptr.* = createPoseInFrameChannel(topic);
     }
-    const message = fg.foxglove_pose{
-        .position = &.{ .x = x, .y = y, .z = z },
-        .orientation = &.{ .x = 0, .y = 0, .z = 0, .w = 0 },
+    const message = fg.foxglove_pose_in_frame{
+        .frame_id = fg_str("map"),
+        .pose = &pose,
+        .timestamp = &timestamp(),
     };
-    _ = fg.foxglove_channel_log_pose(entry.value_ptr.*, &message, null, 0);
+    _ = fg.foxglove_channel_log_pose_in_frame(entry.value_ptr.*, &message, null, 0);
 }
 
 fn createLogChannel(topic: []const u8) fg_channel {
@@ -87,14 +88,13 @@ fn createLogChannel(topic: []const u8) fg_channel {
 
 fn createRawChannel(topic: []const u8) fg_channel {
     var channel: fg_channel = undefined;
-    const schema = fg.foxglove_schema{}; // Can maybe be null
-    _ = fg.foxglove_raw_channel_create(fg_str(topic), fg_str("json"), &schema, null, null, &channel);
+    _ = fg.foxglove_raw_channel_create(fg_str(topic), fg_str("json"), null, null, null, &channel);
     return channel;
 }
 
-fn createPoseChannel(topic: []const u8) fg_channel {
+fn createPoseInFrameChannel(topic: []const u8) fg_channel {
     var channel: fg_channel = undefined;
-    _ = fg.foxglove_channel_create_pose(fg_str(topic), null, &channel);
+    _ = fg.foxglove_channel_create_pose_in_frame(fg_str(topic), null, &channel);
     return channel;
 }
 
@@ -103,7 +103,8 @@ fn fg_str(str: []const u8) fg.foxglove_string {
 }
 
 fn timestamp() fg.foxglove_timestamp {
-    const time = Io.Timestamp.fromNanoseconds(Io.Clock.now(.real, io_ref).nanoseconds - start_time.nanoseconds);
-    const seconds: u32 = @intCast(time.toSeconds());
-    return .{ .sec = seconds };
+    const current_time = Io.Timestamp.fromNanoseconds(Io.Clock.now(.real, io_ref).nanoseconds - start_time.nanoseconds);
+    const seconds: u32 = @intCast(current_time.toSeconds());
+    const nanoseconds: u32 = @intCast(current_time.subDuration(Io.Duration.fromSeconds(seconds)).toNanoseconds());
+    return .{ .sec = seconds, .nsec = nanoseconds };
 }
