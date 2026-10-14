@@ -83,10 +83,10 @@ pub fn WithBCMContext(T: type) type {
 }
 
 pub const MotorStatus = struct {
-    status1: ?WithBCMContext(packets_in.StatusPacket1) = null,
-    status2: ?WithBCMContext(packets_in.StatusPacket2) = null,
-    status3: ?WithBCMContext(packets_in.StatusPacket3) = null,
-    status4: ?WithBCMContext(packets_in.StatusPacket4) = null,
-    status5: ?WithBCMContext(packets_in.StatusPacket5) = null,
-    status6: ?WithBCMContext(packets_in.StatusPacket6) = null,
+    status1: ?WithBCMContext(packets_in.Status1) = null,
+    status2: ?WithBCMContext(packets_in.Status2) = null,
+    status3: ?WithBCMContext(packets_in.Status3) = null,
+    status4: ?WithBCMContext(packets_in.Status4) = null,
+    status5: ?WithBCMContext(packets_in.Status5) = null,
+    status6: ?WithBCMContext(packets_in.Status6) = null,
 };
