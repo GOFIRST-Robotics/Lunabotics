@@ -76,6 +76,13 @@ pub const StatusPacket2 = struct {
 pub const StatusPacket3 = struct {
     watt_hours: f32,
     watt_hours_chg: f32,
+
+    pub fn parse(reader: *VescReader) ParseError!@This() {
+        return .{
+            .watt_hours = try reader.read(i32, 10_000),
+            .watt_hours_chg = try reader.read(i32, 10_000),
+        };
+    }
 };
 
 pub const StatusPacket4 = struct {
@@ -83,6 +90,15 @@ pub const StatusPacket4 = struct {
     temp_motor: f32,
     current_in: f32,
     PID_pos: f32,
+
+    pub fn parse(reader: *VescReader) ParseError!@This() {
+        return .{
+            .temp_FET = try reader.read(i16, 10),
+            .temp_motor = try reader.read(i16, 10),
+            .current_in = try reader.read(i16, 10),
+            .PID_pos = try reader.read(i16, 50),
+        };
+    }
 };
 
 pub const StatusPacket5 = struct {
@@ -102,6 +118,15 @@ pub const StatusPacket6 = struct {
     ADC2: f32,
     ADC3: f32,
     PPM: f32,
+
+    pub fn parse(reader: *VescReader) ParseError!@This() {
+        return .{
+            .ADC1 = try reader.read(i16, 1_000),
+            .ADC2 = try reader.read(i16, 1_000),
+            .ADC3 = try reader.read(i16, 1_000),
+            .PPM = try reader.read(i16, 1_000),
+        };
+    }
 };
 
 /// Sent once by a VESC when it (re)boots, payload is its hardware name in ASCII
