@@ -76,6 +76,7 @@ pub fn main(init: std.process.Init) !void {
         Foxglove.logMessage("/Test", num_str, Foxglove.LogLevel.DEBUG);
         Foxglove.logMessage("/Test20", num_str, Foxglove.LogLevel.DEBUG);
         Foxglove.logPose("/DirTest", 1, 1, 1);
+        Foxglove.logData("JSONS");
         i += 1;
         if (i == 127) {
             i = 0;
