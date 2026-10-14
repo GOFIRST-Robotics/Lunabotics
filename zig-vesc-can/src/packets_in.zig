@@ -4,21 +4,59 @@ const bigToNative = std.mem.bigToNative;
 const socket_can = @import("socket_can.zig");
 const CanFrame = socket_can.CanFrame;
 
-fn vescParse(T: type, slice: []const u8, scalar: f32) f32 {
-    std.debug.assert(@typeInfo(T).int.bits == 8 * slice.len);
-    const underlying: T = std.mem.bytesToValue(T, slice);
-    return @as(f32, @floatFromInt(bigToNative(T, underlying))) / scalar;
+pub const ParseError = error{IncompletePacket};
+
+const VescReader = struct {
+    remaining_data: []const u8,
+
+    pub fn init(data: []const u8) @This() {
+        return .{ .remaining_data = data };
+    }
+
+    pub fn read(self: *@This(), T: type, scalar: f32) ParseError!f32 {
+        std.debug.assert(@bitSizeOf(T) % 8 == 0);
+        if (@sizeOf(T) > self.remaining_data.len) {
+            return error.IncompletePacket;
+        }
+
+        const slice = self.remaining_data[0..@sizeOf(T)];
+        const underlying: T = std.mem.bytesToValue(T, slice);
+        const value = @as(f32, @floatFromInt(std.mem.bigToNative(T, underlying))) / scalar;
+
+        self.remaining_data = self.remaining_data[@sizeOf(T)..];
+        return value;
+    }
+
+    pub fn read_slice(self: *@This(), len: usize) ParseError![]const u8 {
+        if (len > self.remaining_data.len) {
+            return error.IncompletePacket;
+        }
+
+        const slice = self.remaining_data[0..len];
+        self.remaining_data = self.remaining_data[len..];
+        return slice;
+    }
+
+    pub fn remaining(self: @This()) usize {
+        return self.remaining_data.len;
+    }
+};
+
+pub fn parse(T: type, data: []const u8) ParseError!T {
+    var reader = VescReader.init(data);
+    return T.parse(&reader);
 }
 
 pub const StatusPacket1 = struct {
     erpm: f32,
     current: f32,
     duty_cycle: f32,
-    pub fn parse(can_frame: CanFrame) @This() {
+
+    pub fn parse(reader: *VescReader) ParseError!@This() {
         return .{
-            .erpm = vescParse(i32, can_frame.data.bytes[0..4], 1),
-            .current = vescParse(i16, can_frame.data.bytes[4..6], 10),
-            .duty_cycle = vescParse(i16, can_frame.data.bytes[6..], 1_000),
+            .erpm = try reader.read(i32, 1),
+            .current = try reader.read(i16, 10),
+            .duty_cycle = try reader.read(i16, 1_000),
         };
     }
 };
@@ -26,10 +64,11 @@ pub const StatusPacket1 = struct {
 pub const StatusPacket2 = struct {
     amp_hours: f32,
     amp_hours_chg: f32,
-    pub fn parse(can_frame: CanFrame) @This() {
+
+    pub fn parse(reader: *VescReader) ParseError!@This() {
         return .{
-            .amp_hours = vescParse(i32, can_frame.data.bytes[0..4], 10_000),
-            .amp_hours_chg = vescParse(i32, can_frame.data.bytes[4..], 10_000),
+            .amp_hours = try reader.read(i32, 10_000),
+            .amp_hours_chg = try reader.read(i32, 10_000),
         };
     }
 };
@@ -49,10 +88,11 @@ pub const StatusPacket4 = struct {
 pub const StatusPacket5 = struct {
     tachometer: f32,
     volts_in: f32,
-    pub fn parse(can_frame: CanFrame) @This() {
+
+    pub fn parse(reader: *VescReader) ParseError!@This() {
         return .{
-            .tachometer = vescParse(i32, can_frame.data.bytes[0..4], 6),
-            .volts_in = vescParse(i16, can_frame.data.bytes[4..6], 10),
+            .tachometer = try reader.read(i32, 6),
+            .volts_in = try reader.read(i16, 10),
         };
     }
 };
@@ -66,43 +106,46 @@ pub const StatusPacket6 = struct {
 
 /// Sent once by a VESC when it (re)boots, payload is its hardware name in ASCII
 pub const BootStatus = struct {
-    hw_name: [8]u8,
-    hw_name_len: u8,
+    hw_name: []const u8,
 
-    pub fn parse(can_frame: CanFrame) @This() {
+    pub fn parse(reader: *VescReader) ParseError!@This() {
         return .{
-            .hw_name = can_frame.data.bytes,
-            .hw_name_len = @min(can_frame.len, 8),
+            .hw_name = try reader.read_slice(reader.remaining()),
         };
-    }
-
-    pub fn name(self: *const @This()) []const u8 {
-        return self.hw_name[0..self.hw_name_len];
     }
 };
 
 test "StatusPacket1 parses negative values" {
-    var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .command_type = .STATUS }, .len = 8 };
     // erpm -1000, current -12.3 A, duty -0.5
-    frame.data.bytes = .{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
-    const status = StatusPacket1.parse(frame);
+    const data = [_]u8{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
+    var reader = VescReader.init(&data);
+    const status = try StatusPacket1.parse(&reader);
+
     try std.testing.expectEqual(@as(f32, -1000), status.erpm);
     try std.testing.expectApproxEqAbs(@as(f32, -12.3), status.current, 0.001);
     try std.testing.expectApproxEqAbs(@as(f32, -0.5), status.duty_cycle, 0.001);
 }
 
 test "StatusPacket5 parses negative tachometer" {
-    var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .command_type = .STATUS_5 }, .len = 8 };
     // tachometer -600 counts (-100 erev), 48.0 V
-    frame.data.bytes = .{ 0xff, 0xff, 0xfd, 0xa8, 0x01, 0xe0, 0x00, 0x00 };
-    const status = StatusPacket5.parse(frame);
+    const data = [_]u8{ 0xff, 0xff, 0xfd, 0xa8, 0x01, 0xe0, 0x00, 0x00 };
+    var reader = VescReader.init(&data);
+    const status = try StatusPacket5.parse(&reader);
+
     try std.testing.expectEqual(@as(f32, -100), status.tachometer);
     try std.testing.expectApproxEqAbs(@as(f32, 48.0), status.volts_in, 0.001);
 }
 
 test "BootStatus parses hardware name" {
-    var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .command_type = .NOTIFY_BOOT }, .len = 6 };
-    frame.data.bytes = .{ '6', '0', '_', 'M', 'K', '5', 0, 0 };
-    const boot = BootStatus.parse(frame);
-    try std.testing.expectEqualStrings("60_MK5", boot.name());
+    const data = [_]u8{ '6', '0', '_', 'M', 'K', '5' };
+    var reader = VescReader.init(&data);
+    const boot = try BootStatus.parse(&reader);
+
+    try std.testing.expectEqualStrings("60_MK5", boot.hw_name);
+}
+
+test "Incomplete StatusPacket1 fails to parse" {
+    const data = [_]u8{0x67};
+    var reader = VescReader.init(&data);
+    try std.testing.expectError(ParseError.IncompletePacket, StatusPacket1.parse(&reader));
 }

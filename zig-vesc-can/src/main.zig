@@ -4,6 +4,8 @@ const linux = std.os.linux;
 const zig_vesc_can = @import("zig-vesc-can");
 const socket_can = zig_vesc_can.socket_can;
 const vesc_datatypes = zig_vesc_can.vesc_datatypes;
+const packets_in = zig_vesc_can.packets_in;
+const packets_out = zig_vesc_can.packets_out;
 const can = @import("can.h");
 const json = std.json;
 const panic = std.debug.panic;
@@ -58,10 +60,10 @@ const InstructionEnum = make_instruction_enum: {
 };
 
 const Command = union(InstructionEnum) {
-    SET_DUTY: vesc_datatypes.SetDuty,
-    SET_CURRENT: vesc_datatypes.SetCurrent,
-    SET_RPM: vesc_datatypes.SetRPM,
-    SET_POS: vesc_datatypes.SetPos,
+    SET_DUTY: packets_out.SetDuty,
+    SET_CURRENT: packets_out.SetCurrent,
+    SET_RPM: packets_out.SetRPM,
+    SET_POS: packets_out.SetPos,
 };
 
 pub const MotorInfo = struct {
@@ -334,17 +336,17 @@ fn updateMapInfo(io: Io, can_socket: linux.socket_t, map: *MotorMap, update_aliv
                     .STATUS => map_data.status.status1 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = .parse(frame.can_frames[0]),
+                        .value = try packets_in.parse(packets_in.StatusPacket1, &frame.can_frames[0].data.bytes),
                     },
                     .STATUS_2 => map_data.status.status2 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = .parse(frame.can_frames[0]),
+                        .value = try packets_in.parse(packets_in.StatusPacket2, &frame.can_frames[0].data.bytes),
                     },
                     .STATUS_5 => map_data.status.status5 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = .parse(frame.can_frames[0]),
+                        .value = try packets_in.parse(packets_in.StatusPacket5, &frame.can_frames[0].data.bytes),
                     },
                     else => panic("Got unexpected case: {t}\n", .{id.command_type}),
                 }
