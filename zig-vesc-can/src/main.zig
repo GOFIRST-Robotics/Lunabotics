@@ -318,35 +318,35 @@ fn updateMapInfo(io: Io, can_socket: linux.socket_t, map: *MotorMap, update_aliv
             can.RX_CHANGED => {
                 switch (id.command_type) {
                     .SET_DUTY => {
-                        map_data.last_command.command = .{ .SET_DUTY = @bitCast(frame.can_frames[0].data) };
+                        map_data.last_command.command = .{ .SET_DUTY = try packets_out.IO.parsePacket(packets_out.SetDuty, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
                     .SET_CURRENT => {
-                        map_data.last_command.command = .{ .SET_CURRENT = @bitCast(frame.can_frames[0].data) };
+                        map_data.last_command.command = .{ .SET_CURRENT = try packets_out.IO.parsePacket(packets_out.SetCurrent, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
                     .SET_RPM => {
-                        map_data.last_command.command = .{ .SET_RPM = @bitCast(frame.can_frames[0].data) };
+                        map_data.last_command.command = .{ .SET_RPM = try packets_out.IO.parsePacket(packets_out.SetRPM, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
                     .SET_POS => {
-                        map_data.last_command.command = .{ .SET_POS = @bitCast(frame.can_frames[0].data) };
+                        map_data.last_command.command = .{ .SET_POS = try packets_out.IO.parsePacket(packets_out.SetPos, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
                     .STATUS => map_data.status.status1 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.IO.parsePacket(packets_in.Status1, &frame.can_frames[0].data.bytes),
+                        .value = try packets_in.IO.parsePacket(packets_in.Status1, &frame.can_frames[0].data),
                     },
                     .STATUS_2 => map_data.status.status2 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.IO.parsePacket(packets_in.Status2, &frame.can_frames[0].data.bytes),
+                        .value = try packets_in.IO.parsePacket(packets_in.Status2, &frame.can_frames[0].data),
                     },
                     .STATUS_5 => map_data.status.status5 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.IO.parsePacket(packets_in.Status5, &frame.can_frames[0].data.bytes),
+                        .value = try packets_in.IO.parsePacket(packets_in.Status5, &frame.can_frames[0].data),
                     },
                     else => panic("Got unexpected case: {t}\n", .{id.command_type}),
                 }

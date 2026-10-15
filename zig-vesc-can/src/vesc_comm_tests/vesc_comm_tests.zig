@@ -27,7 +27,7 @@ fn compareCanFrames(zig_frame: zigCanFrame, c_frame: cCanFrame) !void {
     try testing.expectEqualSlices(
         u8,
         c_frame.data[0..c_frame.unnamed_0.len],
-        zig_frame.data.bytes[0..zig_frame.len],
+        zig_frame.data[0..zig_frame.len],
     );
 }
 

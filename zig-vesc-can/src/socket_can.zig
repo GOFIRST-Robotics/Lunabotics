@@ -22,61 +22,42 @@ pub const Id = packed struct(u32) {
     eff: bool = true, // this must be true
 };
 
-const DataTypes = extern union {
-    bytes: [8]u8 align(1),
-    set_current: packets_out.SetCurrent align(1),
-    set_current_brake: packets_out.SetCurrentBrake align(1),
-    set_duty: packets_out.SetDuty align(1),
-    set_rpm: packets_out.SetRPM align(1),
-    set_pos: packets_out.SetPos align(1),
-};
-
 pub const CanFrame = extern struct {
     id: Id,
     len: u8,
     _pad: u8 = 0, // do not use
     _res0: u8 = 0, // do not use
     _len8_dlc: u8 = 0, // VESC does not use this
-    data: DataTypes align(8) = .{ .bytes = @splat(0) },
+    data: [8]u8 align(8) = @splat(0),
 
     pub fn createSetDuty(vesc_id: u8, duty: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_DUTY },
-            .len = 4,
-            .data = .{ .set_duty = .{ .duty = vescWrite(i32, duty, 100_000) } },
-        };
+        return packets_out.IO.serializeIntoFrame(vesc_id, .{
+            .set_duty = .{ .duty = duty },
+        });
     }
 
     pub fn createSetCurrent(vesc_id: u8, current: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_CURRENT },
-            .len = 4,
-            .data = .{ .set_current = .{ .current = vescWrite(i32, current, 1_000) } },
-        };
+        return packets_out.IO.serializeIntoFrame(vesc_id, .{
+            .set_current = .{ .current = current },
+        });
     }
 
     pub fn createSetCurrentBrake(vesc_id: u8, current: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_CURRENT_BRAKE },
-            .len = 4,
-            .data = .{ .set_current = .{ .current = vescWrite(i32, current, 1_000) } },
-        };
+        return packets_out.IO.serializeIntoFrame(vesc_id, .{
+            .set_current_brake = .{ .current = current },
+        });
     }
 
     pub fn createSetRPM(vesc_id: u8, rpm: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_RPM },
-            .len = 4,
-            .data = .{ .set_rpm = .{ .rpm = vescWrite(i32, rpm, 1) } },
-        };
+        return packets_out.IO.serializeIntoFrame(vesc_id, .{
+            .set_rpm = .{ .rpm = rpm },
+        });
     }
 
-    pub fn createSetPos(vesc_id: u8, pos: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_POS },
-            .len = 4,
-            .data = .{ .set_pos = .{ .degrees = vescWrite(i32, pos, 1_000_000) } },
-        };
+    pub fn createSetPos(vesc_id: u8, degrees: f32) @This() {
+        return packets_out.IO.serializeIntoFrame(vesc_id, .{
+            .set_pos = .{ .degrees = degrees },
+        });
     }
 };
 
@@ -491,7 +472,7 @@ test "createSetCurrentBrake encoding" {
     const frame = CanFrame.createSetCurrentBrake(5, 2.5);
     try std.testing.expectEqual(@as(u32, 0x80000205), @as(u32, @bitCast(frame.id)));
     try std.testing.expectEqual(@as(u8, 4), frame.len);
-    try std.testing.expectEqualSlices(u8, &.{ 0x00, 0x00, 0x09, 0xc4, 0, 0, 0, 0 }, &frame.data.bytes);
+    try std.testing.expectEqualSlices(u8, &.{ 0x00, 0x00, 0x09, 0xc4, 0, 0, 0, 0 }, &frame.data);
 }
 
 test "create can connection" {
@@ -523,7 +504,7 @@ test "filtering" {
         .{
             .id = .{ .vesc_id = 3, .command_type = .SET_RPM },
             .len = 3,
-            .data = .{ .bytes = std.mem.toBytes(@as(u64, 0xdeadbeefdeadbeef)) },
+            .data = std.mem.toBytes(@as(u64, 0xdeadbeefdeadbeef)),
         },
         .{
             .id = .{ .vesc_id = 2, .command_type = .SET_DUTY },

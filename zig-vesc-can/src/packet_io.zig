@@ -62,6 +62,39 @@ const VescReader = struct {
     }
 };
 
+pub const PacketData = struct {
+    data: [8]u8,
+    len: u8,
+};
+
+pub const VescWriter = struct {
+    data: [8]u8,
+    length: u8,
+
+    pub fn init() @This() {
+        return .{
+            .data = @splat(0),
+            .length = 0,
+        };
+    }
+
+    pub fn writeFloat(self: *@This(), T: type, value: f32, scalar: f32) void {
+        std.debug.assert(@bitSizeOf(T) % 8 == 0);
+        const underlying: T = @trunc(@as(f64, value) * scalar);
+        std.mem.writeInt(T, self.data[self.length..][0..@sizeOf(T)], underlying, .big);
+        self.length += @intCast(@sizeOf(T));
+    }
+
+    pub fn writeSlice(self: *@This(), slice: []const u8) void {
+        @memcpy(&self.data[(self.length)..(self.length + slice.len)], slice);
+        self.length += @intCast(slice.len);
+    }
+
+    pub fn getData(self: @This()) PacketData {
+        return .{ .data = self.data, .len = self.length };
+    }
+};
+
 pub fn makePacketIO(packets: []const PacketInfo) IoTypes {
     var names: [packets.len][]const u8 = undefined;
     for (packets, 0..) |packet_info, i| {
@@ -127,11 +160,45 @@ pub fn makePacketIO(packets: []const PacketInfo) IoTypes {
             source_vesc_id: u8,
             packet: Packet,
         } {
-            const packet = try @This().parsePacketByTypeId(frame.id.command_type, &frame.data.bytes) orelse return null;
+            const packet = try @This().parsePacketByTypeId(frame.id.command_type, &frame.data) orelse return null;
             return .{
                 .source_vesc_id = frame.id.vesc_id,
                 .packet = packet,
             };
+        }
+
+        pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) CanFrame {
+            switch (packet) {
+                inline else => |p, tag| {
+                    const serialized = @This().serializePacketBody(p);
+                    return .{
+                        .id = .{ .vesc_id = dest_vesc_id, .command_type = @enumFromInt(@intFromEnum(tag)) },
+                        .len = serialized.len,
+                        .data = serialized.data,
+                    };
+                },
+            }
+        }
+
+        pub fn serializePacketBody(packet: anytype) PacketData {
+            var writer = VescWriter.init();
+
+            const schema = @TypeOf(packet).schema;
+            inline for (std.meta.fields(@TypeOf(packet))) |field| {
+                const field_schema = @field(schema, field.name);
+
+                if (@TypeOf(field_schema) == FloatInfo) {
+                    writer.writeFloat(field_schema.underlying, field_schema.scalar, @field(packet, field.name));
+                } else if (@TypeOf(field_schema) == SliceInfo) {
+                    switch (field_schema.length) {
+                        .remaining => writer.writeSlice(@field(packet, field.name)),
+                    }
+                } else {
+                    @panic("Invalid field info");
+                }
+            }
+
+            return writer.getData();
         }
     };
 

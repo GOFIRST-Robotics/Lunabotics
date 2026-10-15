@@ -111,7 +111,7 @@ pub const IO = io_types.IO;
 test "Status1 parses negative values" {
     // erpm -1000, current -12.3 A, duty -0.5
     var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .command_type = .STATUS }, .len = 8 };
-    frame.data.bytes = .{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
+    frame.data = .{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
 
     const id_and_packet = try IO.parseFrame(frame) orelse return error.TestUnexpectedResult;
     try std.testing.expectEqual(id_and_packet.source_vesc_id, 1);
