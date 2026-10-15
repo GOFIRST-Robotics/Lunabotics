@@ -18,11 +18,13 @@ const fg_channel = ?*const fg.foxglove_channel;
 const host = "0.0.0.0";
 const port = 8765;
 var channel_map: std.StringHashMap(fg_channel) = undefined;
+var json_string_builder: std.Io.Writer.Allocating = undefined;
 var io_ref: Io = undefined;
 var start_time: Io.Timestamp = undefined;
 
 pub fn init(allocator: std.mem.Allocator, io: Io) void {
     channel_map = .init(allocator);
+    json_string_builder = .init(allocator);
     io_ref = io;
     start_time = Io.Clock.now(.real, io_ref);
 }
@@ -52,7 +54,10 @@ pub fn logMessage(topic: []const u8, msg: []const u8, level: LogLevel) void {
     _ = fg.foxglove_channel_log_log(entry.value_ptr.*, &message, null, 0);
 }
 
-pub fn logData(topic: []const u8) void {
+pub fn logData(topic: []const u8, data: anytype) void {
+    if (@typeInfo(@TypeOf(data)) != .@"struct") {
+        @compileError("[Foxglove] Can only log struct types! Logging incorrect type to {}");
+    }
     const entry = channel_map.getOrPut(topic) catch {
         logger.warn("[Foxglove] Unable to put value into channel hashmap!", .{});
         return;
@@ -60,8 +65,13 @@ pub fn logData(topic: []const u8) void {
     if (!entry.found_existing) {
         entry.value_ptr.* = createRawChannel(topic);
     }
-    const data = "{\"test\": 1}";
-    _ = fg.foxglove_channel_log(entry.value_ptr.*, data, data.len, null, 0);
+    std.json.Stringify.value(data, .{}, &json_string_builder.writer) catch {
+        logger.warn("[Foxglove] Unable to stringify data to JSON!", .{});
+        return;
+    };
+    const json = json_string_builder.written();
+    json_string_builder.clearRetainingCapacity();
+    _ = fg.foxglove_channel_log(entry.value_ptr.*, json.ptr, json.len, null, 0);
 }
 
 pub fn logPose(topic: []const u8, pose: fg.foxglove_pose) void {

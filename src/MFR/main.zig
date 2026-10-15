@@ -67,6 +67,8 @@ pub fn main(init: std.process.Init) !void {
     Foxglove.startServer();
     var buf: [20]u8 = undefined;
     var i: u8 = 0;
+    // Foxglove.logTransform("/tf");
+    Foxglove.logData("JSONS", .{ .x = 2 });
     while (true) {
         // std.debug.print("{}\n", .{i});
 
@@ -75,8 +77,8 @@ pub fn main(init: std.process.Init) !void {
         // Log Data
         Foxglove.logMessage("/Test", num_str, Foxglove.LogLevel.DEBUG);
         Foxglove.logMessage("/Test20", num_str, Foxglove.LogLevel.DEBUG);
-        Foxglove.logPose("/DirTest", 1, 1, 1);
-        Foxglove.logData("JSONS");
+        Foxglove.logPose("/DirTest", .{ .orientation = &.{ .x = 0.5 }, .position = &.{ .z = 1 } });
+        Foxglove.logData("JSONST", .{ .y = 3 });
         i += 1;
         if (i == 127) {
             i = 0;
