@@ -336,17 +336,17 @@ fn updateMapInfo(io: Io, can_socket: linux.socket_t, map: *MotorMap, update_aliv
                     .STATUS => map_data.status.status1 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.parse(packets_in.Status1, &frame.can_frames[0].data.bytes),
+                        .value = try packets_in.IO.parsePacket(packets_in.Status1, &frame.can_frames[0].data.bytes),
                     },
                     .STATUS_2 => map_data.status.status2 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.parse(packets_in.Status2, &frame.can_frames[0].data.bytes),
+                        .value = try packets_in.IO.parsePacket(packets_in.Status2, &frame.can_frames[0].data.bytes),
                     },
                     .STATUS_5 => map_data.status.status5 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.parse(packets_in.Status5, &frame.can_frames[0].data.bytes),
+                        .value = try packets_in.IO.parsePacket(packets_in.Status5, &frame.can_frames[0].data.bytes),
                     },
                     else => panic("Got unexpected case: {t}\n", .{id.command_type}),
                 }
