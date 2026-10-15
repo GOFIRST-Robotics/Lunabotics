@@ -129,7 +129,7 @@ test "Status1 parses negative values" {
 test "Status5 parses negative tachometer" {
     // tachometer -600 counts (-100 erev), 48.0 V
     const data = [_]u8{ 0xff, 0xff, 0xfd, 0xa8, 0x01, 0xe0, 0x00, 0x00 };
-    const status = try IO.parsePacket(Status5, &data);
+    const status = try IO.parsePacketBody(Status5, &data);
 
     try std.testing.expectEqual(@as(f32, -100), status.tachometer);
     try std.testing.expectApproxEqAbs(@as(f32, 48.0), status.volts_in, 0.001);
@@ -137,14 +137,14 @@ test "Status5 parses negative tachometer" {
 
 test "NotifyBoot parses hardware name" {
     const data = [_]u8{ '6', '0', '_', 'M', 'K', '5' };
-    const boot = try IO.parsePacket(NotifyBoot, &data);
+    const boot = try IO.parsePacketBody(NotifyBoot, &data);
 
     try std.testing.expectEqualStrings("60_MK5", boot.hw_name);
 }
 
 test "Incomplete Status1 fails to parse" {
     const data = [_]u8{0x67};
-    const result = IO.parsePacket(Status1, &data);
+    const result = IO.parsePacketBody(Status1, &data);
 
     try std.testing.expectError(packet_io.ParseError.IncompletePacket, result);
 }

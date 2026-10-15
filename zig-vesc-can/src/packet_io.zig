@@ -4,6 +4,8 @@ const CanFrame = socket_can.CanFrame;
 const vesc_datatypes = @import("vesc_datatypes.zig");
 const CommandType = vesc_datatypes.CommandType;
 
+pub const IntInfo = struct {};
+
 pub const FloatInfo = struct {
     underlying: type,
     scalar: f64,
@@ -24,13 +26,37 @@ pub const IoTypes = struct {
     IO: type,
 };
 
-pub const ParseError = error{IncompletePacket};
+pub const ParseError = error{ IncompletePacket, InvalidEnumValue };
 
 const VescReader = struct {
     remaining_data: []const u8,
 
     pub fn init(data: []const u8) @This() {
         return .{ .remaining_data = data };
+    }
+
+    pub fn readInt(self: *@This(), T: type) ParseError!T {
+        const info = @typeInfo(T);
+        const IntT = if (info == .@"enum") info.@"enum".tag_type else T;
+        std.debug.assert(@bitSizeOf(IntT) % 8 == 0);
+        if (@sizeOf(IntT) > self.remaining_data.len) {
+            return error.IncompletePacket;
+        }
+
+        const slice = self.remaining_data[0..@sizeOf(T)];
+        const big_endian: IntT = std.mem.bytesToValue(IntT, slice);
+        const int_value = std.mem.bigToNative(IntT, big_endian);
+
+        self.remaining_data = self.remaining_data[@sizeOf(T)..];
+        if (info == .@"enum") {
+            if (std.enums.fromInt(T, int_value)) |v| {
+                return v;
+            } else {
+                return error.InvalidEnumValue;
+            }
+        } else {
+            return int_value;
+        }
     }
 
     pub fn readFloat(self: *@This(), T: type, scalar: f32) ParseError!f32 {
@@ -78,6 +104,15 @@ pub const VescWriter = struct {
         };
     }
 
+    // Handles both int and int enums
+    pub fn writeInt(self: *@This(), T: type, value: T) void {
+        const int_value = if (@typeInfo(T) == .@"enum") @intFromEnum(value) else value;
+        const IntT = @TypeOf(int_value);
+        std.debug.assert(@bitSizeOf(IntT) % 8 == 0);
+        std.mem.writeInt(IntT, self.data[self.length..][0..@sizeOf(IntT)], int_value, .big);
+        self.length += @intCast(@sizeOf(IntT));
+    }
+
     pub fn writeFloat(self: *@This(), T: type, value: f32, scalar: f32) void {
         std.debug.assert(@bitSizeOf(T) % 8 == 0);
         const underlying: T = @trunc(@as(f64, value) * scalar);
@@ -86,7 +121,7 @@ pub const VescWriter = struct {
     }
 
     pub fn writeSlice(self: *@This(), slice: []const u8) void {
-        @memcpy(&self.data[(self.length)..(self.length + slice.len)], slice);
+        @memcpy(self.data[(self.length)..(self.length + slice.len)], slice);
         self.length += @intCast(slice.len);
     }
 
@@ -122,7 +157,7 @@ pub fn makePacketIO(packets: []const PacketInfo) IoTypes {
     };
 
     const IO = struct {
-        pub fn parsePacket(T: type, data: []const u8) ParseError!T {
+        pub fn parsePacketBody(T: type, data: []const u8) ParseError!T {
             var packet: T = undefined;
 
             var reader = VescReader.init(data);
@@ -130,7 +165,9 @@ pub fn makePacketIO(packets: []const PacketInfo) IoTypes {
             inline for (std.meta.fields(T)) |field| {
                 const field_schema = @field(schema, field.name);
 
-                if (@TypeOf(field_schema) == FloatInfo) {
+                if (@TypeOf(field_schema) == IntInfo) {
+                    @field(packet, field.name) = try reader.readInt(@FieldType(T, field.name));
+                } else if (@TypeOf(field_schema) == FloatInfo) {
                     @field(packet, field.name) = try reader.readFloat(field_schema.underlying, field_schema.scalar);
                 } else if (@TypeOf(field_schema) == SliceInfo) {
                     const value = switch (field_schema.length) {
@@ -148,7 +185,7 @@ pub fn makePacketIO(packets: []const PacketInfo) IoTypes {
         pub fn parsePacketByTypeId(packet_type: CommandType, data: []const u8) ParseError!?Packet {
             inline for (packets) |packet_info| {
                 if (packet_type == packet_info.packet.type_id) {
-                    return @unionInit(Packet, packet_info.name, try @This().parsePacket(packet_info.packet, data));
+                    return @unionInit(Packet, packet_info.name, try @This().parsePacketBody(packet_info.packet, data));
                 }
             }
 
@@ -187,7 +224,9 @@ pub fn makePacketIO(packets: []const PacketInfo) IoTypes {
             inline for (std.meta.fields(@TypeOf(packet))) |field| {
                 const field_schema = @field(schema, field.name);
 
-                if (@TypeOf(field_schema) == FloatInfo) {
+                if (@TypeOf(field_schema) == IntInfo) {
+                    writer.writeInt(@FieldType(@TypeOf(packet), field.name), @field(packet, field.name));
+                } else if (@TypeOf(field_schema) == FloatInfo) {
                     writer.writeFloat(field_schema.underlying, field_schema.scalar, @field(packet, field.name));
                 } else if (@TypeOf(field_schema) == SliceInfo) {
                     switch (field_schema.length) {
