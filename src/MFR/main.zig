@@ -15,7 +15,6 @@ const socket_can = zig_vesc_can.socket_can;
 
 const creation = @import("creation.zig");
 const NodeConfig = creation.NodeConfig;
-const NodeConfig = creation.NodeConfig;
 
 const logger = std.log.scoped(.main);
 

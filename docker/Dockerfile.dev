@@ -11,7 +11,7 @@ RUN groupadd -g 110 input_host 2>/dev/null || true
 
 # Install base dependencies
 RUN apt-get update && \
-    apt-get install -y git-lfs xz-utils curl wget build-essential iproute2 can-utils evtest && \
+    apt-get install -y git-lfs xz-utils curl wget build-essential iproute2 can-utils evtest unzip && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Zig 0.16.0
@@ -45,11 +45,12 @@ RUN mkdir -p "$(dirname "$HOST_PROJECT_PATH")" && \
     ln -s /workspaces/isaac_ros-dev "$HOST_PROJECT_PATH"
 
 # Download Foxglove archives and extract to proper location
-RUN mkdir -p /tmp/extracted /workspaces/isaac_ros-dev/src/foxglove/x86_64 \
-    && curl -fsSL "https://github.com/foxglove/foxglove-sdk/releases/download/sdk%2Fv0.29.2/foxglove-v0.29.2-cpp-x86_64-unknown-linux-gnu.zip" | tar -xz -C /tmp/extracted \
-    && cp /tmp/extracted/foxglove/lib/libfoxglove.so /workspaces/isaac_ros-dev/src/foxglove/x86_64/libfoxglove.so \
-    && cp /tmp/extracted/foxglove/include/foxglove-c/foxglove-c.h /workspaces/isaac_ros-dev/src/foxglove/foxglove-c.h \
-    && rm -rf /tmp/extracted
+RUN mkdir -p /tmp/extracted /usr/local/lib/foxglove/x86_64/ /usr/local/include/foxglove \
+    && curl -fsSL "https://github.com/foxglove/foxglove-sdk/releases/download/sdk%2Fv0.29.2/foxglove-v0.29.2-cpp-x86_64-unknown-linux-gnu.zip" -o /tmp/archive.zip \
+    && unzip /tmp/archive.zip -d /tmp/extracted \
+    && cp /tmp/extracted/foxglove/lib/libfoxglove.so /usr/local/lib/foxglove/x86_64/libfoxglove.so \
+    && cp /tmp/extracted/foxglove/include/foxglove-c/foxglove-c.h /usr/local/include/foxglove/foxglove-c.h \
+    && rm -rf /tmp/extracted /tmp/archive.zip
 
 # Linking .zig-cache like this fixes an error when running 'zig build' on Windows
 RUN set -eux; \

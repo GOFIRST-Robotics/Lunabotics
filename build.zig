@@ -1,6 +1,8 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    const foxglove_header_path: std.Build.LazyPath = .{ .cwd_relative = "/usr/local/include/foxglove/foxglove-c.h" };
+
     // Force Formatting
     const format_requirement = b.addFmt(.{
         .check = true,
@@ -13,10 +15,7 @@ pub fn build(b: *std.Build) void {
     // Local Build for Debuging Purposes
     // -----------------------------------------------
     const local_target = b.standardTargetOptions(.{
-        .default_target = .{
-            .os_tag = .linux,
-            .abi = .gnu
-        },
+        .default_target = .{ .os_tag = .linux, .abi = .gnu },
     });
     const debug_optimizations: std.builtin.OptimizeMode = .Debug;
 
@@ -42,7 +41,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const local_foxglove_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/foxglove/foxglove-c.h"),
+        .root_source_file = foxglove_header_path,
         .target = local_target,
         .optimize = debug_optimizations,
     });
@@ -60,9 +59,10 @@ pub fn build(b: *std.Build) void {
             },
         },
     );
-    debug_MFR.addLibraryPath(b.path("src/foxglove/x86_64/"));
+    const foxglove_x86_path: std.Build.LazyPath = .{ .cwd_relative = "/usr/local/lib/foxglove/x86_64/" };
+    debug_MFR.addLibraryPath(foxglove_x86_path);
     debug_MFR.linkSystemLibrary("foxglove", .{});
-    debug_MFR.addRPath(b.path("src/foxglove/x86_64/"));
+    debug_MFR.addRPath(foxglove_x86_path);
 
     const local_build = b.addExecutable(.{
         .name = "MFR_local",
@@ -118,7 +118,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const jetson_foxglove_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/foxglove/foxglove-c.h"),
+        .root_source_file = foxglove_header_path,
         .target = jetson_target,
         .optimize = jetson_optimization,
     });
@@ -136,9 +136,10 @@ pub fn build(b: *std.Build) void {
             },
         },
     );
-    jetson_MFR.addLibraryPath(b.path("src/foxglove/aarch64/"));
+    const foxglove_aarch64_path: std.Build.LazyPath = .{ .cwd_relative = "/usr/local/lib/foxglove/aarch64/" };
+    jetson_MFR.addLibraryPath(foxglove_aarch64_path);
     jetson_MFR.linkSystemLibrary("foxglove", .{});
-    jetson_MFR.addRPath(b.path("src/foxglove/aarch64/"));
+    jetson_MFR.addRPath(foxglove_aarch64_path);
 
     const jetson_build = b.addExecutable(.{
         .name = "MFR_jetson",
