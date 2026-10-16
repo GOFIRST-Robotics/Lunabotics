@@ -4,15 +4,14 @@ const linux = std.os.linux;
 const zig_vesc_can = @import("zig-vesc-can");
 const socket_can = zig_vesc_can.socket_can;
 const vesc_datatypes = zig_vesc_can.vesc_datatypes;
-const packets_in = zig_vesc_can.packets_in;
-const packets_out = zig_vesc_can.packets_out;
+const vesc_packets = zig_vesc_can.vesc_packets;
 const can = @import("can.h");
 const json = std.json;
 const panic = std.debug.panic;
 const Dashboard = @import("Dashboard.zig");
 
 const ReceiveConfig = struct {
-    command: vesc_datatypes.CommandType,
+    packet: vesc_packets.PacketType,
     timeout: can.bcm_timeval,
     rate_limit: can.bcm_timeval,
 };
@@ -37,11 +36,11 @@ const MonitoringConfig = struct {
     layout: [][][]const u8,
 };
 
-const instruction_commands = [_]vesc_datatypes.CommandType{
-    .SET_DUTY,
-    .SET_CURRENT,
-    .SET_RPM,
-    .SET_POS,
+const instruction_commands = [_]vesc_packets.PacketType{
+    .set_duty,
+    .set_current,
+    .set_rpm,
+    .set_pos,
 };
 
 const InstructionEnum = make_instruction_enum: {
@@ -60,10 +59,10 @@ const InstructionEnum = make_instruction_enum: {
 };
 
 const Command = union(InstructionEnum) {
-    SET_DUTY: packets_out.SetDuty,
-    SET_CURRENT: packets_out.SetCurrent,
-    SET_RPM: packets_out.SetRPM,
-    SET_POS: packets_out.SetPos,
+    set_duty: vesc_packets.SetDuty,
+    set_current: vesc_packets.SetCurrent,
+    set_rpm: vesc_packets.SetRPM,
+    set_pos: vesc_packets.SetPos,
 };
 
 pub const MotorInfo = struct {
@@ -176,7 +175,7 @@ pub fn main(init: std.process.Init) !void {
                     },
                     .filter_id = .{
                         .vesc_id = conf.can_id,
-                        .command_type = instruction,
+                        .packet_type = instruction,
                     },
                     .recveive_all = true,
                 },
@@ -214,7 +213,7 @@ pub fn main(init: std.process.Init) !void {
             try vesc_map.put(vesc_conf.can_id, .{
                 .name = vesc_conf.name,
                 .last_command = .{
-                    .command = .{ .SET_DUTY = .{ .duty = 0 } },
+                    .command = .{ .set_duty = .{ .duty = 0 } },
                     .timestamp = .{ .nsec = current_time.nsec, .sec = current_time.sec },
                 },
                 .status = .{},
@@ -227,7 +226,7 @@ pub fn main(init: std.process.Init) !void {
                 );
                 for (recv_configs.value_ptr.*) |conf| {
                     const bcm_conf = try bcm_configs.getOrPut(socket_can.Id{
-                        .command_type = conf.command,
+                        .packet_type = conf.packet,
                         .vesc_id = vesc_conf.can_id,
                     });
 
@@ -237,7 +236,7 @@ pub fn main(init: std.process.Init) !void {
 
             for (vesc_conf.message_configs) |conf| {
                 const bcm_conf = try bcm_configs.getOrPut(socket_can.Id{
-                    .command_type = conf.command,
+                    .packet_type = conf.packet,
                     .vesc_id = vesc_conf.can_id,
                 });
 
@@ -252,10 +251,10 @@ pub fn main(init: std.process.Init) !void {
 
             // if it is a command then every frame is wanted
             const is_command = std.mem.containsAtLeast(
-                vesc_datatypes.CommandType,
+                vesc_packets.PacketType,
                 &instruction_commands,
                 1,
-                &.{id.command_type},
+                &.{id.packet_type},
             );
 
             var config_errno: linux.E = .SUCCESS;
@@ -316,60 +315,60 @@ fn updateMapInfo(io: Io, can_socket: linux.socket_t, map: *MotorMap, update_aliv
         std.debug.print("got update {}\n", .{id});
         switch (frame.msg_head.opcode) {
             can.RX_CHANGED => {
-                switch (id.command_type) {
-                    .SET_DUTY => {
-                        map_data.last_command.command = .{ .SET_DUTY = try packets_out.IO.parsePacketBody(packets_out.SetDuty, &frame.can_frames[0].data) };
+                switch (id.packet_type) {
+                    .set_duty => {
+                        map_data.last_command.command = .{ .set_duty = try vesc_packets.parsePacketBody(vesc_packets.SetDuty, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
-                    .SET_CURRENT => {
-                        map_data.last_command.command = .{ .SET_CURRENT = try packets_out.IO.parsePacketBody(packets_out.SetCurrent, &frame.can_frames[0].data) };
+                    .set_current => {
+                        map_data.last_command.command = .{ .set_current = try vesc_packets.parsePacketBody(vesc_packets.SetCurrent, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
-                    .SET_RPM => {
-                        map_data.last_command.command = .{ .SET_RPM = try packets_out.IO.parsePacketBody(packets_out.SetRPM, &frame.can_frames[0].data) };
+                    .set_rpm => {
+                        map_data.last_command.command = .{ .set_rpm = try vesc_packets.parsePacketBody(vesc_packets.SetRPM, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
-                    .SET_POS => {
-                        map_data.last_command.command = .{ .SET_POS = try packets_out.IO.parsePacketBody(packets_out.SetPos, &frame.can_frames[0].data) };
+                    .set_pos => {
+                        map_data.last_command.command = .{ .set_pos = try vesc_packets.parsePacketBody(vesc_packets.SetPos, &frame.can_frames[0].data) };
                         map_data.last_command.timestamp = timestamp;
                     },
-                    .STATUS => map_data.status.status1 = .{
+                    .status_1 => map_data.status.status1 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.IO.parsePacketBody(packets_in.Status1, &frame.can_frames[0].data),
+                        .value = try vesc_packets.parsePacketBody(vesc_packets.Status1, &frame.can_frames[0].data),
                     },
-                    .STATUS_2 => map_data.status.status2 = .{
+                    .status_2 => map_data.status.status2 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.IO.parsePacketBody(packets_in.Status2, &frame.can_frames[0].data),
+                        .value = try vesc_packets.parsePacketBody(vesc_packets.Status2, &frame.can_frames[0].data),
                     },
-                    .STATUS_5 => map_data.status.status5 = .{
+                    .status_5 => map_data.status.status5 = .{
                         .timestamp = timestamp,
                         .is_alive = true,
-                        .value = try packets_in.IO.parsePacketBody(packets_in.Status5, &frame.can_frames[0].data),
+                        .value = try vesc_packets.parsePacketBody(vesc_packets.Status5, &frame.can_frames[0].data),
                     },
-                    else => panic("Got unexpected case: {t}\n", .{id.command_type}),
+                    else => panic("Got unexpected case: {t}\n", .{id.packet_type}),
                 }
             },
             can.RX_TIMEOUT => {
-                switch (id.command_type) {
-                    .STATUS => map_data.status.status1 = .{
+                switch (id.packet_type) {
+                    .status_1 => map_data.status.status1 = .{
                         .is_alive = false,
                         .value = undefined,
                         .timestamp = timestamp,
                     },
-                    .STATUS_2 => map_data.status.status2 = .{
+                    .status_2 => map_data.status.status2 = .{
                         .is_alive = false,
                         .value = undefined,
                         .timestamp = timestamp,
                     },
-                    .STATUS_5 => map_data.status.status5 = .{
+                    .status_5 => map_data.status.status5 = .{
                         .is_alive = false,
                         .value = undefined,
                         .timestamp = timestamp,
                     },
                     else => {
-                        panic("Got unexpected case: {t}\n", .{id.command_type});
+                        panic("Got unexpected case: {t}\n", .{id.packet_type});
                     },
                 }
             },

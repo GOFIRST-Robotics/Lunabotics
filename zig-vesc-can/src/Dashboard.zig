@@ -82,7 +82,7 @@ pub fn draw(self: *@This(), map: *const MotorMap) !void {
             // padding is handled after the switch statement
             var format_buf_writer: Io.Writer = .fixed(&format_buf);
             switch (info.last_command.command) {
-                .SET_DUTY => |v| {
+                .set_duty => |v| {
                     try format_buf_writer.printFloat(
                         v.duty,
                         .{
@@ -91,7 +91,7 @@ pub fn draw(self: *@This(), map: *const MotorMap) !void {
                     );
                     try format_buf_writer.writeByte('%');
                 },
-                .SET_CURRENT => |v| {
+                .set_current => |v| {
                     try format_buf_writer.printFloat(
                         v.current,
                         .{
@@ -100,7 +100,7 @@ pub fn draw(self: *@This(), map: *const MotorMap) !void {
                     );
                     try format_buf_writer.writeByte('A');
                 },
-                .SET_RPM => |v| {
+                .set_rpm => |v| {
                     try format_buf_writer.printFloat(
                         v.rpm,
                         .{
@@ -109,7 +109,7 @@ pub fn draw(self: *@This(), map: *const MotorMap) !void {
                     );
                     try format_buf_writer.writeAll(" RPM");
                 },
-                .SET_POS => |v| {
+                .set_pos => |v| {
                     try format_buf_writer.printFloat(
                         v.degrees,
                         .{
