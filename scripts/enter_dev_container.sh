@@ -99,6 +99,8 @@ else
         --privileged
         -e DISPLAY="$DISPLAY"
         -e FASTFASTRTPS_DEFAULT_PROFILES_FILE=/usr/local/share/middleware_profiles/rtps_udp_profile.xml
+        -p 8765:8765 \
+        -p 49153:49153 \
         -v "$(pwd -P):/workspaces/isaac_ros-dev"
         -w /workspaces/isaac_ros-dev
         -v /dev/input:/dev/input
@@ -116,7 +118,6 @@ else
     else
         docker run "${COMMON_RUN_ARGS[@]}" \
             --cap-add NET_ADMIN \
-            --network host \
             "$IMAGE_NAME" \
             /bin/bash
     fi
