@@ -3,30 +3,22 @@ const Io = std.Io;
 const net = Io.net;
 const linux = std.os.linux;
 const vesc_datatypes = @import("vesc_datatypes.zig");
+const vesc_packets = @import("vesc_packets.zig");
 const can = @import("can.h");
-const vescWrite = vesc_datatypes.vescWrite;
 const simulate_motor = @import("simulate_motor.zig");
 const bytesAsValue = std.mem.bytesAsValue;
 
 pub const _can_frame = can.can_frame;
 
-const CommandType = vesc_datatypes.CommandType;
+const PacketType = vesc_packets.PacketType;
 
 pub const Id = packed struct(u32) {
     vesc_id: u8,
-    command_type: CommandType,
+    packet_type: PacketType,
     _unused: u13 = 0,
     err: bool = false,
     rtr: bool = false,
     eff: bool = true, // this must be true
-};
-
-const DataTypes = extern union {
-    bytes: [8]u8 align(1),
-    set_current: vesc_datatypes.SetCurrent align(1),
-    set_duty: vesc_datatypes.SetDuty align(1),
-    set_rpm: vesc_datatypes.SetRPM align(1),
-    set_pos: vesc_datatypes.SetPos align(1),
 };
 
 pub const CanFrame = extern struct {
@@ -35,38 +27,36 @@ pub const CanFrame = extern struct {
     _pad: u8 = 0, // do not use
     _res0: u8 = 0, // do not use
     _len8_dlc: u8 = 0, // VESC does not use this
-    data: DataTypes align(8) = .{ .bytes = @splat(0) },
+    data: [8]u8 align(8) = @splat(0),
 
     pub fn createSetDuty(vesc_id: u8, duty: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_DUTY },
-            .len = 4,
-            .data = .{ .set_duty = .{ .duty = vescWrite(u32, duty, 100_000) } },
-        };
+        return vesc_packets.serializeIntoFrame(vesc_id, .{
+            .set_duty = .{ .duty = duty },
+        });
     }
 
     pub fn createSetCurrent(vesc_id: u8, current: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_CURRENT },
-            .len = 4,
-            .data = .{ .set_current = .{ .current = vescWrite(i32, current, 1_000) } },
-        };
+        return vesc_packets.serializeIntoFrame(vesc_id, .{
+            .set_current = .{ .current = current },
+        });
+    }
+
+    pub fn createSetCurrentBrake(vesc_id: u8, current: f32) @This() {
+        return vesc_packets.serializeIntoFrame(vesc_id, .{
+            .set_current_brake = .{ .current = current },
+        });
     }
 
     pub fn createSetRPM(vesc_id: u8, rpm: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_RPM },
-            .len = 4,
-            .data = .{ .set_current = .{ .current = vescWrite(u32, rpm, 1) } },
-        };
+        return vesc_packets.serializeIntoFrame(vesc_id, .{
+            .set_rpm = .{ .rpm = rpm },
+        });
     }
 
-    pub fn createSetPos(vesc_id: u8, pos: f32) @This() {
-        return .{
-            .id = .{ .vesc_id = vesc_id, .command_type = .SET_POS },
-            .len = 4,
-            .data = .{ .set_pos = .{ .pos = vescWrite(u32, pos, 1_000_000) } },
-        };
+    pub fn createSetPos(vesc_id: u8, degrees: f32) @This() {
+        return vesc_packets.serializeIntoFrame(vesc_id, .{
+            .set_pos = .{ .degrees = degrees },
+        });
     }
 };
 
@@ -74,7 +64,7 @@ pub const CanFilter = can.can_filter;
 
 pub const VescFilter = struct {
     vesc_id: ?u8 = null,
-    command_type: ?CommandType = null,
+    packet_type: ?PacketType = null,
 };
 
 /// if name is null then the returned socket will bind to all CAN networks
@@ -343,7 +333,7 @@ pub fn addRawFilters(socket: linux.socket_t, filters: []const CanFilter, errno: 
 pub fn vescFiltersToRawFilters(comptime N: usize, comptime filters: [N]VescFilter) [N]CanFilter {
     const _Id = packed struct(u32) {
         vesc_id: u8 = 0,
-        command_type: u8 = 0,
+        packet_type: u8 = 0,
         _unused: u13 = 0,
         err: bool = false,
         rtr: bool = false,
@@ -360,9 +350,9 @@ pub fn vescFiltersToRawFilters(comptime N: usize, comptime filters: [N]VescFilte
                     mask.vesc_id = 0xff;
                     match.vesc_id = id;
                 }
-                if (filter.command_type) |cmd| {
-                    mask.command_type = 0xff;
-                    match.command_type = @intFromEnum(cmd);
+                if (filter.packet_type) |packet| {
+                    mask.packet_type = 0xff;
+                    match.packet_type = @intFromEnum(packet);
                 }
                 // std.debug.print("id: {x}\nmk: {x}\n", .{ @as(u32, @bitCast(match)), @as(u32, @bitCast(mask)) });
                 break :parse_filter CanFilter{ .can_id = @bitCast(match), .can_mask = @bitCast(mask) };
@@ -477,6 +467,13 @@ pub fn BCMConfigureIdReceive(can_socket: linux.socket_t, config: BCMRXSetupOptio
     }
 }
 
+test "createSetCurrentBrake encoding" {
+    const frame = CanFrame.createSetCurrentBrake(5, 2.5);
+    try std.testing.expectEqual(@as(u32, 0x80000205), @as(u32, @bitCast(frame.id)));
+    try std.testing.expectEqual(@as(u8, 4), frame.len);
+    try std.testing.expectEqualSlices(u8, &.{ 0x00, 0x00, 0x09, 0xc4, 0, 0, 0, 0 }, &frame.data);
+}
+
 test "create can connection" {
     var errno: linux.E = .SUCCESS;
     const socket = try openCANRaw("can0", &errno);
@@ -493,9 +490,9 @@ test "filtering" {
     defer _ = linux.close(sock2);
 
     const filters: [3]VescFilter = .{
-        .{ .command_type = .SET_CURRENT },
+        .{ .packet_type = .set_current },
         .{ .vesc_id = 2 },
-        .{ .command_type = .SET_RPM, .vesc_id = 3 },
+        .{ .packet_type = .set_rpm, .vesc_id = 3 },
     };
 
     const raw_filters = vescFiltersToRawFilters(3, filters);
@@ -504,27 +501,27 @@ test "filtering" {
 
     const accept_frames = [_]CanFrame{
         .{
-            .id = .{ .vesc_id = 3, .command_type = .SET_RPM },
+            .id = .{ .vesc_id = 3, .packet_type = .set_rpm },
             .len = 3,
-            .data = .{ .bytes = std.mem.toBytes(@as(u64, 0xdeadbeefdeadbeef)) },
+            .data = std.mem.toBytes(@as(u64, 0xdeadbeefdeadbeef)),
         },
         .{
-            .id = .{ .vesc_id = 2, .command_type = .SET_DUTY },
+            .id = .{ .vesc_id = 2, .packet_type = .set_duty },
             .len = 0,
         },
         .{
-            .id = .{ .vesc_id = 4, .command_type = .SET_CURRENT },
+            .id = .{ .vesc_id = 4, .packet_type = .set_current },
             .len = 1,
         },
     };
 
     const reject_frames = [_]CanFrame{
         .{
-            .id = .{ .vesc_id = 3, .command_type = .SET_DUTY },
+            .id = .{ .vesc_id = 3, .packet_type = .set_duty },
             .len = 0,
         },
         .{
-            .id = .{ .vesc_id = 4, .command_type = .SET_RPM },
+            .id = .{ .vesc_id = 4, .packet_type = .set_rpm },
             .len = 0,
         },
     };
@@ -554,7 +551,7 @@ test "timeout test" {
     try BCMConfigureIdReceive(
         can_socket,
         .{
-            .filter_id = .{ .vesc_id = 17, .command_type = .SET_DUTY },
+            .filter_id = .{ .vesc_id = 17, .packet_type = .set_duty },
             .timeout = .{
                 .tv_sec = 0,
                 .tv_usec = 20 * 1000,
@@ -597,7 +594,7 @@ test "net receive test" {
     try BCMConfigureIdReceive(
         can_socket,
         .{
-            .filter_id = .{ .vesc_id = 17, .command_type = .SET_DUTY },
+            .filter_id = .{ .vesc_id = 17, .packet_type = .set_duty },
             .timeout = .{
                 .tv_sec = 0,
                 .tv_usec = 20 * 1000,

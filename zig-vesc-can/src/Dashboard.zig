@@ -82,40 +82,36 @@ pub fn draw(self: *@This(), map: *const MotorMap) !void {
             // padding is handled after the switch statement
             var format_buf_writer: Io.Writer = .fixed(&format_buf);
             switch (info.last_command.command) {
-                .SET_DUTY => |v| {
-                    const duty = @as(f32, @floatFromInt(bigToNative(u32, v.duty))) / 100_000;
+                .set_duty => |v| {
                     try format_buf_writer.printFloat(
-                        duty,
+                        v.duty,
                         .{
                             .precision = 0,
                         },
                     );
                     try format_buf_writer.writeByte('%');
                 },
-                .SET_CURRENT => |v| {
-                    const current = @as(f32, @floatFromInt(bigToNative(i32, v.current))) / 1_000;
+                .set_current => |v| {
                     try format_buf_writer.printFloat(
-                        current,
+                        v.current,
                         .{
                             .precision = 0,
                         },
                     );
                     try format_buf_writer.writeByte('A');
                 },
-                .SET_RPM => |v| {
-                    const rpm: f32 = @floatFromInt(bigToNative(i32, v.rpm));
+                .set_rpm => |v| {
                     try format_buf_writer.printFloat(
-                        rpm,
+                        v.rpm,
                         .{
                             .precision = 0,
                         },
                     );
                     try format_buf_writer.writeAll(" RPM");
                 },
-                .SET_POS => |v| {
-                    const pos = @as(f32, @floatFromInt(bigToNative(i32, v.degrees))) / 1_000_000;
+                .set_pos => |v| {
                     try format_buf_writer.printFloat(
-                        pos,
+                        v.degrees,
                         .{
                             .precision = 0,
                         },
