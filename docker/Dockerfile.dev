@@ -11,7 +11,7 @@ RUN groupadd -g 110 input_host 2>/dev/null || true
 
 # Install base dependencies
 RUN apt-get update && \
-    apt-get install -y git-lfs xz-utils curl wget build-essential iproute2 can-utils evtest unzip && \
+    apt-get install -y git-lfs xz-utils curl wget build-essential iproute2 can-utils evtest unzip sudo && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Zig 0.16.0

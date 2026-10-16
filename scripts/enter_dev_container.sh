@@ -118,7 +118,6 @@ else
     else
         docker run "${COMMON_RUN_ARGS[@]}" \
             --cap-add NET_ADMIN \
-            --network host \
             "$IMAGE_NAME" \
             /bin/bash
     fi
