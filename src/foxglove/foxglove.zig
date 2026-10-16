@@ -13,7 +13,7 @@ pub const LogLevel = enum(u8) {
     ERROR = fg.FOXGLOVE_LOG_LEVEL_ERROR,
     FATAL = fg.FOXGLOVE_LOG_LEVEL_FATAL,
 };
-const fg_channel = ?*const fg.foxglove_channel;
+const fg_channel: type = ?*const fg.foxglove_channel;
 
 const host = "0.0.0.0";
 const port = 8765;
