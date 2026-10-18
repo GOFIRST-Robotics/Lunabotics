@@ -108,3 +108,19 @@ test "duty cycle" {
         }
     }
 }
+
+test "current" {
+    // test current for values [-10000.0, 10000.0]
+    const step_size: f32 = 0.01;
+    const num_steps: isize = @round(10000.0 / step_size);
+
+    for (0..num_steps) |step| {
+        const current: f32 = std.math.lerp(@as(f32, -10000.0), @as(f32, 10000.0), @as(f32, @floatFromInt(step)) * step_size);
+        for (0..std.math.maxInt(u8)) |id| {
+            comm_can.comm_can_set_current(@intCast(id), current);
+            const c_frame: cCanFrame = comm_can.created_frame;
+            const zig_frame: zigCanFrame = .createSetCurrent(@intCast(id), current);
+            try compareCanFrames(zig_frame, c_frame);
+        }
+    }
+}
