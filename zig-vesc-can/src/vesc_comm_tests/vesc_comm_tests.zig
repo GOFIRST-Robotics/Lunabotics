@@ -15,10 +15,11 @@ const std = @import("std");
 const testing = std.testing;
 const comm_can = @import("comm_can");
 const zig_vesc_can = @import("zig-vesc-can");
-const socket_can = zig_vesc_can.socket_can;
+const vesc_can = zig_vesc_can.vesc_can;
+const vesc_packets = zig_vesc_can.vesc_packets;
 
 const cCanFrame = comm_can.can_frame; // C definition
-const zigCanFrame = socket_can.CanFrame; // zig definition
+const zigCanFrame = vesc_can.CanFrame; // zig definition
 
 /// True if the frames are equal false if not
 fn compareCanFrames(zig_frame: zigCanFrame, c_frame: cCanFrame) !void {
@@ -52,7 +53,7 @@ test "CAN Frame is Equal" {
 
 /// Runs the zig and C encoders over many ids/values and asserts the frames match.
 /// `range` keeps value * scale inside i32 so neither side overflows.
-fn expectEquivalent(zig_create: fn (u8, f32) zigCanFrame, c_create: anytype, range: f32) !void {
+fn expectEquivalent(zig_create: type, c_create: anytype, range: f32) !void {
     const ids = [_]u8{ 0, 1, 12, 127, 255 };
     const fixed = [_]f32{ 0, -0.0, 0.1, -0.1, 1.0 / 3.0, -1.0 / 3.0, 0.5, -0.5, 1, -1, 2.5, -2.5, 55, -55 };
     var prng = std.Random.DefaultPrng.init(0x5EC5);
@@ -67,30 +68,50 @@ fn expectEquivalent(zig_create: fn (u8, f32) zigCanFrame, c_create: anytype, ran
     }
 }
 
-fn expectFrameEqual(zig_create: fn (u8, f32) zigCanFrame, c_create: anytype, id: u8, value: f32) !void {
+fn expectFrameEqual(zig_create: type, c_create: anytype, id: u8, value: f32) !void {
     errdefer std.debug.print("mismatch for vesc_id={d} value={d}\n", .{ id, value });
     c_create(id, value);
-    try compareCanFrames(zig_create(id, value), comm_can.created_frame);
+    try compareCanFrames(zig_create.create(id, value), comm_can.created_frame);
 }
 
 test "SET_DUTY equivalent" {
-    try expectEquivalent(zigCanFrame.createSetDuty, comm_can.comm_can_set_duty, 20_000);
+    try expectEquivalent(struct {
+        fn create(id: u8, value: f32) zigCanFrame {
+            return vesc_packets.serializeIntoFrame(id, .{ .set_duty = .{ .duty = value } });
+        }
+    }, comm_can.comm_can_set_duty, 20_000);
 }
 
 test "SET_CURRENT equivalent" {
-    try expectEquivalent(zigCanFrame.createSetCurrent, comm_can.comm_can_set_current, 2_000_000);
+    try expectEquivalent(struct {
+        fn create(id: u8, value: f32) zigCanFrame {
+            return vesc_packets.serializeIntoFrame(id, .{ .set_current = .{ .current = value } });
+        }
+    }, comm_can.comm_can_set_current, 2_000_000);
 }
 
 test "SET_CURRENT_BRAKE equivalent" {
-    try expectEquivalent(zigCanFrame.createSetCurrentBrake, comm_can.comm_can_set_current_brake, 2_000_000);
+    try expectEquivalent(struct {
+        fn create(id: u8, value: f32) zigCanFrame {
+            return vesc_packets.serializeIntoFrame(id, .{ .set_current_brake = .{ .current = value } });
+        }
+    }, comm_can.comm_can_set_current_brake, 2_000_000);
 }
 
 test "SET_RPM equivalent" {
-    try expectEquivalent(zigCanFrame.createSetRPM, comm_can.comm_can_set_rpm, 2_000_000_000);
+    try expectEquivalent(struct {
+        fn create(id: u8, value: f32) zigCanFrame {
+            return vesc_packets.serializeIntoFrame(id, .{ .set_rpm = .{ .rpm = value } });
+        }
+    }, comm_can.comm_can_set_rpm, 2_000_000_000);
 }
 
 test "SET_POS equivalent" {
-    try expectEquivalent(zigCanFrame.createSetPos, comm_can.comm_can_set_pos, 2_000);
+    try expectEquivalent(struct {
+        fn create(id: u8, value: f32) zigCanFrame {
+            return vesc_packets.serializeIntoFrame(id, .{ .set_pos = .{ .degrees = value } });
+        }
+    }, comm_can.comm_can_set_pos, 2_000);
 }
 
 test "duty cycle" {
@@ -103,7 +124,7 @@ test "duty cycle" {
         for (0..std.math.maxInt(u8)) |id| {
             comm_can.comm_can_set_duty(@intCast(id), duty);
             const c_frame: cCanFrame = comm_can.created_frame;
-            const zig_frame: zigCanFrame = .createSetDuty(@intCast(id), duty);
+            const zig_frame: zigCanFrame = vesc_packets.serializeIntoFrame(@intCast(id), .{ .set_duty = .{ .duty = duty } });
             try compareCanFrames(zig_frame, c_frame);
         }
     }
@@ -115,11 +136,11 @@ test "current" {
     const num_steps: isize = @round(10000.0 / step_size);
 
     for (0..num_steps) |step| {
-        const current: f32 = std.math.lerp(@as(f32, -10000.0), @as(f32, 10000.0), @as(f32, @floatFromInt(step)) * step_size);
+        const current: f32 = std.math.lerp(@as(f32, -10000.0), @as(f32, 10000.0), @as(f32, @floatFromInt(step)) / @as(f32, num_steps));
         for (0..std.math.maxInt(u8)) |id| {
             comm_can.comm_can_set_current(@intCast(id), current);
             const c_frame: cCanFrame = comm_can.created_frame;
-            const zig_frame: zigCanFrame = .createSetCurrent(@intCast(id), current);
+            const zig_frame: zigCanFrame = vesc_packets.serializeIntoFrame(@intCast(id), .{ .set_current = .{ .current = current } });
             try compareCanFrames(zig_frame, c_frame);
         }
     }

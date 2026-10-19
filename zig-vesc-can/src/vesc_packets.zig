@@ -6,8 +6,9 @@ const VescWriter = vesc_buffer.VescWriter;
 const PacketData = vesc_buffer.PacketData;
 const vesc_datatypes = @import("vesc_datatypes.zig");
 const CommandType = vesc_datatypes.CommandType;
-const socket_can = @import("socket_can.zig");
-const CanFrame = socket_can.CanFrame;
+const vesc_can = @import("vesc_can.zig");
+const CanFrame = vesc_can.CanFrame;
+const VescCanId = vesc_can.VescCanId;
 
 pub const PacketType = enum(u8) {
     status_1 = 9,
@@ -298,9 +299,12 @@ pub fn parseFrame(frame: CanFrame) ParseError!?struct {
     source_vesc_id: u8,
     packet: Packet,
 } {
-    const packet = try parsePacket(frame.id.packet_type, &frame.data) orelse return null;
+    const vesc_id = VescCanId.fromCanId(frame.id) orelse return null;
+    const packet_type = std.enums.fromInt(PacketType, vesc_id.packet_type) orelse return null;
+    const packet = try parsePacket(packet_type, &frame.data) orelse return null;
+
     return .{
-        .source_vesc_id = frame.id.vesc_id,
+        .source_vesc_id = vesc_id.vesc_id,
         .packet = packet,
     };
 }
@@ -340,7 +344,7 @@ pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) CanFrame {
         inline else => |body, packet_type| {
             const serialized = serializePacketBody(body);
             return .{
-                .id = .{ .vesc_id = dest_vesc_id, .packet_type = packet_type },
+                .id = (VescCanId{ .vesc_id = dest_vesc_id, .packet_type = @intFromEnum(packet_type) }).toCanId(),
                 .len = serialized.len,
                 .data = serialized.data,
             };
@@ -350,7 +354,8 @@ pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) CanFrame {
 
 test "Status1 parses negative values" {
     // erpm -1000, current -12.3 A, duty -0.5
-    var frame: CanFrame = .{ .id = .{ .vesc_id = 1, .packet_type = .status_1 }, .len = 8 };
+    const id: VescCanId = .{ .vesc_id = 1, .packet_type = @intFromEnum(PacketType.status_1) };
+    var frame: CanFrame = .{ .id = id.toCanId(), .len = 8 };
     frame.data = .{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
 
     const id_and_packet = try parseFrame(frame) orelse return error.TestUnexpectedResult;

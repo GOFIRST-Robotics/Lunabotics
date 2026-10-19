@@ -2,7 +2,6 @@ const std = @import("std");
 const Io = std.Io;
 const linux = std.os.linux;
 const zig_vesc_can = @import("zig-vesc-can");
-const socket_can = zig_vesc_can.socket_can;
 const vesc_datatypes = zig_vesc_can.vesc_datatypes;
 const vesc_packets = zig_vesc_can.vesc_packets;
 const can = @import("can.h");
