@@ -1,5 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
+const io: Io = std.Options.debug_io;
 
 const fg = @import("foxglove-sdk");
 
@@ -17,25 +18,36 @@ const fg_channel: type = ?*const fg.foxglove_channel;
 
 const host = "0.0.0.0";
 const port = 8765;
+var server: ?*fg.foxglove_websocket_server = undefined;
 var channel_map: std.StringHashMap(fg_channel) = undefined;
 var json_string_builder: std.Io.Writer.Allocating = undefined;
-var io_ref: Io = undefined;
 var start_time: Io.Timestamp = undefined;
 
-pub fn init(allocator: std.mem.Allocator, io: Io) void {
+pub fn init(allocator: std.mem.Allocator) void {
     channel_map = .init(allocator);
     json_string_builder = .init(allocator);
-    io_ref = io;
-    start_time = Io.Clock.now(.real, io_ref);
+    start_time = Io.Clock.now(.real, io);
+    startServer();
 }
 
-pub fn startServer() void {
+pub fn deinit() void {
+    channel_map.deinit();
+    json_string_builder.deinit();
+    stopServer();
+}
+
+fn startServer() void {
     const options = fg.foxglove_server_options{
-        .host = fg_str(host),
-        .port = 8765,
+        .host = fgStr(host),
+        .port = port,
     };
-    var server: ?*fg.foxglove_websocket_server = undefined;
-    _ = fg.foxglove_server_start(&options, &server);
+    const err = fg.foxglove_server_start(&options, &server);
+    logFgError(err, "[Foxglove] Unable to start foxglove websocket server!");
+}
+
+fn stopServer() void {
+    const err = fg.foxglove_server_stop(server);
+    logFgError(err, "[Foxglove] Unable to stop foxglove websocket server!");
 }
 
 pub fn logMessage(topic: []const u8, msg: []const u8, level: LogLevel) void {
@@ -48,10 +60,11 @@ pub fn logMessage(topic: []const u8, msg: []const u8, level: LogLevel) void {
     }
     const message = fg.foxglove_log{
         .level = @intFromEnum(level),
-        .message = fg_str(msg),
+        .message = fgStr(msg),
         .timestamp = &timestamp(),
     };
-    _ = fg.foxglove_channel_log_log(entry.value_ptr.*, &message, null, 0);
+    const err = fg.foxglove_channel_log_log(entry.value_ptr.*, &message, null, 0);
+    logFgError(err, "[Foxglove] Unable to log log(message) data!");
 }
 
 pub fn logData(topic: []const u8, data: anytype) void {
@@ -71,7 +84,8 @@ pub fn logData(topic: []const u8, data: anytype) void {
     };
     const json = json_string_builder.written();
     json_string_builder.clearRetainingCapacity();
-    _ = fg.foxglove_channel_log(entry.value_ptr.*, json.ptr, json.len, null, 0);
+    const err = fg.foxglove_channel_log(entry.value_ptr.*, json.ptr, json.len, null, 0);
+    logFgError(err, "[Foxglove] Unable to log raw data!");
 }
 
 pub fn logPose(topic: []const u8, pose: fg.foxglove_pose) void {
@@ -83,38 +97,48 @@ pub fn logPose(topic: []const u8, pose: fg.foxglove_pose) void {
         entry.value_ptr.* = createPoseInFrameChannel(topic);
     }
     const message = fg.foxglove_pose_in_frame{
-        .frame_id = fg_str("map"),
+        .frame_id = fgStr("map"),
         .pose = &pose,
         .timestamp = &timestamp(),
     };
-    _ = fg.foxglove_channel_log_pose_in_frame(entry.value_ptr.*, &message, null, 0);
+    const err = fg.foxglove_channel_log_pose_in_frame(entry.value_ptr.*, &message, null, 0);
+    logFgError(err, "[Foxglove] Unable to log pose in frame data!");
 }
 
 fn createLogChannel(topic: []const u8) fg_channel {
     var channel: fg_channel = undefined;
-    _ = fg.foxglove_channel_create_log(fg_str(topic), null, &channel);
+    const err = fg.foxglove_channel_create_log(fgStr(topic), null, &channel);
+    logFgError(err, "[Foxglove] Unable to create log channel!");
     return channel;
 }
 
 fn createRawChannel(topic: []const u8) fg_channel {
     var channel: fg_channel = undefined;
-    _ = fg.foxglove_raw_channel_create(fg_str(topic), fg_str("json"), null, null, null, &channel);
+    const err = fg.foxglove_raw_channel_create(fgStr(topic), fgStr("json"), null, null, null, &channel);
+    logFgError(err, "[Foxglove] Unable to create raw channel!");
     return channel;
 }
 
 fn createPoseInFrameChannel(topic: []const u8) fg_channel {
     var channel: fg_channel = undefined;
-    _ = fg.foxglove_channel_create_pose_in_frame(fg_str(topic), null, &channel);
+    const err = fg.foxglove_channel_create_pose_in_frame(fgStr(topic), null, &channel);
+    logFgError(err, "[Foxglove] Unable to create pose in frame channel!");
     return channel;
 }
 
-fn fg_str(str: []const u8) fg.foxglove_string {
+fn fgStr(str: []const u8) fg.foxglove_string {
     return fg.foxglove_string{ .data = str.ptr, .len = str.len };
 }
 
 fn timestamp() fg.foxglove_timestamp {
-    const current_time = Io.Timestamp.fromNanoseconds(Io.Clock.now(.real, io_ref).nanoseconds - start_time.nanoseconds);
+    const current_time = Io.Timestamp.fromNanoseconds(Io.Clock.now(.real, io).nanoseconds - start_time.nanoseconds);
     const seconds: u32 = @intCast(current_time.toSeconds());
     const nanoseconds: u32 = @intCast(current_time.subDuration(Io.Duration.fromSeconds(seconds)).toNanoseconds());
     return .{ .sec = seconds, .nsec = nanoseconds };
+}
+
+fn logFgError(err: fg.foxglove_error, comptime str: []const u8) void {
+    if (err != fg.FOXGLOVE_ERROR_OK) {
+        logger.err(str ++ " Error {}.", .{err});
+    }
 }
