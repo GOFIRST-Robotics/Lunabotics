@@ -20,19 +20,19 @@ const host = "0.0.0.0";
 const port = 8765;
 var server: ?*fg.foxglove_websocket_server = undefined;
 var channel_map: std.StringHashMap(fg_channel) = undefined;
-var json_string_builder: std.Io.Writer.Allocating = undefined;
+var channel_mutex = std.Thread.Mutex{};
+var allocator: std.mem.Allocator = undefined;
 var start_time: Io.Timestamp = undefined;
 
-pub fn init(allocator: std.mem.Allocator) void {
+pub fn init(alloc: std.mem.Allocator) void {
     channel_map = .init(allocator);
-    json_string_builder = .init(allocator);
+    allocator = alloc;
     start_time = Io.Clock.now(.real, io);
     startServer();
 }
 
 pub fn deinit() void {
     channel_map.deinit();
-    json_string_builder.deinit();
     stopServer();
 }
 
@@ -51,10 +51,7 @@ fn stopServer() void {
 }
 
 pub fn logMessage(topic: []const u8, msg: []const u8, level: LogLevel) void {
-    const entry = channel_map.getOrPut(topic) catch {
-        logger.warn("[Foxglove] Unable to put value into channel hashmap!", .{});
-        return;
-    };
+    const entry = try getOrPutChannelLocked(topic) catch return;
     if (!entry.found_existing) {
         entry.value_ptr.* = createLogChannel(topic);
     }
@@ -71,28 +68,21 @@ pub fn logData(topic: []const u8, data: anytype) void {
     if (@typeInfo(@TypeOf(data)) != .@"struct") {
         @compileError("[Foxglove] Can only log struct types! Logging incorrect type to {}");
     }
-    const entry = channel_map.getOrPut(topic) catch {
-        logger.warn("[Foxglove] Unable to put value into channel hashmap!", .{});
-        return;
-    };
+    const entry = try getOrPutChannelLocked(topic) catch return;
     if (!entry.found_existing) {
         entry.value_ptr.* = createRawChannel(topic);
     }
-    std.json.Stringify.value(data, .{}, &json_string_builder.writer) catch {
+    const json = std.json.Stringify.valueAlloc(allocator, data, .{}) catch {
         logger.warn("[Foxglove] Unable to stringify data to JSON!", .{});
         return;
     };
-    const json = json_string_builder.written();
-    json_string_builder.clearRetainingCapacity();
+    defer allocator.free(json);
     const err = fg.foxglove_channel_log(entry.value_ptr.*, json.ptr, json.len, null, 0);
     logFgError(err, "[Foxglove] Unable to log raw data!");
 }
 
 pub fn logPose(topic: []const u8, pose: fg.foxglove_pose) void {
-    const entry = channel_map.getOrPut(topic) catch {
-        logger.warn("[Foxglove] Unable to put value into channel hashmap!", .{});
-        return;
-    };
+    const entry = try getOrPutChannelLocked(topic) catch return;
     if (!entry.found_existing) {
         entry.value_ptr.* = createPoseInFrameChannel(topic);
     }
@@ -124,6 +114,16 @@ fn createPoseInFrameChannel(topic: []const u8) fg_channel {
     const err = fg.foxglove_channel_create_pose_in_frame(fgStr(topic), null, &channel);
     logFgError(err, "[Foxglove] Unable to create pose in frame channel!");
     return channel;
+}
+
+fn getOrPutChannelLocked(topic: []const u8) !std.StringHashMap(fg_channel).GetOrPutResult {
+    channel_mutex.lock();
+    defer channel_mutex.lock();
+    const entry = channel_map.getOrPut(topic) catch |err| {
+        logger.warn("[Foxglove] Unable to put value into channel hashmap for topic {}!", .{topic});
+        return err;
+    };
+    return entry;
 }
 
 fn fgStr(str: []const u8) fg.foxglove_string {
