@@ -25,8 +25,8 @@ var allocator: std.mem.Allocator = undefined;
 var start_time: Io.Timestamp = undefined;
 
 pub fn init(alloc: std.mem.Allocator) void {
-    channel_map = .init(allocator);
     allocator = alloc;
+    channel_map = .init(allocator);
     start_time = Io.Clock.now(.real, io);
     startServer();
 }
