@@ -20,7 +20,7 @@ const host = "0.0.0.0";
 const port = 8765;
 var server: ?*fg.foxglove_websocket_server = undefined;
 var channel_map: std.StringHashMap(fg_channel) = undefined;
-var channel_mutex = std.Thread.Mutex{};
+var channel_mutex: std.Io.Mutex = .init;
 var allocator: std.mem.Allocator = undefined;
 var start_time: Io.Timestamp = undefined;
 
@@ -68,7 +68,7 @@ pub fn logData(topic: []const u8, data: anytype) void {
     if (@typeInfo(@TypeOf(data)) != .@"struct") {
         @compileError("[Foxglove] Can only log struct types! Logging incorrect type to {}");
     }
-    const entry = try getOrPutChannelLocked(topic) catch return;
+    const entry = getOrPutChannelLocked(topic) catch return;
     if (!entry.found_existing) {
         entry.value_ptr.* = createRawChannel(topic);
     }
@@ -117,10 +117,10 @@ fn createPoseInFrameChannel(topic: []const u8) fg_channel {
 }
 
 fn getOrPutChannelLocked(topic: []const u8) !std.StringHashMap(fg_channel).GetOrPutResult {
-    channel_mutex.lock();
-    defer channel_mutex.lock();
+    try channel_mutex.lock(io);
+    defer channel_mutex.unlock(io);
     const entry = channel_map.getOrPut(topic) catch |err| {
-        logger.warn("[Foxglove] Unable to put value into channel hashmap for topic {}!", .{topic});
+        logger.warn("[Foxglove] Unable to put value into channel hashmap for topic {s}!", .{topic});
         return err;
     };
     return entry;
