@@ -14,7 +14,7 @@ pub const LogLevel = enum(u8) {
     ERROR = fg.FOXGLOVE_LOG_LEVEL_ERROR,
     FATAL = fg.FOXGLOVE_LOG_LEVEL_FATAL,
 };
-const fg_channel: type = ?*const fg.foxglove_channel;
+const fg_channel: type = *const fg.foxglove_channel;
 
 const host = "0.0.0.0";
 const port = 8765;
@@ -53,7 +53,7 @@ fn stopServer() void {
 pub fn logMessage(topic: []const u8, msg: []const u8, level: LogLevel) void {
     const entry = try getOrPutChannelLocked(topic) catch return;
     if (!entry.found_existing) {
-        entry.value_ptr.* = createLogChannel(topic);
+        entry.value_ptr.* = createLogChannel(topic) orelse return;
     }
     const message = fg.foxglove_log{
         .level = @intFromEnum(level),
@@ -70,7 +70,7 @@ pub fn logData(topic: []const u8, data: anytype) void {
     }
     const entry = getOrPutChannelLocked(topic) catch return;
     if (!entry.found_existing) {
-        entry.value_ptr.* = createRawChannel(topic);
+        entry.value_ptr.* = createRawChannel(topic) orelse return;
     }
     const json = std.json.Stringify.valueAlloc(allocator, data, .{}) catch {
         logger.warn("[Foxglove] Unable to stringify data to JSON!", .{});
@@ -84,7 +84,7 @@ pub fn logData(topic: []const u8, data: anytype) void {
 pub fn logPose(topic: []const u8, pose: fg.foxglove_pose) void {
     const entry = try getOrPutChannelLocked(topic) catch return;
     if (!entry.found_existing) {
-        entry.value_ptr.* = createPoseInFrameChannel(topic);
+        entry.value_ptr.* = createPoseInFrameChannel(topic) orelse return;
     }
     const message = fg.foxglove_pose_in_frame{
         .frame_id = fgStr("map"),
@@ -95,22 +95,22 @@ pub fn logPose(topic: []const u8, pose: fg.foxglove_pose) void {
     logFgError(err, "[Foxglove] Unable to log pose in frame data!");
 }
 
-fn createLogChannel(topic: []const u8) fg_channel {
-    var channel: fg_channel = undefined;
+fn createLogChannel(topic: []const u8) ?fg_channel {
+    var channel: ?fg_channel = undefined;
     const err = fg.foxglove_channel_create_log(fgStr(topic), null, &channel);
     logFgError(err, "[Foxglove] Unable to create log channel!");
     return channel;
 }
 
-fn createRawChannel(topic: []const u8) fg_channel {
-    var channel: fg_channel = undefined;
+fn createRawChannel(topic: []const u8) ?fg_channel {
+    var channel: ?fg_channel = undefined;
     const err = fg.foxglove_raw_channel_create(fgStr(topic), fgStr("json"), null, null, null, &channel);
     logFgError(err, "[Foxglove] Unable to create raw channel!");
     return channel;
 }
 
-fn createPoseInFrameChannel(topic: []const u8) fg_channel {
-    var channel: fg_channel = undefined;
+fn createPoseInFrameChannel(topic: []const u8) ?fg_channel {
+    var channel: ?fg_channel = undefined;
     const err = fg.foxglove_channel_create_pose_in_frame(fgStr(topic), null, &channel);
     logFgError(err, "[Foxglove] Unable to create pose in frame channel!");
     return channel;
