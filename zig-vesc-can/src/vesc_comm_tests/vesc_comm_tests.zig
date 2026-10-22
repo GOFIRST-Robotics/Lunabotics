@@ -15,11 +15,12 @@ const std = @import("std");
 const testing = std.testing;
 const comm_can = @import("comm_can");
 const zig_vesc_can = @import("zig-vesc-can");
-const vesc_can = zig_vesc_can.vesc_can;
-const vesc_packets = zig_vesc_can.vesc_packets;
+const can = zig_vesc_can.can;
+const packets = zig_vesc_can.packets;
+const Packet = packets.Packet;
 
 const cCanFrame = comm_can.can_frame; // C definition
-const zigCanFrame = vesc_can.CanFrame; // zig definition
+const zigCanFrame = can.CanFrame; // zig definition
 
 /// True if the frames are equal false if not
 fn compareCanFrames(zig_frame: zigCanFrame, c_frame: cCanFrame) !void {
@@ -71,45 +72,46 @@ fn expectEquivalent(zig_create: type, c_create: anytype, range: f32) !void {
 fn expectFrameEqual(zig_create: type, c_create: anytype, id: u8, value: f32) !void {
     errdefer std.debug.print("mismatch for vesc_id={d} value={d}\n", .{ id, value });
     c_create(id, value);
-    try compareCanFrames(zig_create.create(id, value), comm_can.created_frame);
+    const zig_frame = packets.serializeIntoFrame(id, zig_create.create(value));
+    try compareCanFrames(zig_frame, comm_can.created_frame);
 }
 
 test "SET_DUTY equivalent" {
     try expectEquivalent(struct {
-        fn create(id: u8, value: f32) zigCanFrame {
-            return vesc_packets.serializeIntoFrame(id, .{ .set_duty = .{ .duty = value } });
+        fn create(value: f32) Packet {
+            return .{ .set_duty = .{ .duty = value } };
         }
     }, comm_can.comm_can_set_duty, 20_000);
 }
 
 test "SET_CURRENT equivalent" {
     try expectEquivalent(struct {
-        fn create(id: u8, value: f32) zigCanFrame {
-            return vesc_packets.serializeIntoFrame(id, .{ .set_current = .{ .current = value } });
+        fn create(value: f32) Packet {
+            return .{ .set_current = .{ .current = value } };
         }
     }, comm_can.comm_can_set_current, 2_000_000);
 }
 
 test "SET_CURRENT_BRAKE equivalent" {
     try expectEquivalent(struct {
-        fn create(id: u8, value: f32) zigCanFrame {
-            return vesc_packets.serializeIntoFrame(id, .{ .set_current_brake = .{ .current = value } });
+        fn create(value: f32) Packet {
+            return .{ .set_current_brake = .{ .current = value } };
         }
     }, comm_can.comm_can_set_current_brake, 2_000_000);
 }
 
 test "SET_RPM equivalent" {
     try expectEquivalent(struct {
-        fn create(id: u8, value: f32) zigCanFrame {
-            return vesc_packets.serializeIntoFrame(id, .{ .set_rpm = .{ .rpm = value } });
+        fn create(value: f32) Packet {
+            return .{ .set_rpm = .{ .rpm = value } };
         }
     }, comm_can.comm_can_set_rpm, 2_000_000_000);
 }
 
 test "SET_POS equivalent" {
     try expectEquivalent(struct {
-        fn create(id: u8, value: f32) zigCanFrame {
-            return vesc_packets.serializeIntoFrame(id, .{ .set_pos = .{ .degrees = value } });
+        fn create(value: f32) Packet {
+            return .{ .set_pos = .{ .degrees = value } };
         }
     }, comm_can.comm_can_set_pos, 2_000);
 }
@@ -120,12 +122,13 @@ test "duty cycle" {
     const num_steps: isize = @round(1.0 / step_size);
 
     for (0..num_steps) |step| {
-        const duty: f32 = std.math.lerp(@as(f32, -1.0), @as(f32, 1.0), @as(f32, @floatFromInt(step)) * step_size);
+        const duty: f32 = std.math.lerp(@as(f32, -1.0), @as(f32, 1.0), @as(f32, @floatFromInt(step)) / @as(f32, num_steps));
         for (0..std.math.maxInt(u8)) |id| {
-            comm_can.comm_can_set_duty(@intCast(id), duty);
-            const c_frame: cCanFrame = comm_can.created_frame;
-            const zig_frame: zigCanFrame = vesc_packets.serializeIntoFrame(@intCast(id), .{ .set_duty = .{ .duty = duty } });
-            try compareCanFrames(zig_frame, c_frame);
+            try expectFrameEqual(struct {
+                fn create(value: f32) Packet {
+                    return .{ .set_duty = .{ .duty = value } };
+                }
+            }, comm_can.comm_can_set_duty, @intCast(id), duty);
         }
     }
 }
@@ -138,10 +141,11 @@ test "current" {
     for (0..num_steps) |step| {
         const current: f32 = std.math.lerp(@as(f32, -10000.0), @as(f32, 10000.0), @as(f32, @floatFromInt(step)) / @as(f32, num_steps));
         for (0..std.math.maxInt(u8)) |id| {
-            comm_can.comm_can_set_current(@intCast(id), current);
-            const c_frame: cCanFrame = comm_can.created_frame;
-            const zig_frame: zigCanFrame = vesc_packets.serializeIntoFrame(@intCast(id), .{ .set_current = .{ .current = current } });
-            try compareCanFrames(zig_frame, c_frame);
+            try expectFrameEqual(struct {
+                fn create(value: f32) Packet {
+                    return .{ .set_current = .{ .current = value } };
+                }
+            }, comm_can.comm_can_set_current, @intCast(id), current);
         }
     }
 }

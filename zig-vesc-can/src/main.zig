@@ -1,10 +1,10 @@
 const std = @import("std");
 const linux = std.os.linux;
 
-const vesc_can = @import("vesc_can.zig");
-const VescBus = vesc_can.VescBus;
-const VescBusConfig = vesc_can.VescBusConfig;
-const VescConfig = vesc_can.VescConfig;
+const can = @import("can.zig");
+const VescBus = can.VescBus;
+const VescBusConfig = can.VescBusConfig;
+const VescConfig = can.VescConfig;
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;

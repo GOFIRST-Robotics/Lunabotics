@@ -11,11 +11,9 @@ const linux_can = @cImport({
 const Io = std.Io;
 const Allocator = std.mem.Allocator;
 
-const vesc_buffer = @import("vesc_buffer.zig");
-const vesc_commands = @import("vesc_commands.zig");
-const vesc_packets = @import("vesc_packets.zig");
-const vesc_datatypes = @import("vesc_datatypes.zig");
-const PacketType = vesc_packets.PacketType;
+const packets = @import("packets.zig");
+const PacketType = packets.PacketType;
+const commands = @import("commands.zig");
 
 pub const CanId = packed struct(u32) {
     identifier: u29,
@@ -34,8 +32,8 @@ pub const CanFrame = extern struct {
 };
 
 pub const VescEvent = union(enum) {
-    notify_boot: vesc_packets.NotifyBoot,
-    command: vesc_commands.Command,
+    notify_boot: packets.NotifyBoot,
+    command: commands.Command,
 };
 
 pub const VescConfig = struct {
@@ -121,7 +119,7 @@ pub const VescBus = struct {
         return null;
     }
 
-    fn processPacket(self: *@This(), vesc_id: u8, packet: vesc_packets.Packet) ?VescEvent {
+    fn processPacket(self: *@This(), vesc_id: u8, packet: packets.Packet) ?VescEvent {
         _ = self;
         std.debug.print("Received packet from {d}: {any}\n", .{ vesc_id, packet });
         return null;
@@ -143,7 +141,7 @@ pub const VescBus = struct {
                     }
 
                     const can_frame = bcm_buffer.frames[0];
-                    const packet_from_vesc = try vesc_packets.parseFrame(can_frame);
+                    const packet_from_vesc = try packets.parseFrame(can_frame);
                     if (packet_from_vesc) |p| {
                         if (self.processPacket(p.source_vesc_id, p.packet)) |event| {
                             return event;

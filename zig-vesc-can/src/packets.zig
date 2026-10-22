@@ -4,11 +4,9 @@ const ParseError = vesc_buffer.ParseError;
 const VescReader = vesc_buffer.VescReader;
 const VescWriter = vesc_buffer.VescWriter;
 const PacketData = vesc_buffer.PacketData;
-const vesc_datatypes = @import("vesc_datatypes.zig");
-const CommandType = vesc_datatypes.CommandType;
-const vesc_can = @import("vesc_can.zig");
-const CanFrame = vesc_can.CanFrame;
-const VescCanId = vesc_can.VescCanId;
+const can = @import("can.zig");
+const CanFrame = can.CanFrame;
+const VescCanId = can.VescCanId;
 
 pub const PacketType = enum(u8) {
     status_1 = 9,

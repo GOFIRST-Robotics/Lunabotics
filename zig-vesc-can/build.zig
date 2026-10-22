@@ -4,20 +4,10 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const translate_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/can.h"),
-        .target = target,
-        .optimize = optimize,
-    });
-    const can_module = translate_c.createModule();
-
     const mod = b.addModule("zig-vesc-can", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
-        .imports = &.{.{
-            .name = "can.h",
-            .module = can_module,
-        }},
+        .imports = &.{},
     });
 
     // -----------------------------------------------
@@ -74,11 +64,6 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "zig-vesc-can", .module = mod },
-
-                .{
-                    .name = "can.h",
-                    .module = can_module,
-                },
             },
             .link_libc = true,
         }),
@@ -106,8 +91,6 @@ pub fn build(b: *std.Build) void {
         .use_lld = true,
     });
 
-    mod_tests.root_module.addImport("can", translate_c.createModule());
-
     const run_mod_tests = b.addRunArtifact(mod_tests);
 
     const exe_tests = b.addTest(.{
@@ -115,8 +98,6 @@ pub fn build(b: *std.Build) void {
         .use_lld = true,
         .use_llvm = true,
     });
-
-    exe_tests.root_module.addImport("can", translate_c.createModule());
 
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
