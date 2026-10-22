@@ -29,7 +29,7 @@ pub const PacketType = enum(u8) {
     process_short_buffer = 8,
 };
 
-const Packet = union(PacketType) {
+pub const Packet = union(PacketType) {
     // Status signals (VESC -> controller)
     status_1: Status1,
     status_2: Status2,
