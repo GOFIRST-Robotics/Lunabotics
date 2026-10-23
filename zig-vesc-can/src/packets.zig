@@ -1,12 +1,11 @@
 const std = @import("std");
-const vesc_buffer = @import("vesc_buffer.zig");
-const ParseError = vesc_buffer.ParseError;
-const VescReader = vesc_buffer.VescReader;
-const VescWriter = vesc_buffer.VescWriter;
-const PacketData = vesc_buffer.PacketData;
 const can = @import("can.zig");
+const codec = @import("codec.zig");
+
 const CanFrame = can.CanFrame;
 const VescCanId = can.VescCanId;
+const BufReader = codec.BufReader;
+const BufWriter = codec.BufWriter;
 
 pub const PacketType = enum(u8) {
     status_1 = 9,
@@ -56,11 +55,10 @@ pub const Status1 = struct {
     current: f32,
     duty_cycle: f32,
 
-    pub const type_id = PacketType.status_1;
     pub const schema = .{
-        .erpm = FloatInfo{ .underlying = i32, .scalar = 1 },
-        .current = FloatInfo{ .underlying = i16, .scalar = 10 },
-        .duty_cycle = FloatInfo{ .underlying = i16, .scalar = 1_000 },
+        .erpm = codec.FixedFloat{ .underlying = i32, .scalar = 1 },
+        .current = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
+        .duty_cycle = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
     };
 };
 
@@ -70,8 +68,8 @@ pub const Status2 = struct {
 
     pub const type_id = PacketType.status_2;
     pub const schema = .{
-        .amp_hours = FloatInfo{ .underlying = i32, .scalar = 10_000 },
-        .amp_hours_chg = FloatInfo{ .underlying = i32, .scalar = 10_000 },
+        .amp_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
+        .amp_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
     };
 };
 
@@ -81,8 +79,8 @@ pub const Status3 = struct {
 
     pub const type_id = PacketType.status_3;
     pub const schema = .{
-        .watt_hours = FloatInfo{ .underlying = i32, .scalar = 10_000 },
-        .watt_hours_chg = FloatInfo{ .underlying = i32, .scalar = 10_000 },
+        .watt_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
+        .watt_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
     };
 };
 
@@ -94,10 +92,10 @@ pub const Status4 = struct {
 
     pub const type_id = PacketType.status_4;
     pub const schema = .{
-        .temp_FET = FloatInfo{ .underlying = i16, .scalar = 10 },
-        .temp_motor = FloatInfo{ .underlying = i16, .scalar = 10 },
-        .current_in = FloatInfo{ .underlying = i16, .scalar = 10 },
-        .PID_pos = FloatInfo{ .underlying = i16, .scalar = 50 },
+        .temp_FET = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
+        .temp_motor = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
+        .current_in = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
+        .PID_pos = codec.FixedFloat{ .underlying = i16, .scalar = 50 },
     };
 };
 
@@ -107,8 +105,8 @@ pub const Status5 = struct {
 
     pub const type_id = PacketType.status_5;
     pub const schema = .{
-        .tachometer = FloatInfo{ .underlying = i32, .scalar = 6 },
-        .volts_in = FloatInfo{ .underlying = i16, .scalar = 10 },
+        .tachometer = codec.FixedFloat{ .underlying = i32, .scalar = 6 },
+        .volts_in = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
         // Last 2 bytes are unused
     };
 };
@@ -121,10 +119,10 @@ pub const Status6 = struct {
 
     pub const type_id = PacketType.status_6;
     pub const schema = .{
-        .ADC1 = FloatInfo{ .underlying = i16, .scalar = 1_000 },
-        .ADC2 = FloatInfo{ .underlying = i16, .scalar = 1_000 },
-        .ADC3 = FloatInfo{ .underlying = i16, .scalar = 1_000 },
-        .PPM = FloatInfo{ .underlying = i16, .scalar = 1_000 },
+        .ADC1 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
+        .ADC2 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
+        .ADC3 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
+        .PPM = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
     };
 };
 
@@ -133,7 +131,7 @@ pub const NotifyBoot = struct {
 
     pub const type_id = PacketType.notify_boot;
     pub const schema = .{
-        .hw_name = SliceInfo{ .length = .remaining },
+        .hw_name = codec.remaining_bytes,
     };
 };
 
@@ -142,7 +140,7 @@ pub const SetDuty = struct {
 
     pub const type_id = PacketType.set_duty;
     pub const schema = .{
-        .duty = FloatInfo{ .underlying = i32, .scalar = 100_000 },
+        .duty = codec.FixedFloat{ .underlying = i32, .scalar = 100_000 },
     };
 };
 
@@ -151,7 +149,7 @@ pub const SetCurrent = struct {
 
     pub const type_id = PacketType.set_current;
     pub const schema = .{
-        .current = FloatInfo{ .underlying = i32, .scalar = 1_000 },
+        .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
     };
 };
 
@@ -160,7 +158,7 @@ pub const SetCurrentBrake = struct {
 
     pub const type_id = PacketType.set_current_brake;
     pub const schema = .{
-        .current = FloatInfo{ .underlying = i32, .scalar = 1_000 },
+        .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
     };
 };
 
@@ -169,7 +167,7 @@ pub const SetRPM = struct {
 
     pub const type_id = PacketType.set_rpm;
     pub const schema = .{
-        .rpm = FloatInfo{ .underlying = i32, .scalar = 1 },
+        .rpm = codec.FixedFloat{ .underlying = i32, .scalar = 1 },
     };
 };
 
@@ -178,7 +176,7 @@ pub const SetPos = struct {
 
     pub const type_id = PacketType.set_pos;
     pub const schema = .{
-        .degrees = FloatInfo{ .underlying = i32, .scalar = 1_000_000 },
+        .degrees = codec.FixedFloat{ .underlying = i32, .scalar = 1_000_000 },
     };
 };
 
@@ -197,9 +195,9 @@ pub const ProcessShortBuffer = struct {
 
     pub const type_id = PacketType.process_short_buffer;
     pub const schema = .{
-        .sender_id = IntInfo{},
-        .send_mode = IntInfo{},
-        .data = SliceInfo{ .length = .remaining },
+        .sender_id = codec.int,
+        .send_mode = codec.int_enum,
+        .data = codec.remaining_bytes,
     };
 };
 
@@ -209,8 +207,8 @@ pub const FillRxBuffer = struct {
 
     pub const type_id = PacketType.fill_rx_buffer;
     pub const schema = .{
-        .base_index = IntInfo{},
-        .data = SliceInfo{ .length = .remaining },
+        .base_index = codec.int,
+        .data = codec.remaining_bytes,
     };
 };
 
@@ -220,8 +218,8 @@ pub const FillRxBufferLong = struct {
 
     pub const type_id = PacketType.fill_rx_buffer_long;
     pub const schema = .{
-        .base_index = IntInfo{},
-        .data = SliceInfo{ .length = .remaining },
+        .base_index = codec.int,
+        .data = codec.remaining_bytes,
     };
 };
 
@@ -233,55 +231,20 @@ pub const ProcessRxBuffer = struct {
 
     pub const type_id = PacketType.process_rx_buffer;
     pub const schema = .{
-        .sender_id = IntInfo{},
-        .send_mode = IntInfo{},
-        .length = IntInfo{},
-        .crc = IntInfo{},
+        .sender_id = codec.int,
+        .send_mode = codec.int_enum,
+        .length = codec.int,
+        .crc = codec.int,
     };
 };
 
-const IntInfo = struct {};
-
-const FloatInfo = struct {
-    underlying: type,
-    scalar: f64,
-};
-
-const SliceInfo = struct {
-    length: enum { remaining },
-};
-
-pub fn parsePacketBody(T: type, data: []const u8) ParseError!T {
-    var packet: T = undefined;
-
-    var reader = VescReader.init(data);
-    const schema = T.schema;
-    inline for (std.meta.fields(T)) |field| {
-        const field_schema = @field(schema, field.name);
-        const schema_type = @TypeOf(field_schema);
-        const field_type = @FieldType(@TypeOf(packet), field.name);
-
-        if (schema_type == IntInfo) {
-            if (@typeInfo(field_type) == .@"enum") {
-                @field(packet, field.name) = try reader.readEnum(field_type);
-            } else {
-                @field(packet, field.name) = try reader.readInt(field_type);
-            }
-        } else if (schema_type == FloatInfo) {
-            @field(packet, field.name) = try reader.readFloat(field_schema.underlying, field_schema.scalar);
-        } else if (schema_type == SliceInfo) {
-            @field(packet, field.name) = switch (field_schema.length) {
-                .remaining => try reader.readSlice(reader.remaining()),
-            };
-        } else {
-            @panic("Invalid field info");
-        }
-    }
-
-    return packet;
+pub fn parsePacketBody(T: type, data: []const u8) !T {
+    const packet_codec = codec.structSchema(T.schema);
+    var reader = BufReader.from(data);
+    return try packet_codec.decode(T, &reader);
 }
 
-pub fn parsePacket(packet_type: PacketType, data: []const u8) ParseError!?Packet {
+pub fn parsePacket(packet_type: PacketType, data: []const u8) !?Packet {
     const fields = std.meta.fields(Packet);
     inline for (fields) |field| {
         if (packet_type == @field(PacketType, field.name)) {
@@ -293,7 +256,7 @@ pub fn parsePacket(packet_type: PacketType, data: []const u8) ParseError!?Packet
     return null;
 }
 
-pub fn parseFrame(frame: CanFrame) ParseError!?struct {
+pub fn parseFrame(frame: CanFrame) !?struct {
     source_vesc_id: u8,
     packet: Packet,
 } {
@@ -307,40 +270,26 @@ pub fn parseFrame(frame: CanFrame) ParseError!?struct {
     };
 }
 
-pub fn serializePacketBody(packet: anytype) PacketData {
-    var writer = VescWriter.init();
+pub const PacketData = struct {
+    data: [8]u8,
+    len: u8,
+};
 
-    const schema = @TypeOf(packet).schema;
-    inline for (std.meta.fields(@TypeOf(packet))) |field| {
-        const field_schema = @field(schema, field.name);
-        const schema_type = @TypeOf(field_schema);
-        const field_type = @FieldType(@TypeOf(packet), field.name);
-        const field_value = @field(packet, field.name);
+pub fn serializePacketBody(packet: anytype) !PacketData {
+    const packet_codec = codec.structSchema(@TypeOf(packet).schema);
 
-        if (schema_type == IntInfo) {
-            if (@typeInfo(field_type) == .@"enum") {
-                writer.writeEnum(field_type, field_value);
-            } else {
-                writer.writeInt(field_type, field_value);
-            }
-        } else if (schema_type == FloatInfo) {
-            writer.writeFloat(field_schema.underlying, field_schema.scalar, field_value);
-        } else if (schema_type == SliceInfo) {
-            switch (field_schema.length) {
-                .remaining => writer.writeSlice(field_value),
-            }
-        } else {
-            @panic("Invalid field info");
-        }
-    }
+    var data: PacketData = undefined;
+    var writer = codec.BufWriter.into(&data.data);
+    try packet_codec.encode(packet, &writer);
+    data.len = @intCast(writer.writtenLength());
 
-    return writer.getData();
+    return data;
 }
 
-pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) CanFrame {
+pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) !CanFrame {
     switch (packet) {
         inline else => |body, packet_type| {
-            const serialized = serializePacketBody(body);
+            const serialized = try serializePacketBody(body);
             return .{
                 .id = (VescCanId{ .vesc_id = dest_vesc_id, .packet_type = @intFromEnum(packet_type) }).toCanId(),
                 .len = serialized.len,
@@ -389,7 +338,7 @@ test "Incomplete Status1 fails to parse" {
     const data = [_]u8{0x67};
     const result = parsePacketBody(Status1, &data);
 
-    try std.testing.expectError(ParseError.IncompletePacket, result);
+    try std.testing.expectError(error.EndOfStream, result);
 }
 
 test "FillRxBufferLong encoding" {
@@ -397,7 +346,7 @@ test "FillRxBufferLong encoding" {
     const packet = FillRxBufferLong{ .base_index = 0x3012, .data = &data };
 
     const expected = [_]u8{ 0x30, 0x12, 1, 2, 3, 4, 5, 6 };
-    const encoded = serializePacketBody(packet);
+    const encoded = try serializePacketBody(packet);
     try std.testing.expectEqualSlices(u8, &expected, encoded.data[0..encoded.len]);
 }
 
@@ -415,7 +364,7 @@ test "ProcessShortBuffer encoding" {
     const packet = ProcessShortBuffer{ .sender_id = 0x12, .send_mode = .A, .data = &data };
 
     const expected = [_]u8{ 0x12, 0x00, 'h', 'e', 'l', 'l', 'o' };
-    const encoded = serializePacketBody(packet);
+    const encoded = try serializePacketBody(packet);
     try std.testing.expectEqualSlices(u8, &expected, encoded.data[0..encoded.len]);
 }
 

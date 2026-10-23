@@ -72,7 +72,7 @@ fn expectEquivalent(zig_create: type, c_create: anytype, range: f32) !void {
 fn expectFrameEqual(zig_create: type, c_create: anytype, id: u8, value: f32) !void {
     errdefer std.debug.print("mismatch for vesc_id={d} value={d}\n", .{ id, value });
     c_create(id, value);
-    const zig_frame = packets.serializeIntoFrame(id, zig_create.create(value));
+    const zig_frame = try packets.serializeIntoFrame(id, zig_create.create(value));
     try compareCanFrames(zig_frame, comm_can.created_frame);
 }
 
