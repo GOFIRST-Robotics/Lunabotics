@@ -31,9 +31,27 @@ pub const CanFrame = extern struct {
     data: [8]u8 align(8) = @splat(0),
 };
 
-pub const VescEvent = union(enum) {
+pub const VescEventData = union(enum) {
+    // Triggered only if the status data has changed, or a status packet is received
+    // after previously timing out
+    status_1: packets.Status1,
+    status_2: packets.Status2,
+    status_3: packets.Status3,
+    status_4: packets.Status4,
+    status_5: packets.Status5,
+    status_6: packets.Status6,
+
     notify_boot: packets.NotifyBoot,
     command: commands.Command,
+
+    // Triggered if a status packet has not been received for too long
+    timeout,
+};
+
+pub const VescEvent = struct {
+    vesc_id: u8,
+    timestamp: linux.kernel_timespec,
+    data: VescEventData,
 };
 
 pub const VescConfig = struct {
@@ -83,7 +101,7 @@ pub const VescBus = struct {
                     .packet_type = status,
                     .ignore_duplicates = true,
                     // TODO: We probably want these for status signals
-                    .timeout = null,
+                    .timeout = .{ .tv_sec = 1, .tv_usec = 0 },
                     .rate_limit = null,
                 });
             }
@@ -119,10 +137,23 @@ pub const VescBus = struct {
         return null;
     }
 
-    fn processPacket(self: *@This(), vesc_id: u8, packet: packets.Packet) ?VescEvent {
-        _ = self;
-        std.debug.print("Received packet from {d}: {any}\n", .{ vesc_id, packet });
-        return null;
+    fn processPacket(self: *@This(), vesc_id: u8, packet: packets.Packet) ?VescEventData {
+        _ = self; // Will need eventually when implementing the multi-packet commands
+
+        switch (packet) {
+            .status_1 => |p| return .{ .status_1 = p },
+            .status_2 => |p| return .{ .status_2 = p },
+            .status_3 => |p| return .{ .status_3 = p },
+            .status_4 => |p| return .{ .status_4 = p },
+            .status_5 => |p| return .{ .status_5 = p },
+            .status_6 => |p| return .{ .status_6 = p },
+            .notify_boot => |p| return .{ .notify_boot = p },
+
+            else => {
+                std.debug.print("Received unhandled packet from {d}: {any}\n", .{ vesc_id, packet });
+                return null;
+            },
+        }
     }
 
     pub fn readNextEvent(self: *@This(), io: Io) !VescEvent {
@@ -133,8 +164,6 @@ pub const VescBus = struct {
 
             switch (bcm_buffer.header.opcode) {
                 linux_can.RX_CHANGED => {
-                    std.debug.print("RX_CHANGED at {any}\n", .{timestamp});
-
                     // New CAN data incoming
                     if (bcm_buffer.header.nframes < 1) {
                         return error.MissingFrame;
@@ -143,14 +172,24 @@ pub const VescBus = struct {
                     const can_frame = bcm_buffer.frames[0];
                     const packet_from_vesc = try packets.parseFrame(can_frame);
                     if (packet_from_vesc) |p| {
-                        if (self.processPacket(p.source_vesc_id, p.packet)) |event| {
-                            return event;
+                        if (self.processPacket(p.source_vesc_id, p.packet)) |event_data| {
+                            return .{
+                                .vesc_id = p.source_vesc_id,
+                                .timestamp = timestamp,
+                                .data = event_data,
+                            };
                         }
                     }
                 },
                 linux_can.RX_TIMEOUT => {
-                    // Device is die
-                    std.debug.print("CAN message timeout for ID {any} at {any}\n", .{ bcm_buffer.header.can_id, timestamp });
+                    if (VescCanId.fromCanId(@bitCast(bcm_buffer.header.can_id))) |vesc_can_id| {
+                        // Device is die
+                        return .{
+                            .vesc_id = vesc_can_id.vesc_id,
+                            .timestamp = timestamp,
+                            .data = .timeout,
+                        };
+                    }
                 },
                 else => {},
             }
@@ -218,18 +257,13 @@ fn openBcmCanSocket(name: ?[]const u8, errno_out: ?*linux.E) BcmCanSocketOpenErr
     }
 
     {
-        const flags: c_int =
-            linux_can.SOF_TIMESTAMPING_SOFTWARE |
-            linux_can.SOF_TIMESTAMPING_RX_SOFTWARE |
-            linux_can.SOF_TIMESTAMPING_RX_HARDWARE |
-            linux_can.SOF_TIMESTAMPING_RAW_HARDWARE;
-
+        const timestamp_enable: c_int = 1;
         const e = linux.errno(linux.setsockopt(
             socket_fd,
             linux.SOL.SOCKET,
-            linux.SO.TIMESTAMPING_NEW,
-            @ptrCast(&flags),
-            @sizeOf(@TypeOf(flags)),
+            linux.SO.TIMESTAMPNS_NEW,
+            @ptrCast(&timestamp_enable),
+            @sizeOf(@TypeOf(timestamp_enable)),
         ));
         if (e != .SUCCESS) {
             if (errno_out) |ptr| {
@@ -249,24 +283,18 @@ fn BcmMessageBuf(max_frames: usize) type {
     };
 }
 
-const scm_timestamping64 = extern struct {
-    software: linux.kernel_timespec,
-    _deprecated: linux.kernel_timespec,
-    hardware: linux.kernel_timespec,
-};
-
 fn bcmRead(
     io: Io,
     fd: linux.socket_t,
     comptime max_frames: usize,
-) !struct { BcmMessageBuf(max_frames), ?scm_timestamping64 } {
+) !struct { BcmMessageBuf(max_frames), linux.kernel_timespec } {
     // Will hold the BCM event data and CAN frames
     var bcm_buffer: BcmMessageBuf(max_frames) = undefined;
 
     // Will hold the timestamp of the BCM event message (at most one)
     const cmsg_header_size = comptime @sizeOf(linux.cmsghdr);
     const cmsg_data_offset = comptime std.mem.alignForward(usize, cmsg_header_size, @alignOf(usize)); // Alignment padding
-    const cmsg_buffer_size = comptime std.mem.alignForward(usize, cmsg_data_offset + @sizeOf(scm_timestamping64), @alignOf(usize));
+    const cmsg_buffer_size = comptime std.mem.alignForward(usize, cmsg_data_offset + @sizeOf(linux.kernel_timespec), @alignOf(usize));
     var cmsg_buffer: [cmsg_buffer_size]u8 align(@alignOf(linux.cmsghdr)) = undefined;
 
     var message_buffer = [_]Io.net.IncomingMessage{.{
@@ -301,22 +329,20 @@ fn bcmRead(
     }
     // Now we know the BCM buffer is good
 
-    const timestamp = get_timestamp: {
-        if (received_msg.control.len < 1) {
-            break :get_timestamp null;
-        }
+    if (received_msg.control.len < 1) {
+        return error.MissingTimestamp;
+    }
 
-        // Since the only CMSG we enabled is timestamping, we know the one message we received is the timestamp
-        const cmsg: *const linux.cmsghdr = @ptrCast(&cmsg_buffer);
-        if (cmsg.level != linux.SOL.SOCKET or cmsg.type != linux.SO.TIMESTAMPING_NEW) {
-            return error.UnexpectedCmsg;
-        }
-        const timestamp_ptr: *const scm_timestamping64 = @ptrCast(@alignCast(&cmsg_buffer[cmsg_data_offset]));
+    // Since the only CMSG we enabled is timestamping, we know the one message we received is the timestamp
+    const cmsg: *const linux.cmsghdr = @ptrCast(&cmsg_buffer);
+    const is_timestamp = cmsg.type == linux.SO.TIMESTAMPNS_OLD or cmsg.type == linux.SO.TIMESTAMPNS_NEW;
+    if (cmsg.level != linux.SOL.SOCKET or !is_timestamp) {
+        std.debug.print("{any}", .{cmsg.type});
+        return error.UnexpectedCmsg;
+    }
+    const timestamp_ptr: *const linux.kernel_timespec = @ptrCast(@alignCast(&cmsg_buffer[cmsg_data_offset]));
 
-        break :get_timestamp timestamp_ptr.*;
-    };
-
-    return .{ bcm_buffer, timestamp };
+    return .{ bcm_buffer, timestamp_ptr.* };
 }
 
 fn bcmWrite(io: Io, fd: linux.socket_t, comptime max_frames: usize, buf: BcmMessageBuf(max_frames)) !void {
