@@ -1,9 +1,9 @@
 const std = @import("std");
 const Io = std.Io;
 const linux = std.os.linux;
-const socket_can = @import("socket_can.zig");
 const vesc_datatypes = @import("vesc_datatypes.zig");
-const CanFrame = socket_can.CanFrame;
+const vesc_can = @import("vesc_can.zig");
+const CanFrame = vesc_can.CanFrame;
 
 pub const FakeMotor = struct {
     can_fd: linux.fd_t,
