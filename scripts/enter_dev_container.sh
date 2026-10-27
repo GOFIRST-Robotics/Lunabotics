@@ -77,9 +77,6 @@ if [ "$ACTION" = "rebuild" ] || [ -z "$IMAGE_EXISTS" ]; then
     fi
 fi
 
-# 2. X11 Forwarding Setup
-xhost +local:root > /dev/null
-
 # 3. Attach, Start, or Run Container
 if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo "--> Attaching to existing running container: ${CONTAINER_NAME}"
@@ -105,6 +102,8 @@ else
     )
 
     if [ "$USE_GPU" = true ]; then
+        xhost +local:root > /dev/null
+        # source /usr/local/zed/venv/bin/activate
         docker run "${COMMON_RUN_ARGS[@]}" \
             --gpus all \
             -v /tmp/.X11-unix:/tmp/.X11-unix \

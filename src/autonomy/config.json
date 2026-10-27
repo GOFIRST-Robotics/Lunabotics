@@ -1,0 +1,11 @@
+{
+    "robot_dimensions": {
+        "width": 0.5,
+        "length": 0.5,
+        "height": 0.5
+    },
+    "path_planner": {
+        "max_speed": 1.0,
+        "max_acceleration": 1.0
+    }
+}
