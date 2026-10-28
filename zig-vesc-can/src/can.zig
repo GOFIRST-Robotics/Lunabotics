@@ -9,11 +9,8 @@ const linux_can = @cImport({
     @cInclude("linux/net_tstamp.h");
 });
 const Io = std.Io;
-const Allocator = std.mem.Allocator;
 
 const packets = @import("packets.zig");
-const PacketType = packets.PacketType;
-const commands = @import("commands.zig");
 
 pub const CanId = packed struct(u32) {
     identifier: u29,
@@ -31,180 +28,40 @@ pub const CanFrame = extern struct {
     data: [8]u8 align(8) = @splat(0),
 };
 
-pub const VescEventData = union(enum) {
-    // Triggered only if the status data has changed, or a status packet is received
-    // after previously timing out
-    status_1: packets.Status1,
-    status_2: packets.Status2,
-    status_3: packets.Status3,
-    status_4: packets.Status4,
-    status_5: packets.Status5,
-    status_6: packets.Status6,
-
-    notify_boot: packets.NotifyBoot,
-    command: commands.Command,
-
-    // Triggered if a status packet has not been received for too long
-    timeout,
-};
-
-pub const VescEvent = struct {
+pub const VescCanId = packed struct(u29) {
     vesc_id: u8,
-    timestamp: linux.kernel_timespec,
-    data: VescEventData,
-};
+    packet_type: u8,
+    _unused: u13 = 0,
 
-pub const VescConfig = struct {
-    vesc_id: u8,
-};
-
-pub const VescBusConfig = struct {
-    interface_name: ?[]const u8,
-    vesc_configs: []const VescConfig,
-};
-
-const RX_BUFFER_LEN: usize = 512;
-
-const VescState = struct {
-    vesc_id: u8,
-    rx_buffer: [RX_BUFFER_LEN]u8,
-};
-
-pub const VescBus = struct {
-    fd: linux.socket_t,
-    vesc_states: []VescState,
-    allocator: Allocator,
-
-    pub fn open(io: Io, allocator: Allocator, config: VescBusConfig, errno_out: ?*linux.E) !@This() {
-        const fd = try openBcmCanSocket(config.interface_name, errno_out);
-
-        const statuses = [_]PacketType{
-            .status_1,
-            .status_2,
-            .status_3,
-            .status_4,
-            .status_5,
-            .status_6,
-        };
-        const events = [_]PacketType{
-            .notify_boot,
-            .fill_rx_buffer,
-            .fill_rx_buffer_long,
-            .process_rx_buffer,
-            .process_short_buffer,
-        };
-
-        for (config.vesc_configs) |vesc_config| {
-            for (statuses) |status| {
-                try setupInputFilter(io, fd, .{
-                    .vesc_id = vesc_config.vesc_id,
-                    .packet_type = status,
-                    .ignore_duplicates = true,
-                    // TODO: We probably want these for status signals
-                    .timeout = .{ .tv_sec = 1, .tv_usec = 0 },
-                    .rate_limit = null,
-                });
-            }
-            for (events) |event| {
-                try setupInputFilter(io, fd, .{
-                    .vesc_id = vesc_config.vesc_id,
-                    .packet_type = event,
-                    .ignore_duplicates = false,
-                    .timeout = null,
-                    .rate_limit = null,
-                });
-            }
+    pub fn fromCanId(id: CanId) ?@This() {
+        if (id.err or id.rtr or !id.eff) {
+            return null;
         }
 
-        const vesc_states = try allocator.alloc(VescState, config.vesc_configs.len);
-        for (0..vesc_states.len) |i| {
-            vesc_states[i].vesc_id = config.vesc_configs[i].vesc_id;
+        const frame_id: @This() = @bitCast(id.identifier);
+        if (frame_id._unused != 0) {
+            return null;
         }
 
+        return frame_id;
+    }
+
+    pub fn toCanId(self: @This()) CanId {
         return .{
-            .fd = fd,
-            .vesc_states = vesc_states,
-            .allocator = allocator,
+            .identifier = @bitCast(self),
+            .err = false,
+            .rtr = false,
+            .eff = true,
         };
-    }
-
-    fn findVescState(self: *const @This(), vesc_id: u8) ?*VescState {
-        for (0..self.vesc_states.len) |i| {
-            if (self.vesc_states[i].vesc_id == vesc_id) {
-                return &self.vesc_states[i];
-            }
-        }
-        return null;
-    }
-
-    fn processPacket(self: *@This(), vesc_id: u8, packet: packets.Packet) ?VescEventData {
-        _ = self; // Will need eventually when implementing the multi-packet commands
-
-        switch (packet) {
-            .status_1 => |p| return .{ .status_1 = p },
-            .status_2 => |p| return .{ .status_2 = p },
-            .status_3 => |p| return .{ .status_3 = p },
-            .status_4 => |p| return .{ .status_4 = p },
-            .status_5 => |p| return .{ .status_5 = p },
-            .status_6 => |p| return .{ .status_6 = p },
-            .notify_boot => |p| return .{ .notify_boot = p },
-
-            else => {
-                std.debug.print("Received unhandled packet from {d}: {any}\n", .{ vesc_id, packet });
-                return null;
-            },
-        }
-    }
-
-    pub fn readNextEvent(self: *@This(), io: Io) !VescEvent {
-        // Keep reading and processing BCM messages until something interesting happens,
-        // in which case we return it as an event
-        while (true) {
-            const bcm_buffer, const timestamp = try bcmRead(io, self.fd, 1);
-
-            switch (bcm_buffer.header.opcode) {
-                linux_can.RX_CHANGED => {
-                    // New CAN data incoming
-                    if (bcm_buffer.header.nframes < 1) {
-                        return error.MissingFrame;
-                    }
-
-                    const can_frame = bcm_buffer.frames[0];
-                    const packet_from_vesc = try packets.parseFrame(can_frame);
-                    if (packet_from_vesc) |p| {
-                        if (self.processPacket(p.source_vesc_id, p.packet)) |event_data| {
-                            return .{
-                                .vesc_id = p.source_vesc_id,
-                                .timestamp = timestamp,
-                                .data = event_data,
-                            };
-                        }
-                    }
-                },
-                linux_can.RX_TIMEOUT => {
-                    if (VescCanId.fromCanId(@bitCast(bcm_buffer.header.can_id))) |vesc_can_id| {
-                        // Device is die
-                        return .{
-                            .vesc_id = vesc_can_id.vesc_id,
-                            .timestamp = timestamp,
-                            .data = .timeout,
-                        };
-                    }
-                },
-                else => {},
-            }
-        }
-    }
-
-    pub fn close(self: @This()) void {
-        _ = linux.close(self.fd);
-        self.allocator.free(self.vesc_states);
     }
 };
 
-const BcmCanSocketOpenError = error{ NameTooLong, SocketError, IoctlError, ConnectionError, SetSockOptError };
-fn openBcmCanSocket(name: ?[]const u8, errno_out: ?*linux.E) BcmCanSocketOpenError!linux.socket_t {
-    if (name) |*n| {
+pub const BcmCanSocket = struct {
+    fd: linux.socket_t,
+};
+
+pub fn openSocket(interface_name: ?[]const u8, errno_out: ?*linux.E) !BcmCanSocket {
+    if (interface_name) |*n| {
         if (n.len + 1 > linux.IFNAMESIZE) {
             return error.NameTooLong;
         }
@@ -223,7 +80,7 @@ fn openBcmCanSocket(name: ?[]const u8, errno_out: ?*linux.E) BcmCanSocketOpenErr
     };
 
     const interface_index: c_int = get_index: {
-        if (name) |*n| {
+        if (interface_name) |*n| {
             var ifr: linux.ifreq = undefined;
             @memcpy(ifr.ifrn.name[0..n.len], n.ptr);
             ifr.ifrn.name[n.len] = 0;
@@ -273,7 +130,161 @@ fn openBcmCanSocket(name: ?[]const u8, errno_out: ?*linux.E) BcmCanSocketOpenErr
         }
     }
 
-    return socket_fd;
+    return .{ .fd = socket_fd };
+}
+
+pub fn closeSocket(socket: BcmCanSocket) void {
+    _ = linux.close(socket.fd);
+}
+
+pub const BcmTaskHandle = struct {
+    can_id: CanId,
+    kind: enum { tx, rx },
+};
+
+pub const RepeatingSendOptions = struct {
+    vesc_id: u8,
+    packet: packets.Packet,
+    interval: linux_can.bcm_timeval,
+};
+
+pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOptions) !BcmTaskHandle {
+    const frame = try packets.serializeIntoFrame(options.vesc_id, options.packet);
+
+    const msg = BcmMessageBuf(1){
+        .header = .{
+            .opcode = linux_can.TX_SETUP,
+            .flags = linux_can.SETTIMER | linux_can.STARTTIMER,
+            .count = 0,
+            .nframes = 1,
+            .can_id = frame.id,
+        },
+        .frames = .{frame},
+    };
+
+    try bcmWrite(io, socket.fd, 1, msg);
+    return .{ .can_id = frame.id, .kind = .tx };
+}
+
+pub const ReceiveOptions = struct {
+    vesc_id: u8,
+    packet_type: packets.PacketType,
+    ignore_duplicates: bool,
+    timeout: ?linux_can.bcm_timeval,
+    rate_limit: ?linux_can.bcm_timeval,
+};
+
+pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions) !BcmTaskHandle {
+    const can_id = (VescCanId{
+        .vesc_id = options.vesc_id,
+        .packet_type = @intFromEnum(options.packet_type),
+    }).toCanId();
+
+    var msg = BcmMessageBuf(1){
+        .header = .{
+            .opcode = linux_can.RX_SETUP,
+            .flags = 0,
+            .can_id = @bitCast(can_id),
+        },
+        .frames = .{.{
+            .id = @bitCast(can_id),
+            .len = 8,
+            .data = @splat(0xFF),
+        }},
+    };
+
+    if (options.ignore_duplicates) {
+        msg.header.nframes = 1;
+    } else {
+        msg.header.nframes = 0;
+        msg.header.flags |= linux_can.RX_FILTER_ID;
+    }
+
+    if (options.timeout) |timeout| {
+        msg.header.ival1 = timeout;
+        msg.header.flags |= linux_can.SETTIMER | linux_can.STARTTIMER | linux_can.RX_ANNOUNCE_RESUME;
+    } else {
+        msg.header.ival1 = .{ .tv_sec = 0, .tv_usec = 0 };
+    }
+
+    if (options.rate_limit) |rate_limit| {
+        msg.header.ival2 = rate_limit;
+        msg.header.flags |= linux_can.SETTIMER;
+    } else {
+        msg.header.ival2 = .{ .tv_sec = 0, .tv_usec = 0 };
+    }
+
+    try bcmWrite(io, socket.fd, 1, msg);
+    return .{ .can_id = can_id, .kind = .rx };
+}
+
+pub fn deleteTask(io: Io, socket: BcmCanSocket, handle: BcmTaskHandle) !void {
+    const msg = BcmMessageBuf(0){
+        .header = .{
+            .opcode = switch (handle.kind) {
+                .tx => linux_can.TX_DELETE,
+                .rx => linux_can.RX_DELETE,
+            },
+            .flags = 0,
+            .can_id = handle.can_id,
+            .nframes = 0,
+        },
+        .frames = .{},
+    };
+
+    try bcmWrite(io, socket.fd, 0, msg);
+}
+
+pub const VescEventData = union(enum) {
+    packet_received: packets.Packet,
+    packet_timeout: packets.PacketType,
+};
+
+pub const VescEvent = struct {
+    vesc_id: u8,
+    timestamp: linux.kernel_timespec,
+    data: VescEventData,
+};
+
+// Blocks until next event is ready
+pub fn readNextEvent(io: Io, socket: BcmCanSocket) !VescEvent {
+    // Keep reading and processing BCM messages until something interesting happens,
+    // in which case we return it as an event
+    while (true) {
+        const bcm_buffer, const timestamp = try bcmRead(io, socket.fd, 1);
+
+        switch (bcm_buffer.header.opcode) {
+            linux_can.RX_CHANGED => {
+                // New CAN data incoming
+                if (bcm_buffer.header.nframes < 1) {
+                    return error.MissingFrame;
+                }
+
+                const can_frame = bcm_buffer.frames[0];
+                const packet_from_vesc = try packets.parseFrame(can_frame);
+                if (packet_from_vesc) |p| {
+                    return .{
+                        .vesc_id = p.source_vesc_id,
+                        .timestamp = timestamp,
+                        .data = .{ .packet_received = p.packet },
+                    };
+                }
+            },
+            linux_can.RX_TIMEOUT => {
+                if (VescCanId.fromCanId(@bitCast(bcm_buffer.header.can_id))) |vesc_can_id| {
+                    // Device is die
+                    if (std.enums.fromInt(packets.PacketType, vesc_can_id.packet_type)) |packet_type| {
+                        return .{
+                            .vesc_id = vesc_can_id.vesc_id,
+                            .timestamp = timestamp,
+                            .data = .{ .packet_timeout = packet_type },
+                        };
+                    }
+                }
+            },
+            else => {},
+        }
+    }
 }
 
 fn BcmMessageBuf(max_frames: usize) type {
@@ -356,83 +367,4 @@ fn bcmWrite(io: Io, fd: linux.socket_t, comptime max_frames: usize, buf: BcmMess
             },
         },
     });
-}
-
-pub const VescCanId = packed struct(u29) {
-    vesc_id: u8,
-    packet_type: u8,
-    _unused: u13 = 0,
-
-    pub fn fromCanId(id: CanId) ?@This() {
-        if (id.err or id.rtr or !id.eff) {
-            return null;
-        }
-
-        const frame_id: @This() = @bitCast(id.identifier);
-        if (frame_id._unused != 0) {
-            return null;
-        }
-
-        return frame_id;
-    }
-
-    pub fn toCanId(self: @This()) CanId {
-        return .{
-            .identifier = @bitCast(self),
-            .err = false,
-            .rtr = false,
-            .eff = true,
-        };
-    }
-};
-
-const FilterOptions = struct {
-    vesc_id: u8,
-    packet_type: PacketType,
-    ignore_duplicates: bool,
-    timeout: ?linux_can.bcm_timeval,
-    rate_limit: ?linux_can.bcm_timeval,
-};
-
-fn setupInputFilter(io: Io, fd: linux.socket_t, options: FilterOptions) !void {
-    const frame_id = (VescCanId{
-        .vesc_id = options.vesc_id,
-        .packet_type = @intFromEnum(options.packet_type),
-    }).toCanId();
-
-    var msg = BcmMessageBuf(1){
-        .header = .{
-            .opcode = linux_can.RX_SETUP,
-            .flags = 0,
-            .can_id = @bitCast(frame_id),
-        },
-        .frames = .{.{
-            .id = @bitCast(frame_id),
-            .len = 8,
-            .data = @splat(0xFF),
-        }},
-    };
-
-    if (options.ignore_duplicates) {
-        msg.header.nframes = 1;
-    } else {
-        msg.header.nframes = 0;
-        msg.header.flags |= linux_can.RX_FILTER_ID;
-    }
-
-    if (options.timeout) |timeout| {
-        msg.header.ival1 = timeout;
-        msg.header.flags |= linux_can.SETTIMER | linux_can.STARTTIMER | linux_can.RX_ANNOUNCE_RESUME;
-    } else {
-        msg.header.ival1 = .{ .tv_sec = 0, .tv_usec = 0 };
-    }
-
-    if (options.rate_limit) |rate_limit| {
-        msg.header.ival2 = rate_limit;
-        msg.header.flags |= linux_can.SETTIMER;
-    } else {
-        msg.header.ival2 = .{ .tv_sec = 0, .tv_usec = 0 };
-    }
-
-    try bcmWrite(io, fd, 1, msg);
 }

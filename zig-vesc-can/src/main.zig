@@ -2,29 +2,26 @@ const std = @import("std");
 const linux = std.os.linux;
 
 const can = @import("can.zig");
-const VescBus = can.VescBus;
-const VescBusConfig = can.VescBusConfig;
-const VescConfig = can.VescConfig;
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
-    const gpa = init.gpa;
 
-    const vesc_configs = [_]VescConfig{
-        .{ .vesc_id = 1 },
-        .{ .vesc_id = 2 },
-    };
-    const vesc_bus_config = VescBusConfig{
-        .interface_name = "can0",
-        .vesc_configs = &vesc_configs,
-    };
-
-    var vesc_bus = try VescBus.open(io, gpa, vesc_bus_config, null);
-    defer vesc_bus.close();
-
+    const socket = try can.openSocket("can0", null);
+    defer can.closeSocket(socket);
     std.debug.print("can socket is open now\n", .{});
+
+    _ = try can.setupReceive(io, socket, .{
+        .vesc_id = 1,
+        .packet_type = .status_1,
+        .ignore_duplicates = true,
+        .timeout = .{ .tv_sec = 1, .tv_usec = 0 },
+        .rate_limit = null,
+    });
+    std.debug.print("receive set up for Status 1\n", .{});
+
+    std.debug.print("listening for events\n", .{});
     while (true) {
-        const event = try vesc_bus.readNextEvent(io);
+        const event = try can.readNextEvent(io, socket);
         std.debug.print("event: {any}\n", .{event});
     }
 }
