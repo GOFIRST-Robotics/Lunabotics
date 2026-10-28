@@ -1,9 +1,10 @@
 const std = @import("std");
 const Io = std.Io;
 const linux = std.os.linux;
+
 const zig_vesc_can = @import("zig-vesc-can");
-const socket_can = zig_vesc_can.socket_can;
-const vesc_datatypes = zig_vesc_can.vesc_datatypes;
+const can = zig_vesc_can.can;
+
 const config = @import("config");
 const on_jetson = config.on_jetson;
 
@@ -12,8 +13,8 @@ const CANOutNode = @This();
 const canbus_name = config.canbus_name.*;
 const logger = std.log.scoped(.can_out);
 
-can_socket: linux.socket_t,
-io: Io.Threaded,
+io: Io,
+socket: can.BcmCanSocket,
 
 pub const inputType = struct {
     motor_current: f32 = 0.0,
@@ -27,23 +28,22 @@ pub const outputType = struct {
     }
 };
 
-pub fn init(_: Io) @This() {
-    var ret: @This() = undefined;
-    ret.can_socket = socket_can.openCANRaw(&canbus_name, null) catch std.debug.panic("Failed to connected to canbus '{s}'\n", .{canbus_name});
-    logger.info("successfully opened canbus '{s}', with socket {d}", .{ canbus_name, ret.can_socket });
-    ret.io = undefined;
-    return ret;
+pub fn init(io: Io) @This() {
+    const socket = can.openSocket(&canbus_name, null) catch std.debug.panic("failed to connect to canbus '{s}'\n", .{canbus_name});
+
+    return .{ .io = io, .socket = socket };
 }
 
 pub fn deinit(self: *@This()) void {
-    linux.close(self.can_socket);
+    _ = self;
 }
 
 pub fn update(self: *@This(), input: *const inputType, output: *outputType) void {
-    _ = self;
     _ = output;
-    _ = input;
-    // const set_current_cmd = vesc_datatypes.SetCurrent.create(2, input.motor_current);
-    // const set_current_cmd = vesc_datatypes.SetCurrent.create(1.0);
-    // socket_can.sendRAWCANFrame(self.threaded.io(), self.can_socket, &set_current_cmd) catch @panic("Failed to send can frame");
+
+    can.sendOnce(self.io, self.socket, 1, .{
+        .set_current = .{ .current = input.motor_current },
+    }) catch |err| {
+        logger.err("failed to send CAN packet: {any}\n", .{err});
+    };
 }

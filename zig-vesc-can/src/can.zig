@@ -137,6 +137,21 @@ pub fn closeSocket(socket: BcmCanSocket) void {
     _ = linux.close(socket.fd);
 }
 
+pub fn sendOnce(io: Io, socket: BcmCanSocket, vesc_id: u8, packet: packets.Packet) !void {
+    const frame = try packets.serializeIntoFrame(vesc_id, packet);
+
+    const msg = BcmMessageBuf(1){
+        .header = .{
+            .opcode = linux_can.TX_SEND,
+            .nframes = 1,
+            .can_id = @bitCast(frame.id),
+        },
+        .frames = .{frame},
+    };
+
+    try bcmWrite(io, socket.fd, 1, msg);
+}
+
 pub const BcmTaskHandle = struct {
     can_id: CanId,
     kind: enum { tx, rx },
