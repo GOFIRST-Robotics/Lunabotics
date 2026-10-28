@@ -9,7 +9,6 @@ pub const port = 49153;
 /// The number of bytes T takes up in a dgram
 pub fn dgramSize(T: type) comptime_int {
     if (T == Io.Timestamp) {
-        // Io.Timestamp is not packed so only its integer is sent, which avoids sending ABI padding
         return @divExact(@bitSizeOf(@FieldType(Io.Timestamp, "nanoseconds")), 8);
     }
     return @sizeOf(T);

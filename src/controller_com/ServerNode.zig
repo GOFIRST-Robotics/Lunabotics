@@ -10,8 +10,7 @@ const logger = std.log.scoped(.server);
 
 const server_address: net.IpAddress = .{ .ip4 = .{ .port = protocol.port, .bytes = .{ 0, 0, 0, 0 } } };
 
-// How long without a valid packet before the control station is considered lost, this is tunable
-const connection_timeout = Io.Duration.fromMilliseconds(500);
+const connection_timeout = Io.Duration.fromMilliseconds(500); // How long to wait before timeout
 
 pub const ConnectionState = enum(u8) { lost, connected };
 
@@ -69,12 +68,10 @@ pub fn deinit(self: *@This()) void {
     _ = self;
 }
 
-/// Safe to call from any thread
 pub fn connectionState(self: *const @This()) ConnectionState {
     return self.connection_state.load(.seq_cst);
 }
 
-// Only valid packets keep the connection alive so a stream of garbage can't hide a lost connection
 fn updateConnectionState(self: *@This(), current_time: Io.Timestamp, got_valid_packet: bool) void {
     const state = self.connection_state.load(.seq_cst);
     const time_since_valid_packet = self.last_valid_packet_time.durationTo(current_time);
@@ -88,7 +85,6 @@ fn updateConnectionState(self: *@This(), current_time: Io.Timestamp, got_valid_p
             }
             self.connection_state.store(.connected, .seq_cst);
         }
-        // This is the local clock and never the packet's timestamp because the clocks are not synced
         self.last_valid_packet_time = current_time;
     } else if (state == .connected and time_since_valid_packet.nanoseconds > connection_timeout.nanoseconds) {
         logger.warn("Lost connection to control station; no valid packet for {f}", .{time_since_valid_packet});
@@ -103,7 +99,6 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
 
     var dgram_buf: [1024]u8 = undefined;
 
-    // A deadline is used while connected so garbage packets can't keep pushing back noticing a lost connection
     const receive_timeout: Io.Timeout = switch (self.connection_state.load(.seq_cst)) {
         .connected => .{ .deadline = self.last_valid_packet_time.addDuration(connection_timeout).withClock(.awake) },
         .lost => .{ .duration = .{ .raw = connection_timeout, .clock = .awake } },
@@ -111,7 +106,7 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
     const receive_result = self.socket.receiveTimeout(self.io, &dgram_buf, receive_timeout);
 
     const current_time = Io.Timestamp.now(self.io, .awake);
-    // Io.Timestamp.now cannot return an error, instead it gives back zero when getting the time fails
+    // Io.Timestamp.now gives back zero when getting the time fails
     if (current_time.nanoseconds == 0) {
         logger.warn("Failed to get current time from the awake clock", .{});
         return;
@@ -127,7 +122,6 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
         };
         const dgram_data = dgram_info.data;
 
-        // UDP can deliver garbage so a bad dgram is dropped rather than crashing the node
         break :parse protocol.parseDgram(dgram_data) catch |err| {
             logger.warn("Dropped dgram of {d} bytes; {s}", .{ dgram_data.len, @errorName(err) });
             break :parse null;

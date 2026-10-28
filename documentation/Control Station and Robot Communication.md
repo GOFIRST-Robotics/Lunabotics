@@ -9,6 +9,8 @@ The format of every datagram is
 | ---------------------- | ---------------- | ---------- |
 | ClientMessageType      | Timestamp        | Data       |
 
+The ClientMessageType enum specifies what the data will be. There is no length field because the robot code will be able to infer what the size of data. The TimeStamp struct has the seconds and nanoseconds defined in it.  
+
 ## UDP Considerations
 
 UDP does **NOT** guarantee that messages make it to their destination, that they will be in order, or that they will only be received once. In our application it is very unlikely that there will be many of these faults because there is only one network node between the control station and robot. Despite this all code should be written assuming that any of those problems may occur.
