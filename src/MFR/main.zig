@@ -7,15 +7,16 @@ const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
 const CANInNode = MFR.CANInNode;
 const ServerNode = MFR.ServerNode;
-const creation = @import("creation.zig");
 const config = MFR.config;
 const on_jetson = config.on_jetson;
+const Foxglove = MFR.Foxglove;
+const zig_vesc_can = @import("zig-vesc-can");
+const socket_can = zig_vesc_can.socket_can;
+
+const creation = @import("creation.zig");
 const NodeConfig = creation.NodeConfig;
 
 const logger = std.log.scoped(.main);
-
-const zig_vesc_can = @import("zig-vesc-can");
-const socket_can = zig_vesc_can.socket_can;
 
 pub const mechanism_config: NodeConfig = .{
     .node_type = MechanismNode,
@@ -79,6 +80,8 @@ fn interruptHandler(signal: linux.SIG) callconv(.c) void {
 
 pub fn main(init: std.process.Init) !void {
     logger.info("On jetson: {}\n", .{on_jetson});
+    Foxglove.init(init.gpa);
+    defer Foxglove.deinit();
 
     // setup handling signal interrupt
     {
