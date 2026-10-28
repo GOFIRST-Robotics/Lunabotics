@@ -5,11 +5,9 @@ To get controller inputs to the robot a custom protocol was made. This protocol 
 
 The format of every datagram is
 
-| B0 - B1                | B1 - B17  | B17 Onward |
-| ---------------------- | --------- | ---------- |
-| ClientMessageType enum | TimeStamp | Data       |
-
-The ClientMessageType enum specifies what the data will be. There is no length field because the robot code will be able to infer what the size of data. The TimeStamp struct has the seconds and nanoseconds defined in it. 
+| B0                     | B1 - B12         | B13 Onward |
+| ---------------------- | ---------------- | ---------- |
+| ClientMessageType      | Timestamp        | Data       |
 
 ## UDP Considerations
 

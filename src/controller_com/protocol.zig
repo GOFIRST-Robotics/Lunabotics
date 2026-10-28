@@ -1,59 +1,34 @@
 const std = @import("std");
 const Io = std.Io;
 const net = Io.net;
-const linux = std.os.linux;
 const mem = std.mem;
 
 // This is purely random and could be any unused port
 pub const port = 49153;
 
-pub const TimeStamp = packed struct {
-    seconds: isize,
-    nano_seconds: isize,
-
-    pub fn fromTimeSpec(time_spec: *const linux.timespec) @This() {
-        return .{ .seconds = time_spec.sec, .nano_seconds = time_spec.nsec };
+/// The number of bytes T takes up in a dgram
+pub fn dgramSize(T: type) comptime_int {
+    if (T == Io.Timestamp) {
+        // Io.Timestamp is not packed so only its integer is sent, which avoids sending ABI padding
+        return @divExact(@bitSizeOf(@FieldType(Io.Timestamp, "nanoseconds")), 8);
     }
-};
-
-/// nano_seconds has to be smaller than 1 billion
-pub fn isOlderBy(older: TimeStamp, younger: TimeStamp, seconds: isize, nano_seconds: isize) bool {
-    std.debug.assert(nano_seconds < 1_000_000_000);
-    const sec_dif = older.seconds - younger.seconds;
-    const n_sec_dif = older.nano_seconds - younger.nano_seconds;
-
-    if (sec_dif > seconds) {
-        return true;
-    } else if (sec_dif == seconds and n_sec_dif > nano_seconds) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-pub fn isOlder(older: TimeStamp, younger: TimeStamp) bool {
-    if (older.seconds > younger.seconds) {
-        return false;
-    } else if (older.seconds < younger.seconds) {
-        return true;
-    } else if (older.nano_seconds < younger.nano_seconds) {
-        return true;
-    } else {
-        return false;
-    }
+    return @sizeOf(T);
 }
 
 /// Parses T from data and converts it to host endianness
 /// T must be a type with a known size
 pub fn takeFromDgram(T: type, data: []const u8) T {
-    std.debug.assert(@sizeOf(T) <= data.len);
+    std.debug.assert(dgramSize(T) <= data.len);
 
     switch (@typeInfo(T)) {
         .@"enum" => |info| {
             return @enumFromInt(mem.bigToNative(info.tag_type, mem.bytesAsValue(info.tag_type, data).*));
         },
         .@"struct" => |info| {
-            if (info.backing_integer) |b| {
+            if (T == Io.Timestamp) {
+                const Nanoseconds = @FieldType(Io.Timestamp, "nanoseconds");
+                return .fromNanoseconds(mem.readInt(Nanoseconds, data[0..dgramSize(T)], .big));
+            } else if (info.backing_integer) |b| {
                 return @bitCast(mem.bigToNative(b, mem.bytesAsValue(b, data).*));
             } else {
                 @compileError("This function only supports structs that are packed");
@@ -74,14 +49,17 @@ pub fn takeFromDgram(T: type, data: []const u8) T {
 /// data must be a type with a known size
 pub fn writeToDgram(data: anytype, dgram_buf: []u8) void {
     const T = @TypeOf(data);
-    std.debug.assert(@sizeOf(T) <= dgram_buf.len);
+    std.debug.assert(dgramSize(T) <= dgram_buf.len);
 
     switch (@typeInfo(T)) {
         .@"enum" => |info| {
             mem.bytesAsValue(info.tag_type, dgram_buf).* = mem.nativeToBig(info.tag_type, @intFromEnum(data));
         },
         .@"struct" => |info| {
-            if (info.backing_integer) |b| {
+            if (T == Io.Timestamp) {
+                const Nanoseconds = @FieldType(Io.Timestamp, "nanoseconds");
+                mem.writeInt(Nanoseconds, dgram_buf[0..dgramSize(T)], data.nanoseconds, .big);
+            } else if (info.backing_integer) |b| {
                 mem.bytesAsValue(b, dgram_buf).* = mem.nativeToBig(b, @bitCast(data));
             } else {
                 @compileError("This function only supports structs that are packed");
@@ -104,6 +82,14 @@ pub const ClientMessageType = enum(u8) {
     stream_deck,
     stream_deck_down,
     ending_connection,
+};
+
+pub const Payload = union(ClientMessageType) {
+    controller: ControllerData,
+    controller_down: void,
+    stream_deck: StreamDeckData,
+    stream_deck_down: void,
+    ending_connection: void,
 };
 
 // Button order goes in the direction you read
@@ -226,3 +212,57 @@ pub const ControllerData = packed struct {
         );
     }
 };
+
+pub const ParseError = error{
+    TooShort, // The dgram ended before all the expected data was read
+    InvalidMessageType, // The tag does not correspond to any ClientMessageType
+    TrailingBytes, // There was extra data after the expected payload
+};
+
+/// The timestamp is part of every message's header so it is kept outside the payload
+pub const Message = struct {
+    timestamp: Io.Timestamp,
+    payload: Payload,
+};
+
+/// Parses a full dgram of the form: ClientMessageType, Io.Timestamp, payload data
+pub fn parseDgram(dgram: []const u8) ParseError!Message {
+    var dgram_index: usize = 0;
+
+    // The tag is read as a raw int so an unknown value is an error rather than UB
+    const TagInt = @typeInfo(ClientMessageType).@"enum".tag_type;
+    if (dgram.len - dgram_index < @sizeOf(TagInt)) {
+        return ParseError.TooShort;
+    }
+    const raw_tag = mem.readInt(TagInt, dgram[dgram_index..][0..@sizeOf(TagInt)], .big);
+    const message_type = std.enums.fromInt(ClientMessageType, raw_tag) orelse return ParseError.InvalidMessageType;
+    dgram_index += @sizeOf(TagInt);
+
+    if (dgram.len - dgram_index < dgramSize(Io.Timestamp)) {
+        return ParseError.TooShort;
+    }
+    const timestamp = takeFromDgram(Io.Timestamp, dgram[dgram_index..]);
+    dgram_index += dgramSize(Io.Timestamp);
+
+    const payload: Payload = switch (message_type) {
+        inline else => |tag| payload: {
+            const Data = @FieldType(Payload, @tagName(tag));
+            if (Data == void) {
+                break :payload @unionInit(Payload, @tagName(tag), {});
+            }
+
+            if (dgram.len - dgram_index < dgramSize(Data)) {
+                return ParseError.TooShort;
+            }
+            const data = takeFromDgram(Data, dgram[dgram_index..]);
+            dgram_index += dgramSize(Data);
+            break :payload @unionInit(Payload, @tagName(tag), data);
+        },
+    };
+
+    if (dgram_index != dgram.len) {
+        return ParseError.TrailingBytes;
+    }
+
+    return .{ .timestamp = timestamp, .payload = payload };
+}

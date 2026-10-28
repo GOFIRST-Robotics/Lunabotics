@@ -1,7 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
 const net = Io.net;
-const linux = std.os.linux;
 const log = std.log;
 const input_devices = @import("input_devices.zig");
 const protocol = @import("protocol.zig");
@@ -71,7 +70,7 @@ pub fn main(init: std.process.Init) !void {
     }
 
     var logitech_controller_data: ControllerData = .{};
-    var logitech_last_read_time: struct { sec: isize, nsec: isize } = undefined;
+    var logitech_last_read_time: Io.Timestamp = undefined;
 
     var stream_deck = try input_devices.findDevice(init.io, input_devices.stream_deck_name);
     defer {
@@ -81,7 +80,7 @@ pub fn main(init: std.process.Init) !void {
     }
 
     var stream_deck_data: StreamDeckData = .{};
-    var stream_deck_last_read_time: struct { sec: isize, nsec: isize } = undefined;
+    var stream_deck_last_read_time: Io.Timestamp = undefined;
 
     var read_logitech: Io.Future(@typeInfo(@TypeOf(input_devices.readFromLogitechController)).@"fn".return_type.?) = undefined;
     var find_logitech: Io.Future(@typeInfo(@TypeOf(input_devices.findDevice)).@"fn".return_type.?) = undefined;
@@ -114,7 +113,7 @@ pub fn main(init: std.process.Init) !void {
             const read_from_logitech = read_logitech.cancel(custom_io);
             if (read_from_logitech) |v| {
                 logitech_controller_data = v.data;
-                logitech_last_read_time = .{ .sec = v.time.sec, .nsec = v.time.nsec };
+                logitech_last_read_time = v.time;
 
                 var dgram: [1024]u8 = undefined;
                 var dgram_write_index: usize = 0;
@@ -122,13 +121,10 @@ pub fn main(init: std.process.Init) !void {
                 dgram_write_index += @sizeOf(protocol.ClientMessageType);
 
                 protocol.writeToDgram(
-                    protocol.TimeStamp{
-                        .seconds = logitech_last_read_time.sec,
-                        .nano_seconds = logitech_last_read_time.nsec,
-                    },
+                    logitech_last_read_time,
                     dgram[dgram_write_index..],
                 );
-                dgram_write_index += @sizeOf(protocol.TimeStamp);
+                dgram_write_index += protocol.dgramSize(Io.Timestamp);
 
                 protocol.writeToDgram(logitech_controller_data, dgram[dgram_write_index..]);
                 dgram_write_index += @sizeOf(protocol.ControllerData);
@@ -158,7 +154,7 @@ pub fn main(init: std.process.Init) !void {
             const read_from_stream_deck = read_stream_deck.cancel(custom_io);
             if (read_from_stream_deck) |v| {
                 stream_deck_data = v.data;
-                stream_deck_last_read_time = .{ .sec = v.time.sec, .nsec = v.time.nsec };
+                stream_deck_last_read_time = v.time;
 
                 var dgram: [1024]u8 = undefined;
                 var dgram_write_index: usize = 0;
@@ -166,13 +162,10 @@ pub fn main(init: std.process.Init) !void {
                 dgram_write_index += @sizeOf(protocol.ClientMessageType);
 
                 protocol.writeToDgram(
-                    protocol.TimeStamp{
-                        .seconds = stream_deck_last_read_time.sec,
-                        .nano_seconds = stream_deck_last_read_time.nsec,
-                    },
+                    stream_deck_last_read_time,
                     dgram[dgram_write_index..],
                 );
-                dgram_write_index += @sizeOf(protocol.TimeStamp);
+                dgram_write_index += protocol.dgramSize(Io.Timestamp);
 
                 protocol.writeToDgram(stream_deck_data, dgram[dgram_write_index..]);
                 dgram_write_index += @sizeOf(protocol.StreamDeckData);

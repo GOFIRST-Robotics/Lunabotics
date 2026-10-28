@@ -1,5 +1,4 @@
 const std = @import("std");
-const linux = std.os.linux;
 const protocol = @import("protocol.zig");
 const Io = std.Io;
 const net = Io.net;
@@ -11,16 +10,25 @@ const logger = std.log.scoped(.server);
 
 const server_address: net.IpAddress = .{ .ip4 = .{ .port = protocol.port, .bytes = .{ 0, 0, 0, 0 } } };
 
+// How long without a valid packet before the control station is considered lost, this is tunable
+const connection_timeout = Io.Duration.fromMilliseconds(500);
+
+pub const ConnectionState = enum(u8) { lost, connected };
+
 io: Io,
 socket: net.Socket,
 loops: u64,
 
+connection_state: std.atomic.Value(ConnectionState),
+last_valid_packet_time: Io.Timestamp,
+lost_since: ?Io.Timestamp,
+
 previous_controller_data: protocol.ControllerData,
-last_controller_time: protocol.TimeStamp,
+last_controller_time: Io.Timestamp,
 controller_up: bool,
 
 previous_stream_deck_data: protocol.StreamDeckData,
-last_stream_deck_time: protocol.TimeStamp,
+last_stream_deck_time: Io.Timestamp,
 stream_deck_up: bool,
 
 pub const inputType = struct {};
@@ -37,6 +45,10 @@ pub fn init(init_only_io: Io) @This() {
     ret.io = undefined;
     ret.loops = 0;
 
+    ret.connection_state = .init(.lost);
+    ret.last_valid_packet_time = .zero;
+    ret.lost_since = null;
+
     ret.previous_controller_data = .{};
     ret.previous_stream_deck_data = .{};
     ret.controller_up = false;
@@ -44,8 +56,8 @@ pub fn init(init_only_io: Io) @This() {
 
     // There are no obvious defaults for these
     // but logic wise it makes sense to just assume the last data was too long ago
-    ret.last_controller_time = .{ .nano_seconds = 0, .seconds = 0 };
-    ret.last_stream_deck_time = .{ .nano_seconds = 0, .seconds = 0 };
+    ret.last_controller_time = .zero;
+    ret.last_stream_deck_time = .zero;
 
     ret.socket = server_address.bind(init_only_io, .{ .protocol = .udp, .mode = .dgram }) catch @panic("Failed to open UDP controller connection");
     logger.info("Successfully bound server to port {d}", .{protocol.port});
@@ -56,53 +68,93 @@ pub fn init(init_only_io: Io) @This() {
 pub fn deinit(self: *@This()) void {
     _ = self;
 }
+
+/// Safe to call from any thread
+pub fn connectionState(self: *const @This()) ConnectionState {
+    return self.connection_state.load(.seq_cst);
+}
+
+// Only valid packets keep the connection alive so a stream of garbage can't hide a lost connection
+fn updateConnectionState(self: *@This(), current_time: Io.Timestamp, got_valid_packet: bool) void {
+    const state = self.connection_state.load(.seq_cst);
+    const time_since_valid_packet = self.last_valid_packet_time.durationTo(current_time);
+
+    if (got_valid_packet) {
+        if (state == .lost) {
+            if (self.lost_since) |lost_since| {
+                logger.info("Control station connection restored after {f} down", .{lost_since.durationTo(current_time)});
+            } else {
+                logger.info("Control station connected", .{});
+            }
+            self.connection_state.store(.connected, .seq_cst);
+        }
+        // This is the local clock and never the packet's timestamp because the clocks are not synced
+        self.last_valid_packet_time = current_time;
+    } else if (state == .connected and time_since_valid_packet.nanoseconds > connection_timeout.nanoseconds) {
+        logger.warn("Lost connection to control station; no valid packet for {f}", .{time_since_valid_packet});
+        self.lost_since = self.last_valid_packet_time;
+        self.connection_state.store(.lost, .seq_cst);
+    }
+}
+
 pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
     _ = input;
     // logger.info("{any}", .{&self.io});
 
-    const current_time: protocol.TimeStamp = gettime: {
-        var timespec: linux.timespec = undefined;
-        const rc = linux.errno(linux.clock_gettime(.MONOTONIC, &timespec));
-        if (rc != .SUCCESS) {
-            logger.warn("Faield to get current time with clock_gettime; Errno: {s}", .{@tagName(rc)});
-            return;
-        }
-        break :gettime .fromTimeSpec(&timespec);
-    };
-
     var dgram_buf: [1024]u8 = undefined;
 
-    const dgram_info = self.socket.receive(self.io, &dgram_buf) catch |err| {
-        logger.warn("Failed to read socket, {s}", .{@errorName(err)});
-        return;
+    // A deadline is used while connected so garbage packets can't keep pushing back noticing a lost connection
+    const receive_timeout: Io.Timeout = switch (self.connection_state.load(.seq_cst)) {
+        .connected => .{ .deadline = self.last_valid_packet_time.addDuration(connection_timeout).withClock(.awake) },
+        .lost => .{ .duration = .{ .raw = connection_timeout, .clock = .awake } },
     };
-    const dgram_data = dgram_info.data;
-    var dgram_index: usize = 0;
+    const receive_result = self.socket.receiveTimeout(self.io, &dgram_buf, receive_timeout);
 
-    const message_type = protocol.takeFromDgram(protocol.ClientMessageType, dgram_data);
-    dgram_index += @sizeOf(protocol.ClientMessageType);
-    const message_time = protocol.takeFromDgram(protocol.TimeStamp, dgram_data[dgram_index..]);
-    dgram_index += @sizeOf(protocol.TimeStamp);
+    const current_time = Io.Timestamp.now(self.io, .awake);
+    // Io.Timestamp.now cannot return an error, instead it gives back zero when getting the time fails
+    if (current_time.nanoseconds == 0) {
+        logger.warn("Failed to get current time from the awake clock", .{});
+        return;
+    }
 
-    if (protocol.isOlderBy(current_time, message_time, 1, 0)) {
-        logger.info("Got stale data\ncurrent time: {d}:{d}\nmessage time: {d}:{d}", .{
-            current_time.seconds,
-            current_time.nano_seconds,
-            message_time.seconds,
-            message_time.nano_seconds,
+    const maybe_message: ?protocol.Message = parse: {
+        const dgram_info = receive_result catch |err| switch (err) {
+            error.Timeout => break :parse null,
+            else => {
+                logger.warn("Failed to read socket, {s}", .{@errorName(err)});
+                break :parse null;
+            },
+        };
+        const dgram_data = dgram_info.data;
+
+        // UDP can deliver garbage so a bad dgram is dropped rather than crashing the node
+        break :parse protocol.parseDgram(dgram_data) catch |err| {
+            logger.warn("Dropped dgram of {d} bytes; {s}", .{ dgram_data.len, @errorName(err) });
+            break :parse null;
+        };
+    };
+
+    self.updateConnectionState(current_time, maybe_message != null);
+
+    const message = maybe_message orelse return;
+    const message_time = message.timestamp;
+
+    const message_age = message_time.durationTo(current_time);
+    if (message_age.nanoseconds > Io.Duration.fromSeconds(1).nanoseconds) {
+        logger.info("Got stale data, {f} old\ncurrent time: {d}ns\nmessage time: {d}ns", .{
+            message_age,
+            current_time,
+            message_time,
         });
         return;
     }
 
-    switch (message_type) {
-        .controller => {
+    switch (message.payload) {
+        .controller => |controller_data| {
             // if this is true then this dgram is either old data or a duplicate
-            if (protocol.isOlder(message_time, self.last_controller_time)) {
+            if (message_time.nanoseconds < self.last_controller_time.nanoseconds) {
                 return;
             }
-
-            const controller_data = protocol.takeFromDgram(protocol.ControllerData, dgram_data[dgram_index..]);
-            dgram_index += @sizeOf(protocol.ControllerData);
 
             if (controller_data.d_pad.up != self.previous_controller_data.d_pad.up) {
                 if (controller_data.d_pad.up) {
@@ -121,14 +173,11 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
             self.last_controller_time = message_time;
             self.controller_up = false;
         },
-        .stream_deck => {
+        .stream_deck => |stream_deck_data| {
             // if this is true then this dgram is either old data or a duplicate
-            if (protocol.isOlder(message_time, self.last_stream_deck_time)) {
+            if (message_time.nanoseconds < self.last_stream_deck_time.nanoseconds) {
                 return;
             }
-
-            const stream_deck_data = protocol.takeFromDgram(protocol.StreamDeckData, dgram_data[dgram_index..]);
-            dgram_index += @sizeOf(protocol.StreamDeckData);
 
             if (stream_deck_data.btn_0 != self.previous_stream_deck_data.btn_0) {
                 if (stream_deck_data.btn_0) {
@@ -147,13 +196,10 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
             self.last_controller_time = message_time;
             self.stream_deck_up = false;
         },
-        else => {
+        .ending_connection => {
             return;
         },
     }
-
-    // if this is not true then some data has not been parsed which is (most likely) an error
-    std.debug.assert(dgram_data.len == dgram_index);
 
     if (self.controller_up) {
         if (self.previous_controller_data.r3) {

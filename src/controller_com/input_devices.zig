@@ -65,12 +65,12 @@ fn normalizeAndClamp(val: i32, min: i32, max: i32) f32 {
 const logitechAxisMin = 0;
 const logitechAxisMax = 255;
 pub const ControllerReadError = error{ LostController, ReadError };
-pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol.ControllerData) ControllerReadError!struct { time: struct { sec: isize, nsec: isize }, data: protocol.ControllerData } {
+pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol.ControllerData) ControllerReadError!struct { time: Io.Timestamp, data: protocol.ControllerData } {
     var event: input.input_event = undefined;
-    var time: linux.timespec = undefined;
-    const get_time_rc = linux.errno(linux.clock_gettime(linux.clockid_t.REALTIME, &time));
-    if (get_time_rc != .SUCCESS) {
-        std.debug.panic("Failed to get time with function 'linux.clock_gettime', errno: {d}\n", .{get_time_rc});
+    var time = Io.Timestamp.now(io, .real);
+    // Io.Timestamp.now cannot return an error, instead it gives back zero when getting the time fails
+    if (time.nanoseconds == 0) {
+        std.debug.panic("Failed to get time from the real clock\n", .{});
     }
 
     var data = previous_data;
@@ -89,7 +89,7 @@ pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol
                 }
             },
             error.Canceled => {
-                return .{ .time = .{ .sec = time.sec, .nsec = time.nsec }, .data = data };
+                return .{ .time = time, .data = data };
             },
             else => {
                 log.warn("A read error occured while reading from logitech controller. Error: {s}\n", .{@errorName(err)});
@@ -159,16 +159,16 @@ pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol
             else => {},
         }
 
-        time = .{ .sec = event.time.tv_sec, .nsec = microSecondToNanoSecond(event.time.tv_usec) };
+        time = Io.Timestamp.fromNanoseconds(microSecondToNanoSecond(event.time.tv_usec)).addDuration(.fromSeconds(event.time.tv_sec));
     }
 }
 
-pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamDeckData) ControllerReadError!struct { time: struct { sec: isize, nsec: isize }, data: protocol.StreamDeckData } {
+pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamDeckData) ControllerReadError!struct { time: Io.Timestamp, data: protocol.StreamDeckData } {
     var event: input.input_event = undefined;
-    var time: linux.timespec = undefined;
-    const get_time_rc = linux.errno(linux.clock_gettime(linux.clockid_t.REALTIME, &time));
-    if (get_time_rc != .SUCCESS) {
-        std.debug.panic("Failed to get time with function 'linux.clock_gettime', errno: {d}\n", .{get_time_rc});
+    var time = Io.Timestamp.now(io, .real);
+    // Io.Timestamp.now cannot return an error, instead it gives back zero when getting the time fails
+    if (time.nanoseconds == 0) {
+        std.debug.panic("Failed to get time from the real clock\n", .{});
     }
 
     var data = previous_data;
@@ -187,7 +187,7 @@ pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamD
                 }
             },
             error.Canceled => {
-                return .{ .time = .{ .sec = time.sec, .nsec = time.nsec }, .data = data };
+                return .{ .time = time, .data = data };
             },
             else => {
                 log.warn("A read error occured while reading from logitech controller; {}\n", .{err});
@@ -212,7 +212,7 @@ pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamD
             else => {},
         }
 
-        time = .{ .sec = event.time.tv_sec, .nsec = microSecondToNanoSecond(event.time.tv_usec) };
+        time = Io.Timestamp.fromNanoseconds(microSecondToNanoSecond(event.time.tv_usec)).addDuration(.fromSeconds(event.time.tv_sec));
     }
 }
 
