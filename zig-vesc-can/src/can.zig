@@ -172,7 +172,8 @@ pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOp
             .flags = linux_can.SETTIMER | linux_can.STARTTIMER,
             .count = 0,
             .nframes = 1,
-            .can_id = frame.id,
+            .ival2 = options.interval,
+            .can_id = @bitCast(frame.id),
         },
         .frames = .{frame},
     };
