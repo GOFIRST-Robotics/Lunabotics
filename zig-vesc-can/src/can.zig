@@ -3,11 +3,7 @@
 const std = @import("std");
 const linux = std.os.linux;
 const posix = std.posix;
-const linux_can = @cImport({
-    @cInclude("linux/can.h");
-    @cInclude("linux/can/bcm.h");
-    @cInclude("linux/net_tstamp.h");
-});
+const linux_can = @import("linux_can.h");
 const Io = std.Io;
 
 const packets = @import("packets.zig");
