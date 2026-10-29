@@ -371,7 +371,8 @@ fn bcmRead(
 fn bcmWrite(io: Io, fd: linux.socket_t, comptime max_frames: usize, buf: BcmMessageBuf(max_frames)) !void {
     std.debug.assert(buf.header.nframes <= max_frames);
     const write_size = @sizeOf(linux_can.bcm_msg_head) + buf.header.nframes * @sizeOf(CanFrame);
-    _ = try io.operate(.{
+
+    const op_result = try io.operate(.{
         .file_write_streaming = .{
             .file = .{ .handle = fd, .flags = .{ .nonblocking = false } },
             .data = &.{
@@ -379,4 +380,7 @@ fn bcmWrite(io: Io, fd: linux.socket_t, comptime max_frames: usize, buf: BcmMess
             },
         },
     });
+
+    const count = try op_result.file_write_streaming;
+    if (count != write_size) return error.IncompleteWrite;
 }
