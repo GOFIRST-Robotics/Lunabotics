@@ -238,31 +238,34 @@ pub const ProcessRxBuffer = struct {
     };
 };
 
-pub fn parsePacketBody(T: type, data: []const u8) !T {
+pub fn parsePacketBody(T: type, data: []const u8, diag: ?*codec.DecodeDiagnostic) codec.DecodeError!T {
     const packet_codec = codec.structSchema(T.schema);
     var reader = BufReader.from(data);
-    return try packet_codec.decode(T, &reader);
+    return try packet_codec.decode(T, &reader, diag);
 }
 
-pub fn parsePacket(packet_type: PacketType, data: []const u8) !?Packet {
+pub fn parsePacket(packet_type: PacketType, data: []const u8, diag: ?*codec.DecodeDiagnostic) codec.DecodeError!Packet {
     const fields = std.meta.fields(Packet);
     inline for (fields) |field| {
         if (packet_type == @field(PacketType, field.name)) {
-            return @unionInit(Packet, field.name, try parsePacketBody(field.type, data));
+            return @unionInit(Packet, field.name, try parsePacketBody(field.type, data, diag));
         }
     }
-
-    // Unknown packet type
-    return null;
+    unreachable;
 }
 
-pub fn parseFrame(frame: CanFrame) !?struct {
+pub const FrameParseError = codec.DecodeError || error{ NonVescFrame, UnknownPacket };
+pub fn parseFrame(frame: CanFrame, diag: ?*codec.DecodeDiagnostic) FrameParseError!struct {
     source_vesc_id: u8,
     packet: Packet,
 } {
-    const vesc_id = VescCanId.fromCanId(frame.id) orelse return null;
-    const packet_type = std.enums.fromInt(PacketType, vesc_id.packet_type) orelse return null;
-    const packet = try parsePacket(packet_type, &frame.data) orelse return null;
+    const vesc_id = VescCanId.fromCanId(frame.id) catch |err| {
+        switch (err) {
+            error.NonVescId => return error.NonVescFrame,
+        }
+    };
+    const packet_type = std.enums.fromInt(PacketType, vesc_id.packet_type) orelse return error.UnknownPacket;
+    const packet = try parsePacket(packet_type, &frame.data, diag);
 
     return .{
         .source_vesc_id = vesc_id.vesc_id,
@@ -270,23 +273,29 @@ pub fn parseFrame(frame: CanFrame) !?struct {
     };
 }
 
+pub const SerializeError = error{PacketTooLarge};
+
 pub const PacketData = struct {
     data: [8]u8,
     len: u8,
 };
 
-pub fn serializePacketBody(packet: anytype) !PacketData {
+pub fn serializePacketBody(packet: anytype) SerializeError!PacketData {
     const packet_codec = codec.structSchema(@TypeOf(packet).schema);
 
     var data: PacketData = undefined;
     var writer = codec.BufWriter.into(&data.data);
-    try packet_codec.encode(packet, &writer);
+    packet_codec.encode(packet, &writer) catch |err| {
+        switch (err) {
+            error.BufferTooSmall => return error.PacketTooLarge,
+        }
+    };
     data.len = @intCast(writer.writtenLength());
 
     return data;
 }
 
-pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) !CanFrame {
+pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) SerializeError!CanFrame {
     switch (packet) {
         inline else => |body, packet_type| {
             const serialized = try serializePacketBody(body);
@@ -305,7 +314,7 @@ test "Status1 parses negative values" {
     var frame: CanFrame = .{ .id = id.toCanId(), .len = 8 };
     frame.data = .{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
 
-    const id_and_packet = try parseFrame(frame) orelse return error.TestUnexpectedResult;
+    const id_and_packet = try parseFrame(frame, null);
     try std.testing.expectEqual(id_and_packet.source_vesc_id, 1);
     const packet = id_and_packet.packet;
     const status = switch (packet) {
@@ -321,7 +330,7 @@ test "Status1 parses negative values" {
 test "Status5 parses negative tachometer" {
     // tachometer -600 counts (-100 erev), 48.0 V
     const data = [_]u8{ 0xff, 0xff, 0xfd, 0xa8, 0x01, 0xe0, 0x00, 0x00 };
-    const status = try parsePacketBody(Status5, &data);
+    const status = try parsePacketBody(Status5, &data, null);
 
     try std.testing.expectEqual(@as(f32, -100), status.tachometer);
     try std.testing.expectApproxEqAbs(@as(f32, 48.0), status.volts_in, 0.001);
@@ -329,16 +338,16 @@ test "Status5 parses negative tachometer" {
 
 test "NotifyBoot parses hardware name" {
     const data = [_]u8{ '6', '0', '_', 'M', 'K', '5' };
-    const boot = try parsePacketBody(NotifyBoot, &data);
+    const boot = try parsePacketBody(NotifyBoot, &data, null);
 
     try std.testing.expectEqualStrings("60_MK5", boot.hw_name);
 }
 
 test "Incomplete Status1 fails to parse" {
     const data = [_]u8{0x67};
-    const result = parsePacketBody(Status1, &data);
+    const result = parsePacketBody(Status1, &data, null);
 
-    try std.testing.expectError(error.EndOfStream, result);
+    try std.testing.expectError(error.DecodeFailed, result);
 }
 
 test "FillRxBufferLong encoding" {
@@ -352,7 +361,7 @@ test "FillRxBufferLong encoding" {
 
 test "FillRxBufferLong decoding" {
     const encoded = [_]u8{ 0x30, 0x12, 1, 2, 3, 4, 5, 6 };
-    const packet = try parsePacketBody(FillRxBufferLong, &encoded);
+    const packet = try parsePacketBody(FillRxBufferLong, &encoded, null);
 
     const expected_data = [_]u8{ 1, 2, 3, 4, 5, 6 };
     try std.testing.expectEqual(0x3012, packet.base_index);
@@ -370,7 +379,7 @@ test "ProcessShortBuffer encoding" {
 
 test "ProcessShortBuffer decoding" {
     const encoded = [_]u8{ 0x12, 0x00, 'h', 'e', 'l', 'l', 'o' };
-    const packet = try parsePacketBody(ProcessShortBuffer, &encoded);
+    const packet = try parsePacketBody(ProcessShortBuffer, &encoded, null);
 
     const expected_data = [_]u8{ 'h', 'e', 'l', 'l', 'o' };
     try std.testing.expectEqual(0x12, packet.sender_id);

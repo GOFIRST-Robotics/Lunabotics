@@ -16,19 +16,19 @@ pub fn main(init: std.process.Init) !void {
         .ignore_duplicates = true,
         .timeout = .{ .tv_sec = 1, .tv_usec = 0 },
         .rate_limit = null,
-    });
+    }, null);
     std.debug.print("receive set up for Status 1\n", .{});
 
     _ = try can.setupRepeatingSend(io, socket, .{
         .vesc_id = 1,
         .packet = .{ .set_duty = .{ .duty = 0.5 } },
         .interval = .{ .tv_sec = 1, .tv_usec = 0 },
-    });
+    }, null);
     std.debug.print("sending duty cycle control request at 1 second intervals\n", .{});
 
     std.debug.print("listening for events\n", .{});
     while (true) {
-        const event = try can.readNextEvent(io, socket);
+        const event = try can.readNextEvent(io, socket, null);
         std.debug.print("event: {any}\n", .{event});
     }
 }

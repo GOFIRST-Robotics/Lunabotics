@@ -1,5 +1,13 @@
 const std = @import("std");
 
+pub const EncodeError = error{BufferTooSmall};
+pub const DecodeError = error{DecodeFailed};
+
+pub const DecodeDiagnostic = struct {
+    message: []const u8,
+    byte_position: usize,
+};
+
 pub const boolean = Boolean{};
 const Boolean = struct {
     pub fn encodedLength(_: @This(), value: anytype) usize {
@@ -7,17 +15,20 @@ const Boolean = struct {
         return 1;
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) !void {
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         if (@TypeOf(value) != bool) @compileError("type must be bool");
         try writer.write(&.{if (value) 1 else 0});
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader) !T {
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         if (T != bool) @compileError("type must be bool");
-        switch ((try reader.read(1))[0]) {
+        switch ((try reader.read(1, diag))[0]) {
             0 => return false,
             1 => return true,
-            else => return error.InvalidBoolean,
+            else => {
+                reader.putDiagnostic("invalid boolean", diag);
+                return error.DecodeFailed;
+            },
         }
     }
 };
@@ -31,7 +42,7 @@ const Int = struct {
         return @sizeOf(T);
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) !void {
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         const T = @TypeOf(value);
         if (@typeInfo(T) != .int) @compileError("type must be an integer");
         if (@bitSizeOf(T) % 8 != 0) @compileError("integer must be a multiple of 8 bits");
@@ -40,11 +51,11 @@ const Int = struct {
         std.mem.writeInt(T, dest[0..@sizeOf(T)], value, .big);
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader) !T {
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         if (@typeInfo(T) != .int) @compileError("type must be an integer");
         if (@bitSizeOf(T) % 8 != 0) @compileError("integer must be a multiple of 8 bits");
 
-        const data = try reader.read(@sizeOf(T));
+        const data = try reader.read(@sizeOf(T), diag);
         const raw: T = std.mem.bytesToValue(T, data);
         return std.mem.bigToNative(T, raw);
     }
@@ -59,21 +70,22 @@ const IntEnum = struct {
         }
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) !void {
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         if (@typeInfo(@TypeOf(value)) != .@"enum") @compileError("type must be an enum");
         try int.encode(@intFromEnum(value), writer);
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader) !T {
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         const TagT = switch (@typeInfo(T)) {
             .@"enum" => |e| e.tag_type,
             else => @compileError("type must be an enum"),
         };
 
-        if (std.enums.fromInt(T, try int.decode(TagT, reader))) |v| {
+        if (std.enums.fromInt(T, try int.decode(TagT, reader, diag))) |v| {
             return v;
         } else {
-            return error.InvalidEnumValue;
+            reader.putDiagnostic("invalid enum value", diag);
+            return error.DecodeFailed;
         }
     }
 };
@@ -95,7 +107,7 @@ pub const FixedFloat = struct {
         return @sizeOf(self.underlying);
     }
 
-    pub fn encode(self: @This(), value: anytype, writer: *BufWriter) !void {
+    pub fn encode(self: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         if (@TypeOf(value) != f32) @compileError("type must be f32");
 
         const underlying: self.underlying = if (self.use_f64_scale)
@@ -106,9 +118,9 @@ pub const FixedFloat = struct {
         try int.encode(underlying, writer);
     }
 
-    pub fn decode(self: @This(), T: type, reader: *BufReader) !T {
+    pub fn decode(self: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         if (T != f32) @compileError("type must be f32");
-        const underlying = try int.decode(self.underlying, reader);
+        const underlying = try int.decode(self.underlying, reader, diag);
         return @as(f32, @floatFromInt(underlying)) / @as(f32, self.scalar);
     }
 };
@@ -124,14 +136,14 @@ pub fn array(child_codec: anytype) struct {
         return total_len;
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) !void {
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         if (@typeInfo(@TypeOf(value)) != .array) @compileError("type must be an array");
         for (value) |elem| {
             try child_codec.encode(elem, writer);
         }
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader) !T {
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         const info = switch (@typeInfo(T)) {
             .array => |i| i,
             else => @compileError("type must be an array"),
@@ -139,7 +151,7 @@ pub fn array(child_codec: anytype) struct {
 
         var value: [info.len]info.child = undefined;
         for (0..info.len) |i| {
-            value[i] = try child_codec.decode(info.child, reader);
+            value[i] = try child_codec.decode(info.child, reader, diag);
         }
         return value;
     }
@@ -176,7 +188,7 @@ pub fn structSchema(schema: anytype) struct {
         return total_len;
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) !void {
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         const T = @TypeOf(value);
         validateStructSchema(T, schema);
 
@@ -188,7 +200,7 @@ pub fn structSchema(schema: anytype) struct {
         }
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader) !T {
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         validateStructSchema(T, schema);
 
         const SchemaT = @TypeOf(schema);
@@ -196,7 +208,7 @@ pub fn structSchema(schema: anytype) struct {
         inline for (std.meta.fields(SchemaT)) |field| {
             const field_codec = @field(schema, field.name);
             const FieldType = @FieldType(T, field.name);
-            @field(value, field.name) = try field_codec.decode(FieldType, reader);
+            @field(value, field.name) = try field_codec.decode(FieldType, reader, diag);
         }
 
         return value;
@@ -212,36 +224,45 @@ const RemainingBytes = struct {
         return value.len;
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) !void {
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         if (@TypeOf(value) != []const u8) @compileError("type must be []const u8");
         try writer.write(value);
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader) !T {
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         if (T != []const u8) @compileError("type must be []const u8");
-        return try reader.read(reader.remaining());
+        return try reader.read(reader.remaining(), diag);
     }
 };
 
 pub const BufReader = struct {
-    remaining_data: []const u8,
+    data: []const u8,
+    pos: usize,
 
     pub fn from(data: []const u8) @This() {
-        return .{ .remaining_data = data };
+        return .{ .data = data, .pos = 0 };
     }
 
-    pub fn read(self: *@This(), count: usize) ![]const u8 {
-        if (count > self.remaining_data.len) {
-            return error.EndOfStream;
+    pub fn read(self: *@This(), count: usize, diag: ?*DecodeDiagnostic) DecodeError![]const u8 {
+        if (count > self.remaining()) {
+            self.putDiagnostic("incomplete data", diag);
+            return error.DecodeFailed;
         } else {
-            const slice = self.remaining_data[0..count];
-            self.remaining_data = self.remaining_data[count..];
+            const slice = self.data[self.pos..][0..count];
+            self.pos += count;
             return slice;
         }
     }
 
+    pub fn putDiagnostic(self: @This(), message: []const u8, diag: ?*DecodeDiagnostic) void {
+        if (diag) |d| {
+            d.message = message;
+            d.byte_position = self.pos;
+        }
+    }
+
     pub fn remaining(self: @This()) usize {
-        return self.remaining_data.len;
+        return self.data.len - self.pos;
     }
 };
 
@@ -253,14 +274,14 @@ pub const BufWriter = struct {
         return .{ .dest = dest, .length = 0 };
     }
 
-    pub fn write(self: *@This(), data: []const u8) !void {
+    pub fn write(self: *@This(), data: []const u8) EncodeError!void {
         const dest = try self.writable(data.len);
         @memcpy(dest, data);
     }
 
-    pub fn writable(self: *@This(), len: usize) ![]u8 {
+    pub fn writable(self: *@This(), len: usize) EncodeError![]u8 {
         if (self.length + len > self.dest.len) {
-            return error.BufferFull;
+            return error.BufferTooSmall;
         } else {
             const slice = self.dest[self.length..][0..len];
             self.length += len;
@@ -315,6 +336,6 @@ test "codec" {
     try std.testing.expectEqualSlices(u8, &encoded_cat, buf_writer.writtenData());
 
     var buf_reader = BufReader.from(&encoded_cat);
-    const decoded_cat = try cat_codec.decode(Cat, &buf_reader);
+    const decoded_cat = try cat_codec.decode(Cat, &buf_reader, null);
     try std.testing.expectEqualDeep(original_cat, decoded_cat);
 }
