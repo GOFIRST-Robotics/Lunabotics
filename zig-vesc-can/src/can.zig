@@ -252,13 +252,16 @@ pub fn deleteTask(io: Io, socket: BcmCanSocket, handle: BcmTaskHandle, diag: ?*W
 
 pub const ReadError = error{ Canceled, BcmReadFailed, ParseFailed };
 pub const ReadDiagnostic = struct {
-    message: []const u8,
+    message: []const u8 = "success",
+
     data: ?union(enum) {
-        frame: CanFrame,
-        id: CanId,
+        bcm_read_err: Io.net.Socket.ReceiveError,
+        bad_frame: struct {
+            frame: CanFrame,
+            parse_diag: ?codec.DecodeDiagnostic,
+        },
+        bad_id: CanId,
     } = null,
-    bcm_read_err: ?Io.net.Socket.ReceiveError = null,
-    parse_diag: ?codec.DecodeDiagnostic = null,
 };
 
 pub const VescEvent = struct {
@@ -288,16 +291,16 @@ pub fn readNextEvent(io: Io, socket: BcmCanSocket, diag: ?*ReadDiagnostic) ReadE
                 }
 
                 const can_frame = bcm_buffer.frames[0];
-                var parse_diag: codec.DecodeDiagnostic = undefined;
+                var parse_diag: codec.DecodeDiagnostic = .{};
                 const p = packets.parseFrame(can_frame, &parse_diag) catch |err| {
                     if (diag) |d| {
-                        d.data = .{ .frame = can_frame };
+                        d.data = .{ .bad_frame = .{ .frame = can_frame, .parse_diag = null } };
                         switch (err) {
                             error.NonVescFrame => d.message = "received RX event for non-VESC frame",
                             error.UnknownPacket => d.message = "received RX event for unknown packet",
                             error.DecodeFailed => {
                                 d.message = "decode failed";
-                                d.parse_diag = parse_diag;
+                                d.data = .{ .bad_frame = .{ .frame = can_frame, .parse_diag = parse_diag } };
                             },
                         }
                     }
@@ -314,7 +317,7 @@ pub fn readNextEvent(io: Io, socket: BcmCanSocket, diag: ?*ReadDiagnostic) ReadE
                 const vesc_can_id = VescCanId.fromCanId(can_id) catch {
                     if (diag) |d| {
                         d.message = "received timeout event for non-VESC ID";
-                        d.data = .{ .id = can_id };
+                        d.data = .{ .bad_id = can_id };
                     }
                     return error.ParseFailed;
                 };
@@ -322,7 +325,7 @@ pub fn readNextEvent(io: Io, socket: BcmCanSocket, diag: ?*ReadDiagnostic) ReadE
                 const packet_type = std.enums.fromInt(packets.PacketType, vesc_can_id.packet_type) orelse {
                     if (diag) |d| {
                         d.message = "received timeout event for unknown packet";
-                        d.data = .{ .id = can_id };
+                        d.data = .{ .bad_id = can_id };
                     }
                     return error.ParseFailed;
                 };
@@ -379,9 +382,13 @@ fn bcmRead(
 
     const recv_err, const recv_count = op_result.net_receive;
     if (recv_err) |err| {
+        if (err == error.Canceled) {
+            return error.Canceled;
+        }
+
         if (diag) |d| {
             d.message = "read failed";
-            d.bcm_read_err = err;
+            d.data = .{ .bcm_read_err = err };
         }
         return error.BcmReadFailed;
     }

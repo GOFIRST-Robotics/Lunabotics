@@ -265,7 +265,7 @@ pub fn parseFrame(frame: CanFrame, diag: ?*codec.DecodeDiagnostic) FrameParseErr
         }
     };
     const packet_type = std.enums.fromInt(PacketType, vesc_id.packet_type) orelse return error.UnknownPacket;
-    const packet = try parsePacket(packet_type, &frame.data, diag);
+    const packet = try parsePacket(packet_type, frame.data[0..@as(usize, frame.len)], diag);
 
     return .{
         .source_vesc_id = vesc_id.vesc_id,

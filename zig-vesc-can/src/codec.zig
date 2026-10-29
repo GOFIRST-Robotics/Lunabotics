@@ -4,8 +4,8 @@ pub const EncodeError = error{BufferTooSmall};
 pub const DecodeError = error{DecodeFailed};
 
 pub const DecodeDiagnostic = struct {
-    message: []const u8,
-    byte_position: usize,
+    message: []const u8 = "success",
+    byte_position: usize = 0,
 };
 
 pub const boolean = Boolean{};

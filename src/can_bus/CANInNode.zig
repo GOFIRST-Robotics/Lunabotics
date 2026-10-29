@@ -39,7 +39,7 @@ pub fn init(io: Io) @This() {
         .ignore_duplicates = true,
         .timeout = .{ .tv_sec = 1, .tv_usec = 0 },
         .rate_limit = null,
-    }) catch std.debug.panic("failed to setup receive for status 1 packet\n", .{});
+    }, null) catch std.debug.panic("failed to setup receive for status 1 packet\n", .{});
 
     return .{ .io = io, .socket = socket };
 }
@@ -51,8 +51,23 @@ pub fn deinit(self: *@This()) void {
 pub fn update(self: *@This(), input: *const inputType, output: *outputType) void {
     _ = input;
     while (true) {
-        const event = can.readNextEvent(self.io, self.socket) catch |err| {
-            logger.err("failed to read CAN event: {t}\n", .{err});
+        var read_diag: can.ReadDiagnostic = .{};
+        const event = can.readNextEvent(self.io, self.socket, &read_diag) catch |err| {
+            if (err == error.Canceled) {
+                return;
+            }
+
+            logger.err("failed to read CAN event: {s}\n", .{read_diag.message});
+            if (read_diag.data) |data| switch (data) {
+                .bcm_read_err => |e| logger.err("  BCM read error: {t}\n", .{e}),
+                .bad_frame => |f| {
+                    logger.err("  frame: {any}\n", .{f.frame});
+                    if (f.parse_diag) |p| {
+                        logger.err("  decode error: {s} at byte {d}\n", .{ p.message, p.byte_position });
+                    }
+                },
+                .bad_id => |i| logger.err("  ID: {any}\n", .{i}),
+            };
             return;
         };
 
