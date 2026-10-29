@@ -3,10 +3,10 @@ const linux = std.os.linux;
 const Io = std.Io;
 
 const MFR = @import("MFR");
-const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
 const CANInNode = MFR.CANInNode;
 const ServerNode = MFR.ServerNode;
+const StateMachineNode = MFR.StateMachineNode;
 const config = MFR.config;
 const on_jetson = config.on_jetson;
 const Foxglove = MFR.Foxglove;
@@ -18,11 +18,6 @@ const NodeConfig = creation.NodeConfig;
 
 const logger = std.log.scoped(.main);
 
-pub const mechanism_config: NodeConfig = .{
-    .node_type = MechanismNode,
-    .name = "mechanism",
-    .outputs_to = &.{canout_config.name},
-};
 pub const canout_config: NodeConfig = .{
     .node_type = CANOutNode,
     .name = "can_out",
@@ -34,14 +29,18 @@ pub const canin_config: NodeConfig = .{
 pub const server_config: NodeConfig = .{
     .node_type = ServerNode,
     .name = "server",
-    .outputs_to = &.{mechanism_config.name},
+    .outputs_to = &.{statemachine_config.name},
+};
+pub const statemachine_config: NodeConfig = .{
+    .node_type = StateMachineNode,
+    .name = "state_machine",
 };
 
 const node_config = [_]NodeConfig{
-    mechanism_config,
     canout_config,
     canin_config,
     server_config,
+    statemachine_config,
 };
 
 pub const OutputsType = creation.CreateOutputBufferType(&node_config);
@@ -49,7 +48,7 @@ pub const InputsType = creation.CreateInputBufferType(&node_config);
 pub const NodesType = creation.CreateNodesType(&node_config);
 
 const main_control_exec_order = [_]NodeConfig{
-    mechanism_config,
+    statemachine_config,
     canout_config,
 };
 

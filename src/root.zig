@@ -9,7 +9,7 @@ pub const socket_can = @import("can_bus/socket_can.zig");
 pub const vesc_datatypes = @import("can_bus/vesc_datatypes.zig");
 pub const ServerNode = @import("controller_com/ServerNode.zig");
 pub const Foxglove = @import("foxglove/foxglove.zig");
-pub const MechanismNode = @import("robot_logic/MechanismNode.zig");
+pub const StateMachineNode = @import("robot_logic/StateMachineNode.zig");
 
 test {
     std.testing.refAllDecls(@This());

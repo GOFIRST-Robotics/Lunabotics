@@ -1,9 +1,10 @@
 const std = @import("std");
 const linux = std.os.linux;
-const protocol = @import("protocol.zig");
 const Io = std.Io;
 const net = Io.net;
+
 const MechanismNode = @import("../robot_logic/MechanismNode.zig");
+const protocol = @import("protocol.zig");
 
 const ServerNode = @This();
 
@@ -26,10 +27,8 @@ stream_deck_up: bool,
 pub const inputType = struct {};
 
 pub const outputType = struct {
-    mechanism_instructions: *MechanismNode.Instructions,
-    pub fn linkBuffer(self: *@This(), mech: *MechanismNode.inputType) void {
-        self.mechanism_instructions = &mech.instructions;
-    }
+    controller_data: protocol.ControllerData,
+    stream_deck_data: protocol.StreamDeckData,
 };
 
 pub fn init(init_only_io: Io) @This() {
@@ -155,24 +154,6 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
     // if this is not true then some data has not been parsed which is (most likely) an error
     std.debug.assert(dgram_data.len == dgram_index);
 
-    if (self.controller_up) {
-        if (self.previous_controller_data.r3) {
-            output.mechanism_instructions.extend = true;
-        } else if (self.previous_controller_data.l3) {
-            output.mechanism_instructions.extend = false;
-        } else {
-            output.mechanism_instructions.extend = null;
-        }
-
-        if (self.previous_controller_data.buttons.east) {
-            output.mechanism_instructions.plundge_rpm = 10;
-        } else if (self.previous_controller_data.buttons.north) {
-            output.mechanism_instructions.plundge_rpm = -10;
-        } else {
-            output.mechanism_instructions.plundge_rpm = 0;
-        }
-    } else {
-        // turn everything off
-        output.mechanism_instructions.* = .{};
-    }
+    output.controller_data = self.previous_controller_data;
+    output.stream_deck_data = self.previous_stream_deck_data;
 }
