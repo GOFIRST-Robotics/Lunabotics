@@ -52,7 +52,7 @@ pub fn update(self: *@This(), input: *const inputType, output: *outputType) void
     _ = input;
     while (true) {
         const event = can.readNextEvent(self.io, self.socket) catch |err| {
-            logger.err("failed to read CAN event: {any}\n", .{err});
+            logger.err("failed to read CAN event: {t}\n", .{err});
             return;
         };
 
@@ -65,7 +65,7 @@ pub fn update(self: *@This(), input: *const inputType, output: *outputType) void
                 else => {},
             },
             .packet_timeout => |packet_type| {
-                logger.info("status frame {any} timed out from VESC {d}\n", .{ packet_type, event.vesc_id });
+                logger.info("status frame {t} timed out from VESC {d}\n", .{ packet_type, event.vesc_id });
             },
         }
     }

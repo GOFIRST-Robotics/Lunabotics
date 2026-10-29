@@ -44,6 +44,6 @@ pub fn update(self: *@This(), input: *const inputType, output: *outputType) void
     can.sendOnce(self.io, self.socket, 1, .{
         .set_current = .{ .current = input.motor_current },
     }) catch |err| {
-        logger.err("failed to send CAN packet: {any}\n", .{err});
+        logger.err("failed to send CAN packet: {t}\n", .{err});
     };
 }
