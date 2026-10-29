@@ -3,9 +3,9 @@ const Io = std.Io;
 const log = std.log;
 const protocol = @import("protocol.zig");
 const input = @import("input_headers");
+
 const linux = std.os.linux;
 
-pub const logitech_name = "Logitech_Logitech_Dual_Action";
 pub const stream_deck_name = "Stream_Deck";
 
 pub const FindControllerError = error{FileOperationFailure};
@@ -64,8 +64,12 @@ fn normalizeAndClamp(val: i32, min: i32, max: i32) f32 {
 
 const logitechAxisMin = 0;
 const logitechAxisMax = 255;
+const xboxAxisMin = 0;
+const xboxAxisMax = 255;
+
 pub const ControllerReadError = error{ LostController, ReadError };
-pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol.ControllerData) ControllerReadError!struct { time: struct { sec: isize, nsec: isize }, data: protocol.ControllerData } {
+
+pub fn readFromXboxController(io: Io, file: Io.File, previous_data: protocol.ControllerData) ControllerReadError!ControllerData {
     var event: input.input_event = undefined;
     var time: linux.timespec = undefined;
     const get_time_rc = linux.errno(linux.clock_gettime(linux.clockid_t.REALTIME, &time));
@@ -84,7 +88,7 @@ pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol
                 if (errno == @intFromEnum(linux.E.NODEV)) {
                     return ControllerReadError.LostController;
                 } else {
-                    log.warn("An unexpected error occured while reading from logitech controller. Errno: {d}\n", .{errno});
+                    log.warn("An unexpected error occured while reading from Logitech controller. Errno: {d}\n", .{errno});
                     return ControllerReadError.ReadError;
                 }
             },
@@ -92,7 +96,105 @@ pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol
                 return .{ .time = .{ .sec = time.sec, .nsec = time.nsec }, .data = data };
             },
             else => {
-                log.warn("A read error occured while reading from logitech controller. Error: {s}\n", .{@errorName(err)});
+                log.warn("A read error occured while reading from Logitech controller. Error: {s}\n", .{@errorName(err)});
+                return ControllerReadError.ReadError;
+            },
+        };
+
+        std.debug.assert(len_read == @sizeOf(input.input_event));
+
+        switch (event.type) {
+            input.EV_KEY => {
+                switch (event.code) {
+                    input.BTN_TOP => data.buttons.north = event.value == 1,
+                    input.BTN_THUMB2 => data.buttons.east = event.value == 1,
+                    input.BTN_THUMB => data.buttons.south = event.value == 1,
+                    input.BTN_TRIGGER => data.buttons.west = event.value == 1,
+                    input.BTN_TOP2 => data.l1 = event.value == 1,
+                    input.BTN_PINKIE => data.r1 = event.value == 1,
+                    input.BTN_BASE => data.l2 = event.value == 1,
+                    input.BTN_BASE2 => data.r2 = event.value == 1,
+                    input.BTN_BASE5 => data.l3 = event.value == 1,
+                    input.BTN_BASE6 => data.r3 = event.value == 1,
+                    else => {},
+                }
+            },
+            input.EV_ABS => {
+                switch (event.code) {
+                    input.ABS_HAT0X => {
+                        if (event.value == -1) {
+                            data.d_pad.left = true;
+                            data.d_pad.right = false;
+                        } else if (event.value == 1) {
+                            data.d_pad.left = false;
+                            data.d_pad.right = true;
+                        } else {
+                            data.d_pad.left = false;
+                            data.d_pad.right = false;
+                        }
+                    },
+                    input.ABS_HAT0Y => {
+                        if (event.value == -1) {
+                            data.d_pad.up = true;
+                            data.d_pad.down = false;
+                        } else if (event.value == 1) {
+                            data.d_pad.up = false;
+                            data.d_pad.down = true;
+                        } else {
+                            data.d_pad.up = false;
+                            data.d_pad.down = false;
+                        }
+                    },
+                    input.ABS_X => {
+                        data.left_stick.x = normalizeAndClamp(event.value, xboxAxisMin, xboxAxisMax);
+                    },
+                    input.ABS_Y => {
+                        data.left_stick.y = normalizeAndClamp(event.value, xboxAxisMin, xboxAxisMax);
+                    },
+                    input.ABS_Z => {
+                        data.right_stick.x = normalizeAndClamp(event.value, xboxAxisMin, xboxAxisMax);
+                    },
+                    input.ABS_RZ => {
+                        data.right_stick.y = normalizeAndClamp(event.value, xboxAxisMin, xboxAxisMax);
+                    },
+                    else => {},
+                }
+            },
+            else => {},
+        }
+
+        time = .{ .sec = event.time.tv_sec, .nsec = microSecondToNanoSecond(event.time.tv_usec) };
+    }
+}
+
+pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol.ControllerData) ControllerReadError!ControllerData {
+    var event: input.input_event = undefined;
+    var time: linux.timespec = undefined;
+    const get_time_rc = linux.errno(linux.clock_gettime(linux.clockid_t.REALTIME, &time));
+    if (get_time_rc != .SUCCESS) {
+        std.debug.panic("Failed to get time with function 'linux.clock_gettime', errno: {d}\n", .{get_time_rc});
+    }
+
+    var data = previous_data;
+
+    while (true) {
+        const len_read = file.readStreaming(io, &.{@ptrCast(&event)}) catch |err| switch (err) {
+            error.Unexpected => {
+                const errno: c_int = std.c._errno().*;
+                // This has to be done because the errno NODEV is not yet handled by zig when reading from a file
+                // NODEV is 19
+                if (errno == @intFromEnum(linux.E.NODEV)) {
+                    return ControllerReadError.LostController;
+                } else {
+                    log.warn("An unexpected error occured while reading from Xbox controller. Errno: {d}\n", .{errno});
+                    return ControllerReadError.ReadError;
+                }
+            },
+            error.Canceled => {
+                return .{ .time = .{ .sec = time.sec, .nsec = time.nsec }, .data = data };
+            },
+            else => {
+                log.warn("A read error occured while reading from Xbox controller. Error: {s}\n", .{@errorName(err)});
                 return ControllerReadError.ReadError;
             },
         };
@@ -182,7 +284,7 @@ pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamD
                 if (errno == @intFromEnum(linux.E.NODEV)) {
                     return ControllerReadError.LostController;
                 } else {
-                    log.warn("An unexpected error occured while reading from logitech controller. Errno: {d}\n", .{errno});
+                    log.warn("An unexpected error occured while reading from StreamDeck controller. Errno: {d}\n", .{errno});
                     return ControllerReadError.ReadError;
                 }
             },
@@ -190,7 +292,7 @@ pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamD
                 return .{ .time = .{ .sec = time.sec, .nsec = time.nsec }, .data = data };
             },
             else => {
-                log.warn("A read error occured while reading from logitech controller; {}\n", .{err});
+                log.warn("A read error occured while reading from StreamDeck controller; {}\n", .{err});
                 return ControllerReadError.ReadError;
             },
         };
@@ -219,3 +321,15 @@ pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamD
 fn microSecondToNanoSecond(usec: i64) isize {
     return usec * 1_000;
 }
+
+pub const controller_type = struct {
+    pub const logitech: []const u8 = "LogitechController";
+    pub const xbox: []const u8 = "XboxController";
+};
+
+pub const ControllerData = struct { time: struct { sec: isize, nsec: isize }, data: protocol.ControllerData };
+
+pub const controllerMappings = .{
+    .{ .name = controller_type.logitech, .readFn = readFromLogitechController },
+    .{ .name = controller_type.xbox, .readFn = readFromXboxController },
+};

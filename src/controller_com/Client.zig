@@ -8,6 +8,12 @@ const protocol = @import("protocol.zig");
 const ControllerData = protocol.ControllerData;
 const StreamDeckData = protocol.StreamDeckData;
 
+// file run terminal commands ----------------------
+// ./scripts/enter_dev_container.sh
+// zig build
+// ./zig-out/bin/client 127.0.0.1
+// -------------------------------------------------
+
 // a controller being unplugged is not handled properly yet by zig so this is here to shut it up
 // otherwise it will give a useless stack trace because an errno is not being handled correctly
 pub const std_options: std.Options = .{ .unexpected_error_tracing = false };
@@ -63,15 +69,46 @@ pub fn main(init: std.process.Init) !void {
 
     log.info("Bound to {f}", .{server_address.ip4});
 
-    var logitech_controller = try input_devices.findDevice(init.io, input_devices.logitech_name);
-    defer {
-        if (logitech_controller) |*con| {
-            con.close(init.io);
+    // -------------------------------------------------Find the devices
+
+    var controller: ?Io.File = undefined;
+    var controller_name: []const u8 = undefined;
+
+    const controller_types = input_devices.controller_type;
+
+    inline for (std.meta.fields(controller_types)) |current_controller_type| {
+        controller = try input_devices.findDevice(init.io, current_controller_type.name);
+
+        defer {
+            if (controller) |*con| {
+                con.close(init.io);
+                controller_name = current_controller_type.name;
+            }
         }
     }
 
-    var logitech_controller_data: ControllerData = .{};
-    var logitech_last_read_time: struct { sec: isize, nsec: isize } = undefined;
+    // ---------- Function Pointer for controller find and read functions
+
+    const readFrom_fct_ptr = *const fn (io: Io, file: Io.File, previous_data: protocol.ControllerData) input_devices.ControllerReadError!input_devices.ControllerData;
+
+    var find_fct: ?readFrom_fct_ptr = null;
+
+    inline for (input_devices.controllerMappings) |current_entry| {
+        if (std.mem.eql(u8, controller_name, current_entry.name)) {
+            find_fct = current_entry.readFn;
+            break;
+        }
+    }
+
+    if (find_fct == null) {
+        @panic("No controller found");
+    }
+
+    const readFrom_fct = std.meta.Child(@TypeOf(find_fct.?));
+    var controller_data: ControllerData = .{};
+    var controller_last_read_time: struct { sec: isize, nsec: isize } = undefined;
+
+    // ------------------------------------------------------------------
 
     var stream_deck = try input_devices.findDevice(init.io, input_devices.stream_deck_name);
     defer {
@@ -83,8 +120,10 @@ pub fn main(init: std.process.Init) !void {
     var stream_deck_data: StreamDeckData = .{};
     var stream_deck_last_read_time: struct { sec: isize, nsec: isize } = undefined;
 
-    var read_logitech: Io.Future(@typeInfo(@TypeOf(input_devices.readFromLogitechController)).@"fn".return_type.?) = undefined;
-    var find_logitech: Io.Future(@typeInfo(@TypeOf(input_devices.findDevice)).@"fn".return_type.?) = undefined;
+    // ----- Set Futures for read and write functions for Steam Deck and Controller -----
+
+    var read_controller: Io.Future(@typeInfo(readFrom_fct).@"fn".return_type.?) = undefined;
+    var find_controller: Io.Future(@typeInfo(@TypeOf(input_devices.findDevice)).@"fn".return_type.?) = undefined;
 
     var read_stream_deck: Io.Future(@typeInfo(@TypeOf(input_devices.readFromStreamDeck)).@"fn".return_type.?) = undefined;
     var find_stream_deck: Io.Future(@typeInfo(@TypeOf(input_devices.findDevice)).@"fn".return_type.?) = undefined;
@@ -93,10 +132,16 @@ pub fn main(init: std.process.Init) !void {
         // =====================================================================
         // Either Search for the devices or get their input data
         // =====================================================================
-        if (logitech_controller) |con| {
-            read_logitech = try custom_io.concurrent(input_devices.readFromLogitechController, .{ custom_io, con, logitech_controller_data });
+
+        if (controller) |con| {
+            inline for (input_devices.controllerMappings) |current_entry| {
+                if (std.mem.eql(u8, controller_name, current_entry.name)) {
+                    read_controller = try custom_io.concurrent(current_entry.readFn, .{ custom_io, con, controller_data });
+                    break;
+                }
+            }
         } else {
-            find_logitech = try custom_io.concurrent(input_devices.findDevice, .{ custom_io, input_devices.logitech_name });
+            find_controller = try custom_io.concurrent(input_devices.findDevice, .{ custom_io, controller_name });
         }
 
         if (stream_deck) |deck| {
@@ -110,11 +155,11 @@ pub fn main(init: std.process.Init) !void {
         // =====================================================================
         // Send Logitech Controller data or set new device file
         // =====================================================================
-        if (logitech_controller) |_| {
-            const read_from_logitech = read_logitech.cancel(custom_io);
-            if (read_from_logitech) |v| {
-                logitech_controller_data = v.data;
-                logitech_last_read_time = .{ .sec = v.time.sec, .nsec = v.time.nsec };
+        if (controller) |_| {
+            const read_from_controller = read_controller.cancel(custom_io);
+            if (read_from_controller) |v| {
+                controller_data = v.data;
+                controller_last_read_time = .{ .sec = v.time.sec, .nsec = v.time.nsec };
 
                 var dgram: [1024]u8 = undefined;
                 var dgram_write_index: usize = 0;
@@ -123,14 +168,14 @@ pub fn main(init: std.process.Init) !void {
 
                 protocol.writeToDgram(
                     protocol.TimeStamp{
-                        .seconds = logitech_last_read_time.sec,
-                        .nano_seconds = logitech_last_read_time.nsec,
+                        .seconds = controller_last_read_time.sec,
+                        .nano_seconds = controller_last_read_time.nsec,
                     },
                     dgram[dgram_write_index..],
                 );
                 dgram_write_index += @sizeOf(protocol.TimeStamp);
 
-                protocol.writeToDgram(logitech_controller_data, dgram[dgram_write_index..]);
+                protocol.writeToDgram(controller_data, dgram[dgram_write_index..]);
                 dgram_write_index += @sizeOf(protocol.ControllerData);
 
                 _ = socket.send(init.io, &server_address, dgram[0..dgram_write_index]) catch |err| {
@@ -139,8 +184,8 @@ pub fn main(init: std.process.Init) !void {
             } else |err| {
                 switch (err) {
                     input_devices.ControllerReadError.LostController => {
-                        logitech_controller.?.close(custom_io);
-                        logitech_controller = null;
+                        controller.?.close(custom_io);
+                        controller = null;
                     },
                     input_devices.ControllerReadError.ReadError => {
                         @panic("Unexpected read eror\n");
@@ -148,7 +193,7 @@ pub fn main(init: std.process.Init) !void {
                 }
             }
         } else {
-            logitech_controller = find_logitech.cancel(custom_io) catch @panic("An error occured wile trying to find controller");
+            controller = find_controller.cancel(custom_io) catch @panic("An error occured wile trying to find controller");
         }
 
         // =====================================================================
@@ -199,14 +244,14 @@ pub fn main(init: std.process.Init) !void {
         // Print Info
         // =====================================================================
         var newlines_printed: u64 = 0;
-        if (logitech_controller) |_| {
+        if (controller) |_| {
             var fmt_buf: [1024 * 3]u8 = undefined;
-            const logitech_data_str = std.fmt.bufPrint(&fmt_buf, "{f}\n", .{logitech_controller_data}) catch fallback: {
+            const controller_data_str = std.fmt.bufPrint(&fmt_buf, "{f}\n", .{controller_data}) catch fallback: {
                 log.warn("Format buffer is too smaller", .{});
                 break :fallback &.{};
             };
-            newlines_printed += std.mem.count(u8, logitech_data_str, "\n");
-            std.debug.print("{s}", .{logitech_data_str});
+            newlines_printed += std.mem.count(u8, controller_data_str, "\n");
+            std.debug.print("{s}", .{controller_data_str});
         } else {
             std.debug.print("No Logitech Controller Detected!\x1B[K\n", .{});
             newlines_printed += 1;
