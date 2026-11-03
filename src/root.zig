@@ -8,7 +8,7 @@ pub const TeleopStateMachineNode = @import("teleop_state_machine/TeleopStateMach
 pub const vesc_datatypes = @import("can_bus/vesc_datatypes.zig");
 pub const socket_can = @import("can_bus/socket_can.zig");
 pub const config = @import("config");
-pub const buffering_setup = @import("MFR/buffering_setup.zig");
+pub const creation = @import("MFR/creation.zig");
 
 test {
     std.testing.refAllDecls(@This());

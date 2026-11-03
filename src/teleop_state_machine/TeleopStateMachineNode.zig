@@ -5,7 +5,7 @@ const vesc_datatypes = @import("../can_bus/vesc_datatypes.zig");
 const protocol = @import("../controller_com/protocol.zig");
 const ControllerData = protocol.ControllerData;
 const StreamDeckData = protocol.StreamDeckData;
-const buffering = @import("../MFR/buffering_setup.zig");
+const creation = @import("../MFR/creation.zig");
 
 const TeleopStateMachine = @This();
 pub const NodeName: []const u8 = "TeleopStateMachine";
@@ -31,11 +31,9 @@ pub const inputType = struct {
     controller_info: *ControllerInfo,
 };
 
-pub const outputConfigs = [_]buffering.OutputConfig{};
+pub const outputConfigs: [0]creation.OutputConfig = .{}; //[_]buffering.OutputConfig{};
 
 pub const outputType = struct {};
-
-pub const execution_group: @EnumLiteral() = .logic_chain;
 
 pub fn init(self: *@This()) void {
     self.state = .disabled;
@@ -45,14 +43,11 @@ pub fn init(self: *@This()) void {
 
 pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
     _ = output;
-    _ = self;
-    _ = input;
-    // defer self.last_controller_state = input.controller_state;
-    // defer self.last_stream_deck_state = input.stream_deck_state;
-    //
-    // if (input.controller_state) |con_state| {
-    //     logger.info("{f}", .{con_state});
-    // } else {
-    //     logger.info("No controller", .{});
-    // }
+
+    defer self.last_controller_state = input.controller_info.controller_state;
+    defer self.last_stream_deck_state = input.controller_info.stream_deck_state;
+
+    if (input.controller_info.controller_state) |con_state| {
+        logger.info("{f}", .{con_state});
+    } else {}
 }

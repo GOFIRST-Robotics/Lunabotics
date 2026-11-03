@@ -4,7 +4,7 @@ const protocol = @import("protocol.zig");
 const Io = std.Io;
 const net = Io.net;
 const TeleopStateMachineNode = @import("../teleop_state_machine/TeleopStateMachineNode.zig");
-const buffering = @import("../MFR/buffering_setup.zig");
+const creation = @import("../MFR/creation.zig");
 
 const ServerNode = @This();
 pub const NodeName: []const u8 = "ServerNode";
@@ -32,7 +32,7 @@ stream_deck_up: bool,
 
 pub const inputType = struct {};
 
-pub const outputConfigs = [_]buffering.OutputConfig{
+pub const outputConfigs = [_]creation.OutputConfig{
     .{
         .output_node = TeleopStateMachineNode,
         .output_field = &.{.{
@@ -42,9 +42,7 @@ pub const outputConfigs = [_]buffering.OutputConfig{
     },
 };
 
-pub const execution_group: @EnumLiteral() = .io_input;
-
-pub const outputType = buffering.CreateOutputType(&outputConfigs);
+pub const outputType = creation.CreateOutputType(&outputConfigs);
 
 pub fn init(self: *@This(), io: Io) void {
     self.io = io;
@@ -144,14 +142,14 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
                 }
             }
 
-            output.controller_info.controller_state = controller_data;
+            output.TeleopStateMachine.controller_info.*.controller_state = controller_data;
 
             self.previous_controller_data = controller_data;
             self.last_controller_time = message_time;
             self.controller_up = true;
         },
         .controller_down => {
-            output.controller_info.controller_state = null;
+            output.TeleopStateMachine.controller_info.controller_state = null;
 
             self.previous_controller_data = .{};
             self.last_controller_time = message_time;
@@ -169,14 +167,14 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
                 }
             }
 
-            output.controller_info.stream_deck_state = stream_deck_data;
+            output.TeleopStateMachine.controller_info.stream_deck_state = stream_deck_data;
 
             self.previous_stream_deck_data = stream_deck_data;
             self.last_stream_deck_time = message_time;
             self.stream_deck_up = true;
         },
         .stream_deck_down => {
-            output.controller_info.stream_deck_state = null;
+            output.TeleopStateMachine.controller_info.stream_deck_state = null;
 
             self.previous_stream_deck_data = .{};
             self.last_controller_time = message_time;
@@ -190,5 +188,5 @@ pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
     // if this is not true then some data has not been parsed which is (most likely) a bug
     std.debug.assert(dgram_data.len == dgram_index);
 
-    outputType.controller_info.controller_state = self.previous_controller_data;
+    output.TeleopStateMachine.controller_info.controller_state = if (self.controller_up) self.previous_controller_data else null;
 }
