@@ -34,12 +34,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/MFR/debug_config.zig"),
     });
 
-    const local_can_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/can_bus/socket_can.h"),
-        .target = local_target,
-        .optimize = debug_optimizations,
-    });
-
     const debug_MFR = b.addModule(
         "MFR",
         .{
@@ -47,7 +41,6 @@ pub fn build(b: *std.Build) void {
             .target = local_target,
             .imports = &.{
                 .{ .name = "config", .module = local_config_mod },
-                .{ .name = "socket_can", .module = local_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = local_zig_vesc_can_mod },
             },
         },
@@ -100,12 +93,6 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/MFR/jetson_config.zig"),
     });
 
-    const jetson_can_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/can_bus/socket_can.h"),
-        .target = jetson_target,
-        .optimize = jetson_optimization,
-    });
-
     const jetson_MFR = b.addModule(
         "MFR",
         .{
@@ -113,7 +100,6 @@ pub fn build(b: *std.Build) void {
             .target = jetson_target,
             .imports = &.{
                 .{ .name = "config", .module = jetson_config_mod },
-                .{ .name = "socket_can", .module = jetson_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = jetson_zig_vesc_can_mod },
             },
         },
@@ -175,48 +161,6 @@ pub fn build(b: *std.Build) void {
     client_install.step.dependOn(&format_requirement.step);
     b.getInstallStep().dependOn(client_build_step);
 
-    // -----------------------------------------------
-    // Tests For Custom Vesc CAN messages
-    // -----------------------------------------------
-    const zig_vesc_can_tests = create_test_step: {
-        // !!! IMPORTANT !!!
-        // This module must be used carefully as its code is under the GPLv3
-        // Any code that uses this module must also be under the GPLv3
-        // Since the test file uses this module only it should need to be under the GPLv3
-        const vesc_comm_can = b.addTranslateC(.{
-            .target = local_target,
-            .root_source_file = b.path("src/can_bus/vesc_comm_tests/comm_can.h"),
-            .link_libc = true,
-            .optimize = .Debug,
-        });
-        const vesc_comm_can_module = vesc_comm_can.createModule();
-        vesc_comm_can_module.addCSourceFiles(.{
-            .root = b.path("src/can_bus/vesc_comm_tests"),
-            .files = &.{
-                "comm_can.c",
-                "buffer.c",
-            },
-            .flags = &.{"-std=c99"},
-            .language = .c,
-        });
-
-        const zig_vesc_can = b.addModule("zig_vesc_can_tests", .{
-            .root_source_file = b.path("src/can_bus/vesc_comm_tests/vesc_comm_tests.zig"),
-            .imports = &.{
-                .{ .name = "comm_can", .module = vesc_comm_can_module },
-                .{ .name = "MFR", .module = debug_MFR },
-            },
-            .optimize = .Debug,
-            .target = local_target,
-            .link_libc = true,
-        });
-        break :create_test_step b.addTest(.{
-            .root_module = zig_vesc_can,
-            .use_lld = true,
-            .use_llvm = true,
-        });
-    };
-
     const mod_tests = b.addTest(.{
         .root_module = debug_MFR,
         .use_lld = true,
@@ -231,10 +175,7 @@ pub fn build(b: *std.Build) void {
 
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
-    const zig_vesc_can_test_runs = b.addRunArtifact(zig_vesc_can_tests);
-
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
-    test_step.dependOn(&zig_vesc_can_test_runs.step);
 }
