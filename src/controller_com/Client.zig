@@ -220,3 +220,24 @@ pub fn main(init: std.process.Init) !void {
         std.debug.print("\x1B[{d}F", .{newlines_printed});
     }
 }
+
+test "stamps come from the real clock between read start and send and never decrease" {
+    const io = std.testing.io;
+    const fds = try Io.Threaded.pipe2(.{});
+    const pipe_read: Io.File = .{ .handle = fds[0], .flags = .{ .nonblocking = false } };
+    defer Io.File.closeMany(io, &.{ pipe_read, .{ .handle = fds[1], .flags = .{ .nonblocking = false } } });
+    var previous: Io.Timestamp = .zero;
+    for (0..3) |_| {
+        const before = Io.Timestamp.now(io, .real);
+        var read = try io.concurrent(input_devices.readFromLogitechController, .{ io, pipe_read, .{} });
+        const v = try read.cancel(io);
+        var dgram: [64]u8 = undefined;
+        protocol.writeToDgram(protocol.ClientMessageType.controller, dgram[0..]);
+        protocol.writeToDgram(v.time, dgram[@sizeOf(protocol.ClientMessageType)..]);
+        protocol.writeToDgram(v.data, dgram[@sizeOf(protocol.ClientMessageType) + protocol.dgramSize(Io.Timestamp) ..]);
+        const stamp = (try protocol.parseDgram(dgram[0 .. @sizeOf(protocol.ClientMessageType) + protocol.dgramSize(Io.Timestamp) + @sizeOf(ControllerData)])).timestamp;
+        const after = Io.Timestamp.now(io, .real);
+        try std.testing.expect(before.nanoseconds <= stamp.nanoseconds and stamp.nanoseconds <= after.nanoseconds and stamp.nanoseconds >= previous.nanoseconds);
+        previous = stamp;
+    }
+}

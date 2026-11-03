@@ -265,3 +265,75 @@ pub fn parseDgram(dgram: []const u8) ParseError!Message {
 
     return .{ .timestamp = timestamp, .payload = payload };
 }
+
+/// Test helper: serializes msg with the same writeToDgram sequence Client.zig uses
+fn serialize(msg: Message, buf: []u8) []u8 {
+    writeToDgram(@as(ClientMessageType, msg.payload), buf);
+    writeToDgram(msg.timestamp, buf[dgramSize(ClientMessageType)..]);
+    var len: usize = dgramSize(ClientMessageType) + dgramSize(Io.Timestamp);
+    switch (msg.payload) {
+        inline else => |data| if (@TypeOf(data) != void) {
+            writeToDgram(data, buf[len..]);
+            len += dgramSize(@TypeOf(data));
+        },
+    }
+    return buf[0..len];
+}
+
+test "every payload variant round-trips at edge values" {
+    const edge = .{
+        .controller = ControllerData{
+            .buttons = @bitCast(@as(u4, 0xF)),
+            .d_pad = @bitCast(@as(u4, 0xF)),
+            .l1 = true,
+            .l2 = true,
+            .l3 = true,
+            .r1 = true,
+            .r2 = true,
+            .r3 = true,
+            .left_stick = .{ .x = std.math.floatMax(f32), .y = -std.math.floatMax(f32) },
+            .right_stick = .{ .x = 0, .y = -std.math.floatMin(f32) },
+        },
+        .stream_deck = @as(StreamDeckData, @bitCast(@as(u8, 0x3F))),
+    };
+    var buf: [64]u8 = undefined;
+    inline for (@typeInfo(Payload).@"union".fields) |f| {
+        const msg: Message = .{
+            .timestamp = .fromNanoseconds(std.math.minInt(i96)),
+            .payload = @unionInit(Payload, f.name, if (f.type == void) {} else @field(edge, f.name)),
+        };
+        try std.testing.expectEqual(msg, try parseDgram(serialize(msg, &buf)));
+    }
+}
+
+test "stream_deck dgram matches hand-written big-endian bytes" {
+    const golden = [_]u8{ 2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0x21 };
+    const msg: Message = .{ .timestamp = .fromNanoseconds(0x0102030405060708090A0B0C), .payload = .{ .stream_deck = .{ .btn_0 = true, .btn_5 = true } } };
+    var buf: [64]u8 = undefined;
+    try std.testing.expectEqualSlices(u8, &golden, serialize(msg, &buf));
+    try std.testing.expectEqual(msg, try parseDgram(&golden));
+}
+
+test "malformed dgrams return errors instead of panicking" {
+    try std.testing.expectError(ParseError.TooShort, parseDgram(""));
+    try std.testing.expectError(ParseError.InvalidMessageType, parseDgram(&.{0xFF}));
+    var buf: [64]u8 = undefined;
+    inline for (@typeInfo(Payload).@"union".fields) |f| {
+        const full = serialize(.{ .timestamp = .zero, .payload = @unionInit(Payload, f.name, if (f.type == void) {} else .{}) }, &buf);
+        for (0..full.len) |len| try std.testing.expect(std.meta.isError(parseDgram(full[0..len])));
+    }
+}
+
+test "timestamps round-trip exactly at nanosecond precision" {
+    var buf: [64]u8 = undefined;
+    for ([_]i96{ 0, std.math.maxInt(i96), -1 }) |ns| {
+        const msg: Message = .{ .timestamp = .fromNanoseconds(ns), .payload = .ending_connection };
+        try std.testing.expectEqual(msg.timestamp, (try parseDgram(serialize(msg, &buf))).timestamp);
+    }
+}
+
+test "one second encodes as 1_000_000_000 on the wire" {
+    var buf: [dgramSize(Io.Timestamp)]u8 = undefined;
+    writeToDgram(Io.Timestamp.zero.addDuration(.fromSeconds(1)), &buf);
+    try std.testing.expectEqual(1_000_000_000, mem.readInt(i96, &buf, .big));
+}

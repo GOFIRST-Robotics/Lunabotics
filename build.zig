@@ -233,8 +233,16 @@ pub fn build(b: *std.Build) void {
 
     const zig_vesc_can_test_runs = b.addRunArtifact(zig_vesc_can_tests);
 
+    const client_tests = b.addTest(.{
+        .root_module = client_build.root_module,
+        .use_lld = true,
+        .use_llvm = true,
+    });
+    const run_client_tests = b.addRunArtifact(client_tests);
+
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
     test_step.dependOn(&zig_vesc_can_test_runs.step);
+    test_step.dependOn(&run_client_tests.step);
 }
