@@ -13,7 +13,6 @@ pub fn CreateDoubleBuffered(T: type) type {
         producer: T,
         consumer: T,
 
-        const a_dec = T;
         pub fn init(self: *@This()) void {
             self.mutex = .init;
             self.producer = .{};
@@ -138,19 +137,6 @@ pub fn runUpdateForever(
             }
         }
     }.forever;
-}
-
-fn NodeTransferInputOutputTupleTuple(comptime nodes_arr: []const type) type {
-    var node_input_output_tuples: [nodes_arr.len]type = undefined;
-    inline for (nodes_arr, 0..) |node, i| {
-        node_input_output_tuples[i] = @Tuple(&.{
-            *node,
-            *CreateNodeTransferBuffer(node),
-            *node.inputType,
-            *node.outputType,
-        });
-    }
-    return @Tuple(&node_input_output_tuples);
 }
 
 pub fn runPeriodically(

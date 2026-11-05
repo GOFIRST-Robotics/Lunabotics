@@ -3,11 +3,15 @@ const linux = std.os.linux;
 const Io = std.Io;
 
 const MFR = @import("MFR");
+const zig_vesc_can = @import("zig-vesc-can");
+const Foxglove = MFR.Foxglove;
+
 const TeleopStateMachineNode = MFR.TeleopStateMachineNode;
 const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
 const CANInNode = MFR.CANInNode;
 const ServerNode = MFR.ServerNode;
+
 const config = MFR.config;
 const on_jetson = config.on_jetson;
 const creation = MFR.creation;
@@ -18,9 +22,6 @@ const RobotNodes: []const type = &.{
     TeleopStateMachineNode,
     ServerNode,
 };
-
-const Foxglove = MFR.Foxglove;
-const zig_vesc_can = @import("zig-vesc-can");
 
 const NodesType = creation.CreateNodesType(RobotNodes);
 

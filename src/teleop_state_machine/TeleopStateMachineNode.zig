@@ -30,7 +30,7 @@ pub const inputType = struct {
     controller_info: *ControllerInfo,
 };
 
-pub const outputConfigs: [0]creation.OutputConfig = .{}; //[_]buffering.OutputConfig{};
+pub const outputConfigs: [0]creation.OutputConfig = .{};
 
 pub const outputType = struct {};
 
