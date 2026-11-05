@@ -273,24 +273,29 @@ pub const VescEvent = struct {
     },
 };
 
+pub const ReadBuffer = struct {
+    bcm_buffer: BcmMessageBuf(1),
+};
+
 // Blocks until next event is ready
-pub fn readNextEvent(io: Io, socket: BcmCanSocket, diag: ?*ReadDiagnostic) ReadError!VescEvent {
+// Returned event is valid until another event is read or the read buffer is deleted
+pub fn readNextEvent(io: Io, socket: BcmCanSocket, read_buf: *ReadBuffer, diag: ?*ReadDiagnostic) ReadError!VescEvent {
     // Keep reading and processing BCM messages until something interesting happens,
     // in which case we return it as an event
     while (true) {
-        const bcm_buffer, const timestamp = try bcmRead(io, socket.fd, 1, diag);
+        const timestamp = try bcmRead(io, socket.fd, read_buf, diag);
 
-        switch (bcm_buffer.header.opcode) {
+        switch (read_buf.bcm_buffer.header.opcode) {
             linux_can.RX_CHANGED => {
                 // New CAN data incoming
-                if (bcm_buffer.header.nframes < 1) {
+                if (read_buf.bcm_buffer.header.nframes < 1) {
                     if (diag) |d| {
                         d.message = "missing frame in BCM response";
                     }
                     return error.BcmReadFailed;
                 }
 
-                const can_frame = bcm_buffer.frames[0];
+                const can_frame = read_buf.bcm_buffer.frames[0];
                 var parse_diag: codec.DecodeDiagnostic = .{};
                 const p = packets.parseFrame(can_frame, &parse_diag) catch |err| {
                     if (diag) |d| {
@@ -313,7 +318,7 @@ pub fn readNextEvent(io: Io, socket: BcmCanSocket, diag: ?*ReadDiagnostic) ReadE
                 };
             },
             linux_can.RX_TIMEOUT => {
-                const can_id: CanId = @bitCast(bcm_buffer.header.can_id);
+                const can_id: CanId = @bitCast(read_buf.bcm_buffer.header.can_id);
                 const vesc_can_id = VescCanId.fromCanId(can_id) catch {
                     if (diag) |d| {
                         d.message = "received timeout event for non-VESC ID";
@@ -351,12 +356,9 @@ fn BcmMessageBuf(max_frames: usize) type {
 fn bcmRead(
     io: Io,
     fd: linux.socket_t,
-    comptime max_frames: usize,
+    read_buf: *ReadBuffer,
     diag: ?*ReadDiagnostic,
-) error{ Canceled, BcmReadFailed }!struct { BcmMessageBuf(max_frames), linux.kernel_timespec } {
-    // Will hold the BCM event data and CAN frames
-    var bcm_buffer: BcmMessageBuf(max_frames) = undefined;
-
+) error{ Canceled, BcmReadFailed }!linux.kernel_timespec {
     // Will hold the timestamp of the BCM event message (at most one)
     const cmsg_header_size = comptime @sizeOf(linux.cmsghdr);
     const cmsg_data_offset = comptime std.mem.alignForward(usize, cmsg_header_size, @alignOf(usize)); // Alignment padding
@@ -375,7 +377,7 @@ fn bcmRead(
         .net_receive = .{
             .socket_handle = fd,
             .message_buffer = &message_buffer,
-            .data_buffer = std.mem.asBytes(&bcm_buffer),
+            .data_buffer = std.mem.asBytes(&read_buf.bcm_buffer),
             .flags = .{},
         },
     });
@@ -406,7 +408,7 @@ fn bcmRead(
         }
         return error.BcmReadFailed;
     }
-    if (received_msg.data.len < @sizeOf(linux_can.bcm_msg_head) + bcm_buffer.header.nframes * @sizeOf(CanFrame)) {
+    if (received_msg.data.len < @sizeOf(linux_can.bcm_msg_head) + read_buf.bcm_buffer.header.nframes * @sizeOf(CanFrame)) {
         // Did not receive all the frames we were supposed to
         if (diag) |d| {
             d.message = "incomplete BCM message content";
@@ -432,8 +434,7 @@ fn bcmRead(
         return error.BcmReadFailed;
     }
     const timestamp_ptr: *const linux.kernel_timespec = @ptrCast(@alignCast(&cmsg_buffer[cmsg_data_offset]));
-
-    return .{ bcm_buffer, timestamp_ptr.* };
+    return timestamp_ptr.*;
 }
 
 pub const WriteError = error{ Canceled, WriteFailed, WriteIncomplete };

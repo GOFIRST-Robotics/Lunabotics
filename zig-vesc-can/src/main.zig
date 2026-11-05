@@ -28,8 +28,9 @@ pub fn main(init: std.process.Init) !void {
 
     std.debug.print("listening for events\n", .{});
     while (true) {
+        var read_buf: can.ReadBuffer = undefined;
         var read_diag = can.ReadDiagnostic{};
-        const event = can.readNextEvent(io, socket, &read_diag) catch {
+        const event = can.readNextEvent(io, socket, &read_buf, &read_diag) catch {
             std.debug.print("failed to read CAN event: {s}\n", .{read_diag.message});
             if (read_diag.data) |data| switch (data) {
                 .bcm_read_err => |e| std.debug.print("  BCM read error: {t}\n", .{e}),
