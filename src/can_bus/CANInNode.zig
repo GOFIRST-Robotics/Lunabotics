@@ -51,8 +51,9 @@ pub fn deinit(self: *@This()) void {
 pub fn update(self: *@This(), input: *const inputType, output: *outputType) void {
     _ = input;
     while (true) {
+        var read_buf: can.ReadBuffer = undefined;
         var read_diag: can.ReadDiagnostic = .{};
-        const event = can.readNextEvent(self.io, self.socket, &read_diag) catch |err| {
+        const event = can.readNextEvent(self.io, self.socket, &read_buf, &read_diag) catch |err| {
             if (err == error.Canceled) {
                 return;
             }
