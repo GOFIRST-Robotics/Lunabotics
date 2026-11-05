@@ -1,7 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
 const CANInNode = @import("../can_bus/CANInNode.zig");
-const vesc_datatypes = @import("../can_bus/vesc_datatypes.zig");
 const protocol = @import("../controller_com/protocol.zig");
 const ControllerData = protocol.ControllerData;
 const StreamDeckData = protocol.StreamDeckData;

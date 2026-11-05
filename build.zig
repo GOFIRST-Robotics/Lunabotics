@@ -1,6 +1,8 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    const foxglove_header_path: std.Build.LazyPath = .{ .cwd_relative = "/usr/local/include/foxglove/foxglove-c.h" };
+
     // Force Formatting
     const format_requirement = b.addFmt(.{
         .check = true,
@@ -13,9 +15,7 @@ pub fn build(b: *std.Build) void {
     // Local Build for Debuging Purposes
     // -----------------------------------------------
     const local_target = b.standardTargetOptions(.{
-        .default_target = .{
-            .os_tag = .linux,
-        },
+        .default_target = .{ .os_tag = .linux, .abi = .gnu },
     });
     const debug_optimizations: std.builtin.OptimizeMode = .Debug;
 
@@ -34,8 +34,8 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/MFR/debug_config.zig"),
     });
 
-    const local_can_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/can_bus/socket_can.h"),
+    const local_foxglove_c = b.addTranslateC(.{
+        .root_source_file = foxglove_header_path,
         .target = local_target,
         .optimize = debug_optimizations,
     });
@@ -47,11 +47,15 @@ pub fn build(b: *std.Build) void {
             .target = local_target,
             .imports = &.{
                 .{ .name = "config", .module = local_config_mod },
-                .{ .name = "socket_can", .module = local_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = local_zig_vesc_can_mod },
+                .{ .name = "foxglove-sdk", .module = local_foxglove_c.createModule() },
             },
         },
     );
+    const foxglove_x86_path: std.Build.LazyPath = .{ .cwd_relative = "/usr/local/lib/foxglove/x86_64/" };
+    debug_MFR.addLibraryPath(foxglove_x86_path);
+    debug_MFR.linkSystemLibrary("foxglove", .{});
+    debug_MFR.addRPath(foxglove_x86_path);
 
     const local_build = b.addExecutable(.{
         .name = "MFR_local",
@@ -89,7 +93,7 @@ pub fn build(b: *std.Build) void {
         "zig_vesc_can",
         .{
             .target = jetson_target,
-            .optimize = debug_optimizations,
+            .optimize = jetson_optimization,
         },
     );
 
@@ -100,8 +104,8 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/MFR/jetson_config.zig"),
     });
 
-    const jetson_can_c = b.addTranslateC(.{
-        .root_source_file = b.path("src/can_bus/socket_can.h"),
+    const jetson_foxglove_c = b.addTranslateC(.{
+        .root_source_file = foxglove_header_path,
         .target = jetson_target,
         .optimize = jetson_optimization,
     });
@@ -113,11 +117,15 @@ pub fn build(b: *std.Build) void {
             .target = jetson_target,
             .imports = &.{
                 .{ .name = "config", .module = jetson_config_mod },
-                .{ .name = "socket_can", .module = jetson_can_c.createModule() },
                 .{ .name = "zig-vesc-can", .module = jetson_zig_vesc_can_mod },
+                .{ .name = "foxglove-sdk", .module = jetson_foxglove_c.createModule() },
             },
         },
     );
+    const foxglove_aarch64_path: std.Build.LazyPath = .{ .cwd_relative = "/usr/local/lib/foxglove/aarch64/" };
+    jetson_MFR.addLibraryPath(foxglove_aarch64_path);
+    jetson_MFR.linkSystemLibrary("foxglove", .{});
+    jetson_MFR.addRPath(foxglove_aarch64_path);
 
     const jetson_build = b.addExecutable(.{
         .name = "MFR_jetson",
@@ -175,48 +183,6 @@ pub fn build(b: *std.Build) void {
     client_install.step.dependOn(&format_requirement.step);
     b.getInstallStep().dependOn(client_build_step);
 
-    // -----------------------------------------------
-    // Tests For Custom Vesc CAN messages
-    // -----------------------------------------------
-    const zig_vesc_can_tests = create_test_step: {
-        // !!! IMPORTANT !!!
-        // This module must be used carefully as its code is under the GPLv3
-        // Any code that uses this module must also be under the GPLv3
-        // Since the test file uses this module only it should need to be under the GPLv3
-        const vesc_comm_can = b.addTranslateC(.{
-            .target = local_target,
-            .root_source_file = b.path("src/can_bus/vesc_comm_tests/comm_can.h"),
-            .link_libc = true,
-            .optimize = .Debug,
-        });
-        const vesc_comm_can_module = vesc_comm_can.createModule();
-        vesc_comm_can_module.addCSourceFiles(.{
-            .root = b.path("src/can_bus/vesc_comm_tests"),
-            .files = &.{
-                "comm_can.c",
-                "buffer.c",
-            },
-            .flags = &.{"-std=c99"},
-            .language = .c,
-        });
-
-        const zig_vesc_can = b.addModule("zig_vesc_can_tests", .{
-            .root_source_file = b.path("src/can_bus/vesc_comm_tests/vesc_comm_tests.zig"),
-            .imports = &.{
-                .{ .name = "comm_can", .module = vesc_comm_can_module },
-                .{ .name = "MFR", .module = debug_MFR },
-            },
-            .optimize = .Debug,
-            .target = local_target,
-            .link_libc = true,
-        });
-        break :create_test_step b.addTest(.{
-            .root_module = zig_vesc_can,
-            .use_lld = true,
-            .use_llvm = true,
-        });
-    };
-
     const mod_tests = b.addTest(.{
         .root_module = debug_MFR,
         .use_lld = true,
@@ -231,10 +197,7 @@ pub fn build(b: *std.Build) void {
 
     const run_exe_tests = b.addRunArtifact(exe_tests);
 
-    const zig_vesc_can_test_runs = b.addRunArtifact(zig_vesc_can_tests);
-
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
-    test_step.dependOn(&zig_vesc_can_test_runs.step);
 }

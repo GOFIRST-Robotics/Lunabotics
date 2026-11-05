@@ -19,6 +19,9 @@ const RobotNodes: []const type = &.{
     ServerNode,
 };
 
+const Foxglove = MFR.Foxglove;
+const zig_vesc_can = @import("zig-vesc-can");
+
 const NodesType = creation.CreateNodesType(RobotNodes);
 
 const TransferBuffer: type = creation.CreateTransferBuffer(RobotNodes);
@@ -40,6 +43,8 @@ fn interruptHandler(signal: linux.SIG) callconv(.c) void {
 
 pub fn main(init: std.process.Init) !void {
     logger.info("On jetson: {}\n", .{on_jetson});
+    Foxglove.init(init.gpa);
+    defer Foxglove.deinit();
 
     // setup handling signal interrupt
     {
