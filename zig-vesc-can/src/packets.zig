@@ -183,11 +183,10 @@ pub const SetPos = struct {
 };
 
 pub const BufferSendMode = enum(u8) {
-    // TODO: Figure out what these actually do; all I know is there's 4 of them and 0 is default
-    A = 0, // Packet goes to commands_process_packet of receiver
-    B = 1, // Packet goes to commands_send_packet of receiver
-    C = 2, // Packet goes to commands_process and send function is set to null so that no reply is sent back
-    D = 3, // Same as 0, but the reply is processed locally and not sent out on the last interface
+    request = 0, // Default; recipient VESC processes the command, replies use mode `response`
+    response = 1, // Response from a request; if sent to a VESC, it is forwarded to its last used interface (for VESC tool)
+    request_dont_reply = 2, // Same as request, but no replies are sent
+    request_reply_as_request = 3, // Same as request, but replies are sent with mode `request`. This is used for VESC-to-VESC communication
 };
 
 pub const ProcessShortBuffer = struct {
@@ -372,7 +371,7 @@ test "FillRxBufferLong decoding" {
 
 test "ProcessShortBuffer encoding" {
     const data = [_]u8{ 'h', 'e', 'l', 'l', 'o' };
-    const packet = ProcessShortBuffer{ .sender_id = 0x12, .send_mode = .A, .data = &data };
+    const packet = ProcessShortBuffer{ .sender_id = 0x12, .send_mode = .request, .data = &data };
 
     const expected = [_]u8{ 0x12, 0x00, 'h', 'e', 'l', 'l', 'o' };
     const encoded = try serializePacketBody(packet);
@@ -385,6 +384,6 @@ test "ProcessShortBuffer decoding" {
 
     const expected_data = [_]u8{ 'h', 'e', 'l', 'l', 'o' };
     try std.testing.expectEqual(0x12, packet.sender_id);
-    try std.testing.expectEqual(BufferSendMode.A, packet.send_mode);
+    try std.testing.expectEqual(BufferSendMode.request, packet.send_mode);
     try std.testing.expectEqualSlices(u8, &expected_data, packet.data);
 }
