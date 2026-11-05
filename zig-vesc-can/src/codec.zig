@@ -159,6 +159,41 @@ pub fn array(child_codec: anytype) struct {
     return .{};
 }
 
+// Reads the field only if the input buffer has remaining data
+// Can only be read reliably if it is placed at the end of the buffer
+pub fn optional(child_codec: anytype) struct {
+    pub fn encodedLength(_: @This(), value: anytype) usize {
+        if (@typeInfo(@TypeOf(value)) != .optional) @compileError("type must be optional (? prefix)");
+        if (value) |v| {
+            return child_codec.encodedLength(v);
+        } else {
+            return 0;
+        }
+    }
+
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
+        if (@typeInfo(@TypeOf(value)) != .optional) @compileError("type must be optional (? prefix)");
+        if (value) |v| {
+            try child_codec.encode(v, writer);
+        }
+    }
+
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
+        const InnerT = switch (@typeInfo(T)) {
+            .optional => |info| info.child,
+            else => @compileError("type must be optional (? prefix)"),
+        };
+
+        if (reader.remaining() > 0) {
+            return try child_codec.decode(InnerT, reader, diag);
+        } else {
+            return null;
+        }
+    }
+} {
+    return .{};
+}
+
 fn validateStructSchema(T: type, schema: anytype) void {
     if (@typeInfo(T) != .@"struct") @compileError("type must be a struct");
 

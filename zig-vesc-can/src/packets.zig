@@ -146,10 +146,12 @@ pub const SetDuty = struct {
 
 pub const SetCurrent = struct {
     current: f32,
+    current_off_delay: ?f32 = null,
 
     pub const type_id = PacketType.set_current;
     pub const schema = .{
         .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
+        .current_off_delay = codec.optional(codec.FixedFloat{ .underlying = i16, .scalar = 1_000 }),
     };
 };
 
@@ -182,10 +184,10 @@ pub const SetPos = struct {
 
 pub const BufferSendMode = enum(u8) {
     // TODO: Figure out what these actually do; all I know is there's 4 of them and 0 is default
-    A = 0,
-    B = 1,
-    C = 2,
-    D = 3,
+    A = 0, // Packet goes to commands_process_packet of receiver
+    B = 1, // Packet goes to commands_send_packet of receiver
+    C = 2, // Packet goes to commands_process and send function is set to null so that no reply is sent back
+    D = 3, // Same as 0, but the reply is processed locally and not sent out on the last interface
 };
 
 pub const ProcessShortBuffer = struct {
