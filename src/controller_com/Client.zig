@@ -148,7 +148,32 @@ pub fn main(init: std.process.Init) !void {
                 }
             }
         } else {
-            logitech_controller = find_logitech.cancel(custom_io) catch @panic("An error occured wile trying to find controller");
+            // logitech_controller = find_logitech.cancel(custom_io) catch @panic("An error occured wile trying to find controller");
+            logitech_controller = find_logitech.cancel(custom_io) catch null;
+
+            var dgram: [1024]u8 = undefined;
+            var dgram_write_index: usize = 0;
+            protocol.writeToDgram(protocol.ClientMessageType.controller_down, dgram[0..]);
+            dgram_write_index += @sizeOf(protocol.ClientMessageType);
+
+            var time: linux.timespec = undefined;
+            const get_time_rc = linux.errno(linux.clock_gettime(linux.clockid_t.REALTIME, &time));
+            if (get_time_rc != .SUCCESS) {
+                std.debug.panic("Failed to get time with function 'linux.clock_gettime', errno: {d}\n", .{get_time_rc});
+            }
+
+            protocol.writeToDgram(
+                protocol.TimeStamp{
+                    .seconds = time.sec,
+                    .nano_seconds = time.nsec,
+                },
+                dgram[dgram_write_index..],
+            );
+            dgram_write_index += @sizeOf(protocol.TimeStamp);
+
+            _ = socket.send(init.io, &server_address, dgram[0..dgram_write_index]) catch |err| {
+                log.warn("Got error while sending; {}", .{err});
+            };
         }
 
         // =====================================================================
