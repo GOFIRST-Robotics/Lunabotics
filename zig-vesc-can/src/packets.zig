@@ -72,7 +72,6 @@ pub const Status2 = struct {
     amp_hours: f32,
     amp_hours_chg: f32,
 
-    pub const type_id = PacketType.status_2;
     pub const schema = .{
         .amp_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
         .amp_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
@@ -83,7 +82,6 @@ pub const Status3 = struct {
     watt_hours: f32,
     watt_hours_chg: f32,
 
-    pub const type_id = PacketType.status_3;
     pub const schema = .{
         .watt_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
         .watt_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
@@ -96,7 +94,6 @@ pub const Status4 = struct {
     current_in: f32,
     PID_pos: f32,
 
-    pub const type_id = PacketType.status_4;
     pub const schema = .{
         .temp_FET = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
         .temp_motor = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
@@ -109,7 +106,6 @@ pub const Status5 = struct {
     tachometer: f32,
     volts_in: f32,
 
-    pub const type_id = PacketType.status_5;
     pub const schema = .{
         .tachometer = codec.FixedFloat{ .underlying = i32, .scalar = 6 },
         .volts_in = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
@@ -123,7 +119,6 @@ pub const Status6 = struct {
     ADC3: f32,
     PPM: f32,
 
-    pub const type_id = PacketType.status_6;
     pub const schema = .{
         .ADC1 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
         .ADC2 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
@@ -135,7 +130,6 @@ pub const Status6 = struct {
 pub const NotifyBoot = struct {
     hw_name: []const u8,
 
-    pub const type_id = PacketType.notify_boot;
     pub const schema = .{
         .hw_name = codec.remaining_bytes,
     };
@@ -144,7 +138,6 @@ pub const NotifyBoot = struct {
 pub const SetDuty = struct {
     duty: f32,
 
-    pub const type_id = PacketType.set_duty;
     pub const schema = .{
         .duty = codec.FixedFloat{ .underlying = i32, .scalar = 100_000 },
     };
@@ -154,7 +147,6 @@ pub const SetCurrent = struct {
     current: f32,
     current_off_delay: ?f32 = null,
 
-    pub const type_id = PacketType.set_current;
     pub const schema = .{
         .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
         .current_off_delay = codec.optional(codec.FixedFloat{ .underlying = i16, .scalar = 1_000 }),
@@ -164,7 +156,6 @@ pub const SetCurrent = struct {
 pub const SetCurrentBrake = struct {
     current: f32,
 
-    pub const type_id = PacketType.set_current_brake;
     pub const schema = .{
         .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
     };
@@ -173,7 +164,6 @@ pub const SetCurrentBrake = struct {
 pub const SetRPM = struct {
     rpm: f32,
 
-    pub const type_id = PacketType.set_rpm;
     pub const schema = .{
         .rpm = codec.FixedFloat{ .underlying = i32, .scalar = 1 },
     };
@@ -182,7 +172,6 @@ pub const SetRPM = struct {
 pub const SetPos = struct {
     degrees: f32,
 
-    pub const type_id = PacketType.set_pos;
     pub const schema = .{
         .degrees = codec.FixedFloat{ .underlying = i32, .scalar = 1_000_000 },
     };
@@ -222,7 +211,6 @@ pub const ProcessShortBuffer = struct {
     send_mode: BufferSendMode,
     data: []const u8,
 
-    pub const type_id = PacketType.process_short_buffer;
     pub const schema = .{
         .sender_id = codec.int,
         .send_mode = codec.int_enum,
@@ -234,7 +222,6 @@ pub const FillRxBuffer = struct {
     base_index: u8,
     data: []const u8,
 
-    pub const type_id = PacketType.fill_rx_buffer;
     pub const schema = .{
         .base_index = codec.int,
         .data = codec.remaining_bytes,
@@ -245,7 +232,6 @@ pub const FillRxBufferLong = struct {
     base_index: u16,
     data: []const u8,
 
-    pub const type_id = PacketType.fill_rx_buffer_long;
     pub const schema = .{
         .base_index = codec.int,
         .data = codec.remaining_bytes,
@@ -258,7 +244,6 @@ pub const ProcessRxBuffer = struct {
     length: u16,
     crc: u16,
 
-    pub const type_id = PacketType.process_rx_buffer;
     pub const schema = .{
         .sender_id = codec.int,
         .send_mode = codec.int_enum,
