@@ -37,10 +37,9 @@ pub fn deinit() void {
 }
 
 fn startServer() void {
-    const options = fg.foxglove_server_options{
-        .host = fgStr(host),
-        .port = port,
-    };
+    var options = std.mem.zeroes(fg.foxglove_server_options);
+    options.host = fgStr(host);
+    options.port = port;
     const err = fg.foxglove_server_start(&options, &server);
     logFgError(err, "[Foxglove] Unable to start foxglove websocket server!");
 }
@@ -56,7 +55,7 @@ pub fn logMessage(topic: []const u8, msg: []const u8, level: LogLevel) void {
         entry.value_ptr.* = createLogChannel(topic) orelse return;
     }
     const message = fg.foxglove_log{
-        .level = @intFromEnum(level),
+        .level = @backingInt(level),
         .message = fgStr(msg),
         .timestamp = &timestamp(),
     };

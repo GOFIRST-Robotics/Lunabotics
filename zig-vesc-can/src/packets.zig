@@ -300,7 +300,7 @@ pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) SerializeError!CanFr
         inline else => |body, packet_type| {
             const serialized = try serializePacketBody(body);
             return .{
-                .id = (VescCanId{ .vesc_id = dest_vesc_id, .packet_type = @intFromEnum(packet_type) }).toCanId(),
+                .id = (VescCanId{ .vesc_id = dest_vesc_id, .packet_type = @backingInt(packet_type) }).toCanId(),
                 .len = serialized.len,
                 .data = serialized.data,
             };
@@ -310,7 +310,7 @@ pub fn serializeIntoFrame(dest_vesc_id: u8, packet: Packet) SerializeError!CanFr
 
 test "Status1 parses negative values" {
     // erpm -1000, current -12.3 A, duty -0.5
-    const id: VescCanId = .{ .vesc_id = 1, .packet_type = @intFromEnum(PacketType.status_1) };
+    const id: VescCanId = .{ .vesc_id = 1, .packet_type = @backingInt(PacketType.status_1) };
     var frame: CanFrame = .{ .id = id.toCanId(), .len = 8 };
     frame.data = .{ 0xff, 0xff, 0xfc, 0x18, 0xff, 0x85, 0xfe, 0x0c };
 

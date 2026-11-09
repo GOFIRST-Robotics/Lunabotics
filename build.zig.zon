@@ -2,10 +2,14 @@
     .name = .MFR,
     .version = "0.0.0",
     .fingerprint = 0xa4451fdac79ba76d,
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.1",
     .dependencies = .{
         .zig_vesc_can = .{
             .path = "zig-vesc-can",
+        },
+        .translate_c = .{
+            .url = "git+https://codeberg.org/ziglang/translate-c?ref=2.0.1#4f5ad374e50d1a98d3da79fa5d3bda9949103bf7",
+            .hash = "translate_c-2.0.1-Q_BUWmpOBwCIhy--up1q6cl3OlIQE86iJU8R-bZ01aPj",
         },
     },
     .paths = .{

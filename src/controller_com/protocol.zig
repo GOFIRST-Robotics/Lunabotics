@@ -50,7 +50,7 @@ pub fn takeFromDgram(T: type, data: []const u8) T {
 
     switch (@typeInfo(T)) {
         .@"enum" => |info| {
-            return @enumFromInt(mem.bigToNative(info.tag_type, mem.bytesAsValue(info.tag_type, data).*));
+            return @fromBackingInt(@intCast(mem.bigToNative(info.tag_type, mem.bytesAsValue(info.tag_type, data).*)));
         },
         .@"struct" => |info| {
             if (info.backing_integer) |b| {
@@ -78,7 +78,7 @@ pub fn writeToDgram(data: anytype, dgram_buf: []u8) void {
 
     switch (@typeInfo(T)) {
         .@"enum" => |info| {
-            mem.bytesAsValue(info.tag_type, dgram_buf).* = mem.nativeToBig(info.tag_type, @intFromEnum(data));
+            mem.bytesAsValue(info.tag_type, dgram_buf).* = mem.nativeToBig(info.tag_type, @backingInt(data));
         },
         .@"struct" => |info| {
             if (info.backing_integer) |b| {
