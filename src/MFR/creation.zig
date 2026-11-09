@@ -66,10 +66,10 @@ fn runAllMethodsOnTransfer(
     comptime method_name: []const u8,
     io: Io,
 ) Io.Cancelable!void {
-    inline for (@typeInfo(@TypeOf(transfer.*)).@"struct".fields) |transfer_field| {
-        const output_node = &@field(transfer, transfer_field.name);
-        inline for (@typeInfo(@TypeOf(output_node.*)).@"struct".fields) |output_node_field| {
-            const trans_buf = &@field(output_node, output_node_field.name);
+    inline for (@typeInfo(@TypeOf(transfer.*)).@"struct".field_names) |transfer_field_name| {
+        const output_node = &@field(transfer, transfer_field_name);
+        inline for (@typeInfo(@TypeOf(output_node.*)).@"struct".field_names) |output_node_field_name| {
+            const trans_buf = &@field(output_node, output_node_field_name);
             if (meta.hasMethod(@TypeOf(trans_buf), method_name)) {
                 try @call(
                     .auto,
@@ -345,16 +345,17 @@ pub fn initTransferBuffer(transfer_instance: anytype) void {
     const transfer_info_ptr = @typeInfo(@TypeOf(transfer_instance)).pointer;
     const transfer_info = @typeInfo(transfer_info_ptr.child).@"struct";
 
-    inline for (transfer_info.fields) |transfer_field| {
-        const node = &@field(transfer_instance, transfer_field.name);
+    inline for (transfer_info.field_names) |transfer_field_name| {
+        const node = &@field(transfer_instance, transfer_field_name);
         const node_info = @typeInfo(@typeInfo(@TypeOf(node)).pointer.child).@"struct";
 
-        inline for (node_info.fields) |output_node_info| {
-            const output_node = &@field(node, output_node_info.name);
+        inline for (node_info.field_names, node_info.field_types) |output_node_info_name, output_node_info_type| {
+            const output_node = &@field(node, output_node_info_name);
 
-            inline for (@typeInfo(output_node_info.type).@"struct".fields) |output_info| {
-                var output_var: *output_info.type = &@field(output_node, output_info.name);
-                if (std.meta.hasMethod(output_info.type, "init")) {
+            const output_info = @typeInfo(output_node_info_type).@"struct";
+            inline for (output_info.field_names, output_info.field_types) |output_info_name, output_info_type| {
+                var output_var: *output_info_type = &@field(output_node, output_info_name);
+                if (std.meta.hasMethod(output_info_type, "init")) {
                     output_var.init();
                 } else {
                     output_var.* = .{};
@@ -365,22 +366,23 @@ pub fn initTransferBuffer(transfer_instance: anytype) void {
 }
 
 pub fn tieToTransferBuffer(transfer: anytype, outputs: anytype, inputs: anytype) void {
-    inline for (@typeInfo(@TypeOf(transfer.*)).@"struct".fields) |node_field| {
-        const trans_node = &@field(transfer, node_field.name);
+    inline for (@typeInfo(@TypeOf(transfer.*)).@"struct".field_names) |node_field_name| {
+        const trans_node = &@field(transfer, node_field_name);
 
         // get node to from outputs field
-        const outputs_field = &@field(outputs, node_field.name);
+        const outputs_field = &@field(outputs, node_field_name);
 
-        inline for (@typeInfo(@TypeOf(trans_node.*)).@"struct".fields) |node_output_field| {
-            var output = &@field(outputs_field, node_output_field.name);
-            var input = &@field(inputs, node_output_field.name);
-            const trans_node_output = &@field(trans_node, node_output_field.name);
+        inline for (@typeInfo(@TypeOf(trans_node.*)).@"struct".field_names) |node_output_field_name| {
+            var output = &@field(outputs_field, node_output_field_name);
+            var input = &@field(inputs, node_output_field_name);
+            const trans_node_output = &@field(trans_node, node_output_field_name);
 
-            inline for (@typeInfo(@TypeOf(output.*)).@"struct".fields) |input_field_info| {
-                const output_field: *input_field_info.type = &@field(output, input_field_info.name);
-                const input_field: *input_field_info.type = &@field(input, input_field_info.name);
+            const input_field_info = @typeInfo(@TypeOf(output.*)).@"struct";
+            inline for (input_field_info.field_names, input_field_info.field_types) |input_field_info_name, input_field_info_type| {
+                const output_field: *input_field_info_type = &@field(output, input_field_info_name);
+                const input_field: *input_field_info_type = &@field(input, input_field_info_name);
 
-                const trans_output = &@field(trans_node_output, input_field_info.name);
+                const trans_output = &@field(trans_node_output, input_field_info_name);
 
                 if (meta.hasMethod(@TypeOf(trans_output), "getInputPtr")) {
                     input_field.* = trans_output.getInputPtr();
@@ -401,8 +403,8 @@ pub fn CreateInputs(nodes: []const type) type {
     inline for (nodes, 0..) |node, node_index| {
         field_names[node_index] = node.NodeName;
         field_types[node_index] = node.inputType;
-        inline for (@typeInfo(node.inputType).@"struct".fields) |field| {
-            if (@typeInfo(field.type) != .pointer) {
+        inline for (@typeInfo(node.inputType).@"struct".field_types) |field_type| {
+            if (@typeInfo(field_type) != .pointer) {
                 @compileError(std.fmt.comptimePrint(
                     "All fields in 'inputType' should be a pointer. Double check {s}'s 'inputType' definition",
                     .{
@@ -429,8 +431,8 @@ pub fn CreateOutputs(nodes: []const type) type {
     inline for (nodes, 0..) |node, node_index| {
         field_names[node_index] = node.NodeName;
         field_types[node_index] = node.outputType;
-        inline for (@typeInfo(node.inputType).@"struct".fields) |field| {
-            if (@typeInfo(field.type) != .pointer) {
+        inline for (@typeInfo(node.inputType).@"struct".field_types) |field_type| {
+            if (@typeInfo(field_type) != .pointer) {
                 @compileError(std.fmt.comptimePrint(
                     "All fields in 'inputType' should be a pointer. Double check {s}'s 'inputType' definition",
                     .{

@@ -14,9 +14,9 @@ RUN apt-get update && \
     apt-get install -y git-lfs xz-utils curl wget build-essential iproute2 can-utils evtest unzip sudo && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Zig 0.16.0
+# Install Zig 0.17.1
 WORKDIR /opt
-ARG ZIG_VERSION="0.16.0"
+ARG ZIG_VERSION="0.17.1"
 ARG ZIG_ARCH
 ARG TARGETARCH
 RUN echo "Building for Operating System: and Architecture: $TARGETARCH"

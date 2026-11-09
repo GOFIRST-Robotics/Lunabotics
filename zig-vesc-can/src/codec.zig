@@ -72,7 +72,7 @@ const IntEnum = struct {
 
     pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
         if (@typeInfo(@TypeOf(value)) != .@"enum") @compileError("type must be an enum");
-        try int.encode(@intFromEnum(value), writer);
+        try int.encode(@backingInt(value), writer);
     }
 
     pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {

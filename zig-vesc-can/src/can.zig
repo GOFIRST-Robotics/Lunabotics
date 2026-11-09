@@ -192,7 +192,7 @@ pub const ReceiveOptions = struct {
 pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag: ?*WriteDiagnostic) WriteError!BcmTaskHandle {
     const can_id = (VescCanId{
         .vesc_id = options.vesc_id,
-        .packet_type = @intFromEnum(options.packet_type),
+        .packet_type = @backingInt(options.packet_type),
     }).toCanId();
 
     var msg = BcmMessageBuf(1){
