@@ -12,6 +12,7 @@ const StreamDeckData = protocol.StreamDeckData;
 // ./scripts/enter_dev_container.sh
 // zig build
 // ./zig-out/bin/client 127.0.0.1
+// ls -l /dev/input/by-id/
 // -------------------------------------------------
 
 // a controller being unplugged is not handled properly yet by zig so this is here to shut it up
@@ -71,22 +72,24 @@ pub fn main(init: std.process.Init) !void {
 
     // -------------------------------------------------Find the devices
 
-    var controller: ?Io.File = undefined;
-    var controller_name: []const u8 = undefined;
+    var controller: ?Io.File = null;
+    var controller_name: []const u8 = "";
 
-    const controller_types = input_devices.controller_type;
+    inline for (@typeInfo(input_devices.controller_type).@"struct".decls) |current_controller_type| {
+        const search_string = @field(input_devices.controller_type, current_controller_type.name);
 
-    inline for (std.meta.fields(controller_types)) |current_controller_type| {
-        controller = try input_devices.findDevice(init.io, current_controller_type.name);
-
-        defer {
-            if (controller) |*con| {
-                con.close(init.io);
-                controller_name = current_controller_type.name;
-            }
+        if (try input_devices.findDevice(init.io, search_string)) |con| {
+            controller = con;
+            controller_name = search_string;
+            break;
         }
     }
 
+    defer {
+        if (controller) |*con| {
+            con.close(init.io);
+        }
+    }
     // ---------- Function Pointer for controller find and read functions
 
     const readFrom_fct_ptr = *const fn (io: Io, file: Io.File, previous_data: protocol.ControllerData) input_devices.ControllerReadError!input_devices.ControllerData;

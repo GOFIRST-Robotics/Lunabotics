@@ -323,8 +323,8 @@ fn microSecondToNanoSecond(usec: i64) isize {
 }
 
 pub const controller_type = struct {
-    pub const logitech: []const u8 = "LogitechController";
-    pub const xbox: []const u8 = "XboxController";
+    pub const logitech: []const u8 = "Logitech";
+    pub const xbox: []const u8 = "Xbox";
 };
 
 pub const ControllerData = struct { time: struct { sec: isize, nsec: isize }, data: protocol.ControllerData };
@@ -333,3 +333,11 @@ pub const controllerMappings = .{
     .{ .name = controller_type.logitech, .readFn = readFromLogitechController },
     .{ .name = controller_type.xbox, .readFn = readFromXboxController },
 };
+
+// pub const ControllerMappings: []const struct {
+//     name: []const u8,
+//     fn_ptr: fn (Io, Io.File, protocol.ControllerData) ControllerReadError!ControllerData,
+// } = .{
+//     .{ .name = "Logitech", .fn_ptr = readFromLogitechController },
+//     .{ .name = "Xbox", .fn_ptr = readFromXboxController },
+// };
