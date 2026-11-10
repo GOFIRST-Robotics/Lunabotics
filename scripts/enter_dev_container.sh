@@ -77,6 +77,11 @@ if [ "$ACTION" = "rebuild" ] || [ -z "$IMAGE_EXISTS" ]; then
     fi
 fi
 
+# Allow container root to connect to host X server for GUI/visualizers
+if [ -n "$DISPLAY" ]; then
+    xhost +local:root > /dev/null 2>&1 || true
+fi
+
 # 3. Attach, Start, or Run Container
 if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo "--> Attaching to existing running container: ${CONTAINER_NAME}"
