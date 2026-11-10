@@ -81,7 +81,7 @@ pub fn readFromLogitechController(io: Io, file: Io.File, previous_data: protocol
                 const errno: c_int = std.c._errno().*;
                 // This has to be done because the errno NODEV is not yet handled by zig when reading from a file
                 // NODEV is 19
-                if (errno == @intFromEnum(linux.E.NODEV)) {
+                if (errno == @backingInt(linux.E.NODEV)) {
                     return ControllerReadError.LostController;
                 } else {
                     log.warn("An unexpected error occured while reading from logitech controller. Errno: {d}\n", .{errno});
@@ -179,7 +179,7 @@ pub fn readFromStreamDeck(io: Io, file: Io.File, previous_data: protocol.StreamD
                 const errno: c_int = std.c._errno().*;
                 // This has to be done because the errno NODEV is not yet handled by zig when reading from a file
                 // NODEV is 19
-                if (errno == @intFromEnum(linux.E.NODEV)) {
+                if (errno == @backingInt(linux.E.NODEV)) {
                     return ControllerReadError.LostController;
                 } else {
                     log.warn("An unexpected error occured while reading from logitech controller. Errno: {d}\n", .{errno});
