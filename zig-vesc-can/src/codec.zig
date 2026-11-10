@@ -8,6 +8,23 @@ pub const DecodeDiagnostic = struct {
     byte_position: usize = 0,
 };
 
+pub const empty = Empty{};
+const Empty = struct {
+    pub fn encodedLength(_: @This(), value: anytype) usize {
+        if (@TypeOf(value) != void) @compileError("type must be void");
+        return 0;
+    }
+
+    pub fn encode(_: @This(), value: anytype, _: *BufWriter) EncodeError!void {
+        if (@TypeOf(value) != void) @compileError("type must be void");
+    }
+
+    pub fn decode(_: @This(), T: type, _: *BufReader, _: ?*DecodeDiagnostic) DecodeError!T {
+        if (T != void) @compileError("type must be void");
+        return {};
+    }
+};
+
 pub const boolean = Boolean{};
 const Boolean = struct {
     pub fn encodedLength(_: @This(), value: anytype) usize {
@@ -194,9 +211,7 @@ pub fn optional(child_codec: anytype) struct {
     return .{};
 }
 
-fn validateStructSchema(T: type, schema: anytype) void {
-    if (@typeInfo(T) != .@"struct") @compileError("type must be a struct");
-
+fn validateSchema(T: type, schema: anytype) void {
     const SchemaT = @TypeOf(schema);
     inline for (std.meta.fields(T)) |field| {
         if (!@hasField(SchemaT, field.name)) {
@@ -208,6 +223,11 @@ fn validateStructSchema(T: type, schema: anytype) void {
             @compileError("no field found for schema entry `" ++ field.name ++ "`");
         }
     }
+}
+
+fn validateStructSchema(T: type, schema: anytype) void {
+    if (@typeInfo(T) != .@"struct") @compileError("type must be a struct");
+    validateSchema(T, schema);
 }
 
 pub fn structSchema(schema: anytype) struct {
@@ -247,6 +267,55 @@ pub fn structSchema(schema: anytype) struct {
         }
 
         return value;
+    }
+} {
+    return .{};
+}
+
+fn validateUnionSchema(T: type, schema: anytype) void {
+    if (@typeInfo(T) != .@"union") @compileError("union must be a struct");
+    validateSchema(T, schema);
+}
+
+pub fn prefixedUnionSchema(tag_codec: anytype, schema: anytype) struct {
+    pub fn encodedLength(_: @This(), value: anytype) usize {
+        validateUnionSchema(@TypeOf(value), schema);
+
+        switch (value) {
+            inline else => |content, tag| {
+                const prefix_len = tag_codec.encodedLength(tag);
+                const content_codec = @field(schema, @tagName(tag));
+                const content_len = content_codec.encodedLength(content);
+                return prefix_len + content_len;
+            },
+        }
+    }
+
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
+        validateUnionSchema(@TypeOf(value), schema);
+
+        switch (value) {
+            inline else => |content, tag| {
+                try tag_codec.encode(tag, writer);
+                const content_codec = @field(schema, @tagName(tag));
+                try content_codec.encode(content, writer);
+            },
+        }
+    }
+
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
+        validateUnionSchema(T, schema);
+
+        const TagT = std.meta.Tag(T);
+        const tag = try tag_codec.decode(TagT, reader, diag);
+
+        inline for (std.meta.fields(T)) |field| {
+            if (tag == @field(TagT, field.name)) {
+                const content_codec = @field(schema, field.name);
+                return @unionInit(T, field.name, try content_codec.decode(field.type, reader, diag));
+            }
+        }
+        unreachable;
     }
 } {
     return .{};
@@ -334,20 +403,33 @@ pub const BufWriter = struct {
 };
 
 test "codec" {
+    const PatternType = enum(u8) { solid = 0, stripes = 1 };
+    const Pattern = union(PatternType) {
+        solid: void,
+        stripes: u8,
+        const schema = .{
+            .solid = empty,
+            .stripes = int,
+        };
+    };
     const Cat = struct {
         adult: bool,
         leg_count: u16,
         fur_color: enum(u8) { black = 0, gray = 1, orange = 2 },
+        pattern: Pattern,
         weight: f32,
         ear_angles: [2]f32,
+        ghost: void,
         name: []const u8,
 
         pub const schema = .{
             .adult = boolean,
             .leg_count = int,
             .fur_color = int_enum,
+            .pattern = prefixedUnionSchema(int_enum, Pattern.schema),
             .weight = FixedFloat{ .underlying = i16, .scalar = 100 },
             .ear_angles = array(FixedFloat{ .underlying = i8, .scalar = 10 }),
+            .ghost = empty,
             .name = remaining_bytes,
         };
     };
@@ -356,16 +438,18 @@ test "codec" {
         .adult = true,
         .leg_count = 4,
         .fur_color = .gray,
+        .pattern = .{ .stripes = 12 },
         .weight = 12.3,
         .ear_angles = .{ 10, 12 },
+        .ghost = {},
         .name = "kit",
     };
-    const encoded_cat = [_]u8{ 0x01, 0x00, 0x04, 0x01, 0x04, 0xce, 0x64, 0x78, 'k', 'i', 't' };
+    const encoded_cat = [_]u8{ 0x01, 0x00, 0x04, 0x01, 0x01, 0x0c, 0x04, 0xce, 0x64, 0x78, 'k', 'i', 't' };
     const cat_codec = structSchema(Cat.schema);
 
-    try std.testing.expectEqual(11, cat_codec.encodedLength(original_cat));
+    try std.testing.expectEqual(13, cat_codec.encodedLength(original_cat));
 
-    var buf: [11]u8 = undefined;
+    var buf: [13]u8 = undefined;
     var buf_writer = BufWriter.into(&buf);
     try cat_codec.encode(original_cat, &buf_writer);
     try std.testing.expectEqualSlices(u8, &encoded_cat, buf_writer.writtenData());
