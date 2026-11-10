@@ -259,10 +259,10 @@ pub fn parsePacketBody(T: type, data: []const u8, diag: ?*codec.DecodeDiagnostic
 }
 
 pub fn parsePacket(packet_type: PacketType, data: []const u8, diag: ?*codec.DecodeDiagnostic) codec.DecodeError!Packet {
-    const fields = std.meta.fields(Packet);
-    inline for (fields) |field| {
-        if (packet_type == @field(PacketType, field.name)) {
-            return @unionInit(Packet, field.name, try parsePacketBody(field.type, data, diag));
+    const info = @typeInfo(Packet).@"union";
+    inline for (info.field_names, info.field_types) |field_name, field_type| {
+        if (packet_type == @field(PacketType, field_name)) {
+            return @unionInit(Packet, field_name, try parsePacketBody(field_type, data, diag));
         }
     }
     unreachable;

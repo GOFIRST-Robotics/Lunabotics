@@ -38,17 +38,17 @@ test "CAN Frame is Equal" {
     try testing.expectEqual(@sizeOf(cCanFrame), @sizeOf(zigCanFrame));
     try testing.expectEqual(@alignOf(cCanFrame), @alignOf(zigCanFrame));
 
-    const zig_fields = @typeInfo(zigCanFrame).@"struct".fields;
-    const c_fields = @typeInfo(cCanFrame).@"struct".fields;
+    const zig_info = @typeInfo(zigCanFrame).@"struct";
+    const c_info = @typeInfo(cCanFrame).@"struct";
 
-    try testing.expectEqual(c_fields.len, zig_fields.len);
+    try testing.expectEqual(zig_info.field_names.len, zig_info.field_names.len);
 
-    inline for (zig_fields, c_fields) |zf, cf| {
-        const c_offset = @offsetOf(cCanFrame, cf.name);
-        const zig_offset = @offsetOf(zigCanFrame, zf.name);
+    inline for (zig_info.field_names, zig_info.field_types, c_info.field_names, c_info.field_types) |zf_n, zf_t, cf_n, cf_t| {
+        const c_offset = @offsetOf(cCanFrame, cf_n);
+        const zig_offset = @offsetOf(zigCanFrame, zf_n);
         try testing.expectEqual(c_offset, zig_offset);
 
-        try testing.expectEqual(@sizeOf(cf.type), @sizeOf(zf.type));
+        try testing.expectEqual(@sizeOf(cf_t), @sizeOf(zf_t));
     }
 }
 

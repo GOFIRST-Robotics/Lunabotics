@@ -211,33 +211,31 @@ pub fn optional(child_codec: anytype) struct {
     return .{};
 }
 
-fn validateSchema(T: type, schema: anytype) void {
-    const SchemaT = @TypeOf(schema);
-    inline for (std.meta.fields(T)) |field| {
-        if (!@hasField(SchemaT, field.name)) {
-            @compileError("missing schema for field `" ++ field.name ++ "`");
-        }
-    }
-    inline for (std.meta.fields(SchemaT)) |field| {
-        if (!@hasField(T, field.name)) {
-            @compileError("no field found for schema entry `" ++ field.name ++ "`");
-        }
-    }
-}
-
 fn validateStructSchema(T: type, schema: anytype) void {
     if (@typeInfo(T) != .@"struct") @compileError("type must be a struct");
-    validateSchema(T, schema);
+
+    const SchemaT = @TypeOf(schema);
+    inline for (@typeInfo(T).@"struct".field_names) |field_name| {
+        if (!@hasField(SchemaT, field_name)) {
+            @compileError("missing schema for field `" ++ field_name ++ "`");
+        }
+    }
+    inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
+        if (!@hasField(T, field_name)) {
+            @compileError("no field found for schema entry `" ++ field_name ++ "`");
+        }
+    }
 }
 
 pub fn structSchema(schema: anytype) struct {
     pub fn encodedLength(_: @This(), value: anytype) usize {
         validateStructSchema(@TypeOf(value), schema);
 
+        const SchemaT = @TypeOf(schema);
         var total_len: usize = 0;
-        inline for (std.meta.fields(@TypeOf(schema))) |field| {
-            const field_codec = @field(schema, field.name);
-            const field_value = @field(value, field.name);
+        inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
+            const field_codec = @field(schema, field_name);
+            const field_value = @field(value, field_name);
             total_len += field_codec.encodedLength(field_value);
         }
         return total_len;
@@ -248,9 +246,9 @@ pub fn structSchema(schema: anytype) struct {
         validateStructSchema(T, schema);
 
         const SchemaT = @TypeOf(schema);
-        inline for (std.meta.fields(SchemaT)) |field| {
-            const field_codec = @field(schema, field.name);
-            const field_value = @field(value, field.name);
+        inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
+            const field_codec = @field(schema, field_name);
+            const field_value = @field(value, field_name);
             try field_codec.encode(field_value, writer);
         }
     }
@@ -260,10 +258,10 @@ pub fn structSchema(schema: anytype) struct {
 
         const SchemaT = @TypeOf(schema);
         var value: T = undefined;
-        inline for (std.meta.fields(SchemaT)) |field| {
-            const field_codec = @field(schema, field.name);
-            const FieldType = @FieldType(T, field.name);
-            @field(value, field.name) = try field_codec.decode(FieldType, reader, diag);
+        inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
+            const field_codec = @field(schema, field_name);
+            const FieldType = @FieldType(T, field_name);
+            @field(value, field_name) = try field_codec.decode(FieldType, reader, diag);
         }
 
         return value;
@@ -273,8 +271,19 @@ pub fn structSchema(schema: anytype) struct {
 }
 
 fn validateUnionSchema(T: type, schema: anytype) void {
-    if (@typeInfo(T) != .@"union") @compileError("union must be a struct");
-    validateSchema(T, schema);
+    if (@typeInfo(T) != .@"union") @compileError("type must be a union");
+
+    const SchemaT = @TypeOf(schema);
+    inline for (@typeInfo(T).@"union".field_names) |field_name| {
+        if (!@hasField(SchemaT, field_name)) {
+            @compileError("missing schema for field `" ++ field_name ++ "`");
+        }
+    }
+    inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
+        if (!@hasField(T, field_name)) {
+            @compileError("no field found for schema entry `" ++ field_name ++ "`");
+        }
+    }
 }
 
 pub fn prefixedUnionSchema(tag_codec: anytype, schema: anytype) struct {
@@ -309,10 +318,11 @@ pub fn prefixedUnionSchema(tag_codec: anytype, schema: anytype) struct {
         const TagT = std.meta.Tag(T);
         const tag = try tag_codec.decode(TagT, reader, diag);
 
-        inline for (std.meta.fields(T)) |field| {
-            if (tag == @field(TagT, field.name)) {
-                const content_codec = @field(schema, field.name);
-                return @unionInit(T, field.name, try content_codec.decode(field.type, reader, diag));
+        const info = @typeInfo(T).@"union";
+        inline for (info.field_names, info.field_types) |field_name, field_type| {
+            if (tag == @field(TagT, field_name)) {
+                const content_codec = @field(schema, field_name);
+                return @unionInit(T, field_name, try content_codec.decode(field_type, reader, diag));
             }
         }
         unreachable;
