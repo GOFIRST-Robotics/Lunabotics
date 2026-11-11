@@ -3,7 +3,7 @@ const linux = std.os.linux;
 const Io = std.Io;
 
 const MFR = @import("MFR");
-const zig_vesc_can = @import("zig-vesc-can");
+const zig_vesc_can = MFR.zig_vesc_can;
 const Foxglove = MFR.Foxglove;
 
 const TeleopStateMachineNode = MFR.TeleopStateMachineNode;
@@ -19,8 +19,10 @@ const creation = MFR.creation;
 const logger = std.log.scoped(.main);
 
 const RobotNodes: []const type = &.{
+    CANInNode,
     TeleopStateMachineNode,
     ServerNode,
+    CANOutNode,
 };
 
 const NodesType = creation.CreateNodesType(RobotNodes);
@@ -75,12 +77,29 @@ pub fn main(init: std.process.Init) !void {
     var outputs: OutputsType = undefined;
     creation.tieToTransferBuffer(&transfer, &outputs, &inputs);
 
+    const canbus_name = config.canbus_name;
+    const can_socket = zig_vesc_can.can.openSocket(canbus_name, null) catch std.debug.panic("failed to connect to CAN bus '{s}'\n", .{canbus_name.*});
+    defer zig_vesc_can.can.closeSocket(can_socket);
+
     // create nodes
     var nodes: NodesType = undefined;
+    nodes.CANInNode.init(robot_io, can_socket);
     nodes.ServerNode.init(robot_io);
     nodes.TeleopStateMachine.init();
+    nodes.CANOutNode.init(robot_io, can_socket);
 
     var async_group: Io.Group = .init;
+    try async_group.concurrent(
+        robot_io,
+        creation.runUpdateForever(CANInNode),
+        .{
+            robot_io,
+            &nodes.CANInNode,
+            &transfer.CANInNode,
+            &inputs.CANInNode,
+            &outputs.CANInNode,
+        },
+    );
     try async_group.concurrent(
         robot_io,
         creation.runUpdateForever(ServerNode),
@@ -95,7 +114,7 @@ pub fn main(init: std.process.Init) !void {
     try async_group.concurrent(
         robot_io,
         creation.runPeriodically(
-            &.{TeleopStateMachineNode},
+            &.{ TeleopStateMachineNode, CANOutNode },
             NodesType,
             TransferBuffer,
             InputsType,

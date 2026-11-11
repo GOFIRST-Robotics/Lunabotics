@@ -96,10 +96,9 @@ pub fn openSocket(interface_name: ?[]const u8, errno_out: ?*linux.E) error{ Name
     };
 
     {
-        const addr: linux_can.sockaddr_can = .{
-            .can_family = linux.AF.CAN,
-            .can_ifindex = interface_index,
-        };
+        var addr = std.mem.zeroes(linux_can.sockaddr_can);
+        addr.can_family = linux.AF.CAN;
+        addr.can_ifindex = interface_index;
 
         const e = linux.errno(linux.connect(socket_fd, @ptrCast(&addr), @sizeOf(@TypeOf(addr))));
         if (e != .SUCCESS) {
@@ -139,14 +138,11 @@ pub const SendError = WriteError || packets.SerializeError;
 pub fn sendOnce(io: Io, socket: BcmCanSocket, vesc_id: u8, packet: packets.Packet, diag: ?*WriteDiagnostic) SendError!void {
     const frame = try packets.serializeIntoFrame(vesc_id, packet);
 
-    const msg = BcmMessageBuf(1){
-        .header = .{
-            .opcode = linux_can.TX_SEND,
-            .nframes = 1,
-            .can_id = @bitCast(frame.id),
-        },
-        .frames = .{frame},
-    };
+    var msg = std.mem.zeroes(BcmMessageBuf(1));
+    msg.header.opcode = linux_can.TX_SEND;
+    msg.header.can_id = @bitCast(frame.id);
+    msg.header.nframes = 1;
+    msg.frames[0] = frame;
 
     try bcmWrite(io, socket.fd, 1, msg, diag);
 }
@@ -165,17 +161,14 @@ pub const RepeatingSendOptions = struct {
 pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOptions, diag: ?*WriteDiagnostic) SendError!BcmTaskHandle {
     const frame = try packets.serializeIntoFrame(options.vesc_id, options.packet);
 
-    const msg = BcmMessageBuf(1){
-        .header = .{
-            .opcode = linux_can.TX_SETUP,
-            .flags = linux_can.SETTIMER | linux_can.STARTTIMER,
-            .count = 0,
-            .nframes = 1,
-            .ival2 = options.interval,
-            .can_id = @bitCast(frame.id),
-        },
-        .frames = .{frame},
-    };
+    var msg = std.mem.zeroes(BcmMessageBuf(1));
+    msg.header.opcode = linux_can.TX_SETUP;
+    msg.header.flags = linux_can.SETTIMER | linux_can.STARTTIMER;
+    msg.header.can_id = @bitCast(frame.id);
+    msg.header.count = 0;
+    msg.header.ival2 = options.interval;
+    msg.header.nframes = 1;
+    msg.frames[0] = frame;
 
     try bcmWrite(io, socket.fd, 1, msg, diag);
     return .{ .can_id = frame.id, .kind = .tx };
@@ -195,17 +188,14 @@ pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag:
         .packet_type = @backingInt(options.packet_type),
     }).toCanId();
 
-    var msg = BcmMessageBuf(1){
-        .header = .{
-            .opcode = linux_can.RX_SETUP,
-            .flags = 0,
-            .can_id = @bitCast(can_id),
-        },
-        .frames = .{.{
-            .id = @bitCast(can_id),
-            .len = 8,
-            .data = @splat(0xFF),
-        }},
+    var msg = std.mem.zeroes(BcmMessageBuf(1));
+    msg.header.opcode = linux_can.RX_SETUP;
+    msg.header.flags = 0;
+    msg.header.can_id = @bitCast(can_id);
+    msg.frames[0] = .{
+        .id = @bitCast(can_id),
+        .len = 8,
+        .data = @splat(0xFF),
     };
 
     if (options.ignore_duplicates) {
@@ -234,18 +224,12 @@ pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag:
 }
 
 pub fn deleteTask(io: Io, socket: BcmCanSocket, handle: BcmTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
-    const msg = BcmMessageBuf(0){
-        .header = .{
-            .opcode = switch (handle.kind) {
-                .tx => linux_can.TX_DELETE,
-                .rx => linux_can.RX_DELETE,
-            },
-            .flags = 0,
-            .can_id = handle.can_id,
-            .nframes = 0,
-        },
-        .frames = .{},
+    var msg = std.mem.zeroes(BcmMessageBuf(0));
+    msg.header.opcode = switch (handle.kind) {
+        .tx => linux_can.TX_DELETE,
+        .rx => linux_can.RX_DELETE,
     };
+    msg.header.can_id = handle.can_id;
 
     try bcmWrite(io, socket.fd, 0, msg, diag);
 }
