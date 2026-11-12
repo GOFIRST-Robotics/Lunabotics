@@ -2,15 +2,17 @@ const std = @import("std");
 const Io = std.Io;
 const linux = std.os.linux;
 
+const config = @import("config");
+const on_jetson = config.on_jetson;
+const creation = @import("../MFR/creation.zig");
+const TeleopStateMachineNode = @import("../teleop_state_machine/TeleopStateMachineNode.zig");
+
 const zig_vesc_can = @import("zig-vesc-can");
 const can = zig_vesc_can.can;
 
-const config = @import("config");
-const on_jetson = config.on_jetson;
-
 const CANInNode = @This();
+pub const NodeName: []const u8 = "CANInNode";
 
-const canbus_name = config.canbus_name.*;
 const logger = std.log.scoped(.can_in);
 
 io: Io,
@@ -18,20 +20,23 @@ socket: can.BcmCanSocket,
 
 pub const inputType = struct {};
 
-pub const outputType = struct {
-    test_motor_rpm: f32,
-    pub fn reset(self: *@This()) void {
-        _ = &self;
-    }
-    pub fn linkBuffer(self: *@This()) void {
-        _ = &self;
-    }
+pub const MotorStatus = struct {
+    test_motor_rpm: f32 = 0.0,
 };
 
-pub fn init(io: Io) @This() {
-    // TODO: Pass in from main
-    const socket = can.openSocket(&canbus_name, null) catch std.debug.panic("failed to connect to canbus '{s}'\n", .{canbus_name});
+pub const outputConfigs = [_]creation.OutputConfig{
+    .{
+        .output_node = TeleopStateMachineNode,
+        .output_field = &.{.{
+            .field = .motor_status,
+            .buffering_type = .double_buffered,
+        }},
+    },
+};
 
+pub const outputType = creation.CreateOutputType(&outputConfigs);
+
+pub fn init(self: *CANInNode, io: Io, socket: can.BcmCanSocket) void {
     // Just read from VESC 1 for testing
     _ = can.setupReceive(io, socket, .{
         .vesc_id = 1,
@@ -41,7 +46,8 @@ pub fn init(io: Io) @This() {
         .rate_limit = null,
     }, null) catch std.debug.panic("failed to setup receive for status 1 packet\n", .{});
 
-    return .{ .io = io, .socket = socket };
+    self.io = io;
+    self.socket = socket;
 }
 
 pub fn deinit(self: *@This()) void {
@@ -51,8 +57,9 @@ pub fn deinit(self: *@This()) void {
 pub fn update(self: *@This(), input: *const inputType, output: *outputType) void {
     _ = input;
     while (true) {
+        var read_buf: can.ReadBuffer = undefined;
         var read_diag: can.ReadDiagnostic = .{};
-        const event = can.readNextEvent(self.io, self.socket, &read_diag) catch |err| {
+        const event = can.readNextEvent(self.io, self.socket, &read_buf, &read_diag) catch |err| {
             if (err == error.Canceled) {
                 return;
             }
@@ -74,7 +81,7 @@ pub fn update(self: *@This(), input: *const inputType, output: *outputType) void
         switch (event.data) {
             .packet_received => |packet| switch (packet) {
                 .status_1 => |status| {
-                    output.test_motor_rpm = status.erpm;
+                    output.TeleopStateMachine.motor_status.* = .{ .test_motor_rpm = status.erpm };
                     return;
                 },
                 else => {},

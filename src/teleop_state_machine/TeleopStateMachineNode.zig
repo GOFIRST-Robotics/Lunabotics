@@ -1,6 +1,8 @@
 const std = @import("std");
 const Io = std.Io;
 const CANInNode = @import("../can_bus/CANInNode.zig");
+const MotorStatus = CANInNode.MotorStatus;
+const CANOutNode = @import("../can_bus/CANOutNode.zig");
 const protocol = @import("../controller_com/protocol.zig");
 const ControllerData = protocol.ControllerData;
 const StreamDeckData = protocol.StreamDeckData;
@@ -28,11 +30,20 @@ pub const ControllerInfo = struct {
 
 pub const inputType = struct {
     controller_info: *ControllerInfo,
+    motor_status: *MotorStatus,
 };
 
-pub const outputConfigs: [0]creation.OutputConfig = .{};
+pub const outputConfigs = [_]creation.OutputConfig{
+    .{
+        .output_node = CANOutNode,
+        .output_field = &.{.{
+            .field = .motor_requests,
+            .buffering_type = .double_buffered,
+        }},
+    },
+};
 
-pub const outputType = struct {};
+pub const outputType = creation.CreateOutputType(&outputConfigs);
 
 pub fn init(self: *@This()) void {
     self.state = .disabled;
@@ -41,12 +52,13 @@ pub fn init(self: *@This()) void {
 }
 
 pub fn update(self: *@This(), input: *inputType, output: *outputType) void {
-    _ = output;
-
     defer self.last_controller_state = input.controller_info.controller_state;
     defer self.last_stream_deck_state = input.controller_info.stream_deck_state;
 
     if (input.controller_info.controller_state) |con_state| {
         logger.info("{f}", .{con_state});
     } else {}
+
+    // Send something
+    output.CANOutNode.motor_requests.* = .{ .motor_current = 0.0 };
 }

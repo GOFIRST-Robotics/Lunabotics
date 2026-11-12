@@ -20,6 +20,8 @@ pub const PacketType = enum(u8) {
     set_current_brake = 2,
     set_rpm = 3,
     set_pos = 4,
+    ping = 17,
+    pong = 18,
     fill_rx_buffer = 5,
     fill_rx_buffer_long = 6,
     process_rx_buffer = 7,
@@ -42,6 +44,10 @@ pub const Packet = union(PacketType) {
     set_current_brake: SetCurrentBrake,
     set_rpm: SetRPM,
     set_pos: SetPos,
+
+    // Pings
+    ping: Ping,
+    pong: Pong,
 
     // Command fragmentation (bidirectional)
     fill_rx_buffer: FillRxBuffer,
@@ -66,7 +72,6 @@ pub const Status2 = struct {
     amp_hours: f32,
     amp_hours_chg: f32,
 
-    pub const type_id = PacketType.status_2;
     pub const schema = .{
         .amp_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
         .amp_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
@@ -77,7 +82,6 @@ pub const Status3 = struct {
     watt_hours: f32,
     watt_hours_chg: f32,
 
-    pub const type_id = PacketType.status_3;
     pub const schema = .{
         .watt_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
         .watt_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
@@ -90,7 +94,6 @@ pub const Status4 = struct {
     current_in: f32,
     PID_pos: f32,
 
-    pub const type_id = PacketType.status_4;
     pub const schema = .{
         .temp_FET = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
         .temp_motor = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
@@ -103,7 +106,6 @@ pub const Status5 = struct {
     tachometer: f32,
     volts_in: f32,
 
-    pub const type_id = PacketType.status_5;
     pub const schema = .{
         .tachometer = codec.FixedFloat{ .underlying = i32, .scalar = 6 },
         .volts_in = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
@@ -117,7 +119,6 @@ pub const Status6 = struct {
     ADC3: f32,
     PPM: f32,
 
-    pub const type_id = PacketType.status_6;
     pub const schema = .{
         .ADC1 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
         .ADC2 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
@@ -129,7 +130,6 @@ pub const Status6 = struct {
 pub const NotifyBoot = struct {
     hw_name: []const u8,
 
-    pub const type_id = PacketType.notify_boot;
     pub const schema = .{
         .hw_name = codec.remaining_bytes,
     };
@@ -138,7 +138,6 @@ pub const NotifyBoot = struct {
 pub const SetDuty = struct {
     duty: f32,
 
-    pub const type_id = PacketType.set_duty;
     pub const schema = .{
         .duty = codec.FixedFloat{ .underlying = i32, .scalar = 100_000 },
     };
@@ -146,17 +145,17 @@ pub const SetDuty = struct {
 
 pub const SetCurrent = struct {
     current: f32,
+    current_off_delay: ?f32 = null,
 
-    pub const type_id = PacketType.set_current;
     pub const schema = .{
         .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
+        .current_off_delay = codec.optional(codec.FixedFloat{ .underlying = i16, .scalar = 1_000 }),
     };
 };
 
 pub const SetCurrentBrake = struct {
     current: f32,
 
-    pub const type_id = PacketType.set_current_brake;
     pub const schema = .{
         .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
     };
@@ -165,7 +164,6 @@ pub const SetCurrentBrake = struct {
 pub const SetRPM = struct {
     rpm: f32,
 
-    pub const type_id = PacketType.set_rpm;
     pub const schema = .{
         .rpm = codec.FixedFloat{ .underlying = i32, .scalar = 1 },
     };
@@ -174,18 +172,40 @@ pub const SetRPM = struct {
 pub const SetPos = struct {
     degrees: f32,
 
-    pub const type_id = PacketType.set_pos;
     pub const schema = .{
         .degrees = codec.FixedFloat{ .underlying = i32, .scalar = 1_000_000 },
     };
 };
 
+pub const Ping = struct {
+    sender_id: u8,
+
+    pub const schema = .{
+        .sender_id = codec.int,
+    };
+};
+
+pub const HardwareType = enum(u8) {
+    vesc = 0,
+    vesc_bms = 1,
+    custom_module = 2,
+};
+
+pub const Pong = struct {
+    recipient_id: u8,
+    hardware_type: ?HardwareType,
+
+    pub const schema = .{
+        .recipient_id = codec.int,
+        .hardware_type = codec.optional(codec.int_enum),
+    };
+};
+
 pub const BufferSendMode = enum(u8) {
-    // TODO: Figure out what these actually do; all I know is there's 4 of them and 0 is default
-    A = 0,
-    B = 1,
-    C = 2,
-    D = 3,
+    request = 0, // Default; recipient VESC processes the command, replies use mode `response`
+    response = 1, // Response from a request; if sent to a VESC, it is forwarded to its last used interface (for VESC tool)
+    request_dont_reply = 2, // Same as request, but no replies are sent
+    request_reply_as_request = 3, // Same as request, but replies are sent with mode `request`. This is used for VESC-to-VESC communication
 };
 
 pub const ProcessShortBuffer = struct {
@@ -193,7 +213,6 @@ pub const ProcessShortBuffer = struct {
     send_mode: BufferSendMode,
     data: []const u8,
 
-    pub const type_id = PacketType.process_short_buffer;
     pub const schema = .{
         .sender_id = codec.int,
         .send_mode = codec.int_enum,
@@ -205,7 +224,6 @@ pub const FillRxBuffer = struct {
     base_index: u8,
     data: []const u8,
 
-    pub const type_id = PacketType.fill_rx_buffer;
     pub const schema = .{
         .base_index = codec.int,
         .data = codec.remaining_bytes,
@@ -216,7 +234,6 @@ pub const FillRxBufferLong = struct {
     base_index: u16,
     data: []const u8,
 
-    pub const type_id = PacketType.fill_rx_buffer_long;
     pub const schema = .{
         .base_index = codec.int,
         .data = codec.remaining_bytes,
@@ -229,7 +246,6 @@ pub const ProcessRxBuffer = struct {
     length: u16,
     crc: u16,
 
-    pub const type_id = PacketType.process_rx_buffer;
     pub const schema = .{
         .sender_id = codec.int,
         .send_mode = codec.int_enum,
@@ -245,10 +261,10 @@ pub fn parsePacketBody(T: type, data: []const u8, diag: ?*codec.DecodeDiagnostic
 }
 
 pub fn parsePacket(packet_type: PacketType, data: []const u8, diag: ?*codec.DecodeDiagnostic) codec.DecodeError!Packet {
-    const fields = std.meta.fields(Packet);
-    inline for (fields) |field| {
-        if (packet_type == @field(PacketType, field.name)) {
-            return @unionInit(Packet, field.name, try parsePacketBody(field.type, data, diag));
+    const info = @typeInfo(Packet).@"union";
+    inline for (info.field_names, info.field_types) |field_name, field_type| {
+        if (packet_type == @field(PacketType, field_name)) {
+            return @unionInit(Packet, field_name, try parsePacketBody(field_type, data, diag));
         }
     }
     unreachable;
@@ -370,7 +386,7 @@ test "FillRxBufferLong decoding" {
 
 test "ProcessShortBuffer encoding" {
     const data = [_]u8{ 'h', 'e', 'l', 'l', 'o' };
-    const packet = ProcessShortBuffer{ .sender_id = 0x12, .send_mode = .A, .data = &data };
+    const packet = ProcessShortBuffer{ .sender_id = 0x12, .send_mode = .request, .data = &data };
 
     const expected = [_]u8{ 0x12, 0x00, 'h', 'e', 'l', 'l', 'o' };
     const encoded = try serializePacketBody(packet);
@@ -383,6 +399,22 @@ test "ProcessShortBuffer decoding" {
 
     const expected_data = [_]u8{ 'h', 'e', 'l', 'l', 'o' };
     try std.testing.expectEqual(0x12, packet.sender_id);
-    try std.testing.expectEqual(BufferSendMode.A, packet.send_mode);
+    try std.testing.expectEqual(BufferSendMode.request, packet.send_mode);
     try std.testing.expectEqualSlices(u8, &expected_data, packet.data);
+}
+
+test "Pong decode with hardware type" {
+    const encoded = [_]u8{ 0x23, 0x02 };
+    const packet = try parsePacketBody(Pong, &encoded, null);
+
+    try std.testing.expectEqual(0x23, packet.recipient_id);
+    try std.testing.expectEqual(.custom_module, packet.hardware_type);
+}
+
+test "Pong decode without hardware type" {
+    const encoded = [_]u8{0x23};
+    const packet = try parsePacketBody(Pong, &encoded, null);
+
+    try std.testing.expectEqual(0x23, packet.recipient_id);
+    try std.testing.expectEqual(null, packet.hardware_type);
 }

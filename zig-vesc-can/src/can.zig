@@ -96,10 +96,9 @@ pub fn openSocket(interface_name: ?[]const u8, errno_out: ?*linux.E) error{ Name
     };
 
     {
-        const addr: linux_can.sockaddr_can = .{
-            .can_family = linux.AF.CAN,
-            .can_ifindex = interface_index,
-        };
+        var addr = std.mem.zeroes(linux_can.sockaddr_can);
+        addr.can_family = linux.AF.CAN;
+        addr.can_ifindex = interface_index;
 
         const e = linux.errno(linux.connect(socket_fd, @ptrCast(&addr), @sizeOf(@TypeOf(addr))));
         if (e != .SUCCESS) {
@@ -139,22 +138,17 @@ pub const SendError = WriteError || packets.SerializeError;
 pub fn sendOnce(io: Io, socket: BcmCanSocket, vesc_id: u8, packet: packets.Packet, diag: ?*WriteDiagnostic) SendError!void {
     const frame = try packets.serializeIntoFrame(vesc_id, packet);
 
-    const msg = BcmMessageBuf(1){
-        .header = .{
-            .opcode = linux_can.TX_SEND,
-            .nframes = 1,
-            .can_id = @bitCast(frame.id),
-        },
-        .frames = .{frame},
-    };
+    var msg = std.mem.zeroes(BcmMessageBuf(1));
+    msg.header.opcode = linux_can.TX_SEND;
+    msg.header.can_id = @bitCast(frame.id);
+    msg.header.nframes = 1;
+    msg.frames[0] = frame;
 
     try bcmWrite(io, socket.fd, 1, msg, diag);
 }
 
-pub const BcmTaskHandle = struct {
-    can_id: CanId,
-    kind: enum { tx, rx },
-};
+pub const TxTaskHandle = struct { can_id: CanId };
+pub const RxTaskHandle = struct { can_id: CanId };
 
 pub const RepeatingSendOptions = struct {
     vesc_id: u8,
@@ -162,23 +156,20 @@ pub const RepeatingSendOptions = struct {
     interval: linux_can.bcm_timeval,
 };
 
-pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOptions, diag: ?*WriteDiagnostic) SendError!BcmTaskHandle {
+pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOptions, diag: ?*WriteDiagnostic) SendError!TxTaskHandle {
     const frame = try packets.serializeIntoFrame(options.vesc_id, options.packet);
 
-    const msg = BcmMessageBuf(1){
-        .header = .{
-            .opcode = linux_can.TX_SETUP,
-            .flags = linux_can.SETTIMER | linux_can.STARTTIMER,
-            .count = 0,
-            .nframes = 1,
-            .ival2 = options.interval,
-            .can_id = @bitCast(frame.id),
-        },
-        .frames = .{frame},
-    };
+    var msg = std.mem.zeroes(BcmMessageBuf(1));
+    msg.header.opcode = linux_can.TX_SETUP;
+    msg.header.flags = linux_can.SETTIMER | linux_can.STARTTIMER;
+    msg.header.can_id = @bitCast(frame.id);
+    msg.header.count = 0;
+    msg.header.ival2 = options.interval;
+    msg.header.nframes = 1;
+    msg.frames[0] = frame;
 
     try bcmWrite(io, socket.fd, 1, msg, diag);
-    return .{ .can_id = frame.id, .kind = .tx };
+    return .{ .can_id = frame.id };
 }
 
 pub const ReceiveOptions = struct {
@@ -189,23 +180,20 @@ pub const ReceiveOptions = struct {
     rate_limit: ?linux_can.bcm_timeval,
 };
 
-pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag: ?*WriteDiagnostic) WriteError!BcmTaskHandle {
+pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag: ?*WriteDiagnostic) WriteError!RxTaskHandle {
     const can_id = (VescCanId{
         .vesc_id = options.vesc_id,
         .packet_type = @backingInt(options.packet_type),
     }).toCanId();
 
-    var msg = BcmMessageBuf(1){
-        .header = .{
-            .opcode = linux_can.RX_SETUP,
-            .flags = 0,
-            .can_id = @bitCast(can_id),
-        },
-        .frames = .{.{
-            .id = @bitCast(can_id),
-            .len = 8,
-            .data = @splat(0xFF),
-        }},
+    var msg = std.mem.zeroes(BcmMessageBuf(1));
+    msg.header.opcode = linux_can.RX_SETUP;
+    msg.header.flags = 0;
+    msg.header.can_id = @bitCast(can_id);
+    msg.frames[0] = .{
+        .id = @bitCast(can_id),
+        .len = 8,
+        .data = @splat(0xFF),
     };
 
     if (options.ignore_duplicates) {
@@ -230,23 +218,20 @@ pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag:
     }
 
     try bcmWrite(io, socket.fd, 1, msg, diag);
-    return .{ .can_id = can_id, .kind = .rx };
+    return .{ .can_id = can_id };
 }
 
-pub fn deleteTask(io: Io, socket: BcmCanSocket, handle: BcmTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
-    const msg = BcmMessageBuf(0){
-        .header = .{
-            .opcode = switch (handle.kind) {
-                .tx => linux_can.TX_DELETE,
-                .rx => linux_can.RX_DELETE,
-            },
-            .flags = 0,
-            .can_id = handle.can_id,
-            .nframes = 0,
-        },
-        .frames = .{},
-    };
+pub fn deleteTxTask(io: Io, socket: BcmCanSocket, handle: TxTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
+    var msg = std.mem.zeroes(BcmMessageBuf(0));
+    msg.header.opcode = linux_can.TX_DELETE;
+    msg.header.can_id = handle.can_id;
+    try bcmWrite(io, socket.fd, 0, msg, diag);
+}
 
+pub fn deleteRxTask(io: Io, socket: BcmCanSocket, handle: RxTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
+    var msg = std.mem.zeroes(BcmMessageBuf(0));
+    msg.header.opcode = linux_can.RX_DELETE;
+    msg.header.can_id = handle.can_id;
     try bcmWrite(io, socket.fd, 0, msg, diag);
 }
 
@@ -273,24 +258,29 @@ pub const VescEvent = struct {
     },
 };
 
+pub const ReadBuffer = struct {
+    bcm_buffer: BcmMessageBuf(1),
+};
+
 // Blocks until next event is ready
-pub fn readNextEvent(io: Io, socket: BcmCanSocket, diag: ?*ReadDiagnostic) ReadError!VescEvent {
+// Returned event is valid until another event is read or the read buffer is deleted
+pub fn readNextEvent(io: Io, socket: BcmCanSocket, read_buf: *ReadBuffer, diag: ?*ReadDiagnostic) ReadError!VescEvent {
     // Keep reading and processing BCM messages until something interesting happens,
     // in which case we return it as an event
     while (true) {
-        const bcm_buffer, const timestamp = try bcmRead(io, socket.fd, 1, diag);
+        const timestamp = try bcmRead(io, socket.fd, read_buf, diag);
 
-        switch (bcm_buffer.header.opcode) {
+        switch (read_buf.bcm_buffer.header.opcode) {
             linux_can.RX_CHANGED => {
                 // New CAN data incoming
-                if (bcm_buffer.header.nframes < 1) {
+                if (read_buf.bcm_buffer.header.nframes < 1) {
                     if (diag) |d| {
                         d.message = "missing frame in BCM response";
                     }
                     return error.BcmReadFailed;
                 }
 
-                const can_frame = bcm_buffer.frames[0];
+                const can_frame = read_buf.bcm_buffer.frames[0];
                 var parse_diag: codec.DecodeDiagnostic = .{};
                 const p = packets.parseFrame(can_frame, &parse_diag) catch |err| {
                     if (diag) |d| {
@@ -313,7 +303,7 @@ pub fn readNextEvent(io: Io, socket: BcmCanSocket, diag: ?*ReadDiagnostic) ReadE
                 };
             },
             linux_can.RX_TIMEOUT => {
-                const can_id: CanId = @bitCast(bcm_buffer.header.can_id);
+                const can_id: CanId = @bitCast(read_buf.bcm_buffer.header.can_id);
                 const vesc_can_id = VescCanId.fromCanId(can_id) catch {
                     if (diag) |d| {
                         d.message = "received timeout event for non-VESC ID";
@@ -351,12 +341,9 @@ fn BcmMessageBuf(max_frames: usize) type {
 fn bcmRead(
     io: Io,
     fd: linux.socket_t,
-    comptime max_frames: usize,
+    read_buf: *ReadBuffer,
     diag: ?*ReadDiagnostic,
-) error{ Canceled, BcmReadFailed }!struct { BcmMessageBuf(max_frames), linux.kernel_timespec } {
-    // Will hold the BCM event data and CAN frames
-    var bcm_buffer: BcmMessageBuf(max_frames) = undefined;
-
+) error{ Canceled, BcmReadFailed }!linux.kernel_timespec {
     // Will hold the timestamp of the BCM event message (at most one)
     const cmsg_header_size = comptime @sizeOf(linux.cmsghdr);
     const cmsg_data_offset = comptime std.mem.alignForward(usize, cmsg_header_size, @alignOf(usize)); // Alignment padding
@@ -375,7 +362,7 @@ fn bcmRead(
         .net_receive = .{
             .socket_handle = fd,
             .message_buffer = &message_buffer,
-            .data_buffer = std.mem.asBytes(&bcm_buffer),
+            .data_buffer = std.mem.asBytes(&read_buf.bcm_buffer),
             .flags = .{},
         },
     });
@@ -406,7 +393,7 @@ fn bcmRead(
         }
         return error.BcmReadFailed;
     }
-    if (received_msg.data.len < @sizeOf(linux_can.bcm_msg_head) + bcm_buffer.header.nframes * @sizeOf(CanFrame)) {
+    if (received_msg.data.len < @sizeOf(linux_can.bcm_msg_head) + read_buf.bcm_buffer.header.nframes * @sizeOf(CanFrame)) {
         // Did not receive all the frames we were supposed to
         if (diag) |d| {
             d.message = "incomplete BCM message content";
@@ -432,8 +419,7 @@ fn bcmRead(
         return error.BcmReadFailed;
     }
     const timestamp_ptr: *const linux.kernel_timespec = @ptrCast(@alignCast(&cmsg_buffer[cmsg_data_offset]));
-
-    return .{ bcm_buffer, timestamp_ptr.* };
+    return timestamp_ptr.*;
 }
 
 pub const WriteError = error{ Canceled, WriteFailed, WriteIncomplete };
