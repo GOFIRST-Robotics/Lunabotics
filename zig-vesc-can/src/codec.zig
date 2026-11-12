@@ -331,6 +331,25 @@ pub fn prefixedUnionSchema(tag_codec: anytype, schema: anytype) struct {
     return .{};
 }
 
+pub const null_terminated = NullTerminated{};
+const NullTerminated = struct {
+    pub fn encodedLength(_: @This(), value: anytype) usize {
+        if (@TypeOf(value) != []const u8) @compileError("type must be []const u8");
+        return value.len + 1;
+    }
+
+    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
+        if (@TypeOf(value) != []const u8) @compileError("type must be []const u8");
+        try writer.write(value);
+        try writer.write(&.{0});
+    }
+
+    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
+        if (T != []const u8) @compileError("type must be []const u8");
+        return try reader.readUntil(0, diag);
+    }
+};
+
 pub const remaining_bytes = RemainingBytes{};
 const RemainingBytes = struct {
     pub fn encodedLength(_: @This(), value: anytype) usize {
@@ -366,6 +385,21 @@ pub const BufReader = struct {
             self.pos += count;
             return slice;
         }
+    }
+
+    pub fn readUntil(self: *@This(), end_marker: u8, diag: ?*DecodeDiagnostic) DecodeError![]const u8 {
+        const start = self.pos;
+
+        while (self.pos < self.data.len) {
+            if (self.data[self.pos] == end_marker) {
+                self.pos += 1;
+                return self.data[start..self.pos];
+            }
+            self.pos += 1;
+        }
+
+        self.putDiagnostic("incomplete data", diag);
+        return error.DecodeFailed;
     }
 
     pub fn putDiagnostic(self: @This(), message: []const u8, diag: ?*DecodeDiagnostic) void {

@@ -185,13 +185,15 @@ pub const Ping = struct {
     };
 };
 
+pub const HardwareType = enum(u8) {
+    vesc = 0,
+    vesc_bms = 1,
+    custom_module = 2,
+};
+
 pub const Pong = struct {
     recipient_id: u8,
-    hardware_type: ?enum(u8) {
-        vesc = 0,
-        vesc_bms = 1,
-        custom_module = 2,
-    },
+    hardware_type: ?HardwareType,
 
     pub const schema = .{
         .recipient_id = codec.int,
