@@ -1,7 +1,0 @@
-/**:
-  ros__parameters:
-    # Lidar settings
-    use_lidar: false
-    # QoS settings
-    depth_qos: "SENSOR_DATA"
-    color_qos: "SENSOR_DATA"
