@@ -147,10 +147,8 @@ pub fn sendOnce(io: Io, socket: BcmCanSocket, vesc_id: u8, packet: packets.Packe
     try bcmWrite(io, socket.fd, 1, msg, diag);
 }
 
-pub const BcmTaskHandle = struct {
-    can_id: CanId,
-    kind: enum { tx, rx },
-};
+pub const TxTaskHandle = struct { can_id: CanId };
+pub const RxTaskHandle = struct { can_id: CanId };
 
 pub const RepeatingSendOptions = struct {
     vesc_id: u8,
@@ -158,7 +156,7 @@ pub const RepeatingSendOptions = struct {
     interval: linux_can.bcm_timeval,
 };
 
-pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOptions, diag: ?*WriteDiagnostic) SendError!BcmTaskHandle {
+pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOptions, diag: ?*WriteDiagnostic) SendError!TxTaskHandle {
     const frame = try packets.serializeIntoFrame(options.vesc_id, options.packet);
 
     var msg = std.mem.zeroes(BcmMessageBuf(1));
@@ -171,7 +169,7 @@ pub fn setupRepeatingSend(io: Io, socket: BcmCanSocket, options: RepeatingSendOp
     msg.frames[0] = frame;
 
     try bcmWrite(io, socket.fd, 1, msg, diag);
-    return .{ .can_id = frame.id, .kind = .tx };
+    return .{ .can_id = frame.id };
 }
 
 pub const ReceiveOptions = struct {
@@ -182,7 +180,7 @@ pub const ReceiveOptions = struct {
     rate_limit: ?linux_can.bcm_timeval,
 };
 
-pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag: ?*WriteDiagnostic) WriteError!BcmTaskHandle {
+pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag: ?*WriteDiagnostic) WriteError!RxTaskHandle {
     const can_id = (VescCanId{
         .vesc_id = options.vesc_id,
         .packet_type = @backingInt(options.packet_type),
@@ -220,17 +218,20 @@ pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag:
     }
 
     try bcmWrite(io, socket.fd, 1, msg, diag);
-    return .{ .can_id = can_id, .kind = .rx };
+    return .{ .can_id = can_id };
 }
 
-pub fn deleteTask(io: Io, socket: BcmCanSocket, handle: BcmTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
+pub fn deleteTxTask(io: Io, socket: BcmCanSocket, handle: TxTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
     var msg = std.mem.zeroes(BcmMessageBuf(0));
-    msg.header.opcode = switch (handle.kind) {
-        .tx => linux_can.TX_DELETE,
-        .rx => linux_can.RX_DELETE,
-    };
+    msg.header.opcode = linux_can.TX_DELETE;
     msg.header.can_id = handle.can_id;
+    try bcmWrite(io, socket.fd, 0, msg, diag);
+}
 
+pub fn deleteRxTask(io: Io, socket: BcmCanSocket, handle: RxTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
+    var msg = std.mem.zeroes(BcmMessageBuf(0));
+    msg.header.opcode = linux_can.RX_DELETE;
+    msg.header.can_id = handle.can_id;
     try bcmWrite(io, socket.fd, 0, msg, diag);
 }
 
