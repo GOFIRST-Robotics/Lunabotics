@@ -346,7 +346,8 @@ const NullTerminated = struct {
 
     pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
         if (T != []const u8) @compileError("type must be []const u8");
-        return try reader.readUntil(0, diag);
+        const with_null = try reader.readUntil(0, diag);
+        return with_null[0..(with_null.len - 1)];
     }
 };
 
@@ -464,6 +465,7 @@ test "codec" {
         weight: f32,
         ear_angles: [2]f32,
         ghost: void,
+        favorite_word: []const u8,
         name: []const u8,
 
         pub const schema = .{
@@ -474,6 +476,7 @@ test "codec" {
             .weight = FixedFloat{ .underlying = i16, .scalar = 100 },
             .ear_angles = array(FixedFloat{ .underlying = i8, .scalar = 10 }),
             .ghost = empty,
+            .favorite_word = null_terminated,
             .name = remaining_bytes,
         };
     };
@@ -486,14 +489,15 @@ test "codec" {
         .weight = 12.3,
         .ear_angles = .{ 10, 12 },
         .ghost = {},
+        .favorite_word = "food",
         .name = "kit",
     };
-    const encoded_cat = [_]u8{ 0x01, 0x00, 0x04, 0x01, 0x01, 0x0c, 0x04, 0xce, 0x64, 0x78, 'k', 'i', 't' };
+    const encoded_cat = [_]u8{ 0x01, 0x00, 0x04, 0x01, 0x01, 0x0c, 0x04, 0xce, 0x64, 0x78, 'f', 'o', 'o', 'd', 0x00, 'k', 'i', 't' };
     const cat_codec = structSchema(Cat.schema);
 
-    try std.testing.expectEqual(13, cat_codec.encodedLength(original_cat));
+    try std.testing.expectEqual(encoded_cat.len, cat_codec.encodedLength(original_cat));
 
-    var buf: [13]u8 = undefined;
+    var buf: [encoded_cat.len]u8 = undefined;
     var buf_writer = BufWriter.into(&buf);
     try cat_codec.encode(original_cat, &buf_writer);
     try std.testing.expectEqualSlices(u8, &encoded_cat, buf_writer.writtenData());
