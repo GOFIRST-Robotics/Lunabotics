@@ -96,9 +96,9 @@ pub fn main(init: std.process.Init) !void {
 
     var find_fct: ?readFrom_fct_ptr = null;
 
-    inline for (input_devices.controllerMappings) |current_entry| {
+    inline for (input_devices.ControllerMappings) |current_entry| {
         if (std.mem.eql(u8, controller_name, current_entry.name)) {
-            find_fct = current_entry.readFn;
+            find_fct = current_entry.fn_ptr;
             break;
         }
     }
@@ -137,9 +137,9 @@ pub fn main(init: std.process.Init) !void {
         // =====================================================================
 
         if (controller) |con| {
-            inline for (input_devices.controllerMappings) |current_entry| {
+            inline for (input_devices.ControllerMappings) |current_entry| {
                 if (std.mem.eql(u8, controller_name, current_entry.name)) {
-                    read_controller = try custom_io.concurrent(current_entry.readFn, .{ custom_io, con, controller_data });
+                    read_controller = try custom_io.concurrent(current_entry.fn_ptr, .{ custom_io, con, controller_data });
                     break;
                 }
             }

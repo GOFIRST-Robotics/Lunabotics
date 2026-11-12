@@ -35,7 +35,7 @@ pub fn findDevice(io: Io, dev_name: []const u8) FindControllerError!?Io.File {
                 return error.FileOperationFailure;
             },
         }) |file| {
-            if (std.mem.find(u8, file.name, "event")) |_| {
+            if (std.mem.find(u8, file.name, "event-joystick")) |_| {
                 if (std.mem.find(u8, file.name, dev_name)) |_| {
                     @memcpy(name[0..inputs_path.len], inputs_path);
                     @memcpy(name[inputs_path.len .. inputs_path.len + file.name.len], file.name);
@@ -66,8 +66,108 @@ const logitechAxisMin = 0;
 const logitechAxisMax = 255;
 const xboxAxisMin = 0;
 const xboxAxisMax = 255;
+const ps5AxisMin = 0;
+const ps5AxisMax = 255;
 
 pub const ControllerReadError = error{ LostController, ReadError };
+
+pub fn readFromPS5Controller(io: Io, file: Io.File, previous_data: protocol.ControllerData) ControllerReadError!ControllerData {
+    var event: input.input_event = undefined;
+    var time: linux.timespec = undefined;
+    const get_time_rc = linux.errno(linux.clock_gettime(linux.clockid_t.REALTIME, &time));
+    if (get_time_rc != .SUCCESS) {
+        std.debug.panic("Failed to get time with function 'linux.clock_gettime', errno: {d}\n", .{get_time_rc});
+    }
+
+    var data = previous_data;
+
+    while (true) {
+        const len_read = file.readStreaming(io, &.{@ptrCast(&event)}) catch |err| switch (err) {
+            error.Unexpected => {
+                const errno: c_int = std.c._errno().*;
+                // This has to be done because the errno NODEV is not yet handled by zig when reading from a file
+                // NODEV is 19
+                if (errno == @intFromEnum(linux.E.NODEV)) {
+                    return ControllerReadError.LostController;
+                } else {
+                    log.warn("An unexpected error occured while reading from PS5 controller. Errno: {d}\n", .{errno});
+                    return ControllerReadError.ReadError;
+                }
+            },
+            error.Canceled => {
+                return .{ .time = .{ .sec = time.sec, .nsec = time.nsec }, .data = data };
+            },
+            else => {
+                log.warn("A read error occured while reading from PS5 controller. Error: {s}\n", .{@errorName(err)});
+                return ControllerReadError.ReadError;
+            },
+        };
+
+        std.debug.assert(len_read == @sizeOf(input.input_event));
+
+        switch (event.type) {
+            input.EV_KEY => {
+                switch (event.code) {
+                    input.BTN_NORTH => data.buttons.north = event.value == 1,
+                    input.BTN_EAST => data.buttons.east = event.value == 1,
+                    input.BTN_SOUTH => data.buttons.south = event.value == 1,
+                    input.BTN_WEST => data.buttons.west = event.value == 1,
+                    input.BTN_TL => data.l1 = event.value == 1,
+                    input.BTN_TR => data.r1 = event.value == 1,
+                    input.BTN_TL2 => data.l2 = event.value == 1,
+                    input.BTN_TR2 => data.r2 = event.value == 1,
+                    input.BTN_THUMBL => data.l3 = event.value == 1,
+                    input.BTN_THUMBR => data.r3 = event.value == 1,
+                    else => {},
+                }
+            },
+            input.EV_ABS => {
+                switch (event.code) {
+                    input.ABS_HAT0X => {
+                        if (event.value == -1) {
+                            data.d_pad.left = true;
+                            data.d_pad.right = false;
+                        } else if (event.value == 1) {
+                            data.d_pad.left = false;
+                            data.d_pad.right = true;
+                        } else {
+                            data.d_pad.left = false;
+                            data.d_pad.right = false;
+                        }
+                    },
+                    input.ABS_HAT0Y => {
+                        if (event.value == -1) {
+                            data.d_pad.up = true;
+                            data.d_pad.down = false;
+                        } else if (event.value == 1) {
+                            data.d_pad.up = false;
+                            data.d_pad.down = true;
+                        } else {
+                            data.d_pad.up = false;
+                            data.d_pad.down = false;
+                        }
+                    },
+                    input.ABS_X => {
+                        data.left_stick.x = normalizeAndClamp(event.value, ps5AxisMin, ps5AxisMax);
+                    },
+                    input.ABS_Y => {
+                        data.left_stick.y = normalizeAndClamp(event.value, ps5AxisMin, ps5AxisMax);
+                    },
+                    input.ABS_RX => {
+                        data.right_stick.x = normalizeAndClamp(event.value, ps5AxisMin, ps5AxisMax);
+                    },
+                    input.ABS_RY => {
+                        data.right_stick.y = normalizeAndClamp(event.value, ps5AxisMin, ps5AxisMax);
+                    },
+                    else => {},
+                }
+            },
+            else => {},
+        }
+
+        time = .{ .sec = event.time.tv_sec, .nsec = microSecondToNanoSecond(event.time.tv_usec) };
+    }
+}
 
 pub fn readFromXboxController(io: Io, file: Io.File, previous_data: protocol.ControllerData) ControllerReadError!ControllerData {
     var event: input.input_event = undefined;
@@ -325,19 +425,9 @@ fn microSecondToNanoSecond(usec: i64) isize {
 pub const controller_type = struct {
     pub const logitech: []const u8 = "Logitech";
     pub const xbox: []const u8 = "Xbox";
+    pub const ps5: []const u8 = "DualSense_Wireless_Controller-if03-event-joystick";
 };
 
 pub const ControllerData = struct { time: struct { sec: isize, nsec: isize }, data: protocol.ControllerData };
 
-pub const controllerMappings = .{
-    .{ .name = controller_type.logitech, .readFn = readFromLogitechController },
-    .{ .name = controller_type.xbox, .readFn = readFromXboxController },
-};
-
-// pub const ControllerMappings: []const struct {
-//     name: []const u8,
-//     fn_ptr: fn (Io, Io.File, protocol.ControllerData) ControllerReadError!ControllerData,
-// } = .{
-//     .{ .name = "Logitech", .fn_ptr = readFromLogitechController },
-//     .{ .name = "Xbox", .fn_ptr = readFromXboxController },
-// };
+pub const ControllerMappings = .{ .{ .name = controller_type.logitech, .fn_ptr = readFromLogitechController }, .{ .name = controller_type.xbox, .fn_ptr = readFromXboxController }, .{ .name = controller_type.ps5, .fn_ptr = readFromPS5Controller } };
