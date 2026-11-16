@@ -1,7 +1,7 @@
 const std = @import("std");
 const Io = std.Io;
 const CANInNode = @import("../can_bus/CANInNode.zig");
-const MotorStatus = CANInNode.MotorStatus;
+const AllMotorStatuses = CANInNode.AllMotorStatuses;
 const CANOutNode = @import("../can_bus/CANOutNode.zig");
 const protocol = @import("../controller_com/protocol.zig");
 const ControllerData = protocol.ControllerData;
@@ -30,7 +30,7 @@ pub const ControllerInfo = struct {
 
 pub const inputType = struct {
     controller_info: *ControllerInfo,
-    motor_status: *MotorStatus,
+    motor_status: *AllMotorStatuses,
 };
 
 pub const outputConfigs = [_]creation.OutputConfig{
