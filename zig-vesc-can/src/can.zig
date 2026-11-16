@@ -224,14 +224,14 @@ pub fn setupReceive(io: Io, socket: BcmCanSocket, options: ReceiveOptions, diag:
 pub fn deleteTxTask(io: Io, socket: BcmCanSocket, handle: TxTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
     var msg = std.mem.zeroes(BcmMessageBuf(0));
     msg.header.opcode = linux_can.TX_DELETE;
-    msg.header.can_id = handle.can_id;
+    msg.header.can_id = @bitCast(handle.can_id);
     try bcmWrite(io, socket.fd, 0, msg, diag);
 }
 
 pub fn deleteRxTask(io: Io, socket: BcmCanSocket, handle: RxTaskHandle, diag: ?*WriteDiagnostic) WriteError!void {
     var msg = std.mem.zeroes(BcmMessageBuf(0));
     msg.header.opcode = linux_can.RX_DELETE;
-    msg.header.can_id = handle.can_id;
+    msg.header.can_id = @bitCast(handle.can_id);
     try bcmWrite(io, socket.fd, 0, msg, diag);
 }
 

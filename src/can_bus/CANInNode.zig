@@ -35,7 +35,14 @@ pub const MotorStatus = struct {
     status_6: ?packets.Status6 = null,
 };
 
-pub const AllMotorStatuses = PerMotor(MotorStatus);
+// This only exists because creation requires fields to be initializable as .{}
+pub const AllMotorStatuses = struct {
+    all: PerMotor(MotorStatus) = .init(.{}),
+
+    pub fn forMotor(self: *@This(), motor: Motor) *MotorStatus {
+        return self.all.forMotor(motor);
+    }
+};
 
 pub const outputConfigs = [_]creation.OutputConfig{
     .{
@@ -84,24 +91,11 @@ pub fn update(self: *@This(), input: *const inputType, output: *outputType) void
     _ = input;
     while (true) {
         var read_buf: can.ReadBuffer = undefined;
-        var read_diag: can.ReadDiagnostic = .{};
-        const event = can.readNextEvent(self.io, self.socket, &read_buf, &read_diag) catch |err| {
-            if (err == error.Canceled) {
-                return;
+        const event = can_bus.readNextEventOrLogFailure(self.io, self.socket, &read_buf, logger) catch |err| {
+            switch (err) {
+                error.Canceled => return,
+                else => continue,
             }
-
-            logger.err("failed to read CAN event: {s}\n", .{read_diag.message});
-            if (read_diag.data) |data| switch (data) {
-                .bcm_read_err => |e| logger.err("  BCM read error: {t}\n", .{e}),
-                .bad_frame => |f| {
-                    logger.err("  frame: {any}\n", .{f.frame});
-                    if (f.parse_diag) |p| {
-                        logger.err("  decode error: {s} at byte {d}\n", .{ p.message, p.byte_position });
-                    }
-                },
-                .bad_id => |i| logger.err("  ID: {any}\n", .{i}),
-            };
-            return;
         };
 
         if (Motor.byId(event.vesc_id)) |motor| {

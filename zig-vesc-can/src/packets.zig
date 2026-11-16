@@ -192,11 +192,11 @@ pub const HardwareType = enum(u8) {
 };
 
 pub const Pong = struct {
-    recipient_id: u8,
+    sender_id: u8,
     hardware_type: ?HardwareType,
 
     pub const schema = .{
-        .recipient_id = codec.int,
+        .sender_id = codec.int,
         .hardware_type = codec.optional(codec.int_enum),
     };
 };
@@ -407,7 +407,7 @@ test "Pong decode with hardware type" {
     const encoded = [_]u8{ 0x23, 0x02 };
     const packet = try parsePacketBody(Pong, &encoded, null);
 
-    try std.testing.expectEqual(0x23, packet.recipient_id);
+    try std.testing.expectEqual(0x23, packet.sender_id);
     try std.testing.expectEqual(.custom_module, packet.hardware_type);
 }
 
@@ -415,6 +415,6 @@ test "Pong decode without hardware type" {
     const encoded = [_]u8{0x23};
     const packet = try parsePacketBody(Pong, &encoded, null);
 
-    try std.testing.expectEqual(0x23, packet.recipient_id);
+    try std.testing.expectEqual(0x23, packet.sender_id);
     try std.testing.expectEqual(null, packet.hardware_type);
 }
