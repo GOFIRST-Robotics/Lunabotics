@@ -4,6 +4,7 @@ const Io = std.Io;
 const zig_vesc_can = @import("zig-vesc-can");
 const can = zig_vesc_can.can;
 const TxTaskHandle = can.TxTaskHandle;
+const commands = zig_vesc_can.commands;
 const packets = zig_vesc_can.packets;
 
 const logger = std.log.scoped(.can_bus);
@@ -73,12 +74,14 @@ pub fn readNextEventOrLogFailure(io: Io, socket: can.BcmCanSocket, read_buf: *ca
 
 const InitState = union(enum) {
     pinging: TxTaskHandle,
+    getting_fw_info: void,
     finished: void,
 };
 
 const InitStateMachine = struct {
     socket: can.BcmCanSocket,
     pong_rx_handle: can.RxTaskHandle,
+    command_receiver: commands.CommandReceiver,
 
     states: PerMotor(InitState),
 
@@ -91,6 +94,8 @@ const InitStateMachine = struct {
             .rate_limit = null,
         }, null);
 
+        const command_receiver: commands.CommandReceiver = try .init(io, socket, controller_id);
+
         var states: PerMotor(InitState) = undefined;
         for (motors) |motor| {
             states.forMotor(motor).* = .{
@@ -102,15 +107,22 @@ const InitStateMachine = struct {
             };
         }
 
-        return .{ .socket = socket, .pong_rx_handle = pong_rx_handle, .states = states };
+        return .{
+            .socket = socket,
+            .pong_rx_handle = pong_rx_handle,
+            .command_receiver = command_receiver,
+            .states = states,
+        };
     }
 
     pub fn deinit(self: @This(), io: Io) void {
         can.deleteRxTask(io, self.socket, self.pong_rx_handle, null) catch {};
+        self.command_receiver.deinit(io);
 
         for (self.states.values) |state| {
             switch (state) {
                 .pinging => |handle| can.deleteTxTask(io, self.socket, handle, null) catch {},
+                .getting_fw_info => {},
                 .finished => {},
             }
         }
@@ -149,12 +161,29 @@ const InitStateMachine = struct {
                             .pinging => |handle| {
                                 logger.info("received ping response from motor `{t}`", .{motor});
                                 can.deleteTxTask(io, self.socket, handle, null) catch {};
-                                state.* = .finished;
+
+                                try commands.sendCommand(io, self.socket, .{ .request = .{
+                                    .sender_id = controller_id,
+                                    .receiver_id = motor.id(),
+                                    .body = .get_fw_version,
+                                } }, null);
+                                state.* = .getting_fw_info;
                             },
                             else => {},
                         }
                     },
-                    else => {},
+                    else => if (try self.command_receiver.processPacket(packet)) |cmd| {
+                        std.debug.print("received command: {any}\n", .{cmd});
+                        switch (cmd) {
+                            .request => {},
+                            .response => |response| switch (response.body) {
+                                .fw_version => |info| if (Motor.byId(response.sender_id)) |motor| {
+                                    std.debug.print("firmware info for {t}: {any}\n", .{ motor, info });
+                                    self.states.forMotor(motor).* = .finished;
+                                },
+                            },
+                        }
+                    },
                 }
             }
         }
@@ -193,6 +222,7 @@ pub fn initMotors(io: Io, socket: can.BcmCanSocket) !void {
             for (motors) |motor| {
                 const state = switch (state_machine.states.forMotor(motor).*) {
                     .pinging => "awaiting response to ping",
+                    .getting_fw_info => "retrieving firmware info",
                     .finished => "finished",
                 };
                 logger.err("  {t}: {s}", .{ motor, state });

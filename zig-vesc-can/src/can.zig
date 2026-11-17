@@ -423,7 +423,7 @@ fn bcmRead(
 }
 
 pub const WriteError = error{ Canceled, WriteFailed, WriteIncomplete };
-const WriteDiagnostic = Io.Operation.FileWriteStreaming.Error;
+pub const WriteDiagnostic = Io.Operation.FileWriteStreaming.Error;
 
 fn bcmWrite(io: Io, fd: linux.socket_t, comptime max_frames: usize, buf: BcmMessageBuf(max_frames), diag: ?*WriteDiagnostic) WriteError!void {
     std.debug.assert(buf.header.nframes <= max_frames);

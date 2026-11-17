@@ -74,7 +74,7 @@ pub const FirmwareVersionInfo = struct {
         .qmlui_app_mode = codec.int_enum,
         .qml_code_flags = codec.int,
         .nrf_flags = codec.int,
-        .firmware_name = codec.null_prefixed,
+        .firmware_name = codec.null_terminated,
         .hardware_crc = codec.int,
     };
 };
@@ -89,45 +89,176 @@ pub const DesiredResponse = enum {
     reply_as_request,
 };
 
-pub const SendOptions = struct {
-    sender_id: u8, // Usually the ID of the controller
-    receiver_id: u8, // Usually the ID of a VESC device
-    desired_response: DesiredResponse = .send_reply,
+pub const IncomingCommand = union(enum) {
+    request: struct {
+        sender_id: u8,
+        desired_response: DesiredResponse,
+        body: Request,
+    },
+    response: struct {
+        sender_id: u8,
+        body: Response,
+    },
+};
+
+pub const CommandReceiver = struct {
+    const packet_types = [_]packets.PacketType{
+        .process_short_buffer,
+        .fill_rx_buffer,
+        .fill_rx_buffer_long,
+        .process_rx_buffer,
+    };
+
+    socket: can.BcmCanSocket,
+    controller_id: u8,
+    rx_handles: [packet_types.len]can.RxTaskHandle,
+    rx_buffer: [max_length]u8,
+
+    pub fn init(io: Io, socket: can.BcmCanSocket, controller_id: u8) !@This() {
+        var rx_handles: [packet_types.len]can.RxTaskHandle = undefined;
+        for (packet_types, 0..) |packet_type, i| {
+            rx_handles[i] = try can.setupReceive(io, socket, .{
+                .vesc_id = controller_id,
+                .packet_type = packet_type,
+                .ignore_duplicates = false,
+                .timeout = null,
+                .rate_limit = null,
+            }, null);
+        }
+
+        return .{
+            .socket = socket,
+            .controller_id = controller_id,
+            .rx_handles = rx_handles,
+            .rx_buffer = @splat(0),
+        };
+    }
+
+    pub fn deinit(self: @This(), io: Io) void {
+        for (self.rx_handles) |handle| {
+            can.deleteRxTask(io, self.socket, handle, null) catch {};
+        }
+    }
+
+    fn fillBuffer(self: *@This(), base_index: usize, data: []const u8) !void {
+        const end_index = base_index + data.len;
+        if (end_index <= max_length) {
+            @memcpy(self.rx_buffer[base_index..end_index], data);
+        } else {
+            return error.BufferIndexOutOfBounds;
+        }
+    }
+
+    fn processBuffer(sender_id: u8, send_mode: packets.BufferSendMode, buffer: []const u8) !IncomingCommand {
+        if (send_mode == .response) {
+            const response_codec = codec.prefixedUnionSchema(codec.int_enum, Response.schema);
+            var reader = codec.BufReader.from(buffer);
+            const response = try response_codec.decode(Response, &reader, null);
+
+            return .{ .response = .{ .sender_id = sender_id, .body = response } };
+        } else {
+            // Request
+            const request_codec = codec.prefixedUnionSchema(codec.int_enum, Request.schema);
+            var reader = codec.BufReader.from(buffer);
+            const request = try request_codec.decode(Request, &reader, null);
+
+            return .{ .request = .{
+                .sender_id = sender_id,
+                .desired_response = switch (send_mode) {
+                    .request => .send_reply,
+                    .request_dont_reply => .dont_reply,
+                    .request_reply_as_request => .reply_as_request,
+                    .response => unreachable,
+                },
+                .body = request,
+            } };
+        }
+    }
+
+    pub fn processPacket(self: *@This(), packet: packets.Packet) !?IncomingCommand {
+        switch (packet) {
+            .process_short_buffer => |p| return try processBuffer(p.sender_id, p.send_mode, p.data),
+            .fill_rx_buffer => |p| try self.fillBuffer(p.base_index, p.data),
+            .fill_rx_buffer_long => |p| try self.fillBuffer(p.base_index, p.data),
+            .process_rx_buffer => |p| {
+                if (p.length > max_length) {
+                    return error.BufferIndexOutOfBounds;
+                }
+
+                const buffer = self.rx_buffer[0..p.length];
+                const buffer_crc = calculateCrc(buffer);
+                if (buffer_crc != p.crc) {
+                    return error.CrcMismatch;
+                }
+
+                return try processBuffer(p.sender_id, p.send_mode, buffer);
+            },
+            else => {},
+        }
+        return null;
+    }
+};
+
+pub const OutgoingCommand = union(enum) {
+    request: struct {
+        sender_id: u8,
+        receiver_id: u8,
+        desired_response: DesiredResponse = .send_reply,
+        body: Request,
+    },
+    response: struct {
+        sender_id: u8,
+        receiver_id: u8,
+        body: Response,
+    },
 };
 
 pub const RequestError = can.SendError || error{RequestTooLarge};
 
-pub fn sendRequest(
-    io: Io,
-    socket: BcmCanSocket,
-    options: SendOptions,
-    request: Request,
-    diag: ?*WriteDiagnostic,
-) RequestError!void {
-    // Protocol cannot send larger than u16 length
-    comptime std.debug.assert(max_length <= 65536);
+// Implementation here is a mess... TODO clean up
+pub fn sendCommand(io: Io, socket: BcmCanSocket, command: OutgoingCommand, diag: ?*WriteDiagnostic) RequestError!void {
+    var buffer: [max_length]u8 = undefined;
+    var writer = codec.BufWriter.into(&buffer);
 
-    const request_codec = codec.prefixedUnionSchema(codec.int_enum, Request.schema);
+    var send_mode: packets.BufferSendMode = undefined;
+    var sender_id: u8 = undefined;
+    var receiver_id: u8 = undefined;
+    switch (command) {
+        .request => |request| {
+            send_mode = switch (request.desired_response) {
+                .send_reply => .request,
+                .dont_reply => .request_dont_reply,
+                .reply_as_request => .request_reply_as_request,
+            };
+            sender_id = request.sender_id;
+            receiver_id = request.receiver_id;
 
-    var data_buffer: [max_length]u8 = undefined;
-    var writer = codec.BufWriter.into(&data_buffer);
-    request_codec.encode(request, &writer) catch |err| {
-        switch (err) {
-            error.BufferTooSmall => return error.RequestTooLarge,
-        }
-    };
+            const request_codec = codec.prefixedUnionSchema(codec.int_enum, Request.schema);
+            request_codec.encode(request.body, &writer) catch |err| {
+                switch (err) {
+                    error.BufferTooSmall => return error.RequestTooLarge,
+                }
+            };
+        },
+        .response => |response| {
+            send_mode = .response;
+            sender_id = response.sender_id;
+            receiver_id = response.receiver_id;
 
-    const send_mode: packets.BufferSendMode = switch (options.desired_response) {
-        .send_reply => .request,
-        .dont_reply => .request_dont_reply,
-        .reply_as_request => .request_reply_as_request,
-    };
+            const response_codec = codec.prefixedUnionSchema(codec.int_enum, Response.schema);
+            response_codec.encode(response.body, &writer) catch |err| {
+                switch (err) {
+                    error.BufferTooSmall => return error.RequestTooLarge,
+                }
+            };
+        },
+    }
 
     const data = writer.writtenData();
     if (data.len <= 6) {
         // Data fits in single packet
-        try can.sendOnce(io, socket, options.receiver_id, .{ .process_short_buffer = .{
-            .sender_id = options.sender_id,
+        try can.sendOnce(io, socket, receiver_id, .{ .process_short_buffer = .{
+            .sender_id = sender_id,
             .send_mode = send_mode,
             .data = data,
         } }, diag);
@@ -137,7 +268,7 @@ pub fn sendRequest(
     var position: usize = 0;
     while (position < data.len and position < 256) {
         const fragment_len = @min(data.len - position, 7);
-        try can.sendOnce(io, socket, options.receiver_id, .{ .fill_rx_buffer = .{
+        try can.sendOnce(io, socket, receiver_id, .{ .fill_rx_buffer = .{
             .base_index = @intCast(position),
             .data = data[position..][0..fragment_len],
         } }, diag);
@@ -145,19 +276,19 @@ pub fn sendRequest(
     }
     while (position < data.len) {
         const fragment_len = @min(data.len - position, 6);
-        try can.sendOnce(io, socket, options.receiver_id, .{ .fill_rx_buffer_long = .{
+        try can.sendOnce(io, socket, receiver_id, .{ .fill_rx_buffer_long = .{
             .base_index = @intCast(position),
             .data = data[position..][0..fragment_len],
         } }, diag);
         position += 6;
     }
 
-    try can.sendOnce(io, socket, options.receiver_id, .{
-        .sender_id = options.sender_id,
+    try can.sendOnce(io, socket, receiver_id, .{ .process_rx_buffer = .{
+        .sender_id = sender_id,
         .send_mode = send_mode,
         .length = @intCast(data.len),
         .crc = calculateCrc(data),
-    }, diag);
+    } }, diag);
 }
 
 // CRC
