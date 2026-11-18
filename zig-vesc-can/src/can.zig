@@ -4,7 +4,7 @@ const posix = std.posix;
 const linux_can = @import("linux_can.h");
 const Io = std.Io;
 
-const codec = @import("codec.zig");
+const codecs = @import("codecs.zig");
 const packets = @import("packets.zig");
 
 pub const CanId = packed struct(u32) {
@@ -241,7 +241,7 @@ pub const ReadDiagnostic = struct {
         bcm_read_err: Io.net.Socket.ReceiveError,
         bad_frame: struct {
             frame: CanFrame,
-            parse_diag: ?codec.DecodeDiagnostic,
+            parse_diag: ?codecs.DecodeDiagnostic,
         },
         bad_id: CanId,
     } = null,
@@ -279,7 +279,7 @@ pub fn readNextEvent(io: Io, socket: BcmCanSocket, read_buf: *ReadBuffer, diag: 
                 }
 
                 const can_frame = read_buf.bcm_buffer.frames[0];
-                var parse_diag: codec.DecodeDiagnostic = .{};
+                var parse_diag: codecs.DecodeDiagnostic = .{};
                 const p = packets.parseFrame(can_frame, &parse_diag) catch |err| {
                     if (diag) |d| {
                         d.data = .{ .bad_frame = .{ .frame = can_frame, .parse_diag = null } };
