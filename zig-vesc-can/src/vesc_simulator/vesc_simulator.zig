@@ -75,11 +75,11 @@ pub fn main(init: std.process.Init) !void {
                         switch (cmd) {
                             .request => |request| switch (request.body) {
                                 .get_fw_version => {
-                                    try commands.sendCommand(io, socket, .{ .response = .{
+                                    try commands.sendResponse(io, socket, .{
                                         .sender_id = motor_id,
                                         .receiver_id = request.sender_id,
                                         .body = .{ .fw_version = firmware_info },
-                                    } }, null);
+                                    }, null);
                                 },
                             },
                             .response => {},

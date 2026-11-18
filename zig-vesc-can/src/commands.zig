@@ -199,62 +199,64 @@ pub const CommandReceiver = struct {
     }
 };
 
-pub const OutgoingCommand = union(enum) {
-    request: struct {
-        sender_id: u8,
-        receiver_id: u8,
-        desired_response: DesiredResponse = .send_reply,
-        body: Request,
-    },
-    response: struct {
-        sender_id: u8,
-        receiver_id: u8,
-        body: Response,
-    },
+pub const SendError = can.SendError || error{CommandTooLarge};
+
+pub const OutgoingRequest = struct {
+    sender_id: u8,
+    receiver_id: u8,
+    desired_response: DesiredResponse = .send_reply,
+    body: Request,
 };
 
-pub const RequestError = can.SendError || error{RequestTooLarge};
+pub fn sendRequest(io: Io, socket: BcmCanSocket, request: OutgoingRequest, diag: ?*WriteDiagnostic) SendError!void {
+    const send_mode: packets.BufferSendMode = switch (request.desired_response) {
+        .send_reply => .request,
+        .dont_reply => .request_dont_reply,
+        .reply_as_request => .request_reply_as_request,
+    };
 
-// Implementation here is a mess... TODO clean up
-pub fn sendCommand(io: Io, socket: BcmCanSocket, command: OutgoingCommand, diag: ?*WriteDiagnostic) RequestError!void {
+    // TODO: codec idea: rename to codecs to prevent shadowing, then change struct/enum definitions
+    //   to hold a codec within them
+    const request_codec = codec.prefixedUnionSchema(codec.int_enum, Request.schema);
     var buffer: [max_length]u8 = undefined;
     var writer = codec.BufWriter.into(&buffer);
+    request_codec.encode(request.body, &writer) catch |err| {
+        switch (err) {
+            error.BufferTooSmall => return error.CommandTooLarge,
+        }
+    };
 
-    var send_mode: packets.BufferSendMode = undefined;
-    var sender_id: u8 = undefined;
-    var receiver_id: u8 = undefined;
-    switch (command) {
-        .request => |request| {
-            send_mode = switch (request.desired_response) {
-                .send_reply => .request,
-                .dont_reply => .request_dont_reply,
-                .reply_as_request => .request_reply_as_request,
-            };
-            sender_id = request.sender_id;
-            receiver_id = request.receiver_id;
+    try sendCommandBuffer(io, socket, request.sender_id, request.receiver_id, send_mode, writer.writtenData(), diag);
+}
 
-            const request_codec = codec.prefixedUnionSchema(codec.int_enum, Request.schema);
-            request_codec.encode(request.body, &writer) catch |err| {
-                switch (err) {
-                    error.BufferTooSmall => return error.RequestTooLarge,
-                }
-            };
-        },
-        .response => |response| {
-            send_mode = .response;
-            sender_id = response.sender_id;
-            receiver_id = response.receiver_id;
+pub const OutgoingResponse = struct {
+    sender_id: u8,
+    receiver_id: u8,
+    body: Response,
+};
 
-            const response_codec = codec.prefixedUnionSchema(codec.int_enum, Response.schema);
-            response_codec.encode(response.body, &writer) catch |err| {
-                switch (err) {
-                    error.BufferTooSmall => return error.RequestTooLarge,
-                }
-            };
-        },
-    }
+pub fn sendResponse(io: Io, socket: BcmCanSocket, response: OutgoingResponse, diag: ?*WriteDiagnostic) SendError!void {
+    const response_codec = codec.prefixedUnionSchema(codec.int_enum, Response.schema);
+    var buffer: [max_length]u8 = undefined;
+    var writer = codec.BufWriter.into(&buffer);
+    response_codec.encode(response.body, &writer) catch |err| {
+        switch (err) {
+            error.BufferTooSmall => return error.CommandTooLarge,
+        }
+    };
 
-    const data = writer.writtenData();
+    try sendCommandBuffer(io, socket, response.sender_id, response.receiver_id, .response, writer.writtenData(), diag);
+}
+
+fn sendCommandBuffer(
+    io: Io,
+    socket: BcmCanSocket,
+    sender_id: u8,
+    receiver_id: u8,
+    send_mode: packets.BufferSendMode,
+    data: []const u8,
+    diag: ?*WriteDiagnostic,
+) can.SendError!void {
     if (data.len <= 6) {
         // Data fits in single packet
         try can.sendOnce(io, socket, receiver_id, .{ .process_short_buffer = .{
@@ -265,6 +267,7 @@ pub fn sendCommand(io: Io, socket: BcmCanSocket, command: OutgoingCommand, diag:
         return;
     }
 
+    // Split into several packets
     var position: usize = 0;
     while (position < data.len and position < 256) {
         const fragment_len = @min(data.len - position, 7);
@@ -291,6 +294,20 @@ pub fn sendCommand(io: Io, socket: BcmCanSocket, command: OutgoingCommand, diag:
     } }, diag);
 }
 
+pub const OutgoingCommand = union(enum) {
+    request: struct {
+        sender_id: u8,
+        receiver_id: u8,
+        desired_response: DesiredResponse = .send_reply,
+        body: Request,
+    },
+    response: struct {
+        sender_id: u8,
+        receiver_id: u8,
+        body: Response,
+    },
+};
+
 // CRC
 
 // TODO: Maybe generate at comptime instead of hardcoding? Although I have no idea how this was created
@@ -313,7 +330,7 @@ const crc_lookup = [_]u16{
     0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8, 0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
 };
 
-fn calculateCrc(data: []u8) u16 {
+fn calculateCrc(data: []const u8) u16 {
     var crc: u16 = 0;
     for (data) |byte| {
         crc = crc_lookup[(crc >> 8) ^ byte] ^ (crc << 8);

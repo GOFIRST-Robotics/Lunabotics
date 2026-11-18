@@ -162,11 +162,12 @@ const InitStateMachine = struct {
                                 logger.info("received ping response from motor `{t}`", .{motor});
                                 can.deleteTxTask(io, self.socket, handle, null) catch {};
 
-                                try commands.sendCommand(io, self.socket, .{ .request = .{
+                                // FIXME: Can't have multiple requests happening in parallel, as incoming buffer packets don't have a sender ID to distinguish them
+                                try commands.sendRequest(io, self.socket, .{
                                     .sender_id = controller_id,
                                     .receiver_id = motor.id(),
                                     .body = .get_fw_version,
-                                } }, null);
+                                }, null);
                                 state.* = .getting_fw_info;
                             },
                             else => {},
