@@ -1,4 +1,4 @@
-docker/deepstream
+*.svo*
 
 # zig
 zig-out
