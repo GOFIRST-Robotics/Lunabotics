@@ -22,6 +22,26 @@ pub fn build(b: *std.Build) void {
         }},
     });
 
+    const vesc_sim_exe = vesc_sim: {
+        const vesc_sim_module = b.addModule("vesc_simulator", .{
+            .root_source_file = b.path("src/vesc_simulator/vesc_simulator.zig"),
+            .imports = &.{
+                .{ .name = "zig-vesc-can", .module = mod },
+            },
+            .optimize = optimize,
+            .target = target,
+            .link_libc = true,
+        });
+
+        const vesc_sim_exe = b.addExecutable(.{
+            .name = "vesc_simulator",
+            .root_module = vesc_sim_module,
+        });
+
+        break :vesc_sim vesc_sim_exe;
+    };
+    b.installArtifact(vesc_sim_exe);
+
     // -----------------------------------------------
     // Tests For Custom Vesc CAN messages
     // -----------------------------------------------

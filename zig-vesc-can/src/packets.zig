@@ -1,11 +1,11 @@
 const std = @import("std");
 const can = @import("can.zig");
-const codec = @import("codec.zig");
+const codecs = @import("codecs.zig");
 
 const CanFrame = can.CanFrame;
 const VescCanId = can.VescCanId;
-const BufReader = codec.BufReader;
-const BufWriter = codec.BufWriter;
+const BufReader = codecs.BufReader;
+const BufWriter = codecs.BufWriter;
 
 pub const PacketType = enum(u8) {
     status_1 = 9,
@@ -20,6 +20,8 @@ pub const PacketType = enum(u8) {
     set_current_brake = 2,
     set_rpm = 3,
     set_pos = 4,
+    ping = 17,
+    pong = 18,
     fill_rx_buffer = 5,
     fill_rx_buffer_long = 6,
     process_rx_buffer = 7,
@@ -43,6 +45,10 @@ pub const Packet = union(PacketType) {
     set_rpm: SetRPM,
     set_pos: SetPos,
 
+    // Pings
+    ping: Ping,
+    pong: Pong,
+
     // Command fragmentation (bidirectional)
     fill_rx_buffer: FillRxBuffer,
     fill_rx_buffer_long: FillRxBufferLong,
@@ -55,33 +61,31 @@ pub const Status1 = struct {
     current: f32,
     duty_cycle: f32,
 
-    pub const schema = .{
-        .erpm = codec.FixedFloat{ .underlying = i32, .scalar = 1 },
-        .current = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
-        .duty_cycle = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .erpm = codecs.FixedFloat(i32, @as(f64, 1)),
+        .current = codecs.FixedFloat(i16, @as(f64, 10)),
+        .duty_cycle = codecs.FixedFloat(i16, @as(f64, 1_000)),
+    });
 };
 
 pub const Status2 = struct {
     amp_hours: f32,
     amp_hours_chg: f32,
 
-    pub const type_id = PacketType.status_2;
-    pub const schema = .{
-        .amp_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
-        .amp_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .amp_hours = codecs.FixedFloat(i32, @as(f64, 10_000)),
+        .amp_hours_chg = codecs.FixedFloat(i32, @as(f64, 10_000)),
+    });
 };
 
 pub const Status3 = struct {
     watt_hours: f32,
     watt_hours_chg: f32,
 
-    pub const type_id = PacketType.status_3;
-    pub const schema = .{
-        .watt_hours = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
-        .watt_hours_chg = codec.FixedFloat{ .underlying = i32, .scalar = 10_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .watt_hours = codecs.FixedFloat(i32, @as(f64, 10_000)),
+        .watt_hours_chg = codecs.FixedFloat(i32, @as(f64, 10_000)),
+    });
 };
 
 pub const Status4 = struct {
@@ -90,25 +94,22 @@ pub const Status4 = struct {
     current_in: f32,
     PID_pos: f32,
 
-    pub const type_id = PacketType.status_4;
-    pub const schema = .{
-        .temp_FET = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
-        .temp_motor = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
-        .current_in = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
-        .PID_pos = codec.FixedFloat{ .underlying = i16, .scalar = 50 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .temp_FET = codecs.FixedFloat(i16, @as(f64, 10)),
+        .temp_motor = codecs.FixedFloat(i16, @as(f64, 10)),
+        .current_in = codecs.FixedFloat(i16, @as(f64, 10)),
+        .PID_pos = codecs.FixedFloat(i16, @as(f64, 50)),
+    });
 };
 
 pub const Status5 = struct {
     tachometer: f32,
     volts_in: f32,
 
-    pub const type_id = PacketType.status_5;
-    pub const schema = .{
-        .tachometer = codec.FixedFloat{ .underlying = i32, .scalar = 6 },
-        .volts_in = codec.FixedFloat{ .underlying = i16, .scalar = 10 },
-        // Last 2 bytes are unused
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .tachometer = codecs.FixedFloat(i32, @as(f64, 6)),
+        .volts_in = codecs.FixedFloat(i16, @as(f64, 10)),
+    });
 };
 
 pub const Status6 = struct {
@@ -117,75 +118,97 @@ pub const Status6 = struct {
     ADC3: f32,
     PPM: f32,
 
-    pub const type_id = PacketType.status_6;
-    pub const schema = .{
-        .ADC1 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
-        .ADC2 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
-        .ADC3 = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
-        .PPM = codec.FixedFloat{ .underlying = i16, .scalar = 1_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .ADC1 = codecs.FixedFloat(i16, @as(f64, 1_000)),
+        .ADC2 = codecs.FixedFloat(i16, @as(f64, 1_000)),
+        .ADC3 = codecs.FixedFloat(i16, @as(f64, 1_000)),
+        .PPM = codecs.FixedFloat(i16, @as(f64, 1_000)),
+    });
 };
 
 pub const NotifyBoot = struct {
     hw_name: []const u8,
 
-    pub const type_id = PacketType.notify_boot;
-    pub const schema = .{
-        .hw_name = codec.remaining_bytes,
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .hw_name = codecs.RemainingBytes,
+    });
 };
 
 pub const SetDuty = struct {
     duty: f32,
 
-    pub const type_id = PacketType.set_duty;
-    pub const schema = .{
-        .duty = codec.FixedFloat{ .underlying = i32, .scalar = 100_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .duty = codecs.FixedFloat(i32, @as(f64, 100_000)),
+    });
 };
 
 pub const SetCurrent = struct {
     current: f32,
+    current_off_delay: ?f32 = null,
 
-    pub const type_id = PacketType.set_current;
-    pub const schema = .{
-        .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .current = codecs.FixedFloat(i32, @as(f64, 1_000)),
+        .current_off_delay = codecs.Optional(codecs.FixedFloat(i16, @as(f64, 1_000))),
+    });
 };
 
 pub const SetCurrentBrake = struct {
     current: f32,
 
-    pub const type_id = PacketType.set_current_brake;
-    pub const schema = .{
-        .current = codec.FixedFloat{ .underlying = i32, .scalar = 1_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .current = codecs.FixedFloat(i32, @as(f64, 1_000)),
+    });
 };
 
 pub const SetRPM = struct {
     rpm: f32,
 
-    pub const type_id = PacketType.set_rpm;
-    pub const schema = .{
-        .rpm = codec.FixedFloat{ .underlying = i32, .scalar = 1 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .rpm = codecs.FixedFloat(i32, @as(f64, 1)),
+    });
 };
 
 pub const SetPos = struct {
     degrees: f32,
 
-    pub const type_id = PacketType.set_pos;
-    pub const schema = .{
-        .degrees = codec.FixedFloat{ .underlying = i32, .scalar = 1_000_000 },
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .degrees = codecs.FixedFloat(i32, @as(f64, 1_000_000)),
+    });
+};
+
+pub const Ping = struct {
+    sender_id: u8,
+
+    pub const Codec = codecs.Struct(@This(), .{
+        .sender_id = codecs.Int(u8),
+    });
+};
+
+pub const HardwareType = enum(u8) {
+    vesc = 0,
+    vesc_bms = 1,
+    custom_module = 2,
+
+    pub const Codec = codecs.IntEnum(HardwareType);
+};
+
+pub const Pong = struct {
+    sender_id: u8,
+    hardware_type: ?HardwareType,
+
+    pub const Codec = codecs.Struct(@This(), .{
+        .sender_id = codecs.Int(u8),
+        .hardware_type = codecs.Optional(HardwareType.Codec),
+    });
 };
 
 pub const BufferSendMode = enum(u8) {
-    // TODO: Figure out what these actually do; all I know is there's 4 of them and 0 is default
-    A = 0,
-    B = 1,
-    C = 2,
-    D = 3,
+    request = 0, // Default; recipient VESC processes the command, replies use mode `response`
+    response = 1, // Response from a request; if sent to a VESC, it is forwarded to its last used interface (for VESC tool)
+    request_dont_reply = 2, // Same as request, but no replies are sent
+    request_reply_as_request = 3, // Same as request, but replies are sent with mode `request`. This is used for VESC-to-VESC communication
+
+    pub const Codec = codecs.IntEnum(@This());
 };
 
 pub const ProcessShortBuffer = struct {
@@ -193,34 +216,31 @@ pub const ProcessShortBuffer = struct {
     send_mode: BufferSendMode,
     data: []const u8,
 
-    pub const type_id = PacketType.process_short_buffer;
-    pub const schema = .{
-        .sender_id = codec.int,
-        .send_mode = codec.int_enum,
-        .data = codec.remaining_bytes,
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .sender_id = codecs.Int(u8),
+        .send_mode = BufferSendMode.Codec,
+        .data = codecs.RemainingBytes,
+    });
 };
 
 pub const FillRxBuffer = struct {
     base_index: u8,
     data: []const u8,
 
-    pub const type_id = PacketType.fill_rx_buffer;
-    pub const schema = .{
-        .base_index = codec.int,
-        .data = codec.remaining_bytes,
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .base_index = codecs.Int(u8),
+        .data = codecs.RemainingBytes,
+    });
 };
 
 pub const FillRxBufferLong = struct {
     base_index: u16,
     data: []const u8,
 
-    pub const type_id = PacketType.fill_rx_buffer_long;
-    pub const schema = .{
-        .base_index = codec.int,
-        .data = codec.remaining_bytes,
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .base_index = codecs.Int(u16),
+        .data = codecs.RemainingBytes,
+    });
 };
 
 pub const ProcessRxBuffer = struct {
@@ -229,33 +249,31 @@ pub const ProcessRxBuffer = struct {
     length: u16,
     crc: u16,
 
-    pub const type_id = PacketType.process_rx_buffer;
-    pub const schema = .{
-        .sender_id = codec.int,
-        .send_mode = codec.int_enum,
-        .length = codec.int,
-        .crc = codec.int,
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .sender_id = codecs.Int(u8),
+        .send_mode = BufferSendMode.Codec,
+        .length = codecs.Int(u16),
+        .crc = codecs.Int(u16),
+    });
 };
 
-pub fn parsePacketBody(T: type, data: []const u8, diag: ?*codec.DecodeDiagnostic) codec.DecodeError!T {
-    const packet_codec = codec.structSchema(T.schema);
+pub fn parsePacketBody(T: type, data: []const u8, diag: ?*codecs.DecodeDiagnostic) codecs.DecodeError!T {
     var reader = BufReader.from(data);
-    return try packet_codec.decode(T, &reader, diag);
+    return try T.Codec.decode(&reader, diag);
 }
 
-pub fn parsePacket(packet_type: PacketType, data: []const u8, diag: ?*codec.DecodeDiagnostic) codec.DecodeError!Packet {
-    const fields = std.meta.fields(Packet);
-    inline for (fields) |field| {
-        if (packet_type == @field(PacketType, field.name)) {
-            return @unionInit(Packet, field.name, try parsePacketBody(field.type, data, diag));
+pub fn parsePacket(packet_type: PacketType, data: []const u8, diag: ?*codecs.DecodeDiagnostic) codecs.DecodeError!Packet {
+    const info = @typeInfo(Packet).@"union";
+    inline for (info.field_names, info.field_types) |field_name, field_type| {
+        if (packet_type == @field(PacketType, field_name)) {
+            return @unionInit(Packet, field_name, try parsePacketBody(field_type, data, diag));
         }
     }
     unreachable;
 }
 
-pub const FrameParseError = codec.DecodeError || error{ NonVescFrame, UnknownPacket };
-pub fn parseFrame(frame: CanFrame, diag: ?*codec.DecodeDiagnostic) FrameParseError!struct {
+pub const FrameParseError = codecs.DecodeError || error{ NonVescFrame, UnknownPacket };
+pub fn parseFrame(frame: CanFrame, diag: ?*codecs.DecodeDiagnostic) FrameParseError!struct {
     source_vesc_id: u8,
     packet: Packet,
 } {
@@ -281,11 +299,9 @@ pub const PacketData = struct {
 };
 
 pub fn serializePacketBody(packet: anytype) SerializeError!PacketData {
-    const packet_codec = codec.structSchema(@TypeOf(packet).schema);
-
     var data: PacketData = undefined;
-    var writer = codec.BufWriter.into(&data.data);
-    packet_codec.encode(packet, &writer) catch |err| {
+    var writer = codecs.BufWriter.into(&data.data);
+    @TypeOf(packet).Codec.encode(packet, &writer) catch |err| {
         switch (err) {
             error.BufferTooSmall => return error.PacketTooLarge,
         }
@@ -370,7 +386,7 @@ test "FillRxBufferLong decoding" {
 
 test "ProcessShortBuffer encoding" {
     const data = [_]u8{ 'h', 'e', 'l', 'l', 'o' };
-    const packet = ProcessShortBuffer{ .sender_id = 0x12, .send_mode = .A, .data = &data };
+    const packet = ProcessShortBuffer{ .sender_id = 0x12, .send_mode = .request, .data = &data };
 
     const expected = [_]u8{ 0x12, 0x00, 'h', 'e', 'l', 'l', 'o' };
     const encoded = try serializePacketBody(packet);
@@ -383,6 +399,22 @@ test "ProcessShortBuffer decoding" {
 
     const expected_data = [_]u8{ 'h', 'e', 'l', 'l', 'o' };
     try std.testing.expectEqual(0x12, packet.sender_id);
-    try std.testing.expectEqual(BufferSendMode.A, packet.send_mode);
+    try std.testing.expectEqual(BufferSendMode.request, packet.send_mode);
     try std.testing.expectEqualSlices(u8, &expected_data, packet.data);
+}
+
+test "Pong decode with hardware type" {
+    const encoded = [_]u8{ 0x23, 0x02 };
+    const packet = try parsePacketBody(Pong, &encoded, null);
+
+    try std.testing.expectEqual(0x23, packet.sender_id);
+    try std.testing.expectEqual(.custom_module, packet.hardware_type);
+}
+
+test "Pong decode without hardware type" {
+    const encoded = [_]u8{0x23};
+    const packet = try parsePacketBody(Pong, &encoded, null);
+
+    try std.testing.expectEqual(0x23, packet.sender_id);
+    try std.testing.expectEqual(null, packet.hardware_type);
 }
