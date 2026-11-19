@@ -8,37 +8,32 @@ pub const DecodeDiagnostic = struct {
     byte_position: usize = 0,
 };
 
-pub const empty = Empty{};
-const Empty = struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        if (@TypeOf(value) != void) @compileError("type must be void");
+pub const Empty = struct {
+    pub const Value = void;
+
+    pub fn encodedLength(_: Value) usize {
         return 0;
     }
 
-    pub fn encode(_: @This(), value: anytype, _: *BufWriter) EncodeError!void {
-        if (@TypeOf(value) != void) @compileError("type must be void");
-    }
+    pub fn encode(_: Value, _: *BufWriter) EncodeError!void {}
 
-    pub fn decode(_: @This(), T: type, _: *BufReader, _: ?*DecodeDiagnostic) DecodeError!T {
-        if (T != void) @compileError("type must be void");
+    pub fn decode(_: *BufReader, _: ?*DecodeDiagnostic) DecodeError!Value {
         return {};
     }
 };
 
-pub const boolean = Boolean{};
-const Boolean = struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        if (@TypeOf(value) != bool) @compileError("type must be bool");
+pub const Boolean = struct {
+    pub const Value = bool;
+
+    pub fn encodedLength(_: Value) usize {
         return 1;
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        if (@TypeOf(value) != bool) @compileError("type must be bool");
+    pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
         try writer.write(&.{if (value) 1 else 0});
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        if (T != bool) @compileError("type must be bool");
+    pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
         switch ((try reader.read(1, diag))[0]) {
             0 => return false,
             1 => return true,
@@ -50,171 +45,147 @@ const Boolean = struct {
     }
 };
 
-pub const int = Int{};
-const Int = struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        const T = @TypeOf(value);
-        if (@typeInfo(T) != .int) @compileError("type must be an integer");
-        if (@bitSizeOf(T) % 8 != 0) @compileError("integer must be a multiple of 8 bits");
-        return @sizeOf(T);
-    }
+pub fn Int(T: type) type {
+    if (@typeInfo(T) != .int) @compileError("type must be an integer");
+    if (@bitSizeOf(T) % 8 != 0) @compileError("integer must have a multiple of 8 bits");
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        const T = @TypeOf(value);
-        if (@typeInfo(T) != .int) @compileError("type must be an integer");
-        if (@bitSizeOf(T) % 8 != 0) @compileError("integer must be a multiple of 8 bits");
+    return struct {
+        pub const Value = T;
 
-        const dest = try writer.writable(@sizeOf(T));
-        std.mem.writeInt(T, dest[0..@sizeOf(T)], value, .big);
-    }
-
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        if (@typeInfo(T) != .int) @compileError("type must be an integer");
-        if (@bitSizeOf(T) % 8 != 0) @compileError("integer must be a multiple of 8 bits");
-
-        const data = try reader.read(@sizeOf(T), diag);
-        const raw: T = std.mem.bytesToValue(T, data);
-        return std.mem.bigToNative(T, raw);
-    }
-};
-
-pub const int_enum = IntEnum{};
-const IntEnum = struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        switch (@typeInfo(@TypeOf(value))) {
-            .@"enum" => |e| return @sizeOf(e.tag_type),
-            else => @compileError("type must be an enum"),
+        pub fn encodedLength(_: Value) usize {
+            return @sizeOf(T);
         }
-    }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        if (@typeInfo(@TypeOf(value)) != .@"enum") @compileError("type must be an enum");
-        try int.encode(@backingInt(value), writer);
-    }
-
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        const TagT = switch (@typeInfo(T)) {
-            .@"enum" => |e| e.tag_type,
-            else => @compileError("type must be an enum"),
-        };
-
-        if (std.enums.fromInt(T, try int.decode(TagT, reader, diag))) |v| {
-            return v;
-        } else {
-            reader.putDiagnostic("invalid enum value", diag);
-            return error.DecodeFailed;
+        pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
+            const dest = try writer.writable(@sizeOf(T));
+            std.mem.writeInt(T, dest[0..@sizeOf(T)], value, .big);
         }
-    }
-};
 
-pub const auto_f32 = AutoF32{};
-const AutoF32 = struct {
-    // TODO
-};
-
-pub const FixedFloat = struct {
-    underlying: type,
-    scalar: f32,
-
-    // Most places use f64 scale factor, but some use f32 which gives very slightly different rounding
-    use_f64_scale: bool = true,
-
-    pub fn encodedLength(self: @This(), value: anytype) usize {
-        _ = value;
-        return @sizeOf(self.underlying);
-    }
-
-    pub fn encode(self: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        if (@TypeOf(value) != f32) @compileError("type must be f32");
-
-        const underlying: self.underlying = if (self.use_f64_scale)
-            @trunc(@as(f64, value) * self.scalar)
-        else
-            @trunc(value * @as(f32, self.scalar));
-
-        try int.encode(underlying, writer);
-    }
-
-    pub fn decode(self: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        if (T != f32) @compileError("type must be f32");
-        const underlying = try int.decode(self.underlying, reader, diag);
-        return @as(f32, @floatFromInt(underlying)) / @as(f32, self.scalar);
-    }
-};
-
-pub fn array(child_codec: anytype) struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        if (@typeInfo(@TypeOf(value)) != .array) @compileError("type must be an array");
-
-        var total_len: usize = 0;
-        for (value) |elem| {
-            total_len += child_codec.encodedLength(elem);
+        pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
+            const data = try reader.read(@sizeOf(T), diag);
+            const raw = std.mem.bytesToValue(T, data);
+            return std.mem.bigToNative(T, raw);
         }
-        return total_len;
-    }
-
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        if (@typeInfo(@TypeOf(value)) != .array) @compileError("type must be an array");
-        for (value) |elem| {
-            try child_codec.encode(elem, writer);
-        }
-    }
-
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        const info = switch (@typeInfo(T)) {
-            .array => |i| i,
-            else => @compileError("type must be an array"),
-        };
-
-        var value: [info.len]info.child = undefined;
-        for (0..info.len) |i| {
-            value[i] = try child_codec.decode(info.child, reader, diag);
-        }
-        return value;
-    }
-} {
-    return .{};
+    };
 }
 
-// Reads the field only if the input buffer has remaining data
+pub fn IntEnum(T: type) type {
+    const tag_type = switch (@typeInfo(T)) {
+        .@"enum" => |e| e.tag_type,
+        else => @compileError("type must be an enum"),
+    };
+    const TagCodec = Int(tag_type);
+
+    return struct {
+        pub const Value = T;
+
+        pub fn encodedLength(value: Value) usize {
+            return TagCodec.encodedLength(@backingInt(value));
+        }
+
+        pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
+            try TagCodec.encode(@backingInt(value), writer);
+        }
+
+        pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
+            const tag = try TagCodec.decode(reader, diag);
+            if (std.enums.fromInt(T, tag)) |v| {
+                return v;
+            } else {
+                reader.putDiagnostic("invalid enum value", diag);
+                return error.DecodeFailed;
+            }
+        }
+    };
+}
+
+pub fn FixedFloat(Underlying: type, scalar: anytype) type {
+    const UnderlyingCodec = Int(Underlying);
+
+    return struct {
+        pub const Value = f32;
+
+        pub fn encodedLength(_: Value) usize {
+            return @sizeOf(Underlying);
+        }
+
+        pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
+            const underlying: Underlying = @trunc(value * scalar);
+            try UnderlyingCodec.encode(underlying, writer);
+        }
+
+        pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
+            const underlying = try UnderlyingCodec.decode(reader, diag);
+            return @as(f32, @floatFromInt(underlying)) / @as(f32, scalar);
+        }
+    };
+}
+
+pub fn Array(len: usize, ChildCodec: type) type {
+    return struct {
+        pub const Value = [len]ChildCodec.Value;
+
+        pub fn encodedLength(value: Value) usize {
+            var total_len: usize = 0;
+            for (value) |elem| {
+                total_len += ChildCodec.encodedLength(elem);
+            }
+            return total_len;
+        }
+
+        pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
+            for (value) |elem| {
+                try ChildCodec.encode(elem, writer);
+            }
+        }
+
+        pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
+            var value: Value = undefined;
+            for (0..len) |i| {
+                value[i] = try ChildCodec.decode(reader, diag);
+            }
+            return value;
+        }
+    };
+}
+
+// Reads as present only if the input buffer has remaining data
 // Can only be read reliably if it is placed at the end of the buffer
-pub fn optional(child_codec: anytype) struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        if (@typeInfo(@TypeOf(value)) != .optional) @compileError("type must be optional (? prefix)");
-        if (value) |v| {
-            return child_codec.encodedLength(v);
-        } else {
-            return 0;
-        }
-    }
+pub fn Optional(ChildCodec: type) type {
+    return struct {
+        pub const Value = ?ChildCodec.Value;
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        if (@typeInfo(@TypeOf(value)) != .optional) @compileError("type must be optional (? prefix)");
-        if (value) |v| {
-            try child_codec.encode(v, writer);
+        pub fn encodedLength(value: Value) usize {
+            if (value) |v| {
+                return ChildCodec.encodedLength(v);
+            } else {
+                return 0;
+            }
         }
-    }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        const InnerT = switch (@typeInfo(T)) {
-            .optional => |info| info.child,
-            else => @compileError("type must be optional (? prefix)"),
-        };
-
-        if (reader.remaining() > 0) {
-            return try child_codec.decode(InnerT, reader, diag);
-        } else {
-            return null;
+        pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
+            if (value) |v| {
+                try ChildCodec.encode(v, writer);
+            }
         }
-    }
-} {
-    return .{};
+
+        pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
+            if (reader.remaining() > 0) {
+                return try ChildCodec.decode(reader, diag);
+            } else {
+                return null;
+            }
+        }
+    };
 }
 
-fn validateStructSchema(T: type, schema: anytype) void {
+// Serialization order of fields is determined by the order in the schema
+pub fn Struct(T: type, schema: anytype) type {
     if (@typeInfo(T) != .@"struct") @compileError("type must be a struct");
 
     const SchemaT = @TypeOf(schema);
+    if (@typeInfo(SchemaT) != .@"struct") @compileError("schema must be a struct");
+
     inline for (@typeInfo(T).@"struct".field_names) |field_name| {
         if (!@hasField(SchemaT, field_name)) {
             @compileError("missing schema for field `" ++ field_name ++ "`");
@@ -225,55 +196,46 @@ fn validateStructSchema(T: type, schema: anytype) void {
             @compileError("no field found for schema entry `" ++ field_name ++ "`");
         }
     }
+    const field_names = @typeInfo(SchemaT).@"struct".field_names;
+
+    return struct {
+        pub const Value = T;
+
+        pub fn encodedLength(value: Value) usize {
+            var total_len: usize = 0;
+            inline for (field_names) |field_name| {
+                const field_codec = @field(schema, field_name);
+                const field_value = @field(value, field_name);
+                total_len += field_codec.encodedLength(field_value);
+            }
+            return total_len;
+        }
+
+        pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
+            inline for (field_names) |field_name| {
+                const field_codec = @field(schema, field_name);
+                const field_value = @field(value, field_name);
+                try field_codec.encode(field_value, writer);
+            }
+        }
+
+        pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
+            var value: Value = undefined;
+            inline for (field_names) |field_name| {
+                const field_codec = @field(schema, field_name);
+                @field(value, field_name) = try field_codec.decode(reader, diag);
+            }
+            return value;
+        }
+    };
 }
 
-pub fn structSchema(schema: anytype) struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        validateStructSchema(@TypeOf(value), schema);
-
-        const SchemaT = @TypeOf(schema);
-        var total_len: usize = 0;
-        inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
-            const field_codec = @field(schema, field_name);
-            const field_value = @field(value, field_name);
-            total_len += field_codec.encodedLength(field_value);
-        }
-        return total_len;
-    }
-
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        const T = @TypeOf(value);
-        validateStructSchema(T, schema);
-
-        const SchemaT = @TypeOf(schema);
-        inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
-            const field_codec = @field(schema, field_name);
-            const field_value = @field(value, field_name);
-            try field_codec.encode(field_value, writer);
-        }
-    }
-
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        validateStructSchema(T, schema);
-
-        const SchemaT = @TypeOf(schema);
-        var value: T = undefined;
-        inline for (@typeInfo(SchemaT).@"struct".field_names) |field_name| {
-            const field_codec = @field(schema, field_name);
-            const FieldType = @FieldType(T, field_name);
-            @field(value, field_name) = try field_codec.decode(FieldType, reader, diag);
-        }
-
-        return value;
-    }
-} {
-    return .{};
-}
-
-fn validateUnionSchema(T: type, schema: anytype) void {
+pub fn PrefixedUnion(T: type, TagCodec: type, schema: anytype) type {
     if (@typeInfo(T) != .@"union") @compileError("type must be a union");
 
     const SchemaT = @TypeOf(schema);
+    if (@typeInfo(SchemaT) != .@"struct") @compileError("schema must be a struct");
+
     inline for (@typeInfo(T).@"union".field_names) |field_name| {
         if (!@hasField(SchemaT, field_name)) {
             @compileError("missing schema for field `" ++ field_name ++ "`");
@@ -284,87 +246,79 @@ fn validateUnionSchema(T: type, schema: anytype) void {
             @compileError("no field found for schema entry `" ++ field_name ++ "`");
         }
     }
-}
+    const field_names = @typeInfo(SchemaT).@"struct".field_names;
 
-pub fn prefixedUnionSchema(tag_codec: anytype, schema: anytype) struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        validateUnionSchema(@TypeOf(value), schema);
+    return struct {
+        pub const Value = T;
 
-        switch (value) {
-            inline else => |content, tag| {
-                const prefix_len = tag_codec.encodedLength(tag);
-                const content_codec = @field(schema, @tagName(tag));
-                const content_len = content_codec.encodedLength(content);
-                return prefix_len + content_len;
-            },
-        }
-    }
-
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        validateUnionSchema(@TypeOf(value), schema);
-
-        switch (value) {
-            inline else => |content, tag| {
-                try tag_codec.encode(tag, writer);
-                const content_codec = @field(schema, @tagName(tag));
-                try content_codec.encode(content, writer);
-            },
-        }
-    }
-
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        validateUnionSchema(T, schema);
-
-        const TagT = std.meta.Tag(T);
-        const tag = try tag_codec.decode(TagT, reader, diag);
-
-        const info = @typeInfo(T).@"union";
-        inline for (info.field_names, info.field_types) |field_name, field_type| {
-            if (tag == @field(TagT, field_name)) {
-                const content_codec = @field(schema, field_name);
-                return @unionInit(T, field_name, try content_codec.decode(field_type, reader, diag));
+        pub fn encodedLength(value: Value) usize {
+            switch (value) {
+                inline else => |content, tag| {
+                    const prefix_len = TagCodec.encodedLength(tag);
+                    const content_codec = @field(schema, @tagName(tag));
+                    const content_len = content_codec.encodedLength(content);
+                    return prefix_len + content_len;
+                },
             }
         }
-        unreachable;
-    }
-} {
-    return .{};
+
+        pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
+            switch (value) {
+                inline else => |content, tag| {
+                    try TagCodec.encode(tag, writer);
+                    const content_codec = @field(schema, @tagName(tag));
+                    try content_codec.encode(content, writer);
+                },
+            }
+        }
+
+        pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
+            const TagT = std.meta.Tag(T);
+            const tag = try TagCodec.decode(reader, diag);
+
+            inline for (field_names) |field_name| {
+                const field_tag = @field(TagT, field_name);
+                if (tag == field_tag) {
+                    const content_codec = @field(schema, field_name);
+                    const value = try content_codec.decode(reader, diag);
+                    return @unionInit(T, field_name, value);
+                }
+            }
+            unreachable;
+        }
+    };
 }
 
-pub const null_terminated = NullTerminated{};
-const NullTerminated = struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        if (@TypeOf(value) != []const u8) @compileError("type must be []const u8");
+pub const NullTerminatedBytes = struct {
+    pub const Value = []const u8;
+
+    pub fn encodedLength(value: Value) usize {
         return value.len + 1;
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        if (@TypeOf(value) != []const u8) @compileError("type must be []const u8");
+    pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
         try writer.write(value);
         try writer.write(&.{0});
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        if (T != []const u8) @compileError("type must be []const u8");
+    pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
         const with_null = try reader.readUntil(0, diag);
         return with_null[0..(with_null.len - 1)];
     }
 };
 
-pub const remaining_bytes = RemainingBytes{};
-const RemainingBytes = struct {
-    pub fn encodedLength(_: @This(), value: anytype) usize {
-        if (@TypeOf(value) != []const u8) @compileError("type must be []const u8");
+pub const RemainingBytes = struct {
+    pub const Value = []const u8;
+
+    pub fn encodedLength(value: Value) usize {
         return value.len;
     }
 
-    pub fn encode(_: @This(), value: anytype, writer: *BufWriter) EncodeError!void {
-        if (@TypeOf(value) != []const u8) @compileError("type must be []const u8");
+    pub fn encode(value: Value, writer: *BufWriter) EncodeError!void {
         try writer.write(value);
     }
 
-    pub fn decode(_: @This(), T: type, reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!T {
-        if (T != []const u8) @compileError("type must be []const u8");
+    pub fn decode(reader: *BufReader, diag: ?*DecodeDiagnostic) DecodeError!Value {
         return try reader.read(reader.remaining(), diag);
     }
 };
@@ -449,18 +403,23 @@ pub const BufWriter = struct {
 
 test "codec" {
     const PatternType = enum(u8) { solid = 0, stripes = 1 };
+
     const Pattern = union(PatternType) {
         solid: void,
         stripes: u8,
-        const schema = .{
-            .solid = empty,
-            .stripes = int,
-        };
+
+        pub const Codec = PrefixedUnion(@This(), IntEnum(PatternType), .{
+            .solid = Empty,
+            .stripes = Int(u8),
+        });
     };
+
+    const FurColor = enum(u8) { black = 0, gray = 1, orange = 2 };
+
     const Cat = struct {
         adult: bool,
         leg_count: u16,
-        fur_color: enum(u8) { black = 0, gray = 1, orange = 2 },
+        fur_color: FurColor,
         pattern: Pattern,
         weight: f32,
         ear_angles: [2]f32,
@@ -468,17 +427,17 @@ test "codec" {
         favorite_word: []const u8,
         name: []const u8,
 
-        pub const schema = .{
-            .adult = boolean,
-            .leg_count = int,
-            .fur_color = int_enum,
-            .pattern = prefixedUnionSchema(int_enum, Pattern.schema),
-            .weight = FixedFloat{ .underlying = i16, .scalar = 100 },
-            .ear_angles = array(FixedFloat{ .underlying = i8, .scalar = 10 }),
-            .ghost = empty,
-            .favorite_word = null_terminated,
-            .name = remaining_bytes,
-        };
+        pub const Codec = Struct(@This(), .{
+            .adult = Boolean,
+            .leg_count = Int(u16),
+            .fur_color = IntEnum(FurColor),
+            .pattern = Pattern.Codec,
+            .weight = FixedFloat(i16, @as(f64, 100)),
+            .ear_angles = Array(2, FixedFloat(i8, @as(f64, 10))),
+            .ghost = Empty,
+            .favorite_word = NullTerminatedBytes,
+            .name = RemainingBytes,
+        });
     };
 
     const original_cat = Cat{
@@ -493,16 +452,15 @@ test "codec" {
         .name = "kit",
     };
     const encoded_cat = [_]u8{ 0x01, 0x00, 0x04, 0x01, 0x01, 0x0c, 0x04, 0xce, 0x64, 0x78, 'f', 'o', 'o', 'd', 0x00, 'k', 'i', 't' };
-    const cat_codec = structSchema(Cat.schema);
 
-    try std.testing.expectEqual(encoded_cat.len, cat_codec.encodedLength(original_cat));
+    try std.testing.expectEqual(encoded_cat.len, Cat.Codec.encodedLength(original_cat));
 
     var buf: [encoded_cat.len]u8 = undefined;
     var buf_writer = BufWriter.into(&buf);
-    try cat_codec.encode(original_cat, &buf_writer);
+    try Cat.Codec.encode(original_cat, &buf_writer);
     try std.testing.expectEqualSlices(u8, &encoded_cat, buf_writer.writtenData());
 
     var buf_reader = BufReader.from(&encoded_cat);
-    const decoded_cat = try cat_codec.decode(Cat, &buf_reader, null);
+    const decoded_cat = try Cat.Codec.decode(&buf_reader, null);
     try std.testing.expectEqualDeep(original_cat, decoded_cat);
 }

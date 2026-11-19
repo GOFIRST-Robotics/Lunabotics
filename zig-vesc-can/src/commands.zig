@@ -18,29 +18,33 @@ pub const RequestType = enum(u8) {
 pub const Request = union(RequestType) {
     get_fw_version,
 
-    pub const schema = .{
-        .get_fw_version = codecs.empty,
-    };
+    pub const Codec = codecs.PrefixedUnion(@This(), codecs.IntEnum(RequestType), .{
+        .get_fw_version = codecs.Empty,
+    });
 };
 
 // Responses
 
 pub const ResponseType = enum(u8) {
     fw_version = 0,
+
+    pub const Codec = codecs.IntEnum(@This());
 };
 
 pub const Response = union(ResponseType) {
     fw_version: FirmwareVersionInfo,
 
-    pub const schema = .{
-        .fw_version = codecs.structSchema(FirmwareVersionInfo.schema),
-    };
+    pub const Codec = codecs.PrefixedUnion(@This(), ResponseType.Codec, .{
+        .fw_version = FirmwareVersionInfo.Codec,
+    });
 };
 
 pub const QmlUIMode = enum(u8) {
     none = 0,
     not_fullscreen = 1,
     fullscreen = 2,
+
+    pub const Codec = codecs.IntEnum(@This());
 };
 
 pub const FirmwareVersionInfo = struct {
@@ -60,23 +64,23 @@ pub const FirmwareVersionInfo = struct {
     firmware_name: []const u8,
     hardware_crc: u32,
 
-    pub const schema = .{
-        .firmware_version_major = codecs.int,
-        .firmware_version_minor = codecs.int,
-        .hardware_name = codecs.null_terminated,
-        .stm32_uid = codecs.array(codecs.int),
-        .pairing_done = codecs.boolean,
-        .firmware_test_version_number = codecs.int,
-        .hardware_type = codecs.int_enum,
-        .has_custom_config = codecs.boolean,
-        .has_phase_filters = codecs.boolean,
-        .qmlui_hardware_mode = codecs.int_enum,
-        .qmlui_app_mode = codecs.int_enum,
-        .qml_code_flags = codecs.int,
-        .nrf_flags = codecs.int,
-        .firmware_name = codecs.null_terminated,
-        .hardware_crc = codecs.int,
-    };
+    pub const Codec = codecs.Struct(@This(), .{
+        .firmware_version_major = codecs.Int(u8),
+        .firmware_version_minor = codecs.Int(u8),
+        .hardware_name = codecs.NullTerminatedBytes,
+        .stm32_uid = codecs.Array(12, codecs.Int(u8)),
+        .pairing_done = codecs.Boolean,
+        .firmware_test_version_number = codecs.Int(u8),
+        .hardware_type = packets.HardwareType.Codec,
+        .has_custom_config = codecs.Boolean,
+        .has_phase_filters = codecs.Boolean,
+        .qmlui_hardware_mode = QmlUIMode.Codec,
+        .qmlui_app_mode = QmlUIMode.Codec,
+        .qml_code_flags = codecs.Int(u8),
+        .nrf_flags = codecs.Int(u8),
+        .firmware_name = codecs.NullTerminatedBytes,
+        .hardware_crc = codecs.Int(u32),
+    });
 };
 
 // IO
@@ -151,16 +155,14 @@ pub const CommandReceiver = struct {
 
     fn processBuffer(sender_id: u8, send_mode: packets.BufferSendMode, buffer: []const u8) !IncomingCommand {
         if (send_mode == .response) {
-            const response_codec = codecs.prefixedUnionSchema(codecs.int_enum, Response.schema);
             var reader = codecs.BufReader.from(buffer);
-            const response = try response_codec.decode(Response, &reader, null);
+            const response = try Response.Codec.decode(&reader, null);
 
             return .{ .response = .{ .sender_id = sender_id, .body = response } };
         } else {
             // Request
-            const request_codec = codecs.prefixedUnionSchema(codecs.int_enum, Request.schema);
             var reader = codecs.BufReader.from(buffer);
-            const request = try request_codec.decode(Request, &reader, null);
+            const request = try Request.Codec.decode(&reader, null);
 
             return .{ .request = .{
                 .sender_id = sender_id,
@@ -215,12 +217,9 @@ pub fn sendRequest(io: Io, socket: BcmCanSocket, request: OutgoingRequest, diag:
         .reply_as_request => .request_reply_as_request,
     };
 
-    // TODO: codec idea: rename to codecs to prevent shadowing, then change struct/enum definitions
-    //   to hold a codec within them
-    const request_codec = codecs.prefixedUnionSchema(codecs.int_enum, Request.schema);
     var buffer: [max_length]u8 = undefined;
     var writer = codecs.BufWriter.into(&buffer);
-    request_codec.encode(request.body, &writer) catch |err| {
+    Request.Codec.encode(request.body, &writer) catch |err| {
         switch (err) {
             error.BufferTooSmall => return error.CommandTooLarge,
         }
@@ -236,10 +235,9 @@ pub const OutgoingResponse = struct {
 };
 
 pub fn sendResponse(io: Io, socket: BcmCanSocket, response: OutgoingResponse, diag: ?*WriteDiagnostic) SendError!void {
-    const response_codec = codecs.prefixedUnionSchema(codecs.int_enum, Response.schema);
     var buffer: [max_length]u8 = undefined;
     var writer = codecs.BufWriter.into(&buffer);
-    response_codec.encode(response.body, &writer) catch |err| {
+    Response.Codec.encode(response.body, &writer) catch |err| {
         switch (err) {
             error.BufferTooSmall => return error.CommandTooLarge,
         }
