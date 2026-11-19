@@ -3,18 +3,16 @@ const linux = std.os.linux;
 const Io = std.Io;
 
 const MFR = @import("MFR");
-const zig_vesc_can = @import("zig-vesc-can");
 const Foxglove = MFR.Foxglove;
-
 const TeleopStateMachineNode = MFR.TeleopStateMachineNode;
 const MechanismNode = MFR.MechanismNode;
 const CANOutNode = MFR.CANOutNode;
 const CANInNode = MFR.CANInNode;
 const ServerNode = MFR.ServerNode;
-
 const config = MFR.config;
 const on_jetson = config.on_jetson;
 const creation = MFR.creation;
+const zig_vesc_can = @import("zig-vesc-can");
 
 const logger = std.log.scoped(.main);
 
@@ -78,7 +76,7 @@ pub fn main(init: std.process.Init) !void {
     // create nodes
     var nodes: NodesType = undefined;
     nodes.ServerNode.init(robot_io);
-    nodes.TeleopStateMachine.init();
+    nodes.TeleopStateMachine.init(robot_io);
 
     var async_group: Io.Group = .init;
     try async_group.concurrent(
