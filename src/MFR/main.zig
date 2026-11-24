@@ -82,7 +82,8 @@ pub fn main(init: std.process.Init) !void {
     const can_socket = zig_vesc_can.can.openSocket(canbus_name, null) catch std.debug.panic("failed to connect to CAN bus '{s}'\n", .{canbus_name.*});
     defer zig_vesc_can.can.closeSocket(can_socket);
 
-    try can_bus.initMotors(robot_io, can_socket);
+    // Feature is not complete yet
+    // try can_bus.initMotors(robot_io, can_socket);
 
     // create nodes
     var nodes: NodesType = undefined;
